@@ -43,13 +43,13 @@ after(async () => {
 
 let n = 0;
 /** A selected article with full text and a summary. */
-async function article(): Promise<string> {
+async function article(category = "fiscal-policy"): Promise<string> {
   n += 1;
   const { articleId } = await upsertMaterial({
     sourceId: SOURCE, url: `https://example.com/${T}-${n}`, title: `Test ${n}`, bodyText: BODY, bodyHtml: `<p>${BODY}</p>`, bodyStatus: "ok", via: "fetch", publishedAt: new Date(),
   });
   await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, reason_zh, score, selected)
-            VALUES (${articleId}, 1, 'rule', 'pass', 'ai-models', ${`标题${n}-${T}`}, ${`SUMMARY-${n}-${T}`}, '理由', 90, true)`;
+            VALUES (${articleId}, 1, 'rule', 'pass', ${category}, ${`标题${n}-${T}`}, ${`SUMMARY-${n}-${T}`}, '理由', 90, true)`;
   return articleId;
 }
 
@@ -68,6 +68,21 @@ async function get(url: string, headers: Record<string, string> = {}) {
   const res = await app.inject({ method: "GET", url, headers });
   return { status: res.statusCode, body: res.body, etag: res.headers.etag as string | undefined };
 }
+
+test("v1 items and RSS category feeds filter by the current industry category exactly", async () => {
+  const fiscalId = await article("fiscal-policy");
+  const debtId = await article("government-debt");
+  await publishArticle(fiscalId, released());
+  await publishArticle(debtId, released());
+
+  const api = JSON.parse((await get("/api/v1/items?mode=selected&window=7d&category=fiscal-policy")).body);
+  assert.ok(api.items.some((item: { id: string }) => item.id === fiscalId));
+  assert.ok(!api.items.some((item: { id: string }) => item.id === debtId));
+
+  const feed = (await get("/feed/category/fiscal-policy.xml")).body;
+  assert.ok(feed.includes(fiscalId));
+  assert.ok(!feed.includes(debtId));
+});
 
 test("site reading sends one language while exports retain both, including after withdrawal", async () => {
   const id = await article();
