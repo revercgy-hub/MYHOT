@@ -10,7 +10,8 @@ import { BudgetExceededError } from "../providers/receipts.ts";
 import { getArticle } from "../providers/socialdata.ts";
 import { onlyXArticleLink, xArticleText } from "../sources/x.ts";
 import { sanitizeBody, trimTrailingChrome } from "./sanitize.ts";
-import { extractSelectedBody, type BodyIdentity, type SelectedBodyConfig } from "./selected-body.ts";
+import type { BodyIdentity } from "./selected-body.ts";
+import { extractConfiguredHtmlBody, extractDirectPdfBody, type PdfFetcher, type PdfSourceBodyConfig } from "./pdf-body.ts";
 import { contentHash } from "./materials.ts";
 
 export interface ExtractedBody {
@@ -69,25 +70,40 @@ function markdownToHtml(md: string): string {
     .join("");
 }
 
-export async function extractFromUrl(url: string, opts: { allowJina: boolean; subject: string; selectedBody?: { config: SelectedBodyConfig; expected: BodyIdentity }; onSelectedBodyFailure?: (reason: string) => void }): Promise<ExtractedBody | null> {
+export async function extractFromUrl(url: string, opts: { allowJina: boolean; subject: string; selectedBody?: { config: PdfSourceBodyConfig; expected: BodyIdentity; allowUrlPrefixes: string[] }; onSelectedBodyFailure?: (reason: string) => void; fetcher?: PdfFetcher }): Promise<ExtractedBody | null> {
+  const fetcher = opts.fetcher ?? guardedFetch;
+  if (opts.selectedBody?.config.pdfDirect === true) {
+    const result = await extractDirectPdfBody(url, opts.selectedBody.expected.title, opts.selectedBody.allowUrlPrefixes, fetcher);
+    if (!result.body) opts.onSelectedBodyFailure?.(result.reason ?? "pdf_body_unconfirmed");
+    return result.body;
+  }
   try {
-    const res = await guardedFetch(url, { timeoutMs: 20_000, maxBytes: 6 * 1024 * 1024 });
+    const res = await fetcher(url, { timeoutMs: 20_000, maxBytes: 6 * 1024 * 1024 });
     const type = res.headers.get("content-type") ?? "";
     if (res.status === 200 && /html/.test(type)) {
       if (opts.selectedBody) {
-        // A configured selector is a strict source contract. Never fall back to Readability or Jina
-        // when it is absent, ambiguous, or fails the page identity/completeness checks.
-        const result = extractSelectedBody(res.text(), res.url, opts.selectedBody.config, opts.selectedBody.expected);
+        // One configured body driver is shared with detail prefetch. A failed attachment never
+        // downgrades to the HTML notice and never falls through to Readability or Jina.
+        const result = await extractConfiguredHtmlBody(res.text(), res.url, opts.selectedBody.config, opts.selectedBody.expected,
+          opts.selectedBody.allowUrlPrefixes, fetcher);
         if (!result.body && result.reason) opts.onSelectedBodyFailure?.(result.reason);
         return result.body;
       }
       const got = readable(res.text(), res.url);
       if (got) return got;
     }
+    if (opts.selectedBody) {
+      opts.onSelectedBodyFailure?.(res.status === 200 ? "article_not_html" : "article_http_status");
+      return null;
+    }
   } catch {
+    if (opts.selectedBody) {
+      opts.onSelectedBodyFailure?.("article_fetch_failed");
+      return null;
+    }
     // fall through to Jina
   }
-  if (!opts.allowJina) return null;
+  if (opts.selectedBody || !opts.allowJina) return null;
   try {
     const page = await jinaRead(url, { purpose: "body_fallback", subject: opts.subject });
     const html = trimTrailingChrome(sanitizeBody(markdownToHtml(page.markdown), url));
@@ -120,8 +136,17 @@ export async function extractArticleBody(articleId: string, allowJina = process.
   if (a.x_post?.tweetId) return extractXArticle(a.id, a.x_post.tweetId);
   const detail = a.source_config.detail ?? {};
   const bodySelector = typeof detail.bodySelector === "string" ? detail.bodySelector : undefined;
-  const selectedBody = bodySelector
-    ? { config: { bodySelector, allowShortBody: detail.allowShortBody === true, publishedAtUtcOffset: detail.publishedAtUtcOffset ?? a.source_config.publishedAtUtcOffset }, expected: { title: a.title, publishedAt: a.published_at } }
+  const pdfBodyConfigured = detail.pdfDirect === true || typeof detail.attachmentSelector === "string";
+  const selectedBody = bodySelector || pdfBodyConfigured
+    ? { config: {
+        bodySelector,
+        allowShortBody: detail.allowShortBody === true,
+        publishedAtUtcOffset: detail.publishedAtUtcOffset ?? a.source_config.publishedAtUtcOffset,
+        articleSelector: detail.articleSelector,
+        attachmentSelector: detail.attachmentSelector,
+        attachmentMode: detail.attachmentMode,
+        pdfDirect: detail.pdfDirect === true,
+      }, expected: { title: a.title, publishedAt: a.published_at }, allowUrlPrefixes: a.source_config.allowUrlPrefixes ?? [] }
     : undefined;
   let selectedFailure: string | null = null;
   const got = await extractFromUrl(a.url, {

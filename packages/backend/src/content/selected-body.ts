@@ -10,6 +10,12 @@ export interface SelectedBodyConfig {
   publishedAtUtcOffset?: string;
 }
 
+export interface SelectedArticleEnvelopeConfig extends SelectedBodyConfig {
+  articleSelector: string;
+  attachmentSelector: string;
+  attachmentMode?: "required" | "optional";
+}
+
 export interface BodyIdentity {
   title: string;
   publishedAt: Date | null;
@@ -19,6 +25,12 @@ export interface SelectedBodyResult {
   body: ExtractedBody | null;
   reason: "selector_missing" | "selector_not_unique" | "non_article_container" | "empty_body" | "short_body_not_allowed" | "identity_missing" | "identity_mismatch" | "attachments_unprocessed" | null;
   attachments: Array<{ url: string; title: string }>;
+}
+
+export interface SelectedArticleEnvelopeResult {
+  body: ExtractedBody | null;
+  attachment: { url: string; title: string } | null;
+  reason: "article_missing" | "article_not_unique" | "body_missing" | "body_not_unique" | "attachment_region_not_unique" | "attachment_required" | "attachment_ambiguous" | "attachment_unsupported" | "attachment_unclassified" | "attachment_url_invalid" | SelectedBodyResult["reason"];
 }
 
 const BLOCKED_CONTAINERS = "nav,header,footer,aside,form,template,[role='navigation']";
@@ -107,6 +119,7 @@ export function extractSelectedBody(
   url: string,
   config: SelectedBodyConfig,
   expected: BodyIdentity,
+  options: { pdfAttachmentsPrevalidated?: boolean } = {},
 ): SelectedBodyResult {
   const selector = config.bodySelector?.trim();
   if (!selector) return { body: null, reason: "selector_missing", attachments: [] };
@@ -127,8 +140,8 @@ export function extractSelectedBody(
   const rawText = collapseWhitespace(selected.text());
   if (!rawText || !textOutsideLinks) return { body: null, reason: "empty_body", attachments: pdfLinks($, url) };
 
-  const attachments = pdfLinks($, url);
-  if (attachments.length > 0) return { body: null, reason: "attachments_unprocessed", attachments };
+  const attachments = options.pdfAttachmentsPrevalidated ? [] : pdfLinks($, url);
+  if (!options.pdfAttachmentsPrevalidated && attachments.length > 0) return { body: null, reason: "attachments_unprocessed", attachments };
   const pageIdentity = identityFromHtml($, config.publishedAtUtcOffset ?? "+08:00");
   if (!pageIdentity?.publishedAt || !expected.title.trim() || !expected.publishedAt) {
     return { body: null, reason: "identity_missing", attachments };
@@ -147,4 +160,72 @@ export function extractSelectedBody(
     return { body: null, reason: "short_body_not_allowed", attachments };
   }
   return { body: { html: clean, text, images: imagesFromHtml(clean), via: "selector" }, reason: null, attachments };
+}
+
+/**
+ * Select a single article envelope, its clean-body child and (optionally) its download region.
+ * Only anchors inside the configured region count; unrelated page links are never scanned.
+ */
+export function extractSelectedArticleEnvelope(
+  html: string,
+  url: string,
+  config: SelectedArticleEnvelopeConfig,
+  expected: BodyIdentity,
+): SelectedArticleEnvelopeResult {
+  const $ = cheerio.load(html, null, false);
+  let articles: cheerio.Cheerio<any>;
+  try { articles = $(config.articleSelector); } catch { return { body: null, attachment: null, reason: "article_missing" }; }
+  if (!articles.length) return { body: null, attachment: null, reason: "article_missing" };
+  if (articles.length !== 1) return { body: null, attachment: null, reason: "article_not_unique" };
+  const article = articles.first();
+  let bodies: cheerio.Cheerio<any>;
+  let regions: cheerio.Cheerio<any>;
+  try {
+    bodies = article.find(config.bodySelector ?? "");
+    regions = article.find(config.attachmentSelector);
+  } catch { return { body: null, attachment: null, reason: "body_missing" }; }
+  if (!bodies.length) return { body: null, attachment: null, reason: "body_missing" };
+  if (bodies.length !== 1) return { body: null, attachment: null, reason: "body_not_unique" };
+  if (regions.length > 1) return { body: null, attachment: null, reason: "attachment_region_not_unique" };
+
+  let attachment: { url: string; title: string } | null = null;
+  const selectedAnchors = new Set<object>();
+  if (regions.length === 1) {
+    const anchors = regions.first().find("a[href]").toArray();
+    if (anchors.length > 1) return { body: null, attachment: null, reason: "attachment_ambiguous" };
+    if (anchors.length === 1) {
+      selectedAnchors.add(anchors[0]!);
+      const anchor = $(anchors[0]!);
+      const href = anchor.attr("href")?.trim();
+      const type = (anchor.attr("type") ?? "").toLowerCase();
+      try {
+        if (!href) return { body: null, attachment: null, reason: "attachment_url_invalid" };
+        const candidate = new URL(href, url);
+        if (candidate.protocol !== "https:") return { body: null, attachment: null, reason: "attachment_url_invalid" };
+        if (!/\.pdf$/i.test(candidate.pathname) && type !== "application/pdf") return { body: null, attachment: null, reason: "attachment_unsupported" };
+        attachment = { url: candidate.toString(), title: collapseWhitespace(anchor.text() || anchor.attr("title") || "") };
+      } catch { return { body: null, attachment: null, reason: "attachment_url_invalid" }; }
+    }
+  }
+  const fileLink = /\.(?:pdf|rar|7z|zip|xls?x?|docx?|pptx?)(?:$|[?#])/i;
+  for (const node of article.find("a[href]").toArray()) {
+    const anchor = $(node);
+    const href = anchor.attr("href") ?? "";
+    const type = (anchor.attr("type") ?? "").toLowerCase();
+    let isFile = type === "application/pdf";
+    try { isFile ||= fileLink.test(new URL(href, url).pathname); } catch { /* invalid href is not a trusted download */ }
+    if (isFile && !selectedAnchors.has(node)) return { body: null, attachment: null, reason: "attachment_unclassified" };
+  }
+  if (!attachment && (config.attachmentMode ?? "required") === "required") return { body: null, attachment: null, reason: "attachment_required" };
+
+  // A short notice is only provisional when a PDF is present. It can reach storage only after the
+  // companion PDF has passed the complete bounded parser; the zero-attachment branch uses 200 chars.
+  const bodyResult = extractSelectedBody(html, url, {
+    bodySelector: config.bodySelector,
+    allowShortBody: attachment ? true : false,
+    publishedAtUtcOffset: config.publishedAtUtcOffset,
+  }, expected, { pdfAttachmentsPrevalidated: true });
+  if (!bodyResult.body) return { body: null, attachment, reason: bodyResult.reason ?? "empty_body" };
+  if (!attachment && bodyResult.body.text.length < 200) return { body: null, attachment: null, reason: "short_body_not_allowed" };
+  return { body: bodyResult.body, attachment, reason: null };
 }

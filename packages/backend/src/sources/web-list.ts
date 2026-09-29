@@ -3,7 +3,7 @@ import * as cheerio from "cheerio";
 import { guardedFetch } from "../lib/http-fetch.ts";
 import { collapseWhitespace, stripTags } from "../lib/text.ts";
 import { readable, type ExtractedBody } from "../content/extract.ts";
-import { extractSelectedBody } from "../content/selected-body.ts";
+import { extractConfiguredHtmlBody, extractDirectPdfBody, type PdfFetcher, type PdfSourceBodyConfig } from "../content/pdf-body.ts";
 import { sanitizeBody } from "../content/sanitize.ts";
 import { jinaRead } from "../providers/jina.ts";
 import { parseLooseDate } from "./date.ts";
@@ -300,32 +300,51 @@ export interface DetailNeed {
  * text ("Published Time: …", "# Heading"), so that paid rendering is bought only when such a rule is
  * needed; selectors and page metadata read the page's own HTML.
  */
-export async function fetchDetail(url: string, source: SourceRow, need: DetailNeed): Promise<{ publishedAt: Date | null; title: string | null; summary: string | null; body: ExtractedBody | null }> {
+export async function fetchDetail(url: string, source: SourceRow, need: DetailNeed, options: { fetcher?: PdfFetcher } = {}): Promise<{ publishedAt: Date | null; title: string | null; summary: string | null; body: ExtractedBody | null }> {
   const d = source.config.detail ?? {};
+  const fetcher = options.fetcher ?? guardedFetch;
+  const pdfConfigured = d.pdfDirect === true || typeof d.attachmentSelector === "string";
   const jinaListing = String(source.config.url ?? "").startsWith(JINA_PREFIX);
-  const dateInJina = need.date && jinaListing && !!d.publishedAtRegex;
-  const titleInJina = need.title && jinaListing && !!d.titleRegex;
+  const dateInJina = !pdfConfigured && need.date && jinaListing && !!d.publishedAtRegex;
+  const titleInJina = !pdfConfigured && need.title && jinaListing && !!d.titleRegex;
   const jina = dateInJina || titleInJina ? (await jinaRead(url, { purpose: "source_detail", subject: `source:${source.id}` })).raw : null;
   let html: string | null = null;
   let body: ExtractedBody | null = null;
-  if ((need.date && !dateInJina) || (need.title && !titleInJina) || need.summary || (need.body && !!d.bodySelector)) {
-    const res = await guardedFetch(url, { timeoutMs: 20_000 });
+  if (need.body && d.pdfDirect === true) {
+    const result = await extractDirectPdfBody(url, need.expectedTitle ?? "", source.config.allowUrlPrefixes ?? [], fetcher);
+    body = result.body;
+    if (!body && result.reason) console.warn(JSON.stringify({ level: "warn", msg: "source body selector declined", source: source.id, reason: result.reason }));
+  }
+  if (!d.pdfDirect && ((need.date && !dateInJina) || (need.title && !titleInJina) || need.summary || (need.body && (!!d.bodySelector || !!d.attachmentSelector)))) {
+    const res = await fetcher(url, { timeoutMs: 20_000, ...(need.body && (d.bodySelector || d.attachmentSelector) ? { maxBytes: 6 * 1024 * 1024 } : {}) });
     if (res.status === 200) {
       html = res.text();
-      if (need.body && /html/.test(res.headers.get("content-type") ?? "")) {
+      if (need.body && /html/i.test(res.headers.get("content-type") ?? "")) {
         try {
-          if (d.bodySelector) {
-            const selected = extractSelectedBody(html, res.url, {
+          if (d.bodySelector || d.attachmentSelector) {
+            const bodyConfig: PdfSourceBodyConfig = {
               bodySelector: d.bodySelector,
               allowShortBody: d.allowShortBody === true,
               publishedAtUtcOffset: d.publishedAtUtcOffset ?? source.config.publishedAtUtcOffset,
-            }, { title: need.expectedTitle ?? "", publishedAt: need.expectedPublishedAt ?? null });
+              articleSelector: d.articleSelector,
+              attachmentSelector: d.attachmentSelector,
+              attachmentMode: d.attachmentMode,
+            };
+            const selected = await extractConfiguredHtmlBody(html, res.url, bodyConfig,
+              { title: need.expectedTitle ?? "", publishedAt: need.expectedPublishedAt ?? null }, source.config.allowUrlPrefixes ?? [], fetcher);
             body = selected.body;
             if (!body && selected.reason) console.warn(JSON.stringify({ level: "warn", msg: "source body selector declined", source: source.id, reason: selected.reason }));
           } else body = readable(html, res.url);
         }
-        catch { /* A failed extraction must not discard the detail metadata. */ }
+        catch {
+          if (d.bodySelector || d.attachmentSelector) console.warn(JSON.stringify({ level: "warn", msg: "source body selector declined", source: source.id, reason: "body_extraction_failed" }));
+          /* A failed extraction must not discard the detail metadata. */
+        }
+      } else if (need.body && (d.bodySelector || d.attachmentSelector)) {
+        console.warn(JSON.stringify({ level: "warn", msg: "source body selector declined", source: source.id, reason: "article_not_html" }));
       }
+    } else if (need.body && (d.bodySelector || d.attachmentSelector)) {
+      console.warn(JSON.stringify({ level: "warn", msg: "source body selector declined", source: source.id, reason: "article_http_status" }));
     }
   }
   const $ = html === null ? null : cheerio.load(html);

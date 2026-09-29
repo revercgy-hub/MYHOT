@@ -32,7 +32,8 @@ const NESTED: Record<string, string[]> = {
   minNumeric: ["path", "min"],
   detail: [
     "maxFetches", "publishedAtSelector", "publishedAtRegex", "publishedAtUtcOffset", "publishedAtAuthoritative", "upgradeDatePrecision",
-    "titleSelector", "titleRegex", "titleAuthoritative", "summarySelector", "bodySelector", "allowShortBody",
+    "titleSelector", "titleRegex", "titleAuthoritative", "summarySelector", "articleSelector", "bodySelector", "allowShortBody",
+    "attachmentSelector", "attachmentMode", "pdfDirect",
   ],
 };
 
@@ -55,6 +56,27 @@ export function unsupportedConfig(kind: SourceRow["kind"], config: Record<string
         if (nested.bodySelector !== undefined && (typeof nested.bodySelector !== "string" || !nested.bodySelector.trim())) out.push("detail.bodySelector");
         if (nested.allowShortBody !== undefined && typeof nested.allowShortBody !== "boolean") out.push("detail.allowShortBody");
         if (nested.allowShortBody === true && !nested.bodySelector) out.push("detail.allowShortBody requires detail.bodySelector");
+        for (const field of ["articleSelector", "attachmentSelector"] as const) {
+          if (nested[field] !== undefined && (typeof nested[field] !== "string" || !nested[field].trim())) out.push(`detail.${field}`);
+        }
+        if (nested.attachmentMode !== undefined && !["required", "optional"].includes(String(nested.attachmentMode))) out.push("detail.attachmentMode");
+        if (nested.pdfDirect !== undefined && typeof nested.pdfDirect !== "boolean") out.push("detail.pdfDirect");
+        if (nested.attachmentSelector && (!nested.articleSelector || !nested.bodySelector)) out.push("detail.attachmentSelector requires detail.articleSelector and detail.bodySelector");
+        if (nested.articleSelector && (!nested.bodySelector || !nested.attachmentSelector)) out.push("detail.articleSelector requires detail.bodySelector and detail.attachmentSelector");
+        if (nested.attachmentMode !== undefined && !nested.attachmentSelector) out.push("detail.attachmentMode requires detail.attachmentSelector");
+        if (nested.pdfDirect === true && (nested.articleSelector || nested.bodySelector || nested.attachmentSelector || nested.attachmentMode)) out.push("detail.pdfDirect cannot be combined with HTML selectors");
+        if (nested.pdfDirect === true || nested.attachmentSelector) {
+          if (kind !== "web_list") out.push("PDF body config is only supported by web_list");
+          const prefixes = config.allowUrlPrefixes;
+          const validPrefixes = Array.isArray(prefixes) && prefixes.length > 0 && prefixes.every((prefix) => {
+            if (typeof prefix !== "string") return false;
+            try {
+              const parsed = new URL(prefix);
+              return parsed.protocol === "https:" && !parsed.username && !parsed.password && !parsed.search && !parsed.hash;
+            } catch { return false; }
+          });
+          if (!validPrefixes) out.push("PDF opt-in requires HTTPS allowUrlPrefixes");
+        }
       }
     }
   }

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { extractSelectedBody } from "@aihot/backend/content/selected-body";
+import { extractSelectedArticleEnvelope, extractSelectedBody } from "@aihot/backend/content/selected-body";
 import { unsupportedConfig } from "@aihot/backend/sources/config-keys";
 
 const URL = "https://www.pbc.gov.cn/notice.html";
@@ -55,4 +55,44 @@ test("selector extraction rejects navigation, blank or linked-only containers, a
 test("short-body opt-in is explicit and requires a body selector", () => {
   assert.deepEqual(unsupportedConfig("web_list", { detail: { allowShortBody: true } }), ["detail.allowShortBody requires detail.bodySelector"]);
   assert.deepEqual(unsupportedConfig("web_list", { detail: { bodySelector: "#zoom", allowShortBody: true } }), []);
+});
+
+const financeTitle = "关于公布普惠金融示范区名单的通知";
+const financeHtml = (notice = "简短公示说明。", files = '<a href="./result.pdf">考核结果表.pdf</a>', outside = "") => `<html><head>
+<meta name="ArticleTitle" content="${financeTitle}"><meta name="PubDate" content="2026-06-08"></head><body>
+${outside}<div class="box_content"><div class="my_doccontent"><p>${notice}</p></div><div class="gu-download"><ul>${files}</ul></div></div></body></html>`;
+const envelopeConfig = { articleSelector: ".box_content", bodySelector: ".my_doccontent", attachmentSelector: ".gu-download", attachmentMode: "required" as const, publishedAtUtcOffset: "+08:00" };
+const financeExpected = { title: financeTitle, publishedAt: new Date("2026-06-08T00:00:00+08:00") };
+
+test("article envelope finds exactly one selected PDF sibling, ignoring unrelated page attachments", () => {
+  const got = extractSelectedArticleEnvelope(financeHtml("公示说明。", '<li><a href="./result.pdf">结果表.pdf</a></li>', '<a href="/nav.pdf">导航PDF</a>'), URL, envelopeConfig, financeExpected);
+  assert.equal(got.reason, null);
+  assert.equal(got.attachment?.url, "https://www.pbc.gov.cn/result.pdf");
+  assert.equal(got.attachment?.title, "结果表.pdf");
+  assert.match(got.body!.text, /公示说明/);
+  assert.equal(extractSelectedArticleEnvelope(financeHtml().replace("content=\"关于公布普惠金融示范区名单的通知\"", "content=\"错题\""), URL, envelopeConfig, financeExpected).reason, "identity_mismatch");
+});
+
+test("required and optional attachment contracts fail closed on zero, multiple, unsupported, or short zero-file pages", () => {
+  assert.equal(extractSelectedArticleEnvelope(financeHtml("公示说明。", ""), URL, envelopeConfig, financeExpected).reason, "attachment_required");
+  assert.equal(extractSelectedArticleEnvelope(financeHtml("公示说明。", '<li><a href="a.pdf">A</a><a href="b.pdf">B</a></li>'), URL, envelopeConfig, financeExpected).reason, "attachment_ambiguous");
+  assert.equal(extractSelectedArticleEnvelope(financeHtml("公示说明。", '<li><a href="result.rar">压缩包</a></li>'), URL, envelopeConfig, financeExpected).reason, "attachment_unsupported");
+  const optional = { ...envelopeConfig, attachmentMode: "optional" as const };
+  assert.equal(extractSelectedArticleEnvelope(financeHtml("公示说明。", ""), URL, optional, financeExpected).reason, "short_body_not_allowed");
+  assert.equal(extractSelectedArticleEnvelope(financeHtml("完整通知正文。".repeat(40), ""), URL, optional, financeExpected).reason, null);
+  assert.equal(extractSelectedArticleEnvelope(financeHtml("公示说明。", '<a href="http://evil.test/file.pdf">外链</a>'), URL, optional, financeExpected).reason, "attachment_url_invalid");
+});
+
+test("article envelope selectors must be unique and scoped to the article", () => {
+  const outside = financeHtml().replace("</body>", '<div class="box_content"><div class="my_doccontent"><p>duplicate</p></div><div class="gu-download"></div></div></body>');
+  assert.equal(extractSelectedArticleEnvelope(outside, URL, envelopeConfig, financeExpected).reason, "article_not_unique");
+  assert.equal(extractSelectedArticleEnvelope(financeHtml().replace("class=\"gu-download\"", "class=\"elsewhere\""), URL, envelopeConfig, financeExpected).reason, "attachment_unclassified");
+});
+
+test("PDF source config fields are explicit, paired, and require HTTPS source prefixes", () => {
+  assert.deepEqual(unsupportedConfig("web_list", { allowUrlPrefixes: ["https://official.example/"], detail: envelopeConfig }), []);
+  assert.deepEqual(unsupportedConfig("web_list", { allowUrlPrefixes: ["http://official.example/"], detail: envelopeConfig }), ["PDF opt-in requires HTTPS allowUrlPrefixes"]);
+  assert.deepEqual(unsupportedConfig("rss", { allowUrlPrefixes: ["https://official.example/"], detail: envelopeConfig }), ["PDF body config is only supported by web_list"]);
+  assert.deepEqual(unsupportedConfig("web_list", { detail: { articleSelector: ".article" } }), ["detail.articleSelector requires detail.bodySelector and detail.attachmentSelector"]);
+  assert.deepEqual(unsupportedConfig("web_list", { allowUrlPrefixes: ["https://official.example/"], detail: { pdfDirect: true, bodySelector: ".body" } }), ["detail.pdfDirect cannot be combined with HTML selectors"]);
 });

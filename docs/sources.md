@@ -37,9 +37,12 @@
 
 - `parseMode`：`html`（默认，用选择器）、`markdown`（经 Jina 渲染后按 Markdown 读）、`docusaurus_changelog`。
 - `detail`：列表缺日期、标题或摘要时抓详情页补齐（`publishedAtSelector`、`titleSelector`、`summarySelector` 等）。
-- `detail.bodySelector`：仅在对该官方页面人工核验正文容器完整后配置。selector 必须唯一命中有结构的正文，页面 `ArticleTitle`/日期必须与列表或已存条目相符；页面存在 PDF 附件、容器为空/仅导航链接时不确认正文。配置后，详情预取和正文提取使用同一个严格 helper；失败保留未确认，不退回 Readability/Jina。
+- `detail.bodySelector`：仅在对该官方页面人工核验正文容器完整后配置。selector 必须唯一命中有结构的干净正文，页面 `ArticleTitle`/日期必须与列表或已存条目相符；容器为空/仅导航链接或身份不符时不确认正文。配置后，详情预取和正文提取使用同一个严格 helper；失败保留未确认，不退回 Readability/Jina。
 - `detail.allowShortBody: true`：仅与显式 `bodySelector` 一起使用，表示该唯一容器已核实为完整但不足 200 字的公告。默认 200 字 Readability 门槛不变；不支持 `source.minBodyChars` 一类可随意降低的阈值。未配置正文 selector 的 source 继续旧 Readability 行为。
-- PDF 附件仍不会由 `bodySelector` 跟随或解析；当前 `pdfjs-dist` 解析器只接受本地字节，作为离线文本层 PoC 使用。生产抓取尚未接入附件下载，PDF 样本不能作为可自动提取的全文来源；扫描页、加密文件、损坏或超限输入均保持未确认。
+- `detail.articleSelector`、`detail.attachmentSelector`、`detail.attachmentMode`：用于页面把完整通知正文与下载区放在同一文章外框、但正文和附件是兄弟节点的栏目。`articleSelector` 必须唯一命中文章 envelope；现有 `bodySelector` 在其中唯一命中干净正文；`attachmentSelector` 在同一 envelope 中命中下载区，helper 检查该区的**全部**文件链接后分类，不能先筛 `.pdf` 而漏掉 RAR/XLS。`attachmentMode` 可设 `required`（缺省）或显式 `optional`；optional 仅在 envelope 内没有任何下载项且干净 HTML 正文通过原 200 字门槛、结构及标题/日期校验时按普通 HTML 成功。短 intro 加附件失败、无附件或未知附件均不能绕过 PDF 确认。
+- `detail.pdfDirect: true`：仅为文章 URL 本身就是 PDF 的来源显式启用；与 HTML envelope/附件 selector 配置互斥。PDF 下载只允许 `https` 且 URL 必须位于 source `allowUrlPrefixes`；通过 `guardedFetch` 的 SSRF/DNS 检查，超时 20 秒、最多 6 MiB、不跟随重定向，并同时要求 HTTP 200、`application/pdf` MIME 和 `%PDF-` 文件签名。
+- 被明确选中的 PDF 使用项目内受限文本解析器：最多 40 页、120,000 字符、10 秒可终止子进程，每页都必须有完整文本；扫描页、加密、损坏、超限或任一页解析失败均保持未确认，不做 OCR、解压、递归附件、Jina 或模型回退。合并正文保留 HTML 通知与 PDF 的分段、附件标题/原文 URL，以及所有页的坐标行（页号、x/y 与文本）；坐标是布局证据，不代表已自动重建 PDF 表格。
+- PDF 受控网络路径已实现，但所有 source 默认仍 disabled，未经逐源事实核验不得启用。Windows 离线/受控测试不代表 Linux/NAS 兼容或生产 RSS 硬上限已经验证；两项仍是 Staging/Gate 2 前置。完全未配置 PDF/envelope 字段的信源保持原行为。
 - `titleAttribute`：列表标题来自元素属性而不是可见文本时显式设置属性名（例如 `"title"`）；未设置时沿用可见文本优先的原行为。
 - `allowUrlPrefixes` / `denyUrlPrefixes`：只收某些路径下的文章。
 - `web_list` 中不带时区的日期按 `publishedAtUtcOffset` 解释，默认 `+08:00`；带 `Z` 或明确偏移量的时间保留原时刻。`json_list` 可显式配置相同字段处理无时区日期；未配置时保持原解析行为，`epoch_ms`、`epoch_s` 和 `yyyymmdd` 单位不受 offset 影响。
