@@ -1,6 +1,6 @@
 # 官方信源验证矩阵
 
-本矩阵区分页面结构、只读 preview 与隔离数据库验证。以下“未运行采集 worker、数据库写入、队列、模型或付费 fallback”仅指九个 HTML 来源的 `previewSource` 和一个 JSON 来源的 `fetchJsonList` dry-run 阶段。其后另在隔离 `_test` 数据库对三个 HTML 来源运行两轮受限 collector ingest，产生 30 篇 backfill 记录和 30 个未消费正文任务；验证范围与结果见 `P3_INGEST_VALIDATION.md`，不代表正文 worker 或模型验证。`industry/sources.json` 目前配置十个来源（九个 HTML、一个 JSON），均为 `enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`。一次 preview 或隔离数据库小样不代表生产稳定性；分页、重复和长期可靠性仍需 P3/Gate 2 验收。
+本矩阵区分页面结构、只读 preview 与隔离数据库验证。以下“未运行采集 worker、数据库写入、队列、模型或付费 fallback”仅指九个 HTML 来源的 `previewSource` 和一个 JSON 来源的 `fetchJsonList` dry-run 阶段。其后另在隔离 `_test` 数据库对三个 HTML 来源运行两轮受限 collector ingest，产生 30 篇 backfill 记录和 30 个未消费正文任务；验证范围与结果见 `P3_INGEST_VALIDATION.md`。对这 30 篇的最新受控正文结果为 28 `ok`、2 `unconfirmed`、0 `pending`，队列仍有 30 个未消费正文任务，见 [P3_BODY_VALIDATION.md](P3_BODY_VALIDATION.md)；正文验证不代表 Gate 2 或生产稳定性通过。`industry/sources.json` 目前配置十个来源（九个 HTML、一个 JSON），均为 `enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`。分页、重复和长期可靠性仍需后续 Gate 验收。
 
 状态含义：
 
@@ -15,7 +15,7 @@
 | 财政部金融司 | [工作通知](https://jrs.mof.gov.cn/gongzuotongzhi/) | Node `guardedFetch` HTTP 200，12,929 字节，`ul.liBox > li` 命中 10 篇；最新为《关于公布2026年中央财政支持普惠金融发展示范区名单等有关事项的通知》（2026-07-16）。详情 HTTP 200，列表/`ArticleTitle` 完全一致、`PubDate=2026-07-16 16:09:00`，Readability 1,493 字符。单次 `previewSource` 返回 10 候选。 | 页面采用 `createPageHTML(21, 0, "index", "htm")`，仅核验首页，没有跟页；最新可见条目为 7 月 16 日，需复核新鲜度。工作动态页最新日期仅至 6 月 8 日，故本次选择内容更明确的工作通知栏目。 | **结构与一次性 collector preview 已核验；禁用待 P3/Gate 2**；已配置 disabled `mof-finance-notices` |
 | 财政部会计司 | [工作通知](https://kjs.mof.gov.cn/gongzuotongzhi/) | Node `guardedFetch` HTTP 200，14,018 字节；`ul.liBox > li` 命中 10 篇。最新列表候选为《财政部关于加快推进会计数智化工作的指导意见（征求意见稿）》征求意见函，列表日期 2026-09-21；详情 HTTP 200、标题吻合，但 `PubDate=2026-09-22 14:39:00`，与列表日相差一天；Readability 473 字符。单次 `previewSource` 返回 10 候选。 | `createPageHTML(50, 0, "index", "htm")` 显示有分页生成机制；本次只读首页，未查旧页重复。列表/详情日期口径差异需在 P3 核对后再作为 freshness 依据。 | **结构已核验，日期口径有差异；禁用待 P3/Gate 2**；已配置 disabled `mof-accounting-notices` |
 | 中国地方政府债券信息公开平台 | [平台首页](https://www.celma.org.cn/)，[发行结果栏目](https://www.celma.org.cn/fxjg/index.jhtml)，[发行安排栏目](https://www.celma.org.cn/dfzfxjh/index.jhtml) | 平台首页 HTTP 200、51,168 字节，官方站名可见且确有债券信息入口。发行结果及发行安排栏目直连均 HTTP 200、73,642 字节，返回相同通用模板；其中 114 个 `<li>` 是导航/选项，不含可解析发行文章链接。首页能直接链接到“2026年10月江西省债券发行安排公开”详情 `https://www.celma.org.cn/dfzfxjh/70535.jhtml`（HTTP 200），但未找到与之配套的静态栏目列表行/发布日期。 | 栏目由模板内脚本呈现筛选/数据，通用列表响应缺真实行；详情页可访问但普通列表 collector 无法发现候选。已找到的交易/报告链接横跨平台与财政部子站，不能据首页混合链接拼成稳定的发行结果 selector。 | **待核验：列表以动态数据呈现、无稳定 HTML 候选；不配置** |
-| 中国人民银行 | [公开市场业务交易公告](https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/index.html) | 官方主页及栏目 HTTP 200；静态栏目 40,079 字节，`tr:has(font.newslist_style)` 命中 20 条，链接含标题及 `title` 属性，`span.hui12` 为日期。列表最新为 2026-09-29 第191号。第[191号详情](https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/2026092908461628271/index.html) HTTP 200、`ArticleTitle` 与列表一致、`PubDate=2026-09-29`。配置启用 `titleAttribute=title` 后，一次 `previewSource` 返回 20 候选且标题完整；`+08:00` 解析得到上海日历日 2026-09-29。 | 首页候选为逐日逆回购操作公告，href 唯一且栏目 URL 可限制在 `/zhengcehuobisi/125207/125213/125431/125475/`；未实测栏目分页。第191号正文容器约 162 字，低于 Readability 200 字阈值，所以 `readable()` 为 `null`、preview 显示 0；这不是页面无正文。相邻[第190号详情](https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/2026092808454683233/index.html)正文容器约 204 字，Readability 为 210，显示日常公告在门槛附近波动。保留原门槛，source 继续 disabled。只读 HTML 证据见忽略目录 `.data/fiscal-central-audit/html/pboc-omo-detail.html`、`pboc-omo-detail-190.html` 和 `inspect-omo-second.json`。 | **列表与详情结构已核验；短正文提取门槛阻塞，禁用待质量复核**；已配置 disabled `pboc-open-market` |
+| 中国人民银行 | [公开市场业务交易公告](https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/index.html) | 官方主页及栏目 HTTP 200；静态栏目 40,079 字节，`tr:has(font.newslist_style)` 命中 20 条，链接含标题及 `title` 属性，`span.hui12` 为日期。列表最新为 2026-09-29 第191号。第[191号详情](https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/2026092908461628271/index.html) HTTP 200、`ArticleTitle` 与列表一致、`PubDate=2026-09-29`。配置启用 `titleAttribute=title` 后，一次 `previewSource` 返回 20 候选且标题完整；`+08:00` 解析得到上海日历日 2026-09-29。 | 首页候选为逐日逆回购操作公告，href 唯一且栏目 URL 可限制在 `/zhengcehuobisi/125207/125213/125431/125475/`；未实测栏目分页。第191号正文容器约 162 字，低于 Readability 200 字阈值，所以 `readable()` 为 `null`、preview 显示 0；这不是页面无正文。按 AD-009 将 `#zoom` 作为唯一正文容器、显式启用 `allowShortBody` 后，以本地快照运行共享 `extractSelectedBody` 得到 174 字文本、1 张表格，核对到 7 天、1.40%、905 亿元和 6,985 亿元；题名与 `PubDate=2026-09-29` 均匹配。此项是离线 helper 验证，不是 collector/worker 运行。相邻[第190号详情](https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/2026092808454683233/index.html)正文容器约 204 字，Readability 为 210，显示日常公告在门槛附近波动。保留原门槛，source 继续 disabled。只读 HTML 证据见忽略目录 `.data/fiscal-central-audit/html/pboc-omo-detail.html`、`pboc-omo-detail-190.html` 和 `inspect-omo-second.json`。 | **列表与详情结构已核验；共享短正文 helper 离线验证通过，仍禁用待质量复核**；已配置 disabled `pboc-open-market` |
 | 财政部国库司（统计数据） | [统计数据](https://zwgls.mof.gov.cn/tjsj/) | Node `guardedFetch` HTTP 200，12,330 字节；`ul.liBox > li` 命中 10 条，最新为《2026年8月地方政府债券发行和债务余额情况》（列表日 2026-09-24）。详情 HTTP 200，`ArticleTitle` 一致、`PubDate=2026-09-24 14:52:00`，Readability 1,021 字符。一次 `previewSource` 解析 10 个候选，最新候选日期在 `+08:00` 下保持 9 月 24 日。 | 首页 `createPageHTML(3, 0, "index", "htm")`；直接检查 `index_1.htm` HTTP 200、再有 10 条，最新为 2025 年 10 月；第二页含 PDF 和中央政府收支统计等异类条目，当前配置仅读首页。分页/旧页混有附件与宽口径收支数据，保持 disabled，后续需噪声与正文边界验收。 | **结构与一次性 collector preview 已核验；禁用待 P3/Gate 2**；已配置 disabled `mof-treasury-debt-data` |
 | 厦门证监局 | [监管工作首页](https://www.csrc.gov.cn/xiamen/)，[动态列表壳](https://www.csrc.gov.cn/xiamen/c101757/common_list.shtml?channelid=ffe0f9a9de42484cb218be2fd18116d0) | 首页 HTTP 200、`div.szyw-lists li` 7 条，最新静态新闻日期 2026-09-15；“加载更多”列表壳 HTTP 200 但无静态列表。官方 `common_list.js` 指向 API。page1 JSON HTTP 200、`data.total=399`、20 条，page2 HTTP 200、20 条；两页 URL 无重叠。JSON 项含 `title`、`content`、`url`、`publishedTime`（epoch 毫秒）、`publishedTimeStr`。按当前 `json_list` 配置调用真实 `fetchJsonList()`，page1 得到 20 候选，首条 allow 前缀内、摘要 944 字；详情 HTTP 200，`ArticleTitle` 一致、`PubDate=2026-09-28 14:31:07`、Readability 951 字。 | 首条 `publishedTime=1790548212000` 的绝对瞬时为 2026-09-27T22:30:12Z；`publishedTimeStr=2026-09-28 14:30:12` 按 `+08:00` 是 2026-09-28T06:30:12Z，两种字段相差 8 小时；配置使用字符串和显式 offset，不使用 epoch。另一条 `c7658572` 的 API/首页列表日为 2026-09-15，详情 meta `PubDate=2026-09-23 17:33:09`；选择列表公布日作为原始候选发布时间，因为 API 时间串与首页显示一致，详情 meta 的更新/发布口径仍留作 P3 冲突核验。page2 回溯至 2024-12-09；collector 不自动跟页，固定 page1 只覆盖最新 20 条，需在 P3 判断间隔是否足以避免漏项。 | **结构与一次性 `fetchJsonList` 预览已核验；日期冲突和分页限制待 P3**；已配置 disabled `xiamen-csrc-regulatory-work` |
 | 国家金融监督管理总局 | [新闻资讯栏目](https://www.nfra.gov.cn/cn/view/pages/xinwenzixun/xinwenzixun.html) | 官方新闻页和 `ItemDetail.html?docId=...&itemId=...` 都 HTTP 200，但列表 HTML 是 JS 壳。读取页面自带官方脚本后，确认列表通过 GET `/cbircweb/DocInfo/SelectItemAndDocByItemPId?itemId=914&pageSize=6` 获取 JSON，`rptCode=200`，响应嵌套分类和各分类 `docInfoVOList`；其中“监管动态”日期至 2026-09-28。官方 `ItemDetail.js` 明确还会 GET `/cbircweb/DocInfo/SelectByDocId?docId=...`。示例详情 HTML 本身 `ArticleTitle`/`PubDate` 为空，内容由客户端加载；JSON 详情接口返回数据，但它不是当前普通 `web_list`/HTML 详情解析链。 | API list 只有分类子数组和不一致的外链/站内 `docId` URL，不能用当前 `json_list` 的静态单数组模板可靠表达该响应；P3 还需核详情 JSON 编码及正文字段与既有安全/内容流程的兼容性。未试图增加通用 JSON 详情能力或外部 adapter。 | **待核验：有官方动态 JSON，但需适配器/详情链能力；不配置** |
@@ -73,7 +73,7 @@ Gate 1 后 collector 已实现 `publishedAtUtcOffset` 的墙钟时间解析；�
 | `mof-finance-notices` | 10 / 10 / 0 | 10 / 0 / 0 | 2025-12-12 — 2026-07-16 | 截至 9 月 29 日，最新项约 75 天；新鲜度风险较高，需检查备用栏目或降低实际更新频率预期 |
 | `mof-treasury-debt-data` | 10 / 10 / 0 | 10 / 0 / 0 | 2025-12-30 — 2026-09-24 | 最新条目约 5 天，仍需后续周期验证 |
 
-三源共 6 次运行均 `status=ok`；SQL 核实 30 篇文章各有唯一 URL 与 identity key，30 篇均为首导入 backfill；三源均保持 `enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`。第二轮均未创建或修订条目。所有文章仍为 `body_status=pending`；队列中只有 30 个未消费 `content.extract-body` job，无分析 job，`receipts=0`。隔离 DB 和机器核验输出保存在 Git 忽略目录 `.data/fiscal-qa/`。这证明了有限的入库、日期落库和同页 URL 幂等性；当时没有验证正文、worker、分页、详情质量或跨周期稳定性。之后对六篇文章直接调用正文函数的受控验证见 `P3_BODY_VALIDATION.md`：5 篇 `ok`、1 篇 `unconfirmed`、24 篇仍为 `pending`；worker 队列仍有 30 个未消费正文任务，Gate 2 仍未通过。
+三源共 6 次运行均 `status=ok`；SQL 核实 30 篇文章各有唯一 URL 与 identity key，30 篇均为首导入 backfill；三源均保持 `enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`。第二轮均未创建或修订条目。该次入库后所有文章均为 `body_status=pending`；队列中有 30 个未消费 `content.extract-body` job，无分析 job，`receipts=0`。隔离 DB 和机器核验输出保存在 Git 忽略目录 `.data/fiscal-qa/`。这是当时的 ingest 快照。后续先验证 6 篇（5 `ok`、1 `unconfirmed`、24 `pending`）的结果已被完整 30 篇验证取代；当前正文状态与队列见 [P3_BODY_VALIDATION.md](P3_BODY_VALIDATION.md)：28 `ok`、2 `unconfirmed`、0 `pending`，30 个正文队列任务仍未消费，Gate 2 未通过。
 ## P3 日期口径与栏目新鲜度复核（2026-09-29）
 
 本次共发出 8 次免费、只读官方 GET，每请求 12 秒超时、不重试；没有调用数据库、队列、worker、模型、Jina 或付费服务。具体响应摘要保存在忽略目录 `.data/fiscal-central-audit/p3-date-freshness-20260929.json`；此前取得的本地 HTML/JSON 快照见该 JSON 的 `priorLocalSnapshots`。
@@ -84,3 +84,40 @@ Gate 1 后 collector 已实现 `publishedAtUtcOffset` 的墙钟时间解析；�
 - **财政部金融司工作通知**：本次首页返回 200，最新日期 2026-07-16；脚本含 `createPageHTML(21, 0, ...)`，本轮不据此推断每页数量。实际请求 [index_1.htm](https://jrs.mof.gov.cn/gongzuotongzhi/index_1.htm) 返回 200，日期从 2025-12-12 回溯至 2024-12-10，两页日期在 2025-12-12 边界重合；本次未逐项比对标题/URL，不能据日期断言无重复。页面样本显示该栏目发布间隔较长，需据其主题价值和未来周期观察评估 freshness；不据此改 source 配置。
 
 本次只检查会计司及金融司各两页、财政部综合政策首页、厦门证监局一条冲突详情与 API 首页；没有检查更多历史分页、跨周期更新、全量重复率，也未证明会计司列表日期字段代表官方最终发布日期。
+## P3 分页 URL 去重与 PDF 文本层能力（2026-09-29）
+
+### 两页跨页候选比较
+
+复用已保存的首页 HTML，并对两个官方 `index_1.htm` 各作一次免费 GET；随后用当前 `industry/sources.json` 配置调用 `packages/backend/src/sources/web-list.ts` 的实际 `fromHtml()` 与 `allowed()`，不是手写 selector 或正则替代 collector 解析。两源每页均解析 10 项，40/40 候选 URL 均在来源 allow 前缀内。
+
+| 来源 | 首页快照 | 第 2 页快照 | 页内解析 | 两页精确 URL 重复 | 标题重复但 URL 不同 |
+|---|---|---|---:|---:|---|
+| 财政部金融司工作通知 | `.data/fiscal-central-audit/html/mof-finance-2.html` | `.data/fiscal-central-audit/html/mof-finance-index-1.html` | 10 + 10 | 0 | 1 组：“关于修订金融企业财务快报有关事项的通知”，2025 与 2024 两个不同 href |
+| 财政部会计司工作通知 | `.data/fiscal-central-audit/html/mof-accounting-2.html` | `.data/fiscal-central-audit/html/mof-accounting-index-1.html` | 10 + 10 | 0 | 2 组：备案异常名单、注销备案名单，均为不同月份/不同 href |
+
+重复判断以精确 URL 为准；同标题异 URL 是历史周期中不同候选，不能仅按标题折叠。当前 `fromHtml()` 的去重集合只在单页解析时创建，collector 不会自动请求下一页。本次仅检查每源两页，未验证更深历史页面、分页全覆盖或全历史重复率。
+
+### 两份官方 PDF 附件
+
+金融司《2026年中央财政支持普惠金融发展示范区绩效考核情况的公示》详情 HTML 中实际列有附件链接 `./P020260608599408762517.pdf`；福建厅通知公告首页已有候选《福建省财政厅 中国人民银行福建省分行关于2026年第十一期福建省省级国库现金管理商业银行定期存款招标结果的公告》，href 指向 PDF。各对一个页面内实际列出的官方附件作了单次有界 GET，没有尝试站外或猜测链接。
+
+| 样本 | 结果 | 只读抽取检查 | 处理含义 |
+|---|---|---|---|
+| 财政部金融司公示附件，`.data/fiscal-central-audit/pdf/mof-finance-performance.pdf` | 200；`application/pdf`；签名 `%PDF-1.7`；66,740 bytes；1 页；非加密 | `pypdf` 与 `pdfplumber` 均抽到 281 字；`pdfplumber` 识别 6 行 × 4 列表格，列头为“档次/地区、第一档、第二档、第三档”，公示主题词可检出 | 这是能提取文本的直接 PDF 样本，支持后续做有上限的文本解析 PoC；不证明 HTML 文章内嵌附件可被现有正文流程访问 |
+| 福建省财政厅国库现金管理招标结果 PDF，`.data/fiscal-central-audit/pdf/fujian-cash-management-result.pdf` | 200；`application/pdf`；签名 `%PDF-1.4`；178,333 bytes；4 页；非加密 | 四页 `pypdf`、`pdfplumber` 文本均为 0 字符；每页有图像对象，未识别出表格 | 是扫描件；需要 OCR 才可能转正文。本轮不做 OCR，不据此永久排除福建源；当前 HTML 正文抽取流程无法验证这份附件 |
+
+上表的 `pypdf`、`pdfplumber` 记录属于最初只读样本检查阶段；它们不代表当前项目解析器。PDF 附件和早期提取摘要位于 Git 忽略的 `.data/fiscal-central-audit/pdf/`，不得提交官方 PDF。
+
+### PDF.js 离线 PoC 与运行边界
+
+Mozilla PDF.js 官方 Node 示例导入 `pdfjs-dist/legacy/build/pdf.mjs` 的 `getDocument()`，并从 `PDFDocumentProxy.numPages` 取页数、逐页调用 `PDFPageProxy.getTextContent()`。项目现已新增 `pdfjs-dist@6.3.289` 用于离线文本 PoC；官方 FAQ 将 legacy Node.js 22+ 标为 Mostly、自动测试 Limited。本机 Windows Node 24 已对样本通过实测；Linux/NAS 仍待验证。PDF.js 仓库标注 Apache-2.0。参见[官方 Node 示例](https://github.com/mozilla/pdf.js/blob/master/examples/node/getinfo.mjs)、[官方兼容性 FAQ](https://github.com/mozilla/pdf.js/wiki/Frequently-Asked-Questions)、[API 的 `getTextContent`](https://mozilla.github.io/pdf.js/api/draft/module-pdfjsLib-PDFPageProxy.html) 与[许可证](https://github.com/mozilla/pdf.js/blob/master/LICENSE)。
+
+生产 PDF 路线尚未完成：尚无从已验证 HTML 附件区域选择和下载 PDF 的组合流程，Linux/NAS 与容器内存边界也未验收；目前不接入生产正文链、不启用 OCR 或付费 fallback。两个相关 source 仍保持 disabled。
+
+### AD-009 本轮状态
+
+| 项目 | 已验证状态 | 边界 |
+|---|---|---|
+| A：所选 HTML 正文 | `pboc-open-market` 使用实证唯一容器 `#zoom` 和显式 `allowShortBody=true`；本地第191号快照通过共享 helper，题名/日期相符，输出 174 字、1 张表并保留关键操作量；`tests/selected-body.test.ts` 4/4 通过。 | 只做离线 helper 验证；source 仍 `enabled=false` 且两项全文开关 false，没有 live collector/worker 验证。 |
+| B：直接 PDF 文本 PoC | Windows Node 24 + `pdfjs-dist@6.3.289` 离线解析金融司 1 页样本，19 个定位文本行；布局按列锚点与行区间还原 6×4 表格的四个业务行，并经原 PDF 视觉复核。福建厅 4 页样本逐页视觉检查为同一公告，helper 因扫描页返回 `pdf_page_no_text`。渲染证据保存在忽略目录 `.data/fiscal-central-audit/rendered/`。 | 未做 OCR；解析器仍是只接收调用方已有 bytes 的离线模块。 |
+| 生产附件链路 | 尚未完成 HTML 附件区选择、PDF 有界获取与内容组合；Linux/NAS 和容器 RSS 限制未验证。 | 生产路线③未完成。十个 source 均保持 `enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`；30 篇现有隔离样本为 28 `ok`、2 `unconfirmed`、0 `pending`，30 个正文队列任务仍未消费。Gate 2 未通过。 |

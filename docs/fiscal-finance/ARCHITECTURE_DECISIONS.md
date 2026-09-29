@@ -64,6 +64,49 @@ Luna 已在直接启动生产 Web server 时复现 `ERR_UNSUPPORTED_ESM_URL_SCHE
 
 Luna 已用 `fetchJsonList()` 对厦门证监局实际配置验证 20 条候选，并通过不同 host TZ、显式 Z/offset、epoch 与 `yyyymmdd` unit、非法日期及 legacy 行为测试。未知显式 unit 也保留原 Date.parse 语义。厦门证监局源已在矩阵记录 preview，但继续 disabled，直到完成 P3/Gate 2 的分页、正文和稳定性验收；此裁决不表示 Gate 2 通过。
 
+## AD-009：官方短公告与 PDF 的受限正文能力
+
+本次为 P3 新证据触发的一次 S1 裁决，不是 Gate 2 Review。它以明确阶段替代 AD-007 的本轮暂缓结论；AD-007 对全局门槛、付费服务和未知正文不伪造成功的约束继续有效。
+
+### 证据与需要改变的能力
+
+- 隔离库三源 30 篇 HTML 经既有入口验证后，28 篇 ok、2 篇 unconfirmed。其余 24 篇增量为 23 ok、1 unconfirmed；新增的金融企业财务快报失败原因仍 unknown，不能据此推断为 PDF 或短文。
+- 人民银行 OMO 第191号完整正文约 162 字，被默认 200 字 Readability 门槛拒绝；相邻第190号约 204 字。完整短公告不能仅因长度波动而丢失。
+- 金融司公示页面约 158 字是附有结果 PDF 的说明；Luna 有界验证[附件](https://jrs.mof.gov.cn/gongzuotongzhi/202606/P020260608599408762517.pdf)为 PDF 1.7、66,740 字节、1 页，本地文本层约 281 字，且 pdfplumber 得到 6×4 表格、公示名称命中。首行四列为“档次/地区、第一档、第二档、第三档”。它支持本地文本层解析可行性，但不代表 Node 生产解析器已验证。
+- 福建厅[代表 PDF](https://czt.fujian.gov.cn/zwgk/tzgg/202609/P020260915683599278277.pdf)为 PDF 1.4、178,333 字节、4 页；两种现有本地解析器逐页均无文字，每页存在图像对象，是扫描图像，不能凭“PDF 下载成功”宣称正文提取成功。
+- 现有 pageFetchable 允许 PDF URL，但 extractFromUrl 只接受 HTML；现有 detail.summarySelector 只提供 excerpt，不能解决完整正文。通用正文能力扩展有代码与来源证据依据，无需修改 schema。
+
+### 当前批准实施：共享显式正文提取与离线 PDF PoC
+
+1. **已核完整短公告的 opt-in 结构提取。** 批准一个共享 HTML 正文 helper，显式配置精确的主正文 selector 和短正文 opt-in，供 fetchDetail 与 extractArticleBody 使用；source 配置新增字段须进入 whitelist 并在 docs/sources.md 说明。未配置时继续原 Readability 路径和 200 字门槛，不增加 source.minBodyChars。
+
+   selector 必须匹配唯一正文容器；空白、仅导航/链接、模板残留或标题/日期不符不能确认成功。被授权的短正文容器须有完整可见正文证据及正反 fixtures，先用于已核 OMO 公告，并保留表格、金额、单位、日期，统一 sanitize。配置的人工核验承担“该容器确为完整正文”的依据，机构名或官方域名本身不能替代证据。金融司附件公示的 158 字 intro 不属于完整结果，不能走此路径标为完整 ok，更不能由 detail 预取先标 ok 而跳过 PDF。
+
+2. **本地 PDF 文本层 helper 与有界离线 PoC。** 批准纯文本层解析 helper、隔离执行边界及离线 fixtures；Luna 实施前验证选用依赖的许可、固定版本、Node 24 和 Windows/Linux 兼容性，并记录 lockfile 变化。Sol 不安装或实现依赖。parser 输入只为有界 bytes，不接收 URL，不自行联网、执行 PDF JavaScript、打开嵌入文件、渲染或 OCR。对金融司样本核对标题及表格行列和关键数字，而不是仅判断输出超过 200 字。
+
+   福建扫描样本作为明确不支持的负例：空文本/扫描、加密、损坏或超限 PDF 返回 unconfirmed 和可检查原因，不补造、不以文件标题冒充正文。当前可实施 helper 和离线验证；在下一段条件满足前不接入自动网络附件获取。
+
+### 下一子阶段：通过安全与完整性证据后接入
+
+批准以下实现方向，启用前由 Lead 按本裁决核验 Luna 证据，无需重做本次 S1；它不允许越过 Gate 2。
+
+- 先接入来源显式 opt-in 的直接 PDF，再接入精确定位在主正文附件区、恰好一个匹配项的 PDF。零个、多个或附件用途不明保持 unconfirmed，禁止扫描整页所有链接、递归跟随附件或根据扩展名猜任意 URL。当前金融司已核单附件为后者的首个验证场景。
+- 每次请求复用 guardedFetch，保留 DNS/连接时 SSRF 与私人地址防护；只接受配置允许的官方 HTTPS 来源范围。最小首版不跟 PDF 重定向（maxRedirects=0）；将来确需重定向时必须逐跳同时核验来源范围与 SSRF，不能只在最终响应检查。拒绝非 PDF MIME/魔数、异常状态、登录页、错误页和未允许主机。
+- 下载上限沿用正文的 6 MiB；解析首版上限 40 页、120,000 个输出字符、10 秒独立解析 deadline、每进程一次解析。这些是拒绝边界，不能截前 N 页/字符就标完整 ok。所有页完成才成功；下载有既有 20 秒总预算。具体数值可收紧，放宽须另有资源证据。
+- 解析运行于可终止的隔离子进程，设置明确内存预算和输出上限，超时由父进程实际终止，不能只 Promise.race 后让解析继续。证据须覆盖损坏文件、资源超限、解析 hang、并发和清理；生产硬内存约束在 NAS/container 验收落实前不宣称已解决。parser 不允许外部字体/图像或文件资源自动加载。
+- HTML 通知和 PDF 附件按原来源分段组合，保留附件 URL 与标题；不把附件内容冒称为 HTML 原句。全文仍只作后端分析材料，site_fulltext/syndicate_fulltext 保持 false，公开默认摘要和原文链接。沿用现有 article body/revision/content hash 和 publication 路径，不新增附件数据库或公开文件服务。
+- 同一共享正文路径处理元信息预取和 extraction job，防止预取把部分正文先写为 ok。选择器或 PDF 失败保持 unconfirmed，并有有界诊断原因；不自动进入 Jina、模型或 OCR。
+
+### 保持不变与 Gate 2 判据
+
+默认 Readability 200 字门槛、精选门槛、真实模型关闭、JINA_BODY_FALLBACK=false、receipt/预算与版权展示边界保持不变。无 schema/migration、API 或 apps 扩展；必要代码限后端通用正文 helper、配置入口、测试及文档。
+
+福建和厦门官方一手源仍为核心 T1，不因格式困难降优先级或永久排除。扫描材料保留来源记录、原文链接与明确格式缺口；若内容由题名和原文证据明确是招聘/考试等噪声，可按原有领域规则排除，不能仅因 PDF/扫描格式排除。重要扫描材料的可靠正文仍需后续受控人工文本获取或另立 OCR 实施阶段，当前不授权 OCR。
+
+正式 Gate 2 前，每个拟用于 P4 的核心来源须有真实有界抓取、第二轮去重、发布日期口径、详情和代表性重要内容完整性证据。已知 PDF/短文格式不能从验收样本中隐去；至少验证 OMO 完整短文、金融司公示与其表格附件、福建扫描材料的明确处置边界。未知失败原因仍列 unknown；重要内容无法可靠得到正文或明确处置时，该覆盖缺口继续阻塞相应来源验收，不以配置/PoC代替稳定性。
+
+当前批准能力分阶段推进，不代表 Gate 2 已通过，不开启 worker、大规模采集、真实模型或部署。
+
 ## 审查边界
 
 AD-005 至 AD-008 是针对实现中明确出现的解析器兼容问题作出的 S1 决策；获批的 parser 修复已落地，完整测试、typecheck 和离线兼容测试证据见 `COLLECTOR_AUDIT.md`。P3 受控 collector 验证只覆盖隔离测试库上的少量官方列表请求，不启动 worker 或模型，细节见 `P3_INGEST_VALIDATION.md`。这些 S1 批准和局部验证均不替代 Gate 2 Review，也不表示真实正文链路或信源长期稳定性通过。
