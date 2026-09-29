@@ -5,28 +5,11 @@ import { collapseWhitespace, stripTags } from "../lib/text.ts";
 import { readable, type ExtractedBody } from "../content/extract.ts";
 import { sanitizeBody } from "../content/sanitize.ts";
 import { jinaRead } from "../providers/jina.ts";
+import { parseLooseDate } from "./date.ts";
 import { FetchError, type Candidate, type SourceRow } from "./types.ts";
 
 const JINA_PREFIX = "https://r.jina.ai/";
-
-export function parseLooseDate(value: string | null | undefined, utcOffset = "+08:00"): Date | null {
-  if (!value) return null;
-  const v = value.trim();
-  if (!v) return null;
-  const direct = Date.parse(v);
-  if (Number.isFinite(direct) && /\d{4}/.test(v)) return new Date(direct);
-  // 2026-09-26 / 2026/09/26 / 2026年9月26日 (+ optional time), interpreted in the given offset.
-  const m = /(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})日?(?:\s*(\d{1,2}):(\d{2})(?::(\d{2}))?)?/.exec(v);
-  if (m) {
-    const [, y, mo, d, h = "00", mi = "00", s = "00"] = m;
-    const iso = `${y}-${mo!.padStart(2, "0")}-${d!.padStart(2, "0")}T${h.padStart(2, "0")}:${mi}:${s}${utcOffset}`;
-    const t = Date.parse(iso);
-    return Number.isFinite(t) ? new Date(t) : null;
-  }
-  // "Sep 26, 2026"
-  const en = Date.parse(v.replace(/(\d)(st|nd|rd|th)/, "$1"));
-  return Number.isFinite(en) ? new Date(en) : null;
-}
+export { parseLooseDate } from "./date.ts";
 
 /** The datePublished of the page's structured data (JSON-LD, also inside @graph or embedded app state). */
 export function jsonLdPublished($: cheerio.CheerioAPI, html: string): string | null {
@@ -151,7 +134,8 @@ export function fromHtml(html: string, base: string, source: SourceRow): Candida
     if (!url || seen.has(url) || !allowed(url, source)) continue;
     if (!sectionsArePosts && listingItself(url, listing)) continue;
     const titleEl = c.titleSelector ? (el.is(c.titleSelector) ? el : el.find(c.titleSelector).first()) : linkEl;
-    const title = collapseWhitespace(titleEl.text() || linkEl.attr("title") || "");
+    const configuredTitle = c.titleAttribute ? collapseWhitespace(titleEl.attr(c.titleAttribute) ?? "") : "";
+    const title = configuredTitle || collapseWhitespace(titleEl.text() || linkEl.attr("title") || "");
     if (!title) continue;
     let publishedAt: Date | null = null;
     if (c.publishedAtSelector) {

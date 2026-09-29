@@ -37,7 +37,10 @@
 
 - `parseMode`：`html`（默认，用选择器）、`markdown`（经 Jina 渲染后按 Markdown 读）、`docusaurus_changelog`。
 - `detail`：列表缺日期、标题或摘要时抓详情页补齐（`publishedAtSelector`、`titleSelector`、`summarySelector` 等）。
+- `titleAttribute`：列表标题来自元素属性而不是可见文本时显式设置属性名（例如 `"title"`）；未设置时沿用可见文本优先的原行为。
 - `allowUrlPrefixes` / `denyUrlPrefixes`：只收某些路径下的文章。
+- `web_list` 中不带时区的日期按 `publishedAtUtcOffset` 解释，默认 `+08:00`；带 `Z` 或明确偏移量的时间保留原时刻。`json_list` 可显式配置相同字段处理无时区日期；未配置时保持原解析行为，`epoch_ms`、`epoch_s` 和 `yyyymmdd` 单位不受 offset 影响。
+- `JINA_BODY_FALLBACK=false` 会关闭正文抓取失败后的 Jina Reader 兜底。PDF、反爬页面等不能直接抽取正文时会保留为未确认正文，不触发外部 Reader 请求；确认需要时再由运维按预算策略显式开启。
 
 ### x_search
 

@@ -5,11 +5,12 @@
 // its HTML: read without its adapter, it gave the menu (MiMo Desktop, 简体中文) as articles.
 import "./setup.ts";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import http from "node:http";
 import { after, test } from "node:test";
 import { config } from "@aihot/backend/config";
 import { sanitizeBody, trimTrailingChrome } from "@aihot/backend/content/sanitize";
-import { fetchDetail, fetchWebList, fromHtml, fromMarkdown } from "@aihot/backend/sources/web-list";
+import { fetchDetail, fetchWebList, fromHtml, fromMarkdown, parseLooseDate } from "@aihot/backend/sources/web-list";
 import { fetchRss } from "@aihot/backend/sources/rss";
 import { fetchJsonList } from "@aihot/backend/sources/json-list";
 import { noiseFiltered } from "@aihot/backend/sources/collect";
@@ -38,6 +39,13 @@ const pages: Record<string, (cdn: string) => string> = {
     `<content type="html"><![CDATA[<p>${"The feed carries this post whole, paragraph after paragraph. ".repeat(30)}</p>]]></content></entry></feed>`,
   // A list API that gives calendar days as yyyymmdd.
   "/days.json": () => JSON.stringify({ data: { list: [{ seq: 695, ttl: "MCFlow", day: "20260922" }, { seq: 1, ttl: "Bad day", day: "20260230" }] } }),
+  "/calendar-dates.json": () => JSON.stringify({ data: { list: [
+    { id: "wall", title: "Wall time", date: "2026-09-28 14:30:12" },
+    { id: "zoned", title: "Zoned time", date: "2026-09-28T14:30:12Z" },
+    { id: "invalid", title: "Invalid day", date: "2026-02-30 14:30:12" },
+    { id: "epoch", title: "Epoch value", timestamp: 1790548212000, day: "20260928" },
+    { id: "day-only", title: "Date only", date: "2026-09-28" },
+  ] } }),
   // Google Developers Blog: no date in the feed or in meta tags, only in JSON-LD.
   "/ld-post": () =>
     `<html><head><script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","name":"Blog"},` +
@@ -104,6 +112,43 @@ test("anchors into the listing page itself are navigation, not posts", () => {
   assert.deepEqual(out.map((c) => c.url), ["https://example.org/blog/mimo-v2-6-tool-call"]);
 });
 
+test("a configured title attribute supplies the unclipped headline, with legacy fallbacks", () => {
+  const html = '<ul><li><a href="/full" title="完整财政政策标题及具体制度调整">完整财政政策标题…</a></li>' +
+    '<li><a href="/empty" title="">可见文本标题</a></li></ul>';
+  const config = { url: "https://example.org/news", itemSelector: "li", linkSelector: "a", titleSelector: "a" };
+  assert.deepEqual(fromHtml(html, "https://example.org/news", source({ ...config, titleAttribute: "title" })).map((c) => c.title), [
+    "完整财政政策标题及具体制度调整", "可见文本标题",
+  ]);
+  assert.deepEqual(fromHtml(html, "https://example.org/news", source(config)).map((c) => c.title), [
+    "完整财政政策标题…", "可见文本标题",
+  ], "without the option visible text remains first, then the legacy link title fallback");
+});
+
+test("date-only and timezone-free source dates use the configured offset and strict calendar validation", () => {
+  assert.equal(parseLooseDate("2026-09-24")?.toISOString(), "2026-09-23T16:00:00.000Z");
+  assert.equal(parseLooseDate("2026/9/24")?.toISOString(), "2026-09-23T16:00:00.000Z");
+  assert.equal(parseLooseDate("2026年9月24日 08:05")?.toISOString(), "2026-09-24T00:05:00.000Z");
+  assert.equal(parseLooseDate("2024-02-29", "+09:30")?.toISOString(), "2024-02-28T14:30:00.000Z");
+  assert.equal(parseLooseDate("2026-02-29"), null);
+  assert.equal(parseLooseDate("2026-02-30"), null);
+  assert.equal(parseLooseDate("2026-09-24 24:00"), null);
+  assert.equal(parseLooseDate("2026-09-24", "+14:30"), null);
+  assert.equal(parseLooseDate("2026-09-24T08:05:00Z")?.toISOString(), "2026-09-24T08:05:00.000Z");
+  assert.equal(parseLooseDate("2026-09-24T08:05:00+09:00")?.toISOString(), "2026-09-23T23:05:00.000Z");
+  assert.equal(parseLooseDate("2026-02-30T08:05:00Z"), null);
+});
+
+test("timezone-free source dates do not depend on the worker host timezone", () => {
+  const moduleUrl = new URL("../packages/backend/src/sources/web-list.ts", import.meta.url).href;
+  const code = `import { parseLooseDate } from ${JSON.stringify(moduleUrl)}; console.log(parseLooseDate("2026-09-24 08:05")?.toISOString());`;
+  const utc = spawnSync(process.execPath, ["--input-type=module", "-e", code], { cwd: process.cwd(), env: { ...process.env, TZ: "UTC" }, encoding: "utf8" });
+  const la = spawnSync(process.execPath, ["--input-type=module", "-e", code], { cwd: process.cwd(), env: { ...process.env, TZ: "America/Los_Angeles" }, encoding: "utf8" });
+  assert.equal(utc.status, 0, utc.stderr);
+  assert.equal(la.status, 0, la.stderr);
+  assert.equal(utc.stdout.trim(), "2026-09-24T00:05:00.000Z");
+  assert.equal(la.stdout.trim(), utc.stdout.trim());
+});
+
 test("promotions a feed rotates inside its posts are left out of the body", () => {
   // Microsoft Research's feed puts a different podcast or product promotion into each post on every load.
   const promo = (label: string, name: string) =>
@@ -140,6 +185,7 @@ test("config entries a source kind does not implement are named, not ignored", (
     ["adapter=site_cards", "detail.titleFoo", "contentPublic"],
   );
   assert.deepEqual(unsupportedConfig("rss", { feedUrl: "https://example.org/feed", denyUrlPrefixes: ["https://example.org/business/"] }), []);
+  assert.deepEqual(unsupportedConfig("json_list", { url: "https://example.org/list.json", publishedAtUtcOffset: "+08:00" }), []);
   assert.deepEqual(unsupportedConfig("x_search", { query: "from:a", allowUrlPrefixes: ["https://example.org/"] }), ["allowUrlPrefixes"], "X shards apply no URL rules");
 });
 
@@ -205,8 +251,18 @@ test("noise words match whatever their case", () => {
 });
 
 test("dates in yyyymmdd and in JSON-LD are read", async () => {
-  const days = await fetchJsonList({ id: "test-json", config: { url: `${site}/days.json`, itemsPath: "data.list", titlePaths: ["ttl"], urlTemplate: "https://example.org/blog/view?seq={seq}", publishedAtPath: "day", publishedAtUnit: "yyyymmdd" } } as never);
+  const days = await fetchJsonList({ id: "test-json", config: { url: `${site}/days.json`, itemsPath: "data.list", titlePaths: ["ttl"], urlTemplate: "https://example.org/blog/view?seq={seq}", publishedAtPath: "day", publishedAtUnit: "yyyymmdd", publishedAtUtcOffset: "+08:00" } } as never);
   assert.deepEqual(days.map((c) => c.publishedAt?.toISOString() ?? null), ["2026-09-22T00:00:00.000Z", null], "February 30 is no date");
+  const wallTimes = await fetchJsonList({ id: "test-json-date-offset", config: { url: `${site}/calendar-dates.json`, itemsPath: "data.list", titlePaths: ["title"], urlTemplate: "https://example.org/{id}", publishedAtPath: "date", publishedAtUtcOffset: "+08:00" } } as never);
+  assert.deepEqual(wallTimes.map((c) => c.publishedAt?.toISOString() ?? null), [
+    "2026-09-28T06:30:12.000Z", "2026-09-28T14:30:12.000Z", null, null, "2026-09-27T16:00:00.000Z",
+  ], "the explicit offset applies to unzoned strings; explicit zones and absent values keep their meaning");
+  const epochs = await fetchJsonList({ id: "test-json-epoch", config: { url: `${site}/calendar-dates.json`, itemsPath: "data.list", titlePaths: ["title"], urlTemplate: "https://example.org/{id}", publishedAtPath: "timestamp", publishedAtUnit: "epoch_ms", publishedAtUtcOffset: "+08:00" } } as never);
+  assert.equal(epochs[3]!.publishedAt?.toISOString(), "2026-09-27T22:30:12.000Z", "an offset never alters an explicitly selected epoch unit");
+  const legacy = await fetchJsonList({ id: "test-json-legacy", config: { url: `${site}/calendar-dates.json`, itemsPath: "data.list", titlePaths: ["title"], urlTemplate: "https://example.org/{id}", publishedAtPath: "date" } } as never);
+  assert.equal(legacy[0]!.publishedAt?.toISOString(), new Date(Date.parse("2026-09-28 14:30:12")).toISOString(), "without the offset option, legacy Date.parse behavior remains");
+  const unknownUnit = await fetchJsonList({ id: "test-json-unknown-unit", config: { url: `${site}/calendar-dates.json`, itemsPath: "data.list", titlePaths: ["title"], urlTemplate: "https://example.org/{id}", publishedAtPath: "date", publishedAtUnit: "unknown", publishedAtUtcOffset: "+08:00" } } as never);
+  assert.equal(unknownUnit[4]!.publishedAt?.toISOString(), new Date(Date.parse("2026-09-28")).toISOString(), "an unknown explicit unit preserves legacy Date.parse semantics");
   const got = await fetchDetail(`${site}/ld-post`, { id: "test-feed", config: { detail: { maxFetches: 20 } } } as never, { date: true, title: false, summary: false, body: false });
-  assert.equal(got.publishedAt?.toISOString(), "2026-09-24T00:00:00.000Z");
+  assert.equal(got.publishedAt?.toISOString(), "2026-09-23T16:00:00.000Z", "an unzoned JSON-LD calendar date uses the source's default offset");
 });

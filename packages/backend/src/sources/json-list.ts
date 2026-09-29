@@ -2,6 +2,7 @@
 import { credential } from "../config.ts";
 import { guardedFetch } from "../lib/http-fetch.ts";
 import { collapseWhitespace, stripTags } from "../lib/text.ts";
+import { parseLooseDate } from "./date.ts";
 import { FetchError, type Candidate, type SourceRow } from "./types.ts";
 
 export function getPath(obj: unknown, path: string): unknown {
@@ -39,7 +40,7 @@ export function renderTemplate(template: string, item: unknown): string | null {
   return missing ? null : out;
 }
 
-function toDate(v: unknown, unit: string | undefined): Date | null {
+function toDate(v: unknown, unit: string | undefined, utcOffset?: string): Date | null {
   if (v === null || v === undefined || v === "") return null;
   if (unit === "epoch_ms") return new Date(Number(v));
   if (unit === "epoch_s") return new Date(Number(v) * 1000);
@@ -49,6 +50,7 @@ function toDate(v: unknown, unit: string | undefined): Date | null {
     const d = m ? new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00Z`) : null;
     return d && Number.isFinite(d.getTime()) && d.toISOString().startsWith(`${m![1]}-${m![2]}-${m![3]}`) ? d : null;
   }
+  if (!unit && utcOffset && typeof v === "string") return parseLooseDate(v, utcOffset);
   const t = Date.parse(String(v));
   return Number.isFinite(t) ? new Date(t) : null;
 }
@@ -172,7 +174,7 @@ export async function fetchJsonList(source: SourceRow): Promise<Candidate[]> {
       url,
       title: collapseWhitespace(stripTags(title)),
       author: firstString(item, c.authorPaths),
-      publishedAt: toDate(getPath(item, c.publishedAtPath), c.publishedAtUnit),
+      publishedAt: toDate(getPath(item, c.publishedAtPath), c.publishedAtUnit, c.publishedAtUtcOffset),
       excerpt: summary ? collapseWhitespace(stripTags(summary)).slice(0, 2000) : null,
       bodyText: summaryIsBody ? stripTags(summary!) : null,
       bodyStatus: summaryIsBody ? "ok" : "pending",
