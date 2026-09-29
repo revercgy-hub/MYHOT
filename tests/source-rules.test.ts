@@ -28,6 +28,9 @@ const pages: Record<string, (base: string) => string> = {
   [`/p/a-${T}`]: () =>
     html(`<meta name="description" content="Summary of A"><meta property="article:published_time" content="2026-01-01T00:00:00Z">`, `<h1>Detail heading A</h1><p class="byline"><time datetime="2026-09-21T08:00:00Z">Sep 21</time></p>`),
   [`/p/b-${T}`]: () => html(`<meta name="description" content="Summary of B"><meta property="article:published_time" content="2026-01-01T00:00:00Z">`, `<article><h1>Detail heading B ${T}</h1><p>${ARTICLE_BODY}</p></article>`),
+  [`/selector-list-${T}`]: () => html("", `<ul><li><a href="${base}/selector-item-${T}">OMO announcement ${T}</a><time datetime="2026-09-29T00:00:00+08:00">Sep 29</time></li></ul>`),
+  [`/selector-item-${T}`]: () => html(`<meta name="ArticleTitle" content="OMO announcement ${T}"><meta name="PubDate" content="2026-09-29">`,
+    `<div id="notice"><p>Short but complete verified notice ${T}</p><table><tr><th>Term</th><th>Rate</th><th>Amount</th></tr><tr><td>7 days</td><td>1.40%</td><td>905 yuan</td></tr></table></div>`),
   [`/j/1-${T}`]: () => html(`<meta property="article:published_time" content="2026-09-27T01:00:00Z">`, "<p>one</p>"),
   [`/j/2-${T}`]: () => html(`<meta property="article:published_time" content="2026-09-27T02:00:00Z">`, "<p>two</p>"),
 };
@@ -61,6 +64,14 @@ const SOURCES = {
     config: {
       url: `${base}/list.html`, parseMode: "html", itemSelector: "li", linkSelector: "a", titleSelector: "a", publishedAtSelector: "time",
       detail: { maxFetches: 10, titleSelector: "h1", summarySelector: 'meta[name="description"]', publishedAtAuthoritative: true, publishedAtSelector: ".byline time" },
+    },
+  },
+  selector: {
+    kind: "web_list",
+    config: {
+      url: `${base}/selector-list-${T}`, parseMode: "html", itemSelector: "li", linkSelector: "a", titleSelector: "a", publishedAtSelector: "time",
+      allowUrlPrefixes: [`${base}/selector-item-${T}`],
+      detail: { maxFetches: 10, bodySelector: "#notice", allowShortBody: true, publishedAtUtcOffset: "+08:00" },
     },
   },
   jina: { kind: "web_list", config: { url: `https://r.jina.ai/${base}/jlist-${T}`, parseMode: "markdown", allowUrlPrefixes: [`${base}/j/`], detail: { maxFetches: 5, titleRegex: "^# (.+)$" } } },
@@ -112,6 +123,20 @@ test("detail rules fill what the listing lacks, and a detail title survives the 
     "a clean listing title stays; the byline, not the listing date or page metadata, dates it");
   assert.deepEqual([b!.title, b!.excerpt, b!.published_at, b!.revision], [`Detail heading B ${T}`, "Summary of B", null, 1],
     "a label that swallowed its summary takes the page's heading; without a byline there is no date; the listing does not revise it back");
+});
+
+test("an explicit body selector shares the verified short-body result between collection and extraction", async () => {
+  const result = await collectSource(id("selector"), { force: true });
+  assert.equal(result.status, "ok");
+  const [row] = await sql<{ id: string; body_html: string | null; body_text: string | null; body_status: string; revision: number }[]>`
+    SELECT id, body_html, body_text, body_status, revision FROM articles WHERE source_id = ${id("selector")}`;
+  assert.equal(row?.body_status, "ok");
+  assert.equal(row?.revision, 1);
+  assert.match(row?.body_text ?? "", /Term \| Rate \| Amount/);
+  assert.match(row?.body_text ?? "", /1\.40%/);
+  assert.match(row?.body_html ?? "", /<table>/);
+  assert.equal(pageReads.get(`/selector-item-${T}`), 1, "metadata collection uses the same selector contract; extraction does not redownload a confirmed body");
+  assert.equal(await extractArticleBody(row!.id, false), "skipped");
 });
 
 test("a Jina listing is read on every fetch, and buys a detail rendering only where a regex rule needs it", async () => {

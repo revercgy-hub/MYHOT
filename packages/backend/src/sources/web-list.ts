@@ -3,6 +3,7 @@ import * as cheerio from "cheerio";
 import { guardedFetch } from "../lib/http-fetch.ts";
 import { collapseWhitespace, stripTags } from "../lib/text.ts";
 import { readable, type ExtractedBody } from "../content/extract.ts";
+import { extractSelectedBody } from "../content/selected-body.ts";
 import { sanitizeBody } from "../content/sanitize.ts";
 import { jinaRead } from "../providers/jina.ts";
 import { parseLooseDate } from "./date.ts";
@@ -286,8 +287,11 @@ export interface DetailNeed {
   date: boolean;
   title: boolean;
   summary: boolean;
-  /** Reuse HTML already needed for metadata; never fetch a page just for this hint. */
+  /** Reuse metadata HTML by default; an explicit source-verified bodySelector may request one detail fetch. */
   body?: boolean;
+  /** Listing identity used to reject a mismatched explicit body container. */
+  expectedTitle?: string;
+  expectedPublishedAt?: Date | null;
 }
 
 /**
@@ -304,12 +308,22 @@ export async function fetchDetail(url: string, source: SourceRow, need: DetailNe
   const jina = dateInJina || titleInJina ? (await jinaRead(url, { purpose: "source_detail", subject: `source:${source.id}` })).raw : null;
   let html: string | null = null;
   let body: ExtractedBody | null = null;
-  if ((need.date && !dateInJina) || (need.title && !titleInJina) || need.summary) {
+  if ((need.date && !dateInJina) || (need.title && !titleInJina) || need.summary || (need.body && !!d.bodySelector)) {
     const res = await guardedFetch(url, { timeoutMs: 20_000 });
     if (res.status === 200) {
       html = res.text();
       if (need.body && /html/.test(res.headers.get("content-type") ?? "")) {
-        try { body = readable(html, res.url); }
+        try {
+          if (d.bodySelector) {
+            const selected = extractSelectedBody(html, res.url, {
+              bodySelector: d.bodySelector,
+              allowShortBody: d.allowShortBody === true,
+              publishedAtUtcOffset: d.publishedAtUtcOffset ?? source.config.publishedAtUtcOffset,
+            }, { title: need.expectedTitle ?? "", publishedAt: need.expectedPublishedAt ?? null });
+            body = selected.body;
+            if (!body && selected.reason) console.warn(JSON.stringify({ level: "warn", msg: "source body selector declined", source: source.id, reason: selected.reason }));
+          } else body = readable(html, res.url);
+        }
         catch { /* A failed extraction must not discard the detail metadata. */ }
       }
     }

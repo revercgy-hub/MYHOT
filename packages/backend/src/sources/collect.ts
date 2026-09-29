@@ -157,8 +157,10 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
         title: !!(d.titleSelector || d.titleRegex) && (d.titleAuthoritative === true || needsTitle(c.title)),
         summary: !!d.summarySelector && !c.excerpt,
         body: source.participation_mode === "editorial" && !c.bodyText && (!c.bodyStatus || c.bodyStatus === "pending"),
+        expectedTitle: c.title,
+        expectedPublishedAt: c.publishedAt ?? null,
       };
-      if (!need.date && !need.title && !need.summary) continue;
+      if (!need.date && !need.title && !need.summary && !(need.body && d.bodySelector)) continue;
       detailUsed += 1;
       try {
         const got = await fetchDetail(c.url, source, need);

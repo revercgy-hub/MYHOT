@@ -37,6 +37,9 @@
 
 - `parseMode`：`html`（默认，用选择器）、`markdown`（经 Jina 渲染后按 Markdown 读）、`docusaurus_changelog`。
 - `detail`：列表缺日期、标题或摘要时抓详情页补齐（`publishedAtSelector`、`titleSelector`、`summarySelector` 等）。
+- `detail.bodySelector`：仅在对该官方页面人工核验正文容器完整后配置。selector 必须唯一命中有结构的正文，页面 `ArticleTitle`/日期必须与列表或已存条目相符；页面存在 PDF 附件、容器为空/仅导航链接时不确认正文。配置后，详情预取和正文提取使用同一个严格 helper；失败保留未确认，不退回 Readability/Jina。
+- `detail.allowShortBody: true`：仅与显式 `bodySelector` 一起使用，表示该唯一容器已核实为完整但不足 200 字的公告。默认 200 字 Readability 门槛不变；不支持 `source.minBodyChars` 一类可随意降低的阈值。未配置正文 selector 的 source 继续旧 Readability 行为。
+- PDF 附件仍不会由 `bodySelector` 跟随或解析；当前 `pdfjs-dist` 解析器只接受本地字节，作为离线文本层 PoC 使用。生产抓取尚未接入附件下载，PDF 样本不能作为可自动提取的全文来源；扫描页、加密文件、损坏或超限输入均保持未确认。
 - `titleAttribute`：列表标题来自元素属性而不是可见文本时显式设置属性名（例如 `"title"`）；未设置时沿用可见文本优先的原行为。
 - `allowUrlPrefixes` / `denyUrlPrefixes`：只收某些路径下的文章。
 - `web_list` 中不带时区的日期按 `publishedAtUtcOffset` 解释，默认 `+08:00`；带 `Z` 或明确偏移量的时间保留原时刻。`json_list` 可显式配置相同字段处理无时区日期；未配置时保持原解析行为，`epoch_ms`、`epoch_s` 和 `yyyymmdd` 单位不受 offset 影响。

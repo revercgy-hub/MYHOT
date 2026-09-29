@@ -10,13 +10,14 @@ import { BudgetExceededError } from "../providers/receipts.ts";
 import { getArticle } from "../providers/socialdata.ts";
 import { onlyXArticleLink, xArticleText } from "../sources/x.ts";
 import { sanitizeBody, trimTrailingChrome } from "./sanitize.ts";
+import { extractSelectedBody, type BodyIdentity, type SelectedBodyConfig } from "./selected-body.ts";
 import { contentHash } from "./materials.ts";
 
 export interface ExtractedBody {
   html: string;
   text: string;
   images: Array<{ kind: "image"; url: string; width: number | null; height: number | null }>;
-  via: "readability" | "jina";
+  via: "readability" | "jina" | "selector";
 }
 
 const MIN_BODY_CHARS = 200;
@@ -68,11 +69,18 @@ function markdownToHtml(md: string): string {
     .join("");
 }
 
-export async function extractFromUrl(url: string, opts: { allowJina: boolean; subject: string }): Promise<ExtractedBody | null> {
+export async function extractFromUrl(url: string, opts: { allowJina: boolean; subject: string; selectedBody?: { config: SelectedBodyConfig; expected: BodyIdentity }; onSelectedBodyFailure?: (reason: string) => void }): Promise<ExtractedBody | null> {
   try {
     const res = await guardedFetch(url, { timeoutMs: 20_000, maxBytes: 6 * 1024 * 1024 });
     const type = res.headers.get("content-type") ?? "";
     if (res.status === 200 && /html/.test(type)) {
+      if (opts.selectedBody) {
+        // A configured selector is a strict source contract. Never fall back to Readability or Jina
+        // when it is absent, ambiguous, or fails the page identity/completeness checks.
+        const result = extractSelectedBody(res.text(), res.url, opts.selectedBody.config, opts.selectedBody.expected);
+        if (!result.body && result.reason) opts.onSelectedBodyFailure?.(result.reason);
+        return result.body;
+      }
       const got = readable(res.text(), res.url);
       if (got) return got;
     }
@@ -105,11 +113,23 @@ export function pageFetchable(url: string, sourceKind: string): boolean {
 
 /** Fetches and stores the body of one article. Unconfirmed bodies are recorded as such. */
 export async function extractArticleBody(articleId: string, allowJina = process.env.JINA_BODY_FALLBACK !== "false"): Promise<"ok" | "unconfirmed" | "skipped"> {
-  const [a] = await sql<{ id: string; url: string; body_status: string; revision: number; x_post: { tweetId?: string } | null }[]>`
-    SELECT id, url, body_status, revision, x_post FROM articles WHERE id = ${articleId}`;
+  const [a] = await sql<{ id: string; source_id: string; url: string; title: string; published_at: Date | null; body_status: string; revision: number; x_post: { tweetId?: string } | null; source_config: Record<string, any> }[]>`
+    SELECT a.id, a.source_id, a.url, a.title, a.published_at, a.body_status, a.revision, a.x_post, s.config AS source_config
+    FROM articles a JOIN sources s ON s.id = a.source_id WHERE a.id = ${articleId}`;
   if (!a || a.body_status === "ok") return "skipped";
   if (a.x_post?.tweetId) return extractXArticle(a.id, a.x_post.tweetId);
-  const got = await extractFromUrl(a.url, { allowJina, subject: `article:${a.id}` });
+  const detail = a.source_config.detail ?? {};
+  const bodySelector = typeof detail.bodySelector === "string" ? detail.bodySelector : undefined;
+  const selectedBody = bodySelector
+    ? { config: { bodySelector, allowShortBody: detail.allowShortBody === true, publishedAtUtcOffset: detail.publishedAtUtcOffset ?? a.source_config.publishedAtUtcOffset }, expected: { title: a.title, publishedAt: a.published_at } }
+    : undefined;
+  let selectedFailure: string | null = null;
+  const got = await extractFromUrl(a.url, {
+    allowJina: selectedBody ? false : allowJina,
+    subject: `article:${a.id}`,
+    ...(selectedBody ? { selectedBody, onSelectedBodyFailure: (reason: string) => { selectedFailure = reason; } } : {}),
+  });
+  if (selectedFailure) console.warn(JSON.stringify({ level: "warn", msg: "source body selector declined", article: a.id, source: a.source_id, reason: selectedFailure }));
   if (!got) {
     await sql`UPDATE articles SET body_status = 'unconfirmed', updated_at = now() WHERE id = ${articleId} AND body_status <> 'ok'`;
     return "unconfirmed";
