@@ -128,7 +128,13 @@
         "titleSelector": "a",
         "publishedAtSelector": "span",
         "publishedAtUtcOffset": "+08:00",
-        "allowUrlPrefixes": ["https://jrs.mof.gov.cn/gongzuotongzhi/"]
+        "allowUrlPrefixes": ["https://jrs.mof.gov.cn/gongzuotongzhi/"],
+        "detail": {
+          "articleSelector": ".box_content",
+          "bodySelector": ".my_doccontent",
+          "attachmentSelector": "div.gu-download:has(> p#down-tit1):has(> ul#down1)",
+          "attachmentMode": "optional"
+        }
       },
       "tier": "T1",
       "first_party": true,
