@@ -5,9 +5,9 @@
 - [x] taxonomy、ITEM_TYPES、category fallback、topics 与提示词白名单一致。
 - [x] 主题 slug 稳定；主题组显示为机构、重点领域、内容类型。
 - [x] 关于页、首页及用户可见行业语义已改为财政金融。
-- [x] 专属扩展功能关闭；机构发布域名仅列入直连核验的四个来源域名。
+- [x] 专属扩展功能关闭；机构发布域名映射限于已核验的官方域名，当前条目见 `industry/taxonomy.ts`，来源证据见 `SOURCE_MATRIX.md`。
 - [x] 对站点品牌、开发日志、示例 Gold 数据和用户可见表单占位文案完成 AI 行业残留检查与处理；条款模板保留待负责人确认。
-- [x] `npm run typecheck`、隔离测试数据库上的 `npm test`、`npm run build -w @aihot/web` 和 web tests 通过；完整测试 129/129，web tests 11/11。详情见 `STATUS.md`。
+- [x] Gate 1 测试通过。最新回归：`npm run typecheck`、隔离测试数据库上的 `npm test` 132/132、`npm run build -w @aihot/web`、web tests 11/11。loopback smoke 30 项通过；P3 受控入库验证见 `P3_INGEST_VALIDATION.md`。
 - [x] Sol 完成一次架构 Review；三项最小修复由 Lead 核销，`GATE_1_REVIEW.md` 记录 `FINAL_GATE_STATUS=PASSED`。Review 本身不替代上述测试 Gate。
 
 ## Gate 2—5
@@ -19,4 +19,4 @@
 
 ## 当前证据
 
-Gate 1 的实现、自动检查、唯一一次 Sol Review 和 Lead 三项修复核销均已完成，`FINAL_GATE_STATUS=PASSED`。四个配置源已完成一次受限 live preview，并在 `SOURCE_MATRIX.md` 记录结果；这不等同 Gate 2 collector 稳定性验收。Gate 2—5 尚未通过，仍有 8 个首批来源未配置，以及分页、freshness、PDF 与详情正文等问题待解决。
+Gate 1 的实现、自动检查、唯一一次 Sol Review 和 Lead 修复核销均已完成，`FINAL_GATE_STATUS=PASSED`。首批 10 个配置源保持 disabled；9 个 HTML 源完成一次 preview，厦门证监局 JSON 源完成一次 `fetchJsonList()` 验证。P3 已在隔离测试库对财政部综合政策、金融司、国库司统计各运行两轮真实 collector：每源首轮 10 篇、第二轮 10/10 判重，验证细节见 `P3_INGEST_VALIDATION.md`。入库文章正文仍未处理，没有 worker、模型或付费 fallback。Gate 2—5 尚未通过，首批重点仍有 3 个来源未配置，且分页、freshness、PDF、短正文和详情提取等问题待解决。
