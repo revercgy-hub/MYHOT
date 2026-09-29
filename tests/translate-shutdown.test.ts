@@ -23,7 +23,9 @@ function runTranslation() {
     import { translatePending } from '@aihot/backend/editorial/translate';
     import { shutdownSignal } from '@aihot/backend/jobs/queue';
     import { closeDb } from '@aihot/backend/db';
-    process.on('SIGTERM', () => { shutdownSignal.abort(); process.send({ stopped: true }); });
+    const shutdown = () => { shutdownSignal.abort(); process.send({ stopped: true }); };
+    process.on('SIGTERM', shutdown);
+    process.on('message', message => { if (message?.shutdown) shutdown(); });
     try { process.send({ result: await translatePending({ limit: 1 }) }); }
     finally { await closeDb(); process.disconnect(); }
   `;
@@ -43,6 +45,13 @@ function runTranslation() {
   return { child, done, stopped: stopped.promise };
 }
 
+function stopTranslation(child: ReturnType<typeof spawn>) {
+  // Windows terminates child processes for kill("SIGTERM") without running the Node signal handler.
+  // Use IPC to enter the same shutdown path there; Unix continues exercising the real signal.
+  if (process.platform === 'win32') child.send({ shutdown: true });
+  else child.kill('SIGTERM');
+}
+
 before(async () => {
   await sql`INSERT INTO sources (id,name,kind,tier,participation_mode,site_fulltext,next_fetch_at)
     VALUES (${SOURCE},'Translation shutdown','rss','T1','editorial',true,'2100-01-01')`;
@@ -59,7 +68,7 @@ for (const misaligned of [false, true]) test(`SIGTERM finishes the sent ${misali
   await publishArticle(articleId, { releasedAt: new Date(Date.now() - 60_000) });
   const interrupted = runTranslation();
   await Promise.race([active.asked.promise, interrupted.done.then(() => assert.fail('translation ended before a request'))]);
-  interrupted.child.kill('SIGTERM');
+  stopTranslation(interrupted.child);
   await interrupted.stopped;
   active.hold.open();
   assert.deepEqual(await interrupted.done, { done: [], quotes: 0 });

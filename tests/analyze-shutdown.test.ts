@@ -25,7 +25,7 @@ let active: {
 const provider = await stub(async (_hit, request) => {
   const body = JSON.parse(request.body);
   const system = String(body.messages[0]?.content ?? "");
-  const step: Step = system.includes("宽召回的AI相关性预筛") ? "prefilter" : system.includes("事件注意力评分器") ? "score"
+  const step: Step = system.includes("事件注意力评分器") ? "score" : system.includes("预筛") ? "prefilter"
     : system.includes("资料结构化助手") ? "structure" : "understand";
   active.calls.push(step);
   const count = active.calls.filter(s => s === step).length;
@@ -35,13 +35,20 @@ const provider = await stub(async (_hit, request) => {
   }
   if (step === "structure" && count === 1) { active.structureAsked.open(); await active.structureAnswer.promise; }
   if (step === "understand" && active.writingAnswer) { active.writingAsked!.open(); await active.writingAnswer.promise; }
-  const content = step === "prefilter" ? { label: "PASS", reason: "AI model release" }
+  const content = step === "prefilter" ? { label: "PASS", reason: "财政政策发布" }
     : step === "score" ? { attentionScore: 80 }
-      : step === "structure" ? { category: "ai-models", tags: ["模型发布"], subjects: [], fact: { title: "新模型发布" } }
-        : { itemType: "model_release", authorRole: "principal", tags: ["模型发布"], editorialJudgment: "模型有明确的能力提升", titleZh: `新模型发布 ${T}`, summaryZh: "模型发布并提供了评测和价格。" };
+      : step === "structure" ? { category: "government-debt", tags: ["政府债务"], subjects: [], fact: { title: "政府债务管理政策发布" } }
+        : { itemType: "policy_release", authorRole: "principal", tags: ["政策发布"], editorialJudgment: "政策明确调整债务管理要求", titleZh: `债务管理政策发布 ${T}`, summaryZh: "发布了债务管理政策并明确相关要求。" };
   return { id: `stub-${active.calls.length}`, choices: [{ message: { content: JSON.stringify(content) } }], usage: { prompt_tokens: 10, completion_tokens: 10, total_tokens: 20 } };
 });
 const children = new Set<ReturnType<typeof spawn>>();
+
+function stopWorker(child: ReturnType<typeof spawn>) {
+  // Windows terminates child processes for kill("SIGTERM") without running the Node signal handler.
+  // Use IPC to enter the same shutdown path there; Unix continues exercising the real signal.
+  if (process.platform === "win32") child.send({ shutdown: true });
+  else child.kill("SIGTERM");
+}
 
 function worker(queue: string) {
   const script = `
@@ -50,7 +57,7 @@ function worker(queue: string) {
     import { closeDb } from '@aihot/backend/db';
     QUEUES.analyze = process.env.TEST_ANALYZE_QUEUE;
     let stopping = false;
-    process.on('SIGTERM', async () => {
+    const shutdown = async () => {
       if (stopping) return;
       stopping = true;
       shutdownSignal.abort();
@@ -58,7 +65,9 @@ function worker(queue: string) {
       await stopBoss();
       await closeDb();
       process.disconnect();
-    });
+    };
+    process.on('SIGTERM', () => { void shutdown(); });
+    process.on('message', (message) => { if (message?.shutdown) void shutdown(); });
     await registerContentJobs(await getBoss(), 1);
     process.send({ ready: true });
   `;
@@ -90,7 +99,7 @@ before(async () => {
 });
 after(async () => {
   active?.scoreAnswer.open(); active?.structureAnswer.open(); active?.writingAnswer?.open();
-  for (const child of children) child.kill("SIGTERM");
+  for (const child of children) stopWorker(child);
   await provider.close(); await stopBoss(); await closeDb();
 });
 
@@ -106,7 +115,7 @@ test("SIGTERM during the final paid writing call still commits the complete anal
   const jobId = await boss.send(queue, { articleId }, { singletonKey: articleId });
   const running = worker(queue);
   await Promise.race([Promise.all([running.ready, active.writingAsked!.promise]), running.done.then(() => assert.fail("worker exited before writing"))]);
-  running.child.kill("SIGTERM"); await running.stopping;
+  stopWorker(running.child); await running.stopping;
   active.writingAnswer!.open(); await running.done;
   assert.deepEqual(active.calls.slice().sort(), ["prefilter", "score", "score", "structure", "understand"]);
   assert.equal((await sql`SELECT state FROM pgboss.job WHERE id=${jobId}`)[0]!.state, "completed");
@@ -130,7 +139,7 @@ for (const failScore of [false, true]) test(`SIGTERM during ${failScore ? "faile
   const jobId = await boss.send(queue, { articleId }, { singletonKey: articleId });
   const first = worker(queue);
   await Promise.race([Promise.all([first.ready, active.scoreAsked.promise, active.structureAsked.promise]), first.done.then(() => assert.fail("worker exited before both requests"))]);
-  first.child.kill("SIGTERM"); await first.stopping;
+  stopWorker(first.child); await first.stopping;
   active.scoreAnswer.open();
   await until(async () => !!(await sql`SELECT 1 FROM receipts WHERE subject=${`article:${articleId}@1`} AND purpose='score_article' AND status IN ('received','failed')`)[0], "score receipt");
   assert.equal(first.child.exitCode, null, "the process stays alive while structure owns a paid response");
@@ -146,7 +155,7 @@ for (const failScore of [false, true]) test(`SIGTERM during ${failScore ? "faile
   assert.equal((await sql`SELECT state FROM pgboss.job WHERE id=${jobId}`)[0]!.state, "retry", "pg-boss owns restart recovery");
   const restarted = worker(queue); await restarted.ready;
   await until(async () => (await sql`SELECT state FROM pgboss.job WHERE id=${jobId}`)[0]?.state === "completed", "completed retry");
-  restarted.child.kill("SIGTERM"); await restarted.done;
+  stopWorker(restarted.child); await restarted.done;
   assert.equal(active.calls.filter(s => s === "prefilter").length, 1);
   assert.equal(active.calls.filter(s => s === "structure").length, 1, "the slow structure answer was saved and reused");
   assert.equal(active.calls.filter(s => s === "score").length, failScore ? 3 : 2, "two ordered successful scores, only a rejected request repeats");
