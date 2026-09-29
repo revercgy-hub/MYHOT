@@ -1,6 +1,6 @@
 # 官方信源验证矩阵
 
-本矩阵区分页面结构、只读 preview 与隔离数据库验证。以下“未运行采集 worker、数据库写入、队列、模型或付费 fallback”仅指九个 HTML 来源的 `previewSource` 和一个 JSON 来源的 `fetchJsonList` dry-run 阶段。其后另在隔离 `_test` 数据库对三个 HTML 来源运行两轮受限 collector ingest，产生 30 篇 backfill 记录和 30 个未消费正文任务；验证范围与结果见 `P3_INGEST_VALIDATION.md`。这 30 篇的最新 SQL 正文汇总为 29 `ok`、1 `unconfirmed`、0 `pending`；30 个 `content.extract-body` 队列项仍未消费。此前的 28/2 是同一批记录的较早状态，已由最新单篇复验更新。QA fresh 全回归已完成：35 项 migrations、`npm test` 156/156、typecheck、web build、web tests 11/11、loopback smoke 30/30；结果与安全边界见 [P3_BODY_VALIDATION.md](P3_BODY_VALIDATION.md)。正文验证不代表 Gate 2 或生产稳定性通过。十个来源逐项 Gate 2 证据与金融司正文/附件边界见 [P3_SOURCE_ACCEPTANCE.md](P3_SOURCE_ACCEPTANCE.md)。`industry/sources.json` 目前配置十个来源（九个 HTML、一个 JSON），均为 `enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`。分页、重复和长期可靠性仍需后续 Gate 验收。
+本矩阵区分页面结构、只读 preview 与隔离数据库验证。以下“未运行采集 worker、数据库写入、队列、模型或付费 fallback”仅指九个 HTML 来源的 `previewSource` 和一个 JSON 来源的 `fetchJsonList` dry-run 阶段。其后另在隔离 `_test` 数据库对三个 HTML 来源运行两轮受限 collector ingest，产生 30 篇 backfill 记录和 30 个未消费正文任务；验证范围与结果见 `P3_INGEST_VALIDATION.md`。这 30 篇的最新 SQL 正文汇总为 29 `ok`、1 `unconfirmed`、0 `pending`；30 个 `content.extract-body` 队列项仍未消费。此前的 28/2 是同一批记录的较早状态，已由最新单篇复验更新。另对 `pboc-open-market` 第191号做了一次隔离库两轮小样：首轮入库、二轮判重，结果见 [P3_OMO_VALIDATION.md](P3_OMO_VALIDATION.md)；这不是 30 篇批次的一部分。QA fresh 全回归已完成：35 项 migrations、`npm test` 156/156、typecheck、web build、web tests 11/11、loopback smoke 30/30。Ubuntu `Check` workflow run [36556441810](https://github.com/revercgy-hub/MYHOT/actions/runs/36556441810) 的 check/Docker jobs均成功，backend tests 156/156、web tests 11/11，两个 smoke job各30项通过。回归结果与安全边界见 [P3_BODY_VALIDATION.md](P3_BODY_VALIDATION.md)。正文验证不代表 Gate 2 或生产稳定性通过。十个来源逐项 Gate 2 证据与金融司正文/附件边界见 [P3_SOURCE_ACCEPTANCE.md](P3_SOURCE_ACCEPTANCE.md)。`industry/sources.json` 目前配置十个来源（九个 HTML、一个 JSON），均为 `enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`。分页、重复和长期可靠性仍需后续 Gate 验收。
 
 状态含义：
 
@@ -74,6 +74,12 @@ Gate 1 后 collector 已实现 `publishedAtUtcOffset` 的墙钟时间解析；�
 | `mof-treasury-debt-data` | 10 / 10 / 0 | 10 / 0 / 0 | 2025-12-30 — 2026-09-24 | 最新条目约 5 天，仍需后续周期验证 |
 
 三源共 6 次运行均 `status=ok`；SQL 核实 30 篇文章各有唯一 URL 与 identity key，30 篇均为首导入 backfill；三源均保持 `enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`。第二轮均未创建或修订条目。该次入库后所有文章均为 `body_status=pending`；队列中有 30 个未消费 `content.extract-body` job，无分析 job，`receipts=0`。隔离 DB 和机器核验输出保存在 Git 忽略目录 `.data/fiscal-qa/`。这是当时的 ingest 快照。之后曾先验证 6 篇（5 `ok`、1 `unconfirmed`、24 `pending`），再扩展验证完整 30 篇；这两个均为历史阶段。最新单篇复验将一篇从 rev1 `unconfirmed` 更新为 rev2 `ok`、正文 1,454 字；其余 SQL 汇总为 29 `ok`、1 `unconfirmed`、0 `pending`。队列仍有 30 个未消费 job、无分析 job，`receipts=0`。fresh 全回归完成并通过，Gate 2 未通过。
+## P3 OMO 第191号受限 collector 两轮验证（2026-09-29）
+
+在独立 `fiscalhot_omo_test` 库中仅 seed `pboc-open-market`，静态 source 配置始终 disabled，隔离库配置也在验证后恢复。将 allow 前缀临时收窄到第191号唯一详情 URL，并把 backfill/maxFetches 限为 1。两轮实际结果为：首轮 `found=1/created=1/revised=0`、一次详情读取；第二轮 `found=1/created=0/revised=0`、详情读取 0。两次列表 fetch run 均成功。详情 URL 为 <https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/2026092908461628271/index.html>，标题与列表相符；列表日及 `PubDate` 为 2026-09-29，落库 UTC 为 `2026-09-28T16:00:00Z`。正文 174 字、1 表，`body_status=ok`；表格中的 7 天、1.40%、905 亿元等字段保留，原文句子“同时，开展了6985亿元隔夜逆回购操作。”按来源原句记录，不作额外解释。第二轮 URL 判重且正文哈希、revision 不变。
+
+本次不是批量或持续性验证：未翻页、未尝试其他候选或 PDF；没有启动应用 worker/模型/Jina/OCR/通知，所有运行开关 false，`receipts=0`、`lb_models=0`。现有 `queueProcessing` 留下 1 个未消费 `content.analyze:created` job；没有 `content.extract-body` job。来源仍 disabled。完整边界、隔离与调用次数见 [P3_OMO_VALIDATION.md](P3_OMO_VALIDATION.md)。
+
 ## P3 日期口径与栏目新鲜度复核（2026-09-29）
 
 本次共发出 8 次免费、只读官方 GET，每请求 12 秒超时、不重试；没有调用数据库、队列、worker、模型、Jina 或付费服务。具体响应摘要保存在忽略目录 `.data/fiscal-central-audit/p3-date-freshness-20260929.json`；此前取得的本地 HTML/JSON 快照见该 JSON 的 `priorLocalSnapshots`。
@@ -110,15 +116,15 @@ Gate 1 后 collector 已实现 `publishedAtUtcOffset` 的墙钟时间解析；�
 
 ### PDF.js 离线 PoC 与运行边界
 
-Mozilla PDF.js 官方 Node 示例导入 `pdfjs-dist/legacy/build/pdf.mjs` 的 `getDocument()`，并从 `PDFDocumentProxy.numPages` 取页数、逐页调用 `PDFPageProxy.getTextContent()`。项目现已新增 `pdfjs-dist@6.3.289` 用于离线文本 PoC；官方 FAQ 将 legacy Node.js 22+ 标为 Mostly、自动测试 Limited。本机 Windows Node 24 已对样本通过实测；Linux/NAS 仍待验证。PDF.js 仓库标注 Apache-2.0。参见[官方 Node 示例](https://github.com/mozilla/pdf.js/blob/master/examples/node/getinfo.mjs)、[官方兼容性 FAQ](https://github.com/mozilla/pdf.js/wiki/Frequently-Asked-Questions)、[API 的 `getTextContent`](https://mozilla.github.io/pdf.js/api/draft/module-pdfjsLib-PDFPageProxy.html) 与[许可证](https://github.com/mozilla/pdf.js/blob/master/LICENSE)。
+Mozilla PDF.js 官方 Node 示例导入 `pdfjs-dist/legacy/build/pdf.mjs` 的 `getDocument()`，并从 `PDFDocumentProxy.numPages` 取页数、逐页调用 `PDFPageProxy.getTextContent()`。项目现已新增 `pdfjs-dist@6.3.289` 用于离线文本 PoC；官方 FAQ 将 legacy Node.js 22+ 标为 Mostly、自动测试 Limited。Windows Node 24 已对真实样本通过实测；Ubuntu `Check` CI（run `36556441810`）的通用 `npm test`、typecheck、web build、web tests 与 smoke 已通过，但CI未解析此官方 PDF 样本，不能据此声称真实PDF在Linux通过。PDF.js 仓库标注 Apache-2.0。参见[官方 Node 示例](https://github.com/mozilla/pdf.js/blob/master/examples/node/getinfo.mjs)、[官方兼容性 FAQ](https://github.com/mozilla/pdf.js/wiki/Frequently-Asked-Questions)、[API 的 `getTextContent`](https://mozilla.github.io/pdf.js/api/draft/module-pdfjsLib-PDFPageProxy.html) 与[许可证](https://github.com/mozilla/pdf.js/blob/master/LICENSE)。
 
-生产 PDF 路线尚未完成：财政部金融司 disabled 配置已按 AD-010 选择已验证的文章外壳、正文区和附件区；三份本地 HTML 的 envelope helper 核验覆盖一份单 PDF 公示、一份无附件完整通知和一份 RAR 快报拒绝。尚未完成有界网络附件获取、PDF 与短正文组合的 driver 验证，Linux/NAS 与容器内存边界也未验收；目前不启用 source、OCR 或付费 fallback。
+生产 PDF 路线尚未完成：财政部金融司 disabled 配置已按 AD-010 选择已验证的文章外壳、正文区和附件区；三份本地 HTML 的 envelope helper 核验覆盖一份单 PDF 公示、一份无附件完整通知和一份 RAR 快报拒绝；单篇真实 HTML+PDF 路径在 Windows 隔离库通过。Ubuntu CI仅证明通用测试/构建兼容，未解析真实PDF样本。NAS硬RSS、PDF真实样本Linux运行、运行隔离与生产持续性尚待验证；目前不启用 source、OCR 或付费 fallback。
 
 ### AD-009 本轮状态
 
 | 项目 | 已验证状态 | 边界 |
 |---|---|---|
-| A：所选 HTML 正文 | `pboc-open-market` 使用实证唯一容器 `#zoom` 和显式 `allowShortBody=true`；本地第191号快照通过共享 helper，题名/日期相符，输出 174 字、1 张表并保留关键操作量；`tests/selected-body.test.ts` 4/4 通过。 | 只做离线 helper 验证；source 仍 `enabled=false` 且两项全文开关 false，没有 live collector/worker 验证。 |
+| A：所选 HTML 正文 | `pboc-open-market` 使用实证唯一容器 `#zoom` 和显式 `allowShortBody=true`；离线 helper 检查后，又在隔离 `fiscalhot_omo_test` 对第191号完成受限 collector 两轮：1 条入库，第二轮 0 revised、0 详情重复读取；输出 174 字、1 张表，题名/日期和关键操作量符合本地快照。`tests/selected-body.test.ts` 4/4 通过。 | 仅一个指定 URL 的单篇样本；未检查另外 19 个首页候选、翻页或长期更新。source 仍 `enabled=false` 且两项全文开关 false；留有 1 个未消费 `content.analyze:created` job。 |
 | B：直接 PDF 文本 PoC | Windows Node 24 + `pdfjs-dist@6.3.289` 离线解析金融司 1 页样本，19 个定位文本行；布局按列锚点与行区间还原 6×4 表格的四个业务行，并经原 PDF 视觉复核。福建厅 4 页样本逐页视觉检查为同一公告，helper 因扫描页返回 `pdf_page_no_text`。渲染证据保存在忽略目录 `.data/fiscal-central-audit/rendered/`。 | 未做 OCR；解析器仍是只接收调用方已有 bytes 的离线模块。 |
-| AD-010：财政部金融司 HTML envelope | `mof-finance-notices` 的 `articleSelector=.box_content`、`bodySelector=.my_doccontent`、精确附件区 selector 与 `attachmentMode=optional` 已加入 disabled 配置；三份本地快照经 `extractSelectedArticleEnvelope` 核验。另在隔离库对一篇历史 unconfirmed 文章进行单篇 HTML+PDF 验证：title 相同、正文 hash 变化，rev1/0字到rev2/1,454字；19 条 PDF 坐标行按 X/Y 恢复表格值，计划单列市为“厦门市”（“市”在同列下一 span）。 | 只证明该单篇路径；source 未启用，临时 SQL 验证配置已恢复。30 篇最新 SQL 为29 `ok`、1 `unconfirmed`、0 `pending`，仍有30个未消费 extract-body 任务；fresh 全回归已通过。更多附件正反样本、Linux/NAS和资源限制待验证。 |
-| 生产附件链路 | 单篇 HTML+PDF 组合已有隔离库证据；其他来源/附件类型的有界端到端覆盖、Linux/NAS 和容器 RSS 限制仍未验收。 | 生产路线③尚未全面验收。十个 source 均保持 `enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`；Gate 2 未通过。 |
+| AD-010：财政部金融司 HTML envelope | `mof-finance-notices` 的 `articleSelector=.box_content`、`bodySelector=.my_doccontent`、精确附件区 selector 与 `attachmentMode=optional` 已加入 disabled 配置；三份本地快照经 `extractSelectedArticleEnvelope` 核验。另在隔离库对一篇历史 unconfirmed 文章进行单篇 HTML+PDF 验证：title 相同、正文 hash 变化，rev1/0字到rev2/1,454字；19 条 PDF 坐标行按 X/Y 恢复表格值，计划单列市为“厦门市”（“市”在同列下一 span）。 | 只证明该单篇路径；source 未启用，临时 SQL 验证配置已恢复。30 篇最新 SQL 为29 `ok`、1 `unconfirmed`、0 `pending`，仍有30个未消费 extract-body 任务；fresh全回归及Ubuntu通用CI已通过，但真实PDF未在Linux解析。更多附件正反样本、NAS和资源限制待验证。 |
+| 生产附件链路 | 单篇 HTML+PDF 组合已有隔离库证据；Linux CI的一般构建/测试已通过，但未在Linux解析官方PDF样本；其他来源/附件类型、NAS容器RSS和运行隔离尚未验收。 | 生产路线③尚未全面验收。十个 source 均保持 `enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`；Gate 2 未通过。 |

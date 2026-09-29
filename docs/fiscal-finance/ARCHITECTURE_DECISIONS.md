@@ -134,7 +134,7 @@ article/body/attachment selector 的字段类型与组合进入 whitelist 校验
 4. 不支持的 `.rar`、`.xls` 等下载项、多个附件、不合法 URL 或无法明确分类的下载项：unconfirmed，保留原文链接和有界原因，不解压、不递归、不请求额外未知文件、不以“未发现 PDF”进入零附件分支。即使 HTML 超过 200 字也不能自动忽略明确存在的这些附件。
 5. 文章 envelope 外的导航、友情链接和其他文章附件不参与本文章发现。articleSelector 只作范围界定；模型/存储正文仍使用 clean body，不把整个 envelope 写入 body。
 
-通用契约、disabled source fields 与离线/受控测试已落地。另在隔离库对一条历史 unconfirmed 记录做过一次 HTML+PDF extraction：同标题从 rev1/0字更新为 rev2/1,454字，PDF 四个业务行和四列值按坐标完整恢复；SQL detail 临时配置在验证后恢复，source flags 始终关闭，receipts/model bills 均为0。该单篇结果不是 Gate 2 通过或栏目级稳定性证明。QA fresh 全回归已通过（156 tests、typecheck、web build、web tests 11/11、smoke 30/30）；Linux/NAS 的内存与运行隔离、RSS/公开出口和其余 AD-009 验收项仍待验证。首次 MODEL=false 的错误设置尝试造成25个stub测试失败，不作为代码失败或有效回归；按本地stub例外fresh重跑通过。
+通用契约、disabled source fields 与离线/受控测试已落地。另在隔离库对一条历史 unconfirmed 记录做过一次 HTML+PDF extraction：同标题从 rev1/0字更新为 rev2/1,454字，PDF 四个业务行和四列值按坐标完整恢复；SQL detail 临时配置在验证后恢复，source flags 始终关闭，receipts/model bills 均为0。该单篇结果不是 Gate 2 通过或栏目级稳定性证明。QA fresh 本地回归已通过（156 tests、typecheck、web build、web tests 11/11、smoke 30/30）。Ubuntu GitHub Check run [36556441810](https://github.com/revercgy-hub/MYHOT/actions/runs/36556441810) 的通用构建/测试和 Docker smoke 也通过（backend 156/156、web 11/11、两组 smoke 各30项）；CI没有解析真实官方PDF样本。NAS的硬 RSS、PDF在Linux实际解析、内存与运行隔离、RSS/公开出口和其余 AD-009 验收项仍待验证。首次 MODEL=false 的错误设置尝试造成25个stub测试失败，不作为代码失败或有效回归；按本地stub例外fresh重跑通过。
 
 ### 最小正反测试与实际核验
 
