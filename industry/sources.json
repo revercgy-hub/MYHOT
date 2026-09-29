@@ -245,6 +245,60 @@
       "site_fulltext": false,
       "syndicate_fulltext": false,
       "enabled": false
+    },
+    {
+      "id": "mof-regional-supervision-dynamics",
+      "name": "财政部·各地监管局动态（官网选登汇总）",
+      "kind": "web_list",
+      "config": {
+        "url": "https://www.mof.gov.cn/zhengwuxinxi/caizhengxinwen/index.htm",
+        "itemSelector": "ul.xwfb_listbox > li:has(a[title*='监管局'])",
+        "linkSelector": "a[href]",
+        "titleSelector": "a",
+        "titleAttribute": "title",
+        "publishedAtSelector": "span",
+        "publishedAtUtcOffset": "+08:00",
+        "allowUrlPrefixes": [
+          "http://bj.mof.gov.cn/", "http://tj.mof.gov.cn/", "http://he.mof.gov.cn/", "http://sn.mof.gov.cn/", "http://nmg.mof.gov.cn/",
+          "http://ln.mof.gov.cn/", "http://dl.mof.gov.cn/", "http://jl.mof.gov.cn/", "http://hlj.mof.gov.cn/", "http://sh.mof.gov.cn/",
+          "http://jsz.mof.gov.cn/", "http://zj.mof.gov.cn/", "http://nb.mof.gov.cn/", "http://ah.mof.gov.cn/", "http://fj.mof.gov.cn/",
+          "http://xm.mof.gov.cn/", "http://jx.mof.gov.cn/", "http://sd.mof.gov.cn/", "http://qd.mof.gov.cn/", "http://ha.mof.gov.cn/",
+          "http://hb.mof.gov.cn/", "http://hn.mof.gov.cn/", "http://gd.mof.gov.cn/", "http://sz.mof.gov.cn/", "http://gx.mof.gov.cn/",
+          "http://hq.mof.gov.cn/", "http://cq.mof.gov.cn/", "http://sc.mof.gov.cn/", "http://gz.mof.gov.cn/", "http://yn.mof.gov.cn/",
+          "http://sx.mof.gov.cn/", "http://gs.mof.gov.cn/", "http://qh.mof.gov.cn/", "http://nx.mof.gov.cn/", "http://xj.mof.gov.cn/"
+        ]
+      },
+      "tier": "T1",
+      "first_party": true,
+      "participation_mode": "editorial",
+      "interval_minutes": 360,
+      "tags": ["官方", "财政监管", "监管局动态"],
+      "site_fulltext": false,
+      "syndicate_fulltext": false,
+      "enabled": false
+    },
+    {
+      "id": "mof-xiamen-supervision-dynamics",
+      "name": "财政部厦门监管局·工作动态",
+      "kind": "web_list",
+      "config": {
+        "url": "https://xm.mof.gov.cn/caizhengjiancha/index.htm",
+        "itemSelector": "ul.liBox > li",
+        "linkSelector": "a[href]",
+        "titleSelector": "a",
+        "titleAttribute": "title",
+        "publishedAtSelector": "span",
+        "publishedAtUtcOffset": "+08:00",
+        "allowUrlPrefixes": ["https://xm.mof.gov.cn/caizhengjiancha/"]
+      },
+      "tier": "T1",
+      "first_party": true,
+      "participation_mode": "editorial",
+      "interval_minutes": 360,
+      "tags": ["官方", "厦门", "财政监管"],
+      "site_fulltext": false,
+      "syndicate_fulltext": false,
+      "enabled": false
     }
   ]
 }
