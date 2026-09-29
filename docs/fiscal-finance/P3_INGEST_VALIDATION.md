@@ -20,7 +20,7 @@
 
 三源各自的 `fetch_runs` 两次均为 `ok`；每次 `found_count=10`，第二次 `new_count=0`。最终 30 篇均有不同 URL 和 identity key，无修订；每源 10 篇均标记 `backfill=true`。保存的日期按 `+08:00` 正确落入各自来源日历日，例如财政部金融司列表日 2026-07-16 保存为 `2026-07-16 00:00:00+08`。
 
-所有文章仍为 `body_status=pending`、`processing_state=new`。pg-boss 中只有 30 个 `content.extract-body` created jobs，没有 `content.analyze` job；`receipts` 行数为 0，leaderboard 模型表无行。由此确认此测试没有执行正文抓取或模型请求。不能据此声称正文质量已通过。
+在本次列表入库/重复抓取验证结束时，所有文章仍为 `body_status=pending`、`processing_state=new`。pg-boss 中只有 30 个 `content.extract-body` created jobs，没有 `content.analyze` job；`receipts` 行数为 0，leaderboard 模型表无行。后续从同一隔离库另做了 6 篇受控正文提取，结果见 `P3_BODY_VALIDATION.md`；它直接调用现有正文函数、明确禁用 Jina、不启动 worker，因此这 30 个队列 job 仍未消费。
 
 ## 可复跑命令
 
@@ -43,4 +43,4 @@ node scripts/collect.ts mof-treasury-debt-data
 
 ## 仍待解决
 
-此轮只证明三源列表读取、日期落库、初次 backfill 和记载相同 URL 时的幂等行为。文章 body 没有被抽取；人民银行 OMO 公告正文 0 字符，会计司一条列表/详情日期相差 1 天，福建列表 2 个 PDF、厦门债务正文 205 字及预算司弱正文仍需人工/离线规则处理。来源分页覆盖、长时间新鲜度、详情抽取和全文门槛也未验证。12 个首批重点入口尚有 3 个未配置，Gate 2 仍未通过。
+此轮记录三源列表读取、日期落库、初次 backfill 和重复抓取；后续 6 篇详情提取的结果见 `P3_BODY_VALIDATION.md`。当前这 30 篇中 5 篇正文 `ok`、1 篇 `unconfirmed`、24 篇仍 `pending`，未消费的 extraction jobs 仍为 30。人民银行 OMO 公告第191号正文约 162 字，未达到既有 200 字阈值；会计司列表与详情日期差 1 天；福建列表 2 个 PDF、厦门债务正文 205 字及预算司弱正文仍待核验。来源分页覆盖、长时间新鲜度和其余正文抽取也未验证。12 个首批重点入口尚有 3 个未配置，Gate 2 仍未通过。

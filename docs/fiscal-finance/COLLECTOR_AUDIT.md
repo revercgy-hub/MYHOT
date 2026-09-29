@@ -1,6 +1,6 @@
 # Collector 解析边界与验证记录
 
-日期：2026-09-29。此审计追踪四源 preview 暴露的标题、日期、PDF 与短正文行为，以及 Sol 批准的最小 parser 修复。实现限于通用 `sources/` 解析器、测试、`docs/sources.md` 和安全示例环境；没有修改数据库 schema、worker、apps、正文提取阈值或 PDF 解析。Gate 2 尚未通过。
+日期：2026-09-29。此审计追踪四源 preview 暴露的标题、日期、PDF 与短正文行为，以及 Sol 批准的最小 parser 修复。实现限于已批准的通用 `sources/` parser 能力、测试、`docs/sources.md` 和安全示例环境；没有超出批准范围修改 apps/packages、数据库 schema、worker、正文提取阈值或 PDF 解析。Gate 2 尚未通过。
 
 ## 已核实的来源边界
 

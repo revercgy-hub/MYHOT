@@ -19,4 +19,4 @@
 
 ## 当前证据
 
-Gate 1 的实现、自动检查、唯一一次 Sol Review 和 Lead 修复核销均已完成，`FINAL_GATE_STATUS=PASSED`。首批 10 个配置源保持 disabled；9 个 HTML 源完成一次 preview，厦门证监局 JSON 源完成一次 `fetchJsonList()` 验证。P3 已在隔离测试库对财政部综合政策、金融司、国库司统计各运行两轮真实 collector：每源首轮 10 篇、第二轮 10/10 判重，验证细节见 `P3_INGEST_VALIDATION.md`。入库文章正文仍未处理，没有 worker、模型或付费 fallback。Gate 2—5 尚未通过，首批重点仍有 3 个来源未配置，且分页、freshness、PDF、短正文和详情提取等问题待解决。
+Gate 1 的实现、自动检查、唯一一次 Sol Review 和 Lead 修复核销均已完成，`FINAL_GATE_STATUS=PASSED`。首批 10 个配置源保持 disabled；9 个 HTML 源完成一次 preview，厦门证监局 JSON 源完成一次 `fetchJsonList()` 验证。P3 已在隔离测试库对财政部综合政策、金融司、国库司统计各运行两轮真实 collector：每源首轮 10 篇、第二轮 10/10 判重，见 `P3_INGEST_VALIDATION.md`；受控正文提取 6 篇中 5 篇成功、1 篇 `unconfirmed`，额外只读诊断显示该条当前详情正文约 158 字并链接 PDF，但首次失败原因未记录，见 `P3_BODY_VALIDATION.md`。其余 24 篇保持 pending，30 个正文队列 job 未消费；没有 worker、模型或付费 fallback。Gate 2—5 尚未通过，首批重点仍有 3 个来源未配置，且分页、freshness、PDF、短正文和详情提取等问题待解决。
