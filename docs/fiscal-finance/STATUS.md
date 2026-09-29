@@ -1,6 +1,7 @@
 # 项目状态
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_SHA=8e845812b6ce1db45821ade7b2162a90f589e1de
 SOURCE_CONFIG_SHA=0ec0704c0e60a88d84bc99d558eb569c56731c79
 CI_TESTED_SHA=dafe9386838f6423dba8e080c51cd9114066992f
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
@@ -16,7 +17,7 @@ COMPLETED=P0接管；财政金融静态改造和Gate 1；原10源disabled配置�
 IN_PROGRESS=本地人工内容预览继续供用户检查；监管局两源各有一条固定URL隔离collector两轮及独立详情HTML解析证据，但DB正文仍pending/0字；没有历史分页、完整候选批量入库、正文队列消费、更多文章质量、跨周期freshness/重复或35局逐栏目证据。财政部中央源是选登汇总而非全量实时；福建局独立源因两次HTTP 502待验。Gate 2未通过。fresh `fiscalhot_regional_sources_test` 与loopback smoke复测通过。Web `127.0.0.1:3000`、API `127.0.0.1:3001`、共享PostgreSQL `127.0.0.1:5432` 均仅绑定loopback；Web以 `NODE_ENV=development` 启动且仅Web进程 `LOCAL_PREVIEW_ENABLED=true`，其他采集/模型/Jina/IndexNow/Feishu/私网安全开关保持关闭。区域collector测试使用独立 `fiscalhot_regional_p3_test`，35 migrations；source disabled/fulltext false、无worker/model，留下2个未消费extract-body jobs、receipt 0。历史预览服务当前是否运行未由本次collector报告复查；启动状态以新的进程证据为准。
 NEXT=继续按逐源计划验证新增监管局来源正文入库质量、历史分页、更多候选噪声/重复与跨周期freshness；补保存详情原始证据并在隔离库检查body_text。继续处理厦门财政附件正文/字段缺口、福建扫描件及真实官方PDF/Linux/NAS边界。Gate 2前不扩大采集、不部署Production。
 
-`SOURCE_CONFIG_SHA` 是最近一次来源配置代码提交（`0ec0704`）；本次区域 collector 使用代码 SHA `48122c8d7f1454be0bc19522a6041f6cc935a7c9`，也是该验证时 HEAD。`CI_TESTED_SHA` 是 Ubuntu 通用 CI 实际测试的旧 SHA `dafe9386838f6423dba8e080c51cd9114066992f`，不是上述来源配置 SHA 或 collector 验证 SHA；该 CI 结果不覆盖后续提交，且没有验证 Linux 上的真实官方 PDF 解析。阶段交接记录见 [HANDOFFS](HANDOFFS/README.md)，当前 P3 检查点见 [P3_CHECKPOINT_2026-09-30.md](HANDOFFS/P3_CHECKPOINT_2026-09-30.md)。
+`CURRENT_SHA` 是本次修改状态文档时 `git rev-parse HEAD` 的结果（`8e845812b6ce1db45821ade7b2162a90f589e1de`）；本次小修正提交后，最终文档 HEAD 会再前进，届时以 `git rev-parse HEAD` 查询为准。`SOURCE_CONFIG_SHA` 是最近一次来源配置代码提交（`0ec0704`）；本次区域 collector 的验证时仓库 HEAD 是 `48122c8d7f1454be0bc19522a6041f6cc935a7c9`，其来源代码 SHA 是 `0ec0704c0e60a88d84bc99d558eb569c56731c79`。`CI_TESTED_SHA` 是 Ubuntu 通用 CI 实际测试的旧 SHA `dafe9386838f6423dba8e080c51cd9114066992f`，不是上述当前文档、来源配置或 collector 验证 SHA；该 CI 结果不覆盖后续提交，且没有验证 Linux 上的真实官方 PDF 解析。阶段交接记录见 [HANDOFFS](HANDOFFS/README.md)，当前 P3 检查点见 [P3_CHECKPOINT_2026-09-30.md](HANDOFFS/P3_CHECKPOINT_2026-09-30.md)。
 
 ## 安全和验证环境
 

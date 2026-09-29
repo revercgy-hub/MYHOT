@@ -26,7 +26,7 @@ P3 要逐源验证真实抓取结果，包括标题、日期、详情页、URL�
 
 ### 新增来源的有限 collector 验证
 
-正式报告为 [P3_REGIONAL_COLLECTOR_VALIDATION.md](../P3_REGIONAL_COLLECTOR_VALIDATION.md)，验证代码 SHA `48122c8d7f1454be0bc19522a6041f6cc935a7c9`；隔离库 `fiscalhot_regional_p3_test` 完成35项迁移。测试副本仅允许两个确切 URL；两源配置均保持 disabled/fulltext=false，所有安全开关为 false，没有 worker、模型、Jina、通知或发布调用。报告记录中央源5次 guarded fetch（含早期成功调试预检）、厦门源4次，共9次，低于12次预算且无重试。独立审计可从正式脚本/JSON材料核对8次（两次列表预检、4次collector、2次详情）；额外早期中央预检仅有报告记录，缺少单独机器日志/响应哈希，因此该第9次不是独立机器证据。
+正式报告为 [P3_REGIONAL_COLLECTOR_VALIDATION.md](../P3_REGIONAL_COLLECTOR_VALIDATION.md)，验证时仓库 HEAD 为 `48122c8d7f1454be0bc19522a6041f6cc935a7c9`，来源配置代码 SHA 为 `0ec0704c0e60a88d84bc99d558eb569c56731c79`；隔离库 `fiscalhot_regional_p3_test` 完成35项迁移。测试副本仅允许两个确切 URL；两源配置均保持 disabled/fulltext=false，所有安全开关为 false，没有 worker、模型、Jina、通知或发布调用。报告记录中央源5次 guarded fetch（含早期成功调试预检）、厦门源4次，共9次，低于12次预算且无重试。独立审计可从正式脚本/JSON材料核对8次（两次列表预检、4次collector、2次详情）；额外早期中央预检仅有报告记录，缺少单独机器日志/响应哈希，因此该第9次不是独立机器证据。
 
 中央广西样本与厦门普惠金融样本各自两轮 collector 均为第一轮 `found/created/revised=1/1/0`、第二轮 `1/0/0`；每篇 URL 唯一，数据库四个 fetch run 均为 `ok`。每个详情页另作一次独立 HTTP 200 和 Readability 临时解析，临时文本分别约1,720、1,935字，标题、列表日与详情 PubDate 日级一致。质量 Agent 独立 SQL 复核为2个 source、2篇 article、2个 dormant `content.extract-body` job、receipts/publications/reports 等均0。该结果没有执行 `extractArticleBody()`，SQL 中两篇均仍是 `body_status=pending`、`body_text` 长度0、revision 1；数据库中每篇有1个未消费 `content.extract-body` job，共2个。不能把临时 Readability 结果写成数据库正文通过。详情 HTML 未保存；正文片段由结果材料抽查其业务相关性，但无法对原页面做二次离线解析。
 
@@ -41,7 +41,7 @@ P3 要逐源验证真实抓取结果，包括标题、日期、详情页、URL�
 
 ## 环境与安全
 
-截至 STATUS 记录：12 个 source 全部禁用且站内/RSS 全文关闭；`.env.example` 中采集、模型、Jina、IndexNow、Feishu 开关关闭；区域来源候选验证没有 collector 写库、worker、模型或全文发布。之前的本地人工预览是 loopback 地址和独立预览数据库，不能据此认定本轮 collector 有写库。进入下一步前应从 STATUS、Agent 验证记录和实际进程/数据库证据重新确认，不能推测服务当前仍在运行。
+截至 STATUS 记录：12 个 source 全部禁用且站内/RSS 全文关闭；`.env.example` 中采集、模型、Jina、IndexNow、Feishu 开关关闭。此前的静态候选验证未写库；本轮仅在独立 `fiscalhot_regional_p3_test` 中由两个固定 URL collector 各写入1篇 article，并留下2个未消费正文任务，正文仍 pending/0字。之前的人工预览库未改；collector 测试未启动 worker、模型或全文发布。进入下一步前应从 STATUS、Agent 验证记录和实际进程/数据库证据重新确认，不能推测服务当前仍在运行。
 
 ## 阻塞、风险与下一批 Agent
 
