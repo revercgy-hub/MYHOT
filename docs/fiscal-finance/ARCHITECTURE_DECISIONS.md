@@ -107,6 +107,45 @@ Luna 已用 `fetchJsonList()` 对厦门证监局实际配置验证 20 条候选�
 
 当前批准能力分阶段推进，不代表 Gate 2 已通过，不开启 worker、大规模采集、真实模型或部署。
 
+## AD-010：同一官方栏目混合 HTML 与附件通知的兼容契约
+
+DECISION=APPROVED（仅 S1 方案，不是 Gate 2 Approval）。本次只更正 AD-009 的附件定位与零项契约，不重写 Luna 已实现的 PDF helper、短正文提取或安全测试。
+
+### 新事实与最小字段
+
+金融司公示的 `.my_doccontent` 是唯一的干净正文（约 158 字），附件位于同一 `.box_content` 文章 envelope 内的姐妹节点 `div.gu-download:has(>p#down-tit1):has(>ul#down1)`，其实际下载链接在 `#down1 li #appendix1 a[href]`。扩大 bodySelector 到 `.box_content` 会把标题和下载区混进正文；坚持附件只能在 clean body 子树则漏掉真实附件。
+
+同一栏目 2026-07-16 通知有完整 HTML 正文约 1,493 字、没有 PDF；2025-12-12 快报页仅约 13 字正文，下载区指向 `.rar`。附件零项不一律等于坏页，也不一律等于“完整 HTML”。
+
+批准 detail 配置最小扩展：
+
+- `articleSelector`：唯一文章 envelope。
+- 保留现有 `bodySelector`：在该 envelope 内定位唯一干净正文，不包含下载区。
+- `attachmentSelector`：在该 envelope 内定位唯一的实际下载区，helper 检查区内全部 `a[href]` 文件 anchor，不预过滤 `.pdf`，并拒绝 envelope 内未归入该下载区的已知文件。若既有实现保留名称 `pdfAttachmentSelector`，其语义同样必须检查全部下载项后判定格式；不能把 `.rar`/`.xls` 隐去后称为零附件。优先采用不误导的 attachmentSelector 名称。
+- `attachmentMode`：`required` 为配置附件能力时的缺省值；`optional` 必须明确设置。完全未配置附件能力保持原有行为，不自动发现或请求附件。
+
+article/body/attachment selector 的字段类型与组合进入 whitelist 校验。attachmentSelector 必须与 articleSelector/bodySelector 配套，attachmentMode 不能单独激活。实际 source 配置须由已核 HTML 支持；模式名只描述该 source 的已知页面布局，不是信任官方域名的豁免。
+
+### 决策分支与不回退边界
+
+1. envelope/body 不存在、不唯一、错页或 identity 不符：unconfirmed，不回退扩大容器、Readability、Jina 或 whole-page 链接扫描。
+2. `required` 模式零附件：unconfirmed。`optional` 零附件仅在该 envelope 内确无下载项，且干净正文达到既有 200 字规则、结构/identity/完整性检查通过时作为普通 HTML 成功；不能以 allowShortBody 让本模式的短 intro 成功。独立已批准的 OMO 完整短公告 opt-in 不受此分支变更。
+3. 恰好一个明确 PDF：继续 AD-009 的允许 URL、无重定向、MIME/魔数、资源上限与本地解析路径；所有页和必要表格完整成功才把干净 HTML 与附件按来源分段合并。附件失败不能仅把 intro 或长 HTML 当成功。
+4. 不支持的 `.rar`、`.xls` 等下载项、多个附件、不合法 URL 或无法明确分类的下载项：unconfirmed，保留原文链接和有界原因，不解压、不递归、不请求额外未知文件、不以“未发现 PDF”进入零附件分支。即使 HTML 超过 200 字也不能自动忽略明确存在的这些附件。
+5. 文章 envelope 外的导航、友情链接和其他文章附件不参与本文章发现。articleSelector 只作范围界定；模型/存储正文仍使用 clean body，不把整个 envelope 写入 body。
+
+通用契约、disabled source fields 与离线/受控测试已落地。另在隔离库对一条历史 unconfirmed 记录做过一次 HTML+PDF extraction：同标题从 rev1/0字更新为 rev2/1,454字，PDF 四个业务行和四列值按坐标完整恢复；SQL detail 临时配置在验证后恢复，source flags 始终关闭，receipts/model bills 均为0。该单篇结果不是 Gate 2 通过或栏目级稳定性证明。QA fresh 全回归已通过（156 tests、typecheck、web build、web tests 11/11、smoke 30/30）；Linux/NAS 的内存与运行隔离、RSS/公开出口和其余 AD-009 验收项仍待验证。首次 MODEL=false 的错误设置尝试造成25个stub测试失败，不作为代码失败或有效回归；按本地stub例外fresh重跑通过。
+
+### 最小正反测试与实际核验
+
+- 金融司 6 月公示：clean body 与下载区为姐妹节点；既有单篇隔离 extraction 实际组合一份 PDF 与 HTML，正文 1,454 字，表格四行四列与“厦门市”跨 span 恢复一致。若 PDF 失败仍应 unconfirmed，短 intro 不得绕过。
+- 7 月合法通知：optional 模式没有附件、约 1,493 字 HTML 和 identity 通过，正常 ok；required 模式同输入保持失败。
+- 12 月快报：13 字正文加 rar 保持 unconfirmed，绝不打开压缩包；再用超过 200 字的正文加 rar/xls fixture 确认失败依据是未知附件而非长度。
+- 两个 PDF、PDF+rar、错 envelope/多 envelope、缺 clean body、坏 URL、错 identity：失败；envelope 外一个 unrelated PDF 不改变本文章结果。
+- 既有未配置附件的 HTML/OMO helper、PDF resource/error fixtures 继续通过；fetchDetail 与 extractArticleBody 使用同一决策，不由 metadata 预取先把部分正文标 ok。
+
+金融司 AD-010 配置保持 disabled；字段和单篇路径已验证，但仍需完整 Gate 2 证据。无 whole-page link scan、递归、模型、OCR、压缩包解包、schema/migration 或 apps 扩展。Gate 2 未审查也未通过。
+
 ## 审查边界
 
 AD-005 至 AD-008 是针对实现中明确出现的解析器兼容问题作出的 S1 决策；获批的 parser 修复已落地，完整测试、typecheck 和离线兼容测试证据见 `COLLECTOR_AUDIT.md`。P3 受控 collector 验证只覆盖隔离测试库上的少量官方列表请求，不启动 worker 或模型，细节见 `P3_INGEST_VALIDATION.md`。这些 S1 批准和局部验证均不替代 Gate 2 Review，也不表示真实正文链路或信源长期稳定性通过。

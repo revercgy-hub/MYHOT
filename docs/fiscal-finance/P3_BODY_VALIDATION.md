@@ -29,9 +29,9 @@ Lead 批准的额外单次只读诊断 GET 当前返回 HTTP 200，`Content-Type
 
 ## 数据库交叉核验
 
-- 这 6 篇首批样本当时为 5 `ok`、1 `unconfirmed`；后续 24 篇结果见下节，当前 30 篇累计为 28 `ok`、2 `unconfirmed`、0 `pending`。5 篇首批成功文章由 revision 1 到 2，首批 6 篇 DB 标题字段均未变化、`processing_state` 均为 `new`。
+- 这 6 篇首批样本当时为 5 `ok`、1 `unconfirmed`；后续 24 篇结果见下节。AD-010 后续单篇验证将原金融司 unconfirmed 样本更新为 `ok`，因此当前 30 篇累计为 29 `ok`、1 `unconfirmed`、0 `pending`。其余首次成功文章由 revision 1 到 2，所有样本 DB 标题字段均未变化、`processing_state` 均为 `new`。
 - 首批 6 篇调用前后 pg-boss 队列计数完全不变；第二批 24 篇执行前后亦相同。当前只有 30 个未消费 `content.extract-body` jobs，没有 `content.analyze` jobs。`receipts=0`、`lb_models=0`。正文 helper 不消费队列，也不安排模型分析。
-- 首批 SQL 汇总保存在 Git 忽略目录 `.data/fiscal-qa/body-evidence.txt`；首批脚本 `.data/fiscal-qa/extract-body-check.ts` 固定 6 个 article ID 并在状态不是 pending 时停止。额外诊断只请求首批一篇的单个 URL，原始结果保留于 `.data/fiscal-qa/`；没有再次尝试该 extraction 或 PDF。
+- 首批 SQL 汇总保存在 Git 忽略目录 `.data/fiscal-qa/body-evidence.txt`；首批脚本 `.data/fiscal-qa/extract-body-check.ts` 固定 6 个 article ID 并在状态不是 pending 时停止。**当时**的额外诊断只请求首批一篇的单个 URL，原始结果保留于 `.data/fiscal-qa/`；该批没有再次尝试 extraction 或请求 PDF。
 
 ## 剩余 24 篇正文验证（2026-09-29）
 
@@ -66,18 +66,22 @@ Lead 批准的额外单次只读诊断 GET 当前返回 HTTP 200，`Content-Type
 
 这批 24 篇为 23 `ok`、1 `unconfirmed`。新的未确认项是金融司《金融企业财务快报系统25版》，详情 URL 为 `https://jrs.mof.gov.cn/gongzuotongzhi/202512/t20251212_3979075.htm`。和此前那篇金融司未确认一样，首次 extraction 没有持久化网络状态或失败原因；本轮没有额外诊断 GET，故其原因仍为 **unknown**，不能归因于 PDF 或短正文。
 
-合并最初 6 篇后，30 篇最终状态为 28 `ok`、2 `unconfirmed`、0 `pending`：金融司 8 `ok`/2 `unconfirmed`，财政部综合政策 10 `ok`，国库司 10 `ok`。所有成功项 revision 从 1 到 2；两条未确认项保持 revision 1。30 篇仍为 `processing_state=new`，三个来源仍 disabled、全文开关关闭；30 个 extraction job 未消费，未排入 analysis job，receipt/model 记录均为 0。
+合并最初 6 篇后、AD-010 单篇验证前，该批完成时 30 篇为 28 `ok`、2 `unconfirmed`、0 `pending`：金融司 8 `ok`/2 `unconfirmed`，财政部综合政策 10 `ok`，国库司 10 `ok`。该时点成功项 revision 从 1 到 2，两条未确认项保持 revision 1。之后的 AD-010 更新见下节。
 
-这一组结果显示 30 篇官方 HTML 样本中 28 篇达到现有正文门槛。它不能证明全来源正文质量、附件覆盖或分页稳定性；此前金融司绩效公示的单次诊断只证明当前响应中约 158 字的 HTML 被 200 字阈值过滤，并提供一个尚未读取的 PDF 链接，原首次失败原因依然 unknown。人民银行 OMO 第191号已知正文约 162 字，也低于同一阈值；福建厅列表已有两个 PDF 项目记录。上述都是 Gate 2 仍未解决的边界，不能据此推断所有短文都依赖 PDF，也没有在本轮下载或解析 PDF。
+这组 HTML 结果最初有 28 篇达到正文门槛。金融司绩效公示当时的诊断只证明该响应约 158 字的 HTML 低于 200 字阈值；详情还提供考核表 PDF。之后 AD-010 单篇验证成功下载并解析该 PDF，见下节。人民银行 OMO 第191号约 162 字，仍低于默认门槛；福建厅列表已有扫描 PDF 项目。短正文、扫描件与分页仍需逐源验证，不能据此推断所有短文都依赖 PDF。
 
 复核摘要和每篇进度保存在 Git 忽略目录 `.data/fiscal-qa/remaining-body-start.json`、`remaining-body-progress.jsonl`、`remaining-body-result.json`，一次性受限脚本为 `.data/fiscal-qa/extract-remaining-body-check.ts`。它固定本轮 24 个 ID，先验证安全开关、数据库名、状态、类型、source disabled、allow prefix 与 X 字段，再逐篇调用一次；若状态已变化会停止，避免重复请求。**这批直接存储验证**未改变生产代码、数据库 schema、来源配置或 200 字阈值，也没有下载或解析 PDF；随后 AD-009 另行实施了共享正文 helper 与离线 PDF PoC（见下节）。Gate 2 仍未通过。
 
-## AD-009 共享正文 selector 与离线 PDF 文本 PoC
+## AD-009/AD-010 共享正文 selector 与受控 PDF 正文验证
 
-本节记录代码验证边界，不改变上面 30 篇的数据库结果。新增的 `detail.bodySelector` / `detail.allowShortBody` 是显式 source 配置；同一个严格 helper 被 `fetchDetail()` 与 `extractArticleBody()` 共用。配置前提为人工核验的唯一正文容器，以及详情 `ArticleTitle`、日期与列表/已存条目一致。导航/空容器、仅链接内容和含未解析 PDF 附件的正文候选会被拒绝；普通外链不会被自动跟随。选择器失败只记录 article/source ID 和固定原因，不写正文、headers 或原始响应。未配置 selector 的 source 仍走既有 Readability 路径，200 字阈值不变。当前人民银行 OMO 配置仍 disabled；本地 HTML 快照使用 `#zoom`、短正文显式 opt-in 离线通过，不代表运行 collector 或公开正文。
+本节记录在原 30 篇样本之后完成的单篇 AD-010 受控验证。显式的 article envelope、干净正文与附件区域 selector 被 `fetchDetail()` 和 `extractArticleBody()` 共用；金融司 source 在数据库中仅临时设置该配置，source 及全文许可一直 disabled，验证后恢复原配置。6/8 详情页身份匹配，短 HTML 通知本身不作为完整正文；唯一 PDF 附件通过官方 HTTPS allow prefix、无重定向、MIME/签名和解析限制后，HTML 通知与 PDF 布局一起存储。RAR、多附件、错误身份、无效 PDF 和不完整页均拒绝，不回退到 HTML intro 或 Jina。未配置新字段的 source 保持旧行为，默认 200 字阈值不变。
 
-离线 PDF PoC 固定 `pdfjs-dist@6.3.289`（Apache-2.0），从 Node legacy API 读取**调用方已持有的字节**；模块不接收 URL、不下载附件、不启用 OCR，也不启动应用 worker。单次解析运行于独立子进程，使用 192 MiB V8 old-space 参数、10 秒墙钟时限、6 MiB 输入、40 页、120,000 字符、1 MiB stdout 上限，并在超时或输出超限时杀死子进程且等待 `close` 后释放串行槽。每页必须有文本；混合扫描页、扫描件、加密、坏 PDF 与超限输入均拒绝为未确认。返回文本按 PDF 视觉行序排列，同时保留每页的 x/y spans，避免仅扁平化全文后失去列的位置。
+PDF 文本解析器固定 `pdfjs-dist@6.3.289`（Apache-2.0），Node legacy parser 本身只读取调用方已取得的字节，不接收 URL、不启用 OCR，也不启动应用 worker。显式配置的 `pdf-body` driver 才会按 HTTPS 官方 allow prefix 用 `guardedFetch` 下载所选附件（20 秒、6 MiB、禁止重定向，并校验 MIME 与文件签名）。单次解析运行于独立子进程，使用 192 MiB V8 old-space 参数、10 秒墙钟时限、6 MiB 输入、40 页、120,000 字符、1 MiB stdout 上限，并在超时或输出超限时杀死子进程且等待 `close` 后释放串行槽。每页必须有文本；混合扫描页、扫描件、加密、坏 PDF 与超限输入均拒绝为未确认。返回文本按 PDF 视觉行序排列，同时保留每页的 x/y spans，避免仅扁平化全文后失去列的位置。
 
-Windows 本地 Node 24 实测金融司官方 66,740 B、1 页 PDF，返回 314 字和 19 个坐标行；对照页面坐标/列锚点逐格复核了 4 个业务行的 4 列（东部、中部/东北、西部、计划单列市），福建省/厦门市等值落在预期档次列。福建厅官方 178,333 B、4 页代表扫描 PDF 返回 `pdf_page_no_text`；没有把下载成功当成正文成功。单元测试覆盖合成文本 PDF、加密/损坏/空页/混合扫描页、页/字节/文本/输出上限、超时杀进程、并发串行及超时后下一次解析恢复。PDF.js 官方 FAQ 对 Node 22+ legacy 路径的描述是 Mostly、自动测试 Limited；此处仅 Windows 本机验证，Linux/NAS、部署环境硬 RSS 限额仍未验证，V8 old-space 不是 RSS 上限。
+Windows 本地 Node 24 实测金融司官方 66,740 B、1 页 PDF，解析出 19 个坐标行。6/8 单篇正文入口实际请求一次 HTML 和一次 PDF，将结果写入同一现有文章：`unconfirmed`/0 字/revision 1 变为 `ok`/1,454 字/revision 2，内容哈希更新、数据库标题不变。保存的 body 含附件题名与 URL、19 条页号/x/y/span 行。按 x 列锚点和 y 行恢复出的 4 个业务行×4 列与原件一致；“厦门”和下一坐标行同列的“市”合为“厦门市”，属于 PDF 原始换行，不是丢字。福建厅官方 178,333 B、4 页代表扫描 PDF 返回 `pdf_page_no_text`；没有把下载成功当成正文成功。单元测试覆盖合成文本 PDF、加密/损坏/空页/混合扫描页、页/字节/文本/输出上限、超时杀进程、并发串行及超时后下一次解析恢复。PDF.js 官方 FAQ 对 Node 22+ legacy 路径的描述是 Mostly、自动测试 Limited；此处仅 Windows 本机验证，Linux/NAS、部署环境硬 RSS 限额仍未验证，V8 old-space 不是 RSS 上限。
 
-当前 PDF helper 仍为离线独立模块，尚未把 PDF 附件正文接入 `fetchDetail()` / `extractArticleBody()` 的生产材料存储流程。还未完成生产组合中的 HTML 与 PDF 段落组织、附件标题/URL保存、部署 Linux 与容器内存限制验证，也未将全页 PDF 链接检测改为可跟随附件区域 selector。因此此项仅是有界 PoC，不是 Gate 2 验收或附件 coverage；所有来源仍 disabled，模型/Jina/通知/采集开关关闭。
+PDF 附件路径已接入共享详情预取/正文存储 helper，且以单篇真实 HTML/PDF 完成受控集成验证；该结果不等同于来源覆盖率或 Gate 2。三源 30 条当前为 29 `ok`、1 `unconfirmed`、0 `pending`，队列仍有 30 个 `content.extract-body:created` job，未启动应用 worker、没有 `content.analyze`，`receipts=0`、`lb_models=0`。finance source 继续 `enabled=false`、全文许可 false，其他 source 也保持 disabled。生产网络路径、Linux/NAS 与部署硬 RSS 限制仍未验收，因此 PDF coverage 和 Gate 2 仍未通过。
+
+## AD-010 后最终本地回归
+
+在新建空数据库 `fiscalhot_ad010b_test` 上运行 35 项 migration 后，`npm test` 为 156/156，`npm run typecheck` 通过，`npm run build -w @aihot/web` 成功，`node --test apps/web/tests/*.test.ts` 为 11/11，loopback smoke 为 30/30。集成测试中的模型开关只在测试进程设为 true；测试自行将模型请求指向 127.0.0.1 的假服务并使用测试 key，环境中没有真实 provider key。应用 smoke 的模型、采集、Jina、通知和 IndexNow 全部 false；API/Web 均只绑定 127.0.0.1，没有启动应用 worker。另一次全套尝试把 `MODEL_CALLS_ENABLED=false`，导致 25 个需要本地假模型的测试失败，该次不计作有效回归；随后在新鲜库按上述隔离设置完整重跑并全通过。日志保存在 Git 忽略目录 `.data/fiscal-qa/ad010b-npm-test.log` 与 `.data/fiscal-qa/ad010-smoke-*.log`。
