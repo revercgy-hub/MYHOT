@@ -146,6 +146,20 @@ article/body/attachment selector 的字段类型与组合进入 whitelist 校验
 
 金融司 AD-010 配置保持 disabled；字段和单篇路径已验证，但仍需完整 Gate 2 证据。无 whole-page link scan、递归、模型、OCR、压缩包解包、schema/migration 或 apps 扩展。Gate 2 未审查也未通过。
 
+## AD-011：普通公共页面的行业文案使用现有 SITE 配置
+
+DECISION=APPROVED（一次 S1 最小范围裁决，不重复 Gate 1 Review）。基础页面验收发现普通路由仍有硬编码的 AI 行业描述，现有 industry 配置无法覆盖这些字符串；批准必要的最小 apps 兼容修改。
+
+仅修改以下三个文件，所需 SITE/withSubject 导入均已存在：
+
+- `apps/web/app/routes/hot.tsx`：SEO description 和页面介绍的“AI 圈”使用 `SITE.subject`。保留过去时间窗口、讨论数量、热度指数、公开来源及排序含义，不把讨论热度改称财政政策的重要性或精选评分。
+- `apps/web/app/routes/report-latest.tsx`：SEO title 和未发布空状态使用 `withSubject(KIND_LABEL[kind])`，与现有财政金融日报描述一致；daily/weekly/monthly 由原 kind 决定，不另建行业类型或路由。
+- `apps/web/app/routes/admin/feedback.tsx`：后台签名说明中的“AI HOT”使用 `SITE.name`；不修改邮件发送、确认流程或反馈权限，也不实际发送消息。
+
+`item.tsx` 的“AI 翻译”“AI 评分”“AI 导读”以及 `story.tsx` 的“AI 综述”“AI 根据报道生成”保留。它们描述实际模型处理和生成来源，维持读者透明度；不把这些功能标注当行业名清除。FEATURES 已关闭的榜单/Codex 模块及 Agent 接入说明里的大模型用语不在本次修改范围。
+
+无新增 industry 抽象、packages、schema/migration 或部署改动；Luna 实现，并以现有 typecheck/Web build 及实际公共页面和日报空状态检查验证。不新增仅复刻字符串的测试。本次不改变任何 Gate 状态或启用采集、模型、推送。
+
 ## 审查边界
 
 AD-005 至 AD-008 是针对实现中明确出现的解析器兼容问题作出的 S1 决策；获批的 parser 修复已落地，完整测试、typecheck 和离线兼容测试证据见 `COLLECTOR_AUDIT.md`。P3 受控 collector 验证只覆盖隔离测试库上的少量官方列表请求，不启动 worker 或模型，细节见 `P3_INGEST_VALIDATION.md`。这些 S1 批准和局部验证均不替代 Gate 2 Review，也不表示真实正文链路或信源长期稳定性通过。

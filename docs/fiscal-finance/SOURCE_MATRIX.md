@@ -20,7 +20,7 @@
 | 厦门证监局 | [监管工作首页](https://www.csrc.gov.cn/xiamen/)，[动态列表壳](https://www.csrc.gov.cn/xiamen/c101757/common_list.shtml?channelid=ffe0f9a9de42484cb218be2fd18116d0) | 首页 HTTP 200、`div.szyw-lists li` 7 条，最新静态新闻日期 2026-09-15；“加载更多”列表壳 HTTP 200 但无静态列表。官方 `common_list.js` 指向 API。page1 JSON HTTP 200、`data.total=399`、20 条，page2 HTTP 200、20 条；两页 URL 无重叠。JSON 项含 `title`、`content`、`url`、`publishedTime`（epoch 毫秒）、`publishedTimeStr`。按当前 `json_list` 配置调用真实 `fetchJsonList()`，page1 得到 20 候选，首条 allow 前缀内、摘要 944 字；详情 HTTP 200，`ArticleTitle` 一致、`PubDate=2026-09-28 14:31:07`、Readability 951 字。 | 首条 `publishedTime=1790548212000` 的绝对瞬时为 2026-09-27T22:30:12Z；`publishedTimeStr=2026-09-28 14:30:12` 按 `+08:00` 是 2026-09-28T06:30:12Z，两种字段相差 8 小时；配置使用字符串和显式 offset，不使用 epoch。另一条 `c7658572` 的 API/首页列表日为 2026-09-15，详情 meta `PubDate=2026-09-23 17:33:09`；选择列表公布日作为原始候选发布时间，因为 API 时间串与首页显示一致，详情 meta 的更新/发布口径仍留作 P3 冲突核验。page2 回溯至 2024-12-09；collector 不自动跟页，固定 page1 只覆盖最新 20 条，需在 P3 判断间隔是否足以避免漏项。 | **结构与一次性 `fetchJsonList` 预览已核验；日期冲突和分页限制待 P3**；已配置 disabled `xiamen-csrc-regulatory-work` |
 | 国家金融监督管理总局 | [新闻资讯栏目](https://www.nfra.gov.cn/cn/view/pages/xinwenzixun/xinwenzixun.html) | 官方新闻页和 `ItemDetail.html?docId=...&itemId=...` 都 HTTP 200，但列表 HTML 是 JS 壳。读取页面自带官方脚本后，确认列表通过 GET `/cbircweb/DocInfo/SelectItemAndDocByItemPId?itemId=914&pageSize=6` 获取 JSON，`rptCode=200`，响应嵌套分类和各分类 `docInfoVOList`；其中“监管动态”日期至 2026-09-28。官方 `ItemDetail.js` 明确还会 GET `/cbircweb/DocInfo/SelectByDocId?docId=...`。示例详情 HTML 本身 `ArticleTitle`/`PubDate` 为空，内容由客户端加载；JSON 详情接口返回数据，但它不是当前普通 `web_list`/HTML 详情解析链。 | API list 只有分类子数组和不一致的外链/站内 `docId` URL，不能用当前 `json_list` 的静态单数组模板可靠表达该响应；P3 还需核详情 JSON 编码及正文字段与既有安全/内容流程的兼容性。未试图增加通用 JSON 详情能力或外部 adapter。 | **待核验：有官方动态 JSON，但需适配器/详情链能力；不配置** |
 | 福建省财政厅 | [通知公告](https://czt.fujian.gov.cn/zwgk/tzgg/) | 列表 200；当前配置 selector `div.list_base_date_01[ms-visible="$showStatic(1)"] li` 命中首页静态 5 条，最新 2026-09-29；详情 200，`ArticleTitle`/`PubDate` 和 `span.article_time` 可用。 | HTML 共见 22 个 `div.list_base_date_01` 区块、108 条记录，以 `$showStatic(1/6/11…)` 分页组预渲染；当前 source 锁定第一页 5 条，不会扫旧档。首页有 2 个 PDF，范围请求确认 `206 application/pdf`；通用 `denyUrlPrefixes` 只按 `startsWith`，不能按扩展名过滤。继续保持 disabled，PDF 不送付费 fallback。 | **结构已核验；分页覆盖和PDF需P3规则**；已配置 disabled `fujian-finance-notices` |
-| 厦门市财政局 | [地方政府债务](https://cz.xm.gov.cn/zwxx/czsj/dfzxx/) | 列表 200、`div.list_base_date_01 li` 命中 15 条；覆盖 2026-05-08 至 2026-09-11。详情 200，标题/链接吻合、`span.article_time=2026-09-11 16:02`。Readability 样本 205 字，刚过全局 200 字门槛且带页面尾噪，属近阈值风险。 | 未见分页 href 或分页脚本，当前静态首页只提供 15 条；长历史范围未知。 | **结构已核验，近阈值样本待P3**；已配置 disabled `xiamen-finance-debt` |
+| 厦门市财政局 | [地方政府债务](https://cz.xm.gov.cn/zwxx/czsj/dfzxx/) | 列表 200、`div.list_base_date_01 li` 命中 15 条；覆盖 2026-05-08 至 2026-09-11。详情 `https://cz.xm.gov.cn/zwxx/czsj/dfzxx/202609/t20260911_3016829.htm` 200，标题/链接吻合。Readability 205 字曾被标 `ok`，DB正文复核发现仅标题/日期、“扫一扫”提示及页尾，无招标结果。`.Custom_UnionStyle` 唯一命中26字；共享helper返回 `attachments_unprocessed`，唯一PDF位于此容器外。disabled source 当前仅配置 `detail.bodySelector='.Custom_UnionStyle'`，不设short opt-in/PDF路径。 | 首页未见分页href，当前静态页15条；固定样本隔离双轮首轮创建、次轮判重，只证明URL幂等，不验证其余候选或长期覆盖。 | **列表单条双轮完成；正文质量假阳性阻塞Gate 2，保持disabled**；已配置 disabled `xiamen-finance-debt` |
 | 人民银行厦门市分行 | [工作动态](https://xiamen.pbc.gov.cn/xiamen/127699/index.html) | 首页 200，`td:has(> span.newslist_style)` 命中 20 条；详情 200，`ArticleTitle`、`PubDate` 与页面吻合。使用已落地的 `titleAttribute=title` 后，2026-09-11 “手册……正式发…”候选读取完整 `title` 属性。正文抽样 518 至 1,745 字。 | 首页显示 663 条、34 页；下一页 onclick 给出静态地址 `/xiamen/127699/17318-2.html`，该页直连 HTTP 200 且同 selector 命中 20 条、无 page1 href 重复。本 collector 仍只请求配置首页。列表内链接正文附件不是单独候选。 | **结构与第二页抽查已核验，collector仍只读首页**；已配置 disabled `pboc-xiamen-work` |
 
 ## 已配置来源字段
@@ -29,7 +29,7 @@
 |---|---|---|---|
 | `mof-budget-work` | `https://yss.mof.gov.cn/gongzuodongtai/` | `ul.liBox > li`；link `a[href]`；title `a`；date `span` | `web_list`、T1、`enabled=false`、两种全文转发均 false |
 | `fujian-finance-notices` | `https://czt.fujian.gov.cn/zwgk/tzgg/` | `div.list_base_date_01[ms-visible="$showStatic(1)"] li`；link `a[href]`；title `a`；date `span.bf-pass` | `web_list`、T1、`enabled=false`、两种全文转发均 false |
-| `xiamen-finance-debt` | `https://cz.xm.gov.cn/zwxx/czsj/dfzxx/` | `div.list_base_date_01 li`；link `a[href]`；title `a`；date `span` | `web_list`、T1、`enabled=false`、两种全文转发均 false |
+| `xiamen-finance-debt` | `https://cz.xm.gov.cn/zwxx/czsj/dfzxx/` | `div.list_base_date_01 li`；link `a[href]`；title `a`；date `span`；detail bodySelector `.Custom_UnionStyle` | `web_list`、T1、`enabled=false`、两种全文转发均 false |
 | `pboc-xiamen-work` | `https://xiamen.pbc.gov.cn/xiamen/127699/index.html` | `td:has(> span.newslist_style)`；link `a[href]`；title `a`；date `span.hui12` | `web_list`、T1、`enabled=false`、两种全文转发均 false |
 | `mof-policy-release` | `https://zhs.mof.gov.cn/zhengcefabu/` | `ul.liBox > li`；link/title `a`；date `span`；UTC offset `+08:00` | `web_list`、T1、`enabled=false`、两种全文转发均 false |
 | `mof-finance-notices` | `https://jrs.mof.gov.cn/gongzuotongzhi/` | `ul.liBox > li`；link/title `a`；date `span`；UTC offset `+08:00` | `web_list`、T1、`enabled=false`、两种全文转发均 false |
@@ -80,6 +80,18 @@ Gate 1 后 collector 已实现 `publishedAtUtcOffset` 的墙钟时间解析；�
 
 本次不是批量或持续性验证：未翻页、未尝试其他候选或 PDF；没有启动应用 worker/模型/Jina/OCR/通知，所有运行开关 false，`receipts=0`、`lb_models=0`。现有 `queueProcessing` 留下 1 个未消费 `content.analyze:created` job；没有 `content.extract-body` job。来源仍 disabled。完整边界、隔离与调用次数见 [P3_OMO_VALIDATION.md](P3_OMO_VALIDATION.md)。
 
+## P3 另外三源单篇固定 URL 两轮验证（2026-09-29）
+
+在独立 `fiscalhot_local_sources_test` 库中，对预算司、人民银行厦门市分行、厦门市财政局各限制到一条固定列表候选，逐源运行两轮 collector。每源第一轮 `found=1/created=1/revised=0` 并提取一条详情，第二轮 `found=1/created=0/revised=0`；共 6 次成功 fetch runs、3 个待消费 `content.extract-body:created` jobs，没有 `content.analyze`、receipt 或模型账单。验证后数据库源配置恢复仓库配置，所有 source 仍 disabled。精确页面和过程见 [P3_LOCAL_SOURCE_VALIDATION.md](P3_LOCAL_SOURCE_VALIDATION.md)。
+
+| Source | 固定样本（原链接） | 首轮正文结果 | 边界 |
+|---|---|---|---|
+| `mof-budget-work` | [《财政部有关负责人就2026年中央预算公开答记者问》](https://yss.mof.gov.cn/gongzuodongtai/202603/t20260326_3986132.htm)，列表/详情日 2026-03-26 | 2,272 字，`ok` | 仅一条固定URL；列表首页最新项较旧，未验证其余首页候选、分页或跨周期新鲜度。 |
+| `pboc-xiamen-work` | [《人民银行厦门市分行：支付护航投洽会 便利服务迎嘉宾》](https://xiamen.pbc.gov.cn/xiamen/127699/2026091714532820798/index.html)，列表日 2026-09-14 | 1,745 字，`ok` | 仅一条固定URL；不代表首页20项或34页覆盖，也不证明长期稳定。 |
+| `xiamen-finance-debt` | [《2026年厦门市政府专项债券（十六期）招标结果公告》](https://cz.xm.gov.cn/zwxx/czsj/dfzxx/202609/t20260911_3016829.htm)，列表/详情日 2026-09-11 | 初始 Readability 205 字曾标 `ok`，但 DB正文检查确认只有标题/日期、扫码提示及页尾，没有招标结果，属质量假阳性。唯一 `.Custom_UnionStyle` 实测26字，`extractSelectedBody` 返回 `attachments_unprocessed`；唯一PDF位于该正文区之外。 | 该项正文完整性不通过，是当前 Gate 2 阻塞。仅在 disabled source 增加 `detail.bodySelector='.Custom_UnionStyle'`，不降低200字门槛、不配置 `allowShortBody`、不读取PDF，避免错误地把页尾标成正文。 |
+
+这三源的小样仅验证固定URL入库和同URL第二轮判重，不代表栏目整体可用、首页其余候选完整、分页覆盖或周期新鲜度通过。厦门财政的列表幂等结果不能覆盖正文不完整风险。验证期间无 worker、模型、Jina、OCR、付费回退或推送；三源开关关闭状态在验证后恢复。
+
 ## P3 日期口径与栏目新鲜度复核（2026-09-29）
 
 本次共发出 8 次免费、只读官方 GET，每请求 12 秒超时、不重试；没有调用数据库、队列、worker、模型、Jina 或付费服务。具体响应摘要保存在忽略目录 `.data/fiscal-central-audit/p3-date-freshness-20260929.json`；此前取得的本地 HTML/JSON 快照见该 JSON 的 `priorLocalSnapshots`。
@@ -128,3 +140,5 @@ Mozilla PDF.js 官方 Node 示例导入 `pdfjs-dist/legacy/build/pdf.mjs` 的 `g
 | B：直接 PDF 文本 PoC | Windows Node 24 + `pdfjs-dist@6.3.289` 离线解析金融司 1 页样本，19 个定位文本行；布局按列锚点与行区间还原 6×4 表格的四个业务行，并经原 PDF 视觉复核。福建厅 4 页样本逐页视觉检查为同一公告，helper 因扫描页返回 `pdf_page_no_text`。渲染证据保存在忽略目录 `.data/fiscal-central-audit/rendered/`。 | 未做 OCR；解析器仍是只接收调用方已有 bytes 的离线模块。 |
 | AD-010：财政部金融司 HTML envelope | `mof-finance-notices` 的 `articleSelector=.box_content`、`bodySelector=.my_doccontent`、精确附件区 selector 与 `attachmentMode=optional` 已加入 disabled 配置；三份本地快照经 `extractSelectedArticleEnvelope` 核验。另在隔离库对一篇历史 unconfirmed 文章进行单篇 HTML+PDF 验证：title 相同、正文 hash 变化，rev1/0字到rev2/1,454字；19 条 PDF 坐标行按 X/Y 恢复表格值，计划单列市为“厦门市”（“市”在同列下一 span）。 | 只证明该单篇路径；source 未启用，临时 SQL 验证配置已恢复。30 篇最新 SQL 为29 `ok`、1 `unconfirmed`、0 `pending`，仍有30个未消费 extract-body 任务；fresh全回归及Ubuntu通用CI已通过，但真实PDF未在Linux解析。更多附件正反样本、NAS和资源限制待验证。 |
 | 生产附件链路 | 单篇 HTML+PDF 组合已有隔离库证据；Linux CI的一般构建/测试已通过，但未在Linux解析官方PDF样本；其他来源/附件类型、NAS容器RSS和运行隔离尚未验收。 | 生产路线③尚未全面验收。十个 source 均保持 `enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`；Gate 2 未通过。 |
+
+来源配置更新后的最新 fresh 回归在 fiscalhot_pagecopy_test 完成 35 项 migrations，npm test 156/156、typecheck、来源 whitelist 和厦门财政保存 HTML selector focused 检查均通过。它验证代码/配置兼容性，不表示厦门财政附件已读取，也不弥补 Gate 2 的栏目覆盖证据；十个来源仍 disabled。

@@ -1,18 +1,18 @@
 # 项目状态
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=7aa8b33078fbb3ce54dd73d3fe3a8435bce16db7
+CURRENT_SHA=d443310480a16d26d86e53c581cacdcca99c1013
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
 
-STAGE=P3小范围collector/正文验证、AD-010单篇PDF集成及OMO第191号单篇两轮验证完成；fresh本地回归通过；P0/P1/Gate 1完成，P2首批来源配置与preview完成
+STAGE=P3小范围collector/正文验证、AD-010单篇PDF集成、OMO及四源单URL两轮样本完成；本地页面预览运行中；Gate 2尚未通过
 GATE=Gate 1 PASSED；Gate 2 尚未通过，不能开始大规模采集
-REVIEW=Sol Gate 1 Review已由Lead核销修复并通过；日期/titleAttribute修复按AD-008；Sol AD-009/AD-010批准共享正文selector、PDF PoC与附件envelope契约。AD-010单篇隔离HTML+PDF经SQL核验；OMO第191号单篇在独立库完成受限两轮collector验证。fresh fiscalhot_ad010b_test本地回归通过。首次MODEL=false的测试尝试导致25个stub测试失败，属于无效环境设置；正确fresh重跑156/156通过。既有GitHub Check workflow_dispatch run 36556441810在Ubuntu上check和docker jobs均成功，head SHA与feature同步；Linux CI仅证明通用测试/构建兼容，没有解析真实官方PDF；Gate 2未审查。
-BLOCKERS=三源30篇最新正文SQL为29 ok/1 unconfirmed/0 pending；30个content.extract-body:created job仍未消费，无analysis job、receipts=0、lb_models=0。金融司绩效公示经单篇HTML+PDF从rev1/0字/unconfirmed更新为rev2/1,454字/ok；首次失败原因仍unknown，不能倒推。金融企业财务快报系统25版仍unconfirmed、原失败原因unknown，页面含RAR不可冒正文。OMO第191号已完成一个指定URL的隔离两轮小样（首轮创建、次轮判重），但不代表首页20项或长期稳定性；source仍disabled，留有1个未消费content.analyze:created job，无extract-body job、receipts=0、lb_models=0。会计司列表09-21/详情PubDate09-22差一天；厦门证监局正文09-15/meta09-23口径未判定。福建厅扫描PDF四页文本层为0。真实官方PDF尚未在Linux解析；NAS硬RSS与运行隔离待验。12个重点入口3个未配置；其他源分页/freshness/长期去重待补。隐私与使用条款模板需正式上线前确认。
+REVIEW=Sol Gate 1 Review已由Lead核销修复并通过；AD-008日期/titleAttribute、AD-009短正文与PDF PoC、AD-010附件envelope及AD-011 route文案裁决按批准范围实施。厦门财政新增正文selector保持 disabled，QA fresh fiscalhot_pagecopy_test 35 migrations后 npm test 156/156、typecheck及source whitelist/saved HTML focused检查通过。页面route文案的typecheck、web build、web tests 11/11、smoke 30/30通过。Ubuntu Check run 36556441810（tested SHA 7aa8b33）通用测试/构建通过但未解析真实官方PDF；此次Windows变更没有新的Linux CI结果。Gate 2未审查。
+BLOCKERS=三源30篇批次最新SQL为29 ok/1 unconfirmed/0 pending，30个content.extract-body jobs仍未消费；金融司历史失败原因unknown，快报25版含RAR仍unconfirmed。OMO第191号为限一条URL两轮样本，留1个未消费content.analyze job。预算司、人行厦门、厦门财政各有一条固定URL两轮样本：预算司2272字、人行厦门1745字正文ok；厦门财政初始205字Readability结果经DB复核为标题/日期、扫码提示及页尾，无招标结果，属于假阳性，正文完整性阻塞Gate 2。disabled config仅增加实测 .Custom_UnionStyle selector，helper以attachments_unprocessed拒绝26字intro，PDF未读取。福建厅、会计司、厦门证监JSON仍缺两轮collector证据；真实官方PDF尚未Linux解析；NAS硬RSS/隔离、分页和跨周期freshness待验。
 
-COMPLETED=P0接管；财政金融静态改造和Gate 1；10源disabled配置与preview；collector日期/titleAttribute修复；P3三源30篇入库/判重和正文验证（29 ok/1 unconfirmed）；AD-009共享正文selector SQL路径及本地helper验证；OMO第191号隔离库两轮真实collector小样（found/created/revised=1/1/0、1/0/0；正文174字、1表、日期+08:00正确）；PDF.js 6.3.289 Windows离线PoC复核金融司表格及福建扫描件fail-closed；AD-010单篇HTML+PDF真实隔离提取、厦门市跨span坐标恢复。fresh本地回归：fiscalhot_ad010b_test 35 migrations、npm test 156/156、typecheck、web build、web tests 11/11、loopback smoke 30/30。Ubuntu GitHub Check run 36556441810：两job全绿，backend tests 156/156、web tests 11/11，check/Docker各30条smoke通过；Linux通用CI已过但真实官方PDF Linux解析未验证。
-IN_PROGRESS=四组实现变更已推送至origin/feat/fiscal-finance-hot，代码测试SHA为7aa8b33078fbb3ce54dd73d3fe3a8435bce16db7；既有Check成功。已完成并记录OMO第191号单篇受控P3，隔离库配置已恢复且PostgreSQL已停止。所有配置源disabled、全文开关false；无应用worker或真实模型调用。本轮文档同步后不重跑已通过的Check。
-NEXT=继续Gate 2其余六源受控证据；评估OMO来源首页其他候选与跨周期freshness，补真实官方PDF Linux验证、NAS RSS/隔离证据及剩余分页/去重证据。Gate 2前不大规模采集、不部署Production。
+COMPLETED=P0接管；财政金融静态改造和Gate 1；10源disabled配置与preview；P3三源30篇列表两轮和正文验证（29 ok/1 unconfirmed）；AD-009/AD-010单篇隔离提取；OMO第191号及预算司、人行厦门、厦门财政各一条固定URL完成两轮小样；本地页面预览（34主题、sources/articles/stories/reports均0）。厦门财政205字Readability假阳性已由source-only `.Custom_UnionStyle` selector fail-closed，附件未读取。最新 fresh fiscalhot_pagecopy_test：35 migrations、npm test 156/156、typecheck、whitelist/saved-HTML focused检查通过；页面文案修改后web build、web tests 11/11、loopback smoke 30/30通过。PDF.js Windows离线PoC通过。既有Ubuntu Check run 36556441810在tested SHA 7aa8b33通过通用检查，未验证真实官方PDF。
+IN_PROGRESS=本地页面预览保持运行供检查；P3剩余工作是扩大有限来源证据并处理扫描PDF/Linux/NAS边界，不扩大采集。API/Web预览运行于127.0.0.1:3001/3000；独立 `fiscalhot_preview_test` 完成35 migrations并仅seed 34 topics，sources/articles/stories/reports=0。共享PostgreSQL在127.0.0.1:5432运行。全部来源disabled/全文false，运行安全flags false，无worker、DEV_AUTH未设置。最新代码SHA为本文件记录时的d443310480a16d26d86e53c581cacdcca99c1013；文档提交后的完整SHA以 `git rev-parse HEAD` 为准。
+NEXT=继续厦门财政正文/PDF处置，验证福建、会计司、厦门证监JSON受限路径，以及Linux真实PDF、NAS RSS/运行隔离、分页与跨周期freshness。保持预览供本地查看；Gate 2前不扩大采集、不部署Production。
 
 `CURRENT_SHA` 是本状态记录时的代码 HEAD。提交状态文档后，最新文档 HEAD 以 `git rev-parse HEAD` 为准。
 
@@ -20,6 +20,6 @@ NEXT=继续Gate 2其余六源受控证据；评估OMO来源首页其他候选与
 
 - `.env.example` 的COLLECT、MODEL、JINA、INDEXNOW及两项FEISHU开关均为false；本地无持久.env。十个source持续enabled=false且全文开关关闭。Check workflow显式关闭采集/Jina/IndexNow/Feishu。
 - 完整npm test的provider集成测试仅在测试子进程设置MODEL_CALLS_ENABLED=true，并指向本地127.0.0.1假服务、使用test key；这不调用真实provider。第一次错误保持MODEL=false导致25个stub测试失败，该尝试无效；fresh重跑按隔离stub约定通过156/156。
-- Windows测试使用官方EDB PostgreSQL 17.11-3，数据位于忽略的.data/test-pg。fresh fiscalhot_ad010b_test完成35项migration；156测试、typecheck、web build、web tests 11/11、loopback smoke 30/30通过。GitHub Ubuntu CI通用构建/测试也通过，但未解析真实PDF样本，NAS RSS仍待验。P3原30篇证据仍留在隔离库；所有source disabled。Lead确认应用临时服务已停且端口3000/3001/3300/3301/5432全部无监听。不要提交.data或凭证。
+- Windows测试使用官方EDB PostgreSQL 17.11-3，数据位于忽略的.data/test-pg。最新 `fiscalhot_pagecopy_test` 完成35项migration；npm test 156/156、typecheck及 source whitelist/saved-HTML focused检查通过。页面文案后的 web build、web tests 11/11、loopback smoke 30/30通过。预览仍在线：Web `127.0.0.1:3000`、API `127.0.0.1:3001`、共享 PostgreSQL `127.0.0.1:5432`；隔离 preview DB仅34主题。GitHub Ubuntu run 36556441810仅针对旧 tested SHA 7aa8b33，通用测试/构建通过，真实官方PDF和NAS RSS未验证。所有source disabled。Lead已确认本轮测试子进程退出且PG、API、Web预览保持运行；不要提交.data或凭证。
 - 审查品牌资源时确认 `logo.svg` 和各尺寸图标已替换为 MyHOT 的临时 M 占位符，没有创建正式财政金融 Logo。日报、周报、月报、合订本名称牌由仓库 `scripts/nameplates.ts` 与 Noto Sans SC 轮廓字生成。
 - 财政金融政策与监管主题、测试模板、开发日志已不含原 AIHOT 行业示例。隐私与使用条款仍是上游模板，正式上线前由负责人确认。
