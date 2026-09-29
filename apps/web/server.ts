@@ -8,6 +8,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { createRequestListener } from "@react-router/node";
 import { isApiOwned, resolveRedirect } from "@aihot/contracts/http-policy";
+import { LOCAL_PREVIEW_ENABLED } from "./app/lib/local-preview.server.ts";
 
 const PORT = Number(process.env.WEB_PORT || process.env.PORT || 3000);
 const HOST = process.env.WEB_HOST || "127.0.0.1";
@@ -67,6 +68,7 @@ async function serveStatic(pathname: string, res: import("node:http").ServerResp
 
 // One bad request must never take the process down: answer it and keep serving.
 const server = createServer((req, res) => {
+  if (LOCAL_PREVIEW_ENABLED) res.setHeader("X-Robots-Tag", "noindex, nofollow");
   handle(req, res).catch((error: unknown) => {
     const bad = error instanceof BadRequest || error instanceof URIError;
     if (!bad) console.error(JSON.stringify({ level: "error", msg: "web request failed", path: (req.url ?? "").split("?")[0]!.slice(0, 200), error: String(error).slice(0, 500) }));

@@ -18,12 +18,13 @@ import { StoryFollowups } from "../features/item/StoryFollowups";
 import { MediaGallery } from "../features/item/MediaGallery";
 import { QuotedPost } from "../features/item/QuotedPost";
 import { IconArrowLeft, IconCopy, IconDownload, IconExternal, IconImage, IconMenu, IconShare } from "../components/icons";
+import { isLocalPreviewArticleId, LOCAL_PREVIEW_ENABLED } from "../lib/local-preview.server";
 
 const PosterSheet = lazy(() => import("../features/item/PosterSheet"));
 
 export async function loader({ params, request }: Route.LoaderArgs) {
   const item = await loadOr404<SiteItemDetail>(`/api/site/items/${encodeURIComponent(params.id)}`, { signal: request.signal });
-  return { item };
+  return { item, localPreviewSample: LOCAL_PREVIEW_ENABLED && isLocalPreviewArticleId(params.id) };
 }
 
 export function meta({ loaderData }: Route.MetaArgs) {
@@ -35,7 +36,7 @@ export function meta({ loaderData }: Route.MetaArgs) {
     path: `/items/${item.id}`,
     image: `/og/items/${item.id}.png`,
     type: "article",
-    noindex: !item.indexable,
+    noindex: !item.indexable || loaderData.localPreviewSample,
     jsonLd: breadcrumbLd([
       { name: SITE.name, path: "/" },
       { name: item.selected ? "精选" : "全部动态", path: item.selected ? "/" : "/all" },
@@ -96,7 +97,7 @@ async function shareOrCopy(item: Pick<SiteItemDetail, "id" | "title">): Promise<
 }
 
 export default function ItemPage() {
-  const { item } = useLoaderData<typeof loader>();
+  const { item, localPreviewSample } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const hasTranslation = item.hasTranslation;
   const lang = item.bodyLanguage;
@@ -305,7 +306,10 @@ export default function ItemPage() {
 
           {item.summary && (
             <section className={isX ? "mt-4" : "mt-7 xl:mt-8"}>
-              <div className="mb-2 text-[12px] font-semibold text-accent">{summaryOnly ? "摘要" : "AI 导读"}</div>
+              <div className="mb-2 text-[12px] font-semibold text-accent">{summaryOnly ? "摘要" : localPreviewSample ? "人工摘要 · 开发样本" : "AI 导读"}</div>
+              {localPreviewSample && (
+                <p className="mb-2 text-[12px] text-ink-4">本条仅为本地开发样本，未经模型精选，不代表线上发布内容。</p>
+              )}
               <p className="text-[18px] leading-[1.7] text-ink xl:text-[20px] xl:leading-[1.7]">{item.summary}</p>
             </section>
           )}

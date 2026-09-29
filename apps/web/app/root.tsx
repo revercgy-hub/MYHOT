@@ -14,6 +14,7 @@ import { RingMark } from "./components/Logo";
 import { buttonClass } from "./components/ui/Controls";
 import { THEME_BOOT_SCRIPT } from "./lib/local-state";
 import { apiGet } from "./lib/api.server";
+import { LOCAL_PREVIEW_ENABLED } from "./lib/local-preview.server";
 import { useHydratedFlag } from "./lib/hydration";
 
 export const links: Route.LinksFunction = () => [
@@ -30,9 +31,9 @@ interface SiteMeta {
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {
-    return await apiGet<SiteMeta>("/api/site/meta", { signal: request.signal });
+    return { ...await apiGet<SiteMeta>("/api/site/meta", { signal: request.signal }), localPreview: LOCAL_PREVIEW_ENABLED };
   } catch {
-    return { changelogVersion: null } satisfies SiteMeta;
+    return { changelogVersion: null, localPreview: LOCAL_PREVIEW_ENABLED };
   }
 }
 
@@ -60,14 +61,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 /** Only a page nobody matched falls back to this; every page names itself. */
-export function meta({ error }: Route.MetaArgs) {
-  if (!error) return [];
+export function meta({ error, loaderData }: Route.MetaArgs) {
+  if (!error) return loaderData?.localPreview ? [{ name: "robots", content: "noindex, nofollow" }] : [];
   const notFound = isRouteErrorResponse(error) && error.status === 404;
-  return [{ title: titled(notFound ? "页面不存在" : "暂时无法加载") }, { name: "robots", content: "noindex" }];
+  return [{ title: titled(notFound ? "页面不存在" : "暂时无法加载") }, { name: "robots", content: loaderData?.localPreview ? "noindex, nofollow" : "noindex" }];
 }
 
 /** Sidebar, main column and phone tab bar around a page (or an error). */
-function SiteShell({ changelogVersion, children }: { changelogVersion: string | null; children: ReactNode }) {
+function SiteShell({ changelogVersion, localPreview, children }: { changelogVersion: string | null; localPreview: boolean; children: ReactNode }) {
   const navigation = useNavigation();
   return (
     <div className="flex min-h-dvh">
@@ -79,7 +80,15 @@ function SiteShell({ changelogVersion, children }: { changelogVersion: string | 
       {/* Mobile shell (≤ 960px): one centred column, the tab bar below. Desktop: the page fills the main area
           up to the list width (--page-max-wide), centred beyond it. */}
       <main id="main" className="min-w-0 flex-1 pb-[calc(72px+env(safe-area-inset-bottom))] lg:px-7 lg:pb-[72px] lg:pt-6">
-        <div className="mx-auto w-full max-w-[640px] px-4 lg:max-w-[var(--page-max-wide)] lg:px-0">{children}</div>
+        <div className="mx-auto w-full max-w-[640px] px-4 lg:max-w-[var(--page-max-wide)] lg:px-0">
+          {localPreview && (
+            <aside className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-control border border-accent/30 bg-accent/5 px-3.5 py-2.5 text-[13px] text-ink-2" aria-label="开发样本预览">
+              <span><strong className="font-semibold text-accent">开发样本预览</strong> · 人工摘要 · 未经模型精选</span>
+              <Link to="/all" className="font-medium text-accent hover:underline">查看全部动态中的样本</Link>
+            </aside>
+          )}
+          {children}
+        </div>
       </main>
       <MobileTabBar changelogVersion={changelogVersion} />
       <BackToTop />
@@ -93,11 +102,7 @@ export default function App() {
   const { pathname } = useLocation();
   // The admin has its own chrome.
   if (pathname === "/admin" || pathname.startsWith("/admin/")) return <Outlet />;
-  return (
-    <SiteShell changelogVersion={meta.changelogVersion}>
-      <Outlet />
-    </SiteShell>
-  );
+  return <SiteShell changelogVersion={meta.changelogVersion} localPreview={meta.localPreview}><Outlet /></SiteShell>;
 }
 
 export function ErrorBoundary() {
@@ -128,5 +133,5 @@ export function ErrorBoundary() {
   );
   // Admin errors stay inside the admin's own chrome.
   if (pathname === "/admin" || pathname.startsWith("/admin/")) return body;
-  return <SiteShell changelogVersion={site?.changelogVersion ?? null}>{body}</SiteShell>;
+  return <SiteShell changelogVersion={site?.changelogVersion ?? null} localPreview={site?.localPreview ?? false}>{body}</SiteShell>;
 }
