@@ -175,7 +175,12 @@
         "titleAttribute": "title",
         "publishedAtSelector": "span.hui12",
         "publishedAtUtcOffset": "+08:00",
-        "allowUrlPrefixes": ["https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/"]
+        "allowUrlPrefixes": ["https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/"],
+        "detail": {
+          "maxFetches": 3,
+          "bodySelector": "#zoom",
+          "allowShortBody": true
+        }
       },
       "tier": "T1",
       "first_party": true,
