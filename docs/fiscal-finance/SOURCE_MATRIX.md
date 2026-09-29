@@ -1,6 +1,6 @@
 # 官方信源验证矩阵
 
-本矩阵区分“页面结构证据”和“collector 实际运行”。截至 2026-09-29，来源均保持 disabled；九个 HTML 来源均做过列表 `previewSource`，另一个 JSON 来源已做一次 `fetchJsonList` dry-run，没有运行采集 worker、数据库写入、队列、模型或付费 fallback。`industry/sources.json` 目前配置十个来源（九个 HTML、一个 JSON），均为 `enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`。一次 preview 不代表生产稳定性，分页、重复和长期可靠性仍需 P3/Gate 2 验收。
+本矩阵区分页面结构、只读 preview 与隔离数据库验证。以下“未运行采集 worker、数据库写入、队列、模型或付费 fallback”仅指九个 HTML 来源的 `previewSource` 和一个 JSON 来源的 `fetchJsonList` dry-run 阶段。其后另在隔离 `_test` 数据库对三个 HTML 来源运行两轮受限 collector ingest，产生 30 篇 backfill 记录和 30 个未消费正文任务；验证范围与结果见 `P3_INGEST_VALIDATION.md`，不代表正文 worker 或模型验证。`industry/sources.json` 目前配置十个来源（九个 HTML、一个 JSON），均为 `enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`。一次 preview 或隔离数据库小样不代表生产稳定性；分页、重复和长期可靠性仍需 P3/Gate 2 验收。
 
 状态含义：
 
@@ -73,4 +73,14 @@ Gate 1 后 collector 已实现 `publishedAtUtcOffset` 的墙钟时间解析；�
 | `mof-finance-notices` | 10 / 10 / 0 | 10 / 0 / 0 | 2025-12-12 — 2026-07-16 | 截至 9 月 29 日，最新项约 75 天；新鲜度风险较高，需检查备用栏目或降低实际更新频率预期 |
 | `mof-treasury-debt-data` | 10 / 10 / 0 | 10 / 0 / 0 | 2025-12-30 — 2026-09-24 | 最新条目约 5 天，仍需后续周期验证 |
 
-三源共 6 次运行均 `status=ok`；SQL 核实 30 篇文章各有唯一 URL 与 identity key，30 篇均为首导入 backfill；三源均保持 `enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`。第二轮均未创建或修订条目。所有文章仍为 `body_status=pending`；队列中只有 30 个未消费 `content.extract-body` job，无分析 job，`receipts=0`。隔离 DB 和机器核验输出保存在 Git 忽略目录 `.data/fiscal-qa/`。这证明了有限的入库、日期落库和同页 URL 幂等性；没有验证正文、worker、分页、详情质量或跨周期稳定性，Gate 2 仍未通过。
+三源共 6 次运行均 `status=ok`；SQL 核实 30 篇文章各有唯一 URL 与 identity key，30 篇均为首导入 backfill；三源均保持 `enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`。第二轮均未创建或修订条目。所有文章仍为 `body_status=pending`；队列中只有 30 个未消费 `content.extract-body` job，无分析 job，`receipts=0`。隔离 DB 和机器核验输出保存在 Git 忽略目录 `.data/fiscal-qa/`。这证明了有限的入库、日期落库和同页 URL 幂等性；当时没有验证正文、worker、分页、详情质量或跨周期稳定性。之后对六篇文章直接调用正文函数的受控验证见 `P3_BODY_VALIDATION.md`：5 篇 `ok`、1 篇 `unconfirmed`、24 篇仍为 `pending`；worker 队列仍有 30 个未消费正文任务，Gate 2 仍未通过。
+## P3 日期口径与栏目新鲜度复核（2026-09-29）
+
+本次共发出 8 次免费、只读官方 GET，每请求 12 秒超时、不重试；没有调用数据库、队列、worker、模型、Jina 或付费服务。具体响应摘要保存在忽略目录 `.data/fiscal-central-audit/p3-date-freshness-20260929.json`；此前取得的本地 HTML/JSON 快照见该 JSON 的 `priorLocalSnapshots`。
+
+- **财政部会计司**：列表页 [工作通知](https://kjs.mof.gov.cn/gongzuotongzhi/) 返回 200，最新显示 2026-09-21；文章 [详情](https://kjs.mof.gov.cn/gongzuotongzhi/202609/t20260921_3997874.htm) 的 `PubDate` 元数据和正文可见“发布日期”均为 2026-09-22。证据表示官方列表日比详情显式发布日期早一天；当前 `web_list` 从列表读日期，保留其原始列表值并将该差异留作数据口径提示，不改 parser 或 source 配置。首页分页脚本为 `createPageHTML(50, 0, ...)`；实际 GET [index_1.htm](https://kjs.mof.gov.cn/gongzuotongzhi/index_1.htm) 返回 200，样本日期从 2026-07-24 到 2026-05-08，与首页样本日期段不重叠。只抽查了这两页。
+- **厦门证监局**：对文章 [详情](https://www.csrc.gov.cn/xiamen/c101757/c7658572/content.shtml) 的官方 HTML，正文可见“日期：2026-09-15 来源：厦门证监局”；API page1 记录 `publishedTimeStr=2026-09-15 12:43:00`，厦门监管工作首页此前也显示 9 月 15 日。详情 `PubDate` 与“页面生成时间”元数据均为 2026-09-23 17:33:09。现有证据支持使用 API 的列表发布时间字符串与 `+08:00` 作为原始发布时间字段；不能仅凭元数据断言 9 月 23 日是更新日或覆盖可见发布日期。API 当前报告总数 399，page1 20 项，page2 的结构/范围已由此前证据记录；本轮没有请求额外历史页。
+- **财政部综合政策发布**：本次列表页返回 200，最新可见日期 2026-08-26；列表生成脚本表明支持分页，但本轮没有请求旧页。该栏目约一个月没有更新，仍应按栏目实际节奏审查，不作为每日发布源。
+- **财政部金融司工作通知**：本次首页返回 200，最新日期 2026-07-16；脚本含 `createPageHTML(21, 0, ...)`，本轮不据此推断每页数量。实际请求 [index_1.htm](https://jrs.mof.gov.cn/gongzuotongzhi/index_1.htm) 返回 200，日期从 2025-12-12 回溯至 2024-12-10，两页日期在 2025-12-12 边界重合；本次未逐项比对标题/URL，不能据日期断言无重复。页面样本显示该栏目发布间隔较长，需据其主题价值和未来周期观察评估 freshness；不据此改 source 配置。
+
+本次只检查会计司及金融司各两页、财政部综合政策首页、厦门证监局一条冲突详情与 API 首页；没有检查更多历史分页、跨周期更新、全量重复率，也未证明会计司列表日期字段代表官方最终发布日期。
