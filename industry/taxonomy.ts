@@ -1,139 +1,124 @@
-// 这个行业的分类体系：类别、标签词表、公司（主体）名录，以及防止张冠李戴的身份词典。
-// 模型按这里的词表打标签，主题页（topics.json）按标签归类，筛选栏按类别分组。
-// 换行业时：类别的 key 会出现在网址里（/all?category=…），上线后就不要再改；标签和名录可以随时增减。
+// 财政金融行业分类、标签、机构名录和身份词典。
+// 分类 key 会出现在网址和接口中；topics.json 的 slug 也会对外使用，上线后应保持稳定。
 
-/**
- * 网页上的类别（筛选栏、卡片角标、RSS 分类订阅）。key 是网址和接口里的身份，上线后不要改。
- * section 是日报里的分节标题（几个类别可以共用一节，按这里的顺序排）；guide 告诉模型怎么归类。
- * 没归上类的资料在日报里放进第一个 key 为 industry 的类别所在的节（没有就放最后一节）。
- */
+/** 网页筛选类别与日报分节。未归类资料回退到 fiscal-policy。 */
 export const CATEGORIES = [
-  { key: "ai-models", label: "模型", section: "模型发布/更新", guide: "新模型、模型版本、权重开放、模型能力与价格变化的发布与评测结果" },
-  { key: "ai-products", label: "产品", section: "产品发布/更新", guide: "AI 产品、功能、应用、工具、API 与平台的发布和更新" },
-  { key: "industry", label: "行业", section: "行业动态", guide: "公司经营、融资并购、人事、合作、诉讼、监管与政策、市场与基础设施" },
-  { key: "paper", label: "论文", section: "论文研究", guide: "研究论文、技术报告、基准与数据集" },
-  { key: "tip", label: "教程", section: "技巧与观点", guide: "教程、实践经验、使用技巧、提示词与工具用法、深度技术讲解" },
-  { key: "opinion", label: "观点", section: "技巧与观点", guide: "人物观点、评论、分析、访谈、现象与趋势讨论" },
+  { key: "fiscal-policy", label: "财政政策", section: "财政政策与预算", guide: "财政收支、中央和地方预算、转移支付、税费政策、政府采购、预算绩效、零基预算、财政体制与财政科学管理" },
+  { key: "government-debt", label: "政府债务", section: "政府债务与专项债", guide: "地方政府债务、专项债、一般债、再融资债、置换债、化债、隐性债务、融资平台、存量债务、债务监测风险及专项债项目和偿还" },
+  { key: "fiscal-finance", label: "财政金融", section: "财政金融协同", guide: "财政贴息、政府性融资担保、普惠金融、政策性金融、政府投资基金、产业基金、创业投资、财政金融联动、PPP、REITs、盘活存量资产与国有金融资本" },
+  { key: "financial-regulation", label: "金融监管", section: "金融监管与风险", guide: "银行、保险和证券监管，金融机构处罚，资本监管、拨备、不良资产、风险处置、中小金融机构风险、金融稳定与监管规则" },
+  { key: "monetary-finance", label: "货币金融", section: "货币与金融运行", guide: "货币政策、公开市场操作、MLF、LPR、准备金、利率、汇率、信贷、社会融资规模、M1、M2、宏观审慎、跨境资金流动与金融运行" },
+  { key: "accounting-supervision", label: "财会监督", section: "财会监督与会计", guide: "财会、财政和会计监督，企业会计准则、政府会计、注册会计师、内部控制、金融企业财务、资产评估、会计信息质量与审计整改" },
+  { key: "local-practice", label: "地方实践", section: "福建厦门与地方实践", guide: "福建、厦门以及全国具有较强参考价值的财政金融改革、管理和监管实践" },
+  { key: "research", label: "研究观察", section: "政策研究与实践", guide: "权威政策解读、宏观财政金融研究、财政货币协调、地方财政、债务与金融风险研究及可复制改革经验" },
 ] as const;
 
-/**
- * 内容理解一步给每篇资料判的“内容类型”（写在 prompts/content-understanding.md 里，改了类型要同步改那份提示词）。
- * 评分提示词（prompts/selection-score.md）按类型给五个维度不同的权重。
- */
-export const ITEM_TYPES = ["model_release", "product_launch", "tool_or_prompt", "research_paper", "industry_event", "opinion_analysis", "tutorial_explainer"] as const;
+/** 与内容理解和评分提示词中的权重表同步维护。 */
+export const ITEM_TYPES = [
+  "policy_release", "regulatory_rule", "fiscal_data", "financial_data",
+  "debt_event", "regulatory_action", "local_practice", "research_analysis",
+] as const;
 
-// ── 标签词表 ────────────────────────────────────────────────────────────────────────────
-
-/** 每篇资料的第一个标签必须是这些“分类标签”之一。 */
+/** 每篇资料的第一个标签必须是分类标签之一。 */
 export const CATEGORY_TAGS = [
-  "产品更新", "模型发布", "论文/研究", "开源/仓库", "教程/实践", "现象/趋势", "大佬观点", "评测/基准", "安全/对齐", "行业动态", "政策/监管",
-  "非AI/通用工具", "其他",
+  "政策发布", "制度规则", "财政数据", "金融数据", "政府债务", "财政金融", "监管动态",
+  "监管处罚", "风险事件", "财会监督", "地方实践", "政策解读", "研究报告", "其他",
 ] as const;
 
-/** 可选的主题标签。 */
+/** 主题词覆盖财政预算、债务、协同、货币金融、监管、财会和地方实践。 */
 export const TOPIC_TAGS = [
-  "Agent", "编码", "推理", "多模态", "语音", "视频", "图像生成", "RAG", "端侧", "数据/训练", "搜索", "部署/工程", "开源生态", "具身智能", "MCP/工具调用",
+  "财政收支", "预算管理", "转移支付", "财政体制", "零基预算", "预算绩效", "税费政策", "政府采购", "政府投资",
+  "专项债", "一般债", "再融资债", "化债", "隐性债务", "融资平台", "债务风险", "专项债资产",
+  "财政贴息", "政府性融资担保", "普惠金融", "政府投资基金", "PPP", "REITs", "国有金融资本",
+  "货币政策", "公开市场", "LPR", "信贷", "社融", "利率", "汇率", "宏观审慎",
+  "银行监管", "保险监管", "资本市场监管", "外汇管理", "金融风险", "不良资产", "拨备", "风险处置",
+  "财会监督", "会计准则", "内部控制", "注册会计师", "金融企业财务",
+  "福建", "厦门", "地方财政", "数字财政", "智能监管",
 ] as const;
 
-/** 可选的实体标签（公司、机构、平台）。 */
-export const ENTITY_TAGS = ["OpenAI", "Anthropic", "DeepSeek", "DeepMind", "Google", "Meta", "Microsoft", "xAI", "Hugging Face", "GitHub", "arXiv"] as const;
+/** 机构标签可用于卡片展示；主体 id 用于结构化 subjects 和机构主题页。 */
+export const ENTITY_TAGS = [
+  "国务院", "财政部", "财政部预算司", "财政部金融司", "财政部会计司", "财政部监督评价局",
+  "中国人民银行", "国家金融监督管理总局", "中国证监会", "国家外汇管理局", "审计署", "国家发展改革委", "国家统计局", "国家税务总局",
+  "福建省财政厅", "厦门市财政局", "人民银行厦门市分行", "国家金融监督管理总局厦门监管局", "厦门证监局", "外汇局厦门市分局",
+] as const;
 
-/** 模型常写的近义词，统一成词表里的写法。 */
+/** 模型输出的历史或常见近义写法归并到词表里的标准标签。 */
 export const TAG_SYNONYMS: Readonly<Record<string, string>> = {
-  "教程/玩法": "教程/实践", "技巧/最佳实践": "教程/实践", "合作/生态": "行业动态", "融资/收购": "行业动态", "公司动态": "行业动态",
-  合作: "行业动态", 生态: "行业动态", 融资: "行业动态", 收购: "行业动态", 投资: "行业动态", 并购: "行业动态",
-  政策: "政策/监管", 监管: "政策/监管", 法规: "政策/监管", 安全: "安全/对齐", 对齐: "安全/对齐",
-  论文: "论文/研究", 研究: "论文/研究", paper: "论文/研究", papers: "论文/研究",
-  "open-source": "开源/仓库", 开源: "开源/仓库", 仓库: "开源/仓库", repo: "开源/仓库",
-  教程: "教程/实践", 玩法: "教程/实践", 指南: "教程/实践", 技巧: "教程/实践", 最佳实践: "教程/实践", 实践: "教程/实践",
-  产品: "产品更新", 更新: "产品更新", 发布: "模型发布", 模型: "模型发布", 趋势: "现象/趋势", 现象: "现象/趋势", 观点: "大佬观点",
-  视频生成: "视频", 非ai: "非AI/通用工具", "non-ai": "非AI/通用工具", 通用工具: "非AI/通用工具", 工程工具: "非AI/通用工具",
-  安全扫描: "非AI/通用工具", devops: "非AI/通用工具", 行业: "行业动态", 动态: "行业动态",
+  财政: "财政收支", 预算: "预算管理", 转移支付: "转移支付", 专项债券: "专项债", 地方政府专项债券: "专项债",
+  一般债券: "一般债", 再融资债券: "再融资债", 债务化解: "化债", 隐性债务化解: "化债",
+  融资担保: "政府性融资担保", 政府担保: "政府性融资担保", 政府基金: "政府投资基金",
+  公开市场操作: "公开市场", 社会融资规模: "社融", 资本市场: "资本市场监管", 证券监管: "资本市场监管",
+  外汇: "外汇管理", 会计: "会计准则", 内控: "内部控制", 注册会计师行业: "注册会计师",
+  福建省: "福建", 厦门市: "厦门", 地方: "地方财政", 政策研究: "研究报告", 权威解读: "政策解读",
 };
 
-/** 模型漏了分类标签时，按内容类型补一个。 */
+/** 缺少分类标签时，根据内容类型提供对应的第一个分类标签。 */
 export const CATEGORY_BY_ITEM_TYPE: Readonly<Record<string, string>> = {
-  model_release: "模型发布", product_launch: "产品更新", tool_or_prompt: "教程/实践", research_paper: "论文/研究",
-  industry_event: "行业动态", opinion_analysis: "大佬观点", tutorial_explainer: "教程/实践",
+  policy_release: "政策发布",
+  regulatory_rule: "制度规则",
+  fiscal_data: "财政数据",
+  financial_data: "金融数据",
+  debt_event: "政府债务",
+  regulatory_action: "监管处罚",
+  local_practice: "地方实践",
+  research_analysis: "研究报告",
 };
 
-// ── 公司与主体 ──────────────────────────────────────────────────────────────────────────
-
-/** 公司主题：id → 显示名、卡片上显示的标签（null 表示只用 entity:<id> 归类）、别名。 */
+/** 机构 id 用于结构化 subjects 与主题归类；别名只列明确指向该机构的写法。 */
 export const ENTITIES: Record<string, { name: string; displayTag: string | null; aliases: string[] }> = {
-  openai: { name: "OpenAI", displayTag: "OpenAI", aliases: ["OpenAI", "ChatGPT", "Sora", "Codex", "GPT"] },
-  anthropic: { name: "Anthropic", displayTag: "Anthropic", aliases: ["Anthropic", "Claude"] },
-  google: { name: "Google", displayTag: "Google", aliases: ["Google", "DeepMind", "Gemini", "谷歌"] },
-  deepseek: { name: "DeepSeek", displayTag: "DeepSeek", aliases: ["DeepSeek", "深度求索"] },
-  qwen: { name: "千问 Qwen", displayTag: null, aliases: ["Qwen", "通义", "阿里"] },
-  kimi: { name: "Kimi / 月之暗面", displayTag: null, aliases: ["Kimi", "月之暗面", "Moonshot"] },
-  minimax: { name: "MiniMax", displayTag: null, aliases: ["MiniMax", "海螺"] },
-  zhipu: { name: "智谱 GLM", displayTag: null, aliases: ["智谱", "GLM", "Z.ai"] },
-  xai: { name: "xAI", displayTag: "xAI", aliases: ["xAI", "Grok"] },
-  meta: { name: "Meta", displayTag: "Meta", aliases: ["Meta", "Llama"] },
-  microsoft: { name: "Microsoft", displayTag: "Microsoft", aliases: ["Microsoft", "微软", "Copilot"] },
-  nvidia: { name: "NVIDIA", displayTag: null, aliases: ["NVIDIA", "英伟达"] },
-  "hugging-face": { name: "Hugging Face", displayTag: "Hugging Face", aliases: ["Hugging Face"] },
-  cursor: { name: "Cursor", displayTag: null, aliases: ["Cursor", "Anysphere"] },
-  openrouter: { name: "OpenRouter", displayTag: null, aliases: ["OpenRouter"] },
+  "state-council": { name: "国务院", displayTag: "国务院", aliases: ["国务院", "中国国务院"] },
+  mof: { name: "财政部", displayTag: "财政部", aliases: ["财政部", "中华人民共和国财政部", "MOF"] },
+  "mof-budget": { name: "财政部预算司", displayTag: "财政部预算司", aliases: ["财政部预算司", "预算司"] },
+  "mof-finance": { name: "财政部金融司", displayTag: "财政部金融司", aliases: ["财政部金融司", "金融司"] },
+  "mof-accounting": { name: "财政部会计司", displayTag: "财政部会计司", aliases: ["财政部会计司", "会计司"] },
+  "mof-supervision": { name: "财政部监督评价局", displayTag: "财政部监督评价局", aliases: ["财政部监督评价局", "监督评价局"] },
+  pboc: { name: "中国人民银行", displayTag: "中国人民银行", aliases: ["中国人民银行", "人民银行", "央行", "PBOC"] },
+  nfsa: { name: "国家金融监督管理总局", displayTag: "国家金融监督管理总局", aliases: ["国家金融监督管理总局", "金融监管总局", "金监总局", "NFRA"] },
+  csrc: { name: "中国证监会", displayTag: "中国证监会", aliases: ["中国证监会", "证监会", "CSRC"] },
+  safe: { name: "国家外汇管理局", displayTag: "国家外汇管理局", aliases: ["国家外汇管理局", "外汇局", "SAFE"] },
+  "audit-office": { name: "审计署", displayTag: "审计署", aliases: ["审计署", "中华人民共和国审计署"] },
+  ndrc: { name: "国家发展改革委", displayTag: "国家发展改革委", aliases: ["国家发展改革委", "国家发改委", "发改委", "NDRC"] },
+  stats: { name: "国家统计局", displayTag: "国家统计局", aliases: ["国家统计局", "统计局"] },
+  taxation: { name: "国家税务总局", displayTag: "国家税务总局", aliases: ["国家税务总局", "税务总局"] },
+  "fujian-finance": { name: "福建省财政厅", displayTag: "福建省财政厅", aliases: ["福建省财政厅", "福建财政厅", "福建财政"] },
+  "xiamen-finance": { name: "厦门市财政局", displayTag: "厦门市财政局", aliases: ["厦门市财政局", "厦门财政局", "厦门财政"] },
+  "pboc-xiamen": { name: "中国人民银行厦门市分行", displayTag: "人民银行厦门市分行", aliases: ["中国人民银行厦门市分行", "人民银行厦门市分行", "人民银行厦门分行", "人行厦门市分行"] },
+  "nfsa-xiamen": { name: "国家金融监督管理总局厦门监管局", displayTag: "国家金融监督管理总局厦门监管局", aliases: ["国家金融监督管理总局厦门监管局", "金融监管总局厦门监管局", "厦门金融监管局"] },
+  "csrc-xiamen": { name: "厦门证监局", displayTag: "厦门证监局", aliases: ["厦门证监局", "中国证监会厦门监管局"] },
+  "safe-xiamen": { name: "国家外汇管理局厦门市分局", displayTag: "外汇局厦门市分局", aliases: ["国家外汇管理局厦门市分局", "外汇局厦门市分局", "厦门外汇局"] },
 };
 
-/**
- * 身份词典：摘要和标题里出现的公司，必须在原文里也出现过，否则退回原标题、丢掉摘要（防止模型张冠李戴）。
- * 行业没有这个问题时可以留空数组。
- */
+/** 仅在标题、正文或明确发布域中识别到的机构，才允许出现在生成标题和摘要里。 */
 export const IDENTITY_LEXICON: ReadonlyArray<{ id: string; name: string; patterns: RegExp[] }> = [
-  { id: "openai", name: "OpenAI", patterns: [/openai|chatgpt|\bgpt-?[o\d]|\bsora\b|\bcodex\b/i] },
-  { id: "anthropic", name: "Anthropic", patterns: [/anthropic|\bclaude\b/i, /\b(?:opus|sonnet|haiku)\s*\d+(?:[.\-]\d+)*\b/i, /\bfable\s*\d+(?:[.\-]\d+)*\b|\bmythos\b/i] },
-  { id: "google", name: "Google / Gemini", patterns: [/google|deepmind|\bgemini\b|notebooklm|\bveo\s?\d|\bAlphaFold\b|\bAMIE\b/i] },
-  { id: "deepseek", name: "DeepSeek", patterns: [/deepseek|深度求索/i] },
-  { id: "xai", name: "xAI / Grok", patterns: [/\bxai\b|\bgrok\b/i] },
-  { id: "meta", name: "Meta / Llama", patterns: [/\bMeta\b/, /\bmeta\s?ai\b|\bllama\b/i] },
-  { id: "microsoft", name: "Microsoft / Copilot", patterns: [/microsoft|copilot|微软/i] },
-  { id: "nvidia", name: "NVIDIA", patterns: [/nvidia|英伟达|\bnemotron\b|\bnemo\b|\bblackwell\b|\brubin(?:\s+ultra)?\b|\bcuda\b/i] },
-  { id: "qwen", name: "千问 Qwen", patterns: [/\bqwen|通义|千问/i] },
-  { id: "hugging-face", name: "Hugging Face", patterns: [/hugging\s?face/i] },
-  { id: "cursor", name: "Cursor", patterns: [/\bCursor\b/] },
-  { id: "kimi", name: "Kimi / 月之暗面", patterns: [/\bkimi\b|月之暗面|\bmoonshot\s?ai\b/i] },
-  { id: "openrouter", name: "OpenRouter", patterns: [/openrouter/i] },
-  { id: "minimax", name: "MiniMax", patterns: [/minimax/i] },
-  { id: "zhipu", name: "智谱 GLM", patterns: [/智谱|\bglm-?[4-9]/i] },
-  { id: "hunyuan", name: "腾讯混元", patterns: [/混元|hunyuan/i] },
-  { id: "doubao", name: "字节豆包", patterns: [/豆包|doubao|字节跳动|bytedance/i] },
-  { id: "mistral", name: "Mistral", patterns: [/mistral/i] },
-  { id: "perplexity", name: "Perplexity", patterns: [/\bPerplexity\b/] },
-  { id: "runway", name: "Runway", patterns: [/\brunway\b/i] },
-  { id: "suno", name: "Suno", patterns: [/\bsuno\b/i] },
-  { id: "midjourney", name: "Midjourney", patterns: [/midjourney/i] },
-  { id: "stability-ai", name: "Stability AI", patterns: [/stability\s?ai/i] },
-  { id: "elevenlabs", name: "ElevenLabs", patterns: [/eleven\s?labs/i] },
-  { id: "vllm", name: "vLLM", patterns: [/\bvllm\b/i] },
-  { id: "ollama", name: "Ollama", patterns: [/\bollama\b/i] },
-  { id: "windsurf", name: "Windsurf", patterns: [/windsurf/i] },
-  { id: "devin", name: "Devin", patterns: [/\bdevin\b/i] },
-  { id: "manus", name: "Manus", patterns: [/\bmanus\b/i] },
-  { id: "apple", name: "Apple AI", patterns: [/\bapple\s?(intelligence|silicon|ai)\b|苹果(智能|\s?AI)/i] },
-  { id: "amazon", name: "Amazon / AWS", patterns: [/amazon|\baws\b|亚马逊/i] },
-  { id: "baidu", name: "百度文心", patterns: [/百度|baidu|文心|\bernie\s?bot\b/i] },
+  { id: "state-council", name: "国务院", patterns: [/国务院|中国国务院/] },
+  { id: "mof", name: "财政部", patterns: [/财政部|中华人民共和国财政部|\bMOF\b/i] },
+  { id: "mof-budget", name: "财政部预算司", patterns: [/财政部预算司|财政部预算管理司/] },
+  { id: "mof-finance", name: "财政部金融司", patterns: [/财政部金融司/] },
+  { id: "mof-accounting", name: "财政部会计司", patterns: [/财政部会计司/] },
+  { id: "mof-supervision", name: "财政部监督评价局", patterns: [/财政部监督评价局/] },
+  { id: "pboc", name: "中国人民银行", patterns: [/中国人民银行|人民银行|央行|\bPBOC\b/i] },
+  { id: "nfsa", name: "国家金融监督管理总局", patterns: [/国家金融监督管理总局|金融监管总局|金监总局|\bNFRA\b/i] },
+  { id: "csrc", name: "中国证监会", patterns: [/中国证监会|证监会|\bCSRC\b/i] },
+  { id: "safe", name: "国家外汇管理局", patterns: [/国家外汇管理局|外汇局|\bSAFE\b/i] },
+  { id: "audit-office", name: "审计署", patterns: [/审计署|中华人民共和国审计署/] },
+  { id: "ndrc", name: "国家发展改革委", patterns: [/国家发展改革委|国家发改委|发改委|\bNDRC\b/i] },
+  { id: "stats", name: "国家统计局", patterns: [/国家统计局|统计局/] },
+  { id: "taxation", name: "国家税务总局", patterns: [/国家税务总局|税务总局/] },
+  { id: "fujian-finance", name: "福建省财政厅", patterns: [/福建省财政厅|福建财政厅|福建财政/] },
+  { id: "xiamen-finance", name: "厦门市财政局", patterns: [/厦门市财政局|厦门财政局|厦门财政/] },
+  { id: "pboc-xiamen", name: "人民银行厦门市分行", patterns: [/中国人民银行厦门市分行|人民银行厦门(?:市)?分行|人行厦门市分行/] },
+  { id: "nfsa-xiamen", name: "金融监管总局厦门监管局", patterns: [/国家金融监督管理总局厦门监管局|金融监管总局厦门监管局|厦门金融监管局/] },
+  { id: "csrc-xiamen", name: "厦门证监局", patterns: [/厦门证监局|中国证监会厦门监管局/] },
+  { id: "safe-xiamen", name: "外汇局厦门市分局", patterns: [/国家外汇管理局厦门市分局|外汇局厦门市分局|厦门外汇局/] },
 ];
 
-/** 这些域名上的文章，发布方就是对应的公司（托管平台如 GitHub、arXiv 不算）。 */
+/** 只列本轮已直连并核验页面结构的官方域名；完成核验后再增补。 */
 export const PUBLISHER_DOMAINS: ReadonlyArray<{ entityId: string; domains: readonly string[] }> = [
-  { entityId: "openai", domains: ["openai.com"] },
-  { entityId: "anthropic", domains: ["anthropic.com", "claude.com"] },
-  { entityId: "google", domains: ["deepmind.google", "ai.google", "blog.google"] },
-  { entityId: "deepseek", domains: ["deepseek.com"] },
-  { entityId: "xai", domains: ["x.ai"] },
-  { entityId: "meta", domains: ["ai.meta.com"] },
-  { entityId: "microsoft", domains: ["microsoft.com"] },
-  { entityId: "nvidia", domains: ["nvidia.com"] },
-  { entityId: "qwen", domains: ["qwen.ai"] },
-  { entityId: "cursor", domains: ["cursor.com"] },
-  { entityId: "openrouter", domains: ["openrouter.ai"] },
+  { entityId: "mof-budget", domains: ["yss.mof.gov.cn"] },
+  { entityId: "fujian-finance", domains: ["czt.fujian.gov.cn"] },
+  { entityId: "xiamen-finance", domains: ["cz.xm.gov.cn"] },
+  { entityId: "pboc-xiamen", domains: ["xiamen.pbc.gov.cn"] },
 ];
 
-/** 原文里的这些写法也算提到了对应公司。 */
-export const IDENTITY_CONTEXT_ALIASES: ReadonlyArray<{ entityId: string; pattern: RegExp }> = [
-  { entityId: "meta", pattern: /@AIatMeta\b/i },
-  { entityId: "zhipu", pattern: /\bZhipu(?:\s+AI\b|['’]s\b)/i },
-];
+export const IDENTITY_CONTEXT_ALIASES: ReadonlyArray<{ entityId: string; pattern: RegExp }> = [];
