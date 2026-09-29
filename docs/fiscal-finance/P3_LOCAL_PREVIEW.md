@@ -1,23 +1,30 @@
-# 财政金融热点站本地页面预览
+# 本地页面内容预览
 
-日期：2026-09-29。预览地址：<http://127.0.0.1:3000>。页面只绑定本机 loopback；API 为 `127.0.0.1:3001`，PostgreSQL 为共享的本地 `127.0.0.1:5432`。API、Web 与 PostgreSQL 在本轮验证后保持运行，供 Lead 在 Codex 中打开检查。
+日期：2026-09-29。此页说明独立开发预览库里的人工样本，不能视为模型精选、Gate 2 通过或正式发布内容。
 
-## 页面与数据范围
+## 页面入口与样本
 
-当前已有精选首页、全部动态、热点榜、日报/周报/月报、主题目录、文章与事件详情、关于、更新日志、反馈、Agent 接入、条款和隐私等页面路由。模型榜和 Codex 重置监控通过 `industry/features.ts` 关闭，导航与对应 API 不提供这些可选 AI 行业模块。
+本地 Web 在 `http://127.0.0.1:3000` 提供预览；全站顶部显示“开发样本预览 · 人工摘要 · 未经模型精选”，并链接已有 `/all`。三个样本位于 `/all`，各 item 详情保留真实官方标题、机构、发布日期和原文链接。主页精选仍走原有 selected-only 读取条件，因此为空是预期结果；它没有被改成展示未精选内容。
 
-预览使用独立空库 `fiscalhot_preview_test`，完成仓库 35 项迁移后只运行 `node scripts/seed.ts --topics-only`，导入 34 个行业主题。数据库计数确认：topics=34、sources=0、articles=0、stories=0、reports=0。页面展示的是财政金融站点结构与真实空状态，不含伪造的精选条目、事件、日报或复制来的未发布正文。
+| 内容 | 来源日期（上海时间） | 官方原文 |
+|---|---|---|
+| 公开市场业务交易公告 [2026]第191号 | 2026-09-29 | [中国人民银行原文](https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/2026092908461628271/index.html) |
+| 财政部有关负责人就2026年中央预算公开答记者问 | 2026-03-26 | [财政部预算司原文](https://yss.mof.gov.cn/gongzuodongtai/202603/t20260326_3986132.htm) |
+| 人民银行厦门市分行：支付护航投洽会 便利服务迎嘉宾 | 2026-09-14 | [人民银行厦门市分行原文](https://xiamen.pbc.gov.cn/xiamen/127699/2026091714532820798/index.html) |
 
-## 安全与运行边界
+这些条目的摘要根据此前逐篇核实的官方详情撰写，并以前缀“开发预览·人工摘要；未经模型精选”标识。OMO摘要按来源原句记录“同时，开展了6985亿元隔夜逆回购操作。”未添加政策影响判断。三篇原文正文未写入预览库，也没有伪造分析、评分、精选理由或讨论数据。
 
-API 和 Web 均绑定 `127.0.0.1`，没有启动 worker。`COLLECT_ENABLED`、`MODEL_CALLS_ENABLED`、`JINA_BODY_FALLBACK`、`INDEXNOW_SUBMIT_ENABLED`、`FEISHU_CONTENT_PUSH_ENABLED`、`FEISHU_INTERNAL_ENABLED`、`ALLOW_PRIVATE_NETWORK_FETCH` 全为 false；`DEV_AUTH_ROLE` 未设置，进程未读取仓库 `.env` 或真实模型凭据。仅使用本地预览用 dummy secrets/password。API 启动时写入隔离库的 `heartbeat.api` 设置项；worker watchdog 未检测到 worker 心跳时不启动 worker。
+## 写入方式与隔离
 
-## 验证
+`scripts/seed-local-preview.ts` 仅接受无密码 `postgres@127.0.0.1:5432/fiscalhot_preview_test`、显式 `SITE_URL=http://127.0.0.1:3000`、loopback API/Web 地址与 `LOCAL_PREVIEW_ENABLED=true`。它拒绝 Production、开发登录绕过、启用的采集/模型/Jina/IndexNow/飞书/私网访问开关，以及固定样本 ID allow-list 以外的任何数据库身份。入库使用 `upsertMaterial`、现有 editorial override 与 `publishArticle`；数据库中每个来源仍为 `enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`。
 
-- `npm run typecheck` 通过。
-- `npm run build -w @aihot/web` 通过；预览 Web 使用该生产构建启动。
-- `node --test apps/web/tests/*.test.ts`：11/11 通过。
-- `node scripts/smoke.ts --base http://127.0.0.1:3000`：30/30 通过。
-- `/hot`、`/daily`、`/topics` 和 `/admin/login` 实际返回 HTTP 200；行业文案使用财政金融站点标题。
+归档的验证库 `fiscalhot_preview_test` 有 35 项 migration 与 34 个主题。seed 首轮创建 3 个来源、3 篇文章和 3 个合格 publication；第二轮三篇均报告 `unchanged`。SQL核验每篇 article/publication/override 版本均为 1、文章 revision 行各 1、每条人工审计记录各 1；`eligible=3`、`selected=0`、`score/reason=null`、`body_mode=summary`、`indexable=false`。数据库中没有正文、analysis、receipt、job run、pg-boss job 或 selected ledger/state；采集、模型、Jina、IndexNow、Feishu 与私网访问 flags 全 false。seed 未调用 collector、worker、provider 或网络源。
 
-仅验证页面可访问性和空库状态，不表示 Gate 2、来源覆盖、精选质量或生产部署验收通过。预览保持隔离测试库，不执行真实采集、模型调用、推送或付费请求。
+## 页面和公开出口核验
+
+- `/`、`/all` 与样本详情 SSR 均返回 200；首页含开发样本 banner/`/all` 链接且精选列表为空，`/all` 显示三个已核标题。
+- item 页显示“人工摘要 · 开发样本”及未模型精选说明。Web 响应带 `X-Robots-Tag: noindex, nofollow`；预览 root/item meta 也设置 noindex。生成的 API 与全量 RSS 摘要保留人工预览前缀，不能被误认作模型摘要；精选 snapshot 与精选 RSS 均不含这三个条目。
+- `/api/site/pool` 返回三篇，`score=null`、`reason=null`、`selected=false`，发布日期对应原始上海日期（UTC分别为 `2026-09-28T16:00:00Z`、`2026-03-25T16:00:00Z`、`2026-09-13T16:00:00Z`）。`/api/site/timeline` 的精选 cards 为空。
+- 开关默认关闭；Focused guards 4/4、全量 typecheck、Web build、Web 测试 15/15 与 loopback smoke 30/30通过。fresh `fiscalhot_content_preview_test` 35 migrations 后完整 `npm test` 156/156 通过。Web 当前以 `NODE_ENV=development` 在 `127.0.0.1:3000` 提供构建版页面，preview flag 只在该 Web 进程开启；API 与 PostgreSQL 均为 loopback，其他安全开关 false。
+
+本地页面预览仅用于查看固定人工样本。生产、NAS、真实模型、采集任务和来源配置仍保持关闭；所有来源稳定性、正文质量和栏目覆盖须按 P3/Gate 2 规则单独验收。

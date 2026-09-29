@@ -160,6 +160,45 @@ DECISION=APPROVED（一次 S1 最小范围裁决，不重复 Gate 1 Review）。
 
 无新增 industry 抽象、packages、schema/migration 或部署改动；Luna 实现，并以现有 typecheck/Web build 及实际公共页面和日报空状态检查验证。不新增仅复刻字符串的测试。本次不改变任何 Gate 状态或启用采集、模型、推送。
 
+## AD-012：隔离本地预览的人工官方样本
+
+DECISION=APPROVED（仅 S1 本地预览方案，不是 Gate Review，不代表真实模型精选完成）。用户需要查看基础页面中的真实内容；原采集验证库与空预览库分离，不能为填充页面改变正式 publication 门槛或伪造模型判断。
+
+### 使用已有人工覆盖与 publication
+
+真实代码 `publishArticle` 已读取 `editorial_overrides.fields.relevance`；池资格仍要求 editorial source、relevance=pass、中文 title 与 summary。admin 的 overrideFields API 严格 schema 不接受 relevance，因此本方案不调用或扩大该 API。
+
+批准专用开发 seed 脚本在指定预览库中写现有 editorial_overrides JSON：人工核实相关性的 `relevance: "pass"`、人工中文 title/summary、现有 category/tags、`selected: false`，并填写明确的开发预览人工依据、updated_by 和审计记录。字段与表名使用真实的 editorial_overrides，不新增表或迁移。随后调用已有 publishArticle，由它正常计算 eligible/publication；禁止直接写 publications.eligible、selected、score 或 release gate。
+
+不写 analyses，不伪装模型 relevance，不设置模型 score/推荐 reason。最终 selected=false、score=null、reason=null、body_mode=summary、syndicate=false、indexable=false。source 保持 disabled、site_fulltext=false、syndicate_fulltext=false。visibility 使用普通 public；不要用 summary-only visibility，因为现有页面会把它解释成来源方限制，不能制造这项要求。
+
+### 固定范围和隔离防护
+
+批准本轮最多三条已核原文：OMO 第191号、预算问答、人民银行厦门材料；排除已判为误命中的债券条目。每条保留真实标题、原发布日期、机构名称和官方 HTTPS 原文 URL；人工摘要必须有已核正文依据，不能把示例日期改成今天或编造政策效果。
+
+- 仅写 `fiscalhot_preview_test`，启动前验证 DATABASE_URL 的完整目标、loopback host 和精确库名；不能只检查 `_test` 后缀。不读写采集验收库、smoke 库或其他项目库。
+- seed 只读固定本地核验清单/证据，最多三条，不进行网络采集、解析器重试、worker、付费 provider 或模型调用；所有运行安全阀显式 false，包括 Jina/IndexNow/飞书。
+- 使用专有 `local-preview-` article/source id 和 raw/override provenance 标记，保留来源真实身份并明确预览用途。非本脚本数据存在时停止，不能修改用户记录；支持仅同一固定清单的幂等复跑。
+- 复用 upsertMaterial 与 publisher；不调用会安排 processing 的 collectSource/queueProcessing，也不创建 facts/stories/reports/虚构讨论量。无需把原文全文提交 Git；本地材料与证据留在忽略目录。
+
+### 最小 Web 开发标注
+
+批准默认 false 的 server-only `LOCAL_PREVIEW_ENABLED`。不放入 VITE/client build 行业配置，不从 URL query、请求头或 cookie 启用。开启时必须验证显式 SITE_URL 为 loopback HTTP(S)、Web 监听地址和 API_BASE_URL 也为 loopback；条件不符拒绝预览启动/加载。Production 与 NAS 配置不得设置此开关。
+
+批准范围仅为专用 seed 脚本、必要的 Web server-only guard、小范围 root banner 和 item 标签修改，以及相应验证/文档。无 API/sidebar 扩展、数据库迁移或 publication 规则修改。root loader 从受验证服务端开关传出预览 bool；显示“开发样本预览 · 人工摘要 · 未经模型精选”，清晰链接已有 `/all`。Web 预览响应加 noindex 边界；root banner 在 API 不可用等错误状态下也不能把预览误称正式站。
+
+首页仍遵守 selectedCondition，三条 selected=false 不进入精选，不重定向首页，也不把未精选记录塞进首页 timeline。Lead 可以直接向用户打开 `/all` 查看样本；首页 banner 解释入口。
+
+人工样本须在标题/摘要或其他既有公开字段中留有明确开发人工标记，使 API/RSS 导出不会被误读为模型结果；保留真正的 source/date/url。item 页面只在服务端预览开关通过且 article id 属于固定预览 namespace 时，把“AI 导读”改为“人工摘要 · 开发样本”，并标明未模型精选；正常内容的生成透明度沿用 AD-011。不凭 selected=false 推断所有未精选摘要都是人工。
+
+### 核验要求与保持不变
+
+seed 前后检查并记录：三条 publication eligible=true、selected=false、score/reason=null、摘要模式且全文不展示；analyses/receipts/model 记录为零、无新增 processing/通知 job、无 selected ledger 内容。二次执行不增加文章、publication 或人工覆盖版本；人工 provenance/audit 可追溯。
+
+验证 `/all`、至少一个 item、真实源链接与日期、人工标注、首页预览 banner/链接与空精选、topics 按真实标签关联、selected API/RSS 仍为空。再验证关闭预览 flag 时 banner 不出现，非 loopback SITE_URL/监听/API 配置不能开启；正常 publisher 与 Web checks 通过。未满足隔离和透明度验证前不向用户呈现为完成的预览。
+
+本方案只提供人工核验开发 fixtures，不作为精选 Gold 标签、模型质量、真实采集稳定性、Gate 2 或部署证据；真实模型、worker、大规模采集和 Production 保持关闭。
+
 ## 审查边界
 
 AD-005 至 AD-008 是针对实现中明确出现的解析器兼容问题作出的 S1 决策；获批的 parser 修复已落地，完整测试、typecheck 和离线兼容测试证据见 `COLLECTOR_AUDIT.md`。P3 受控 collector 验证只覆盖隔离测试库上的少量官方列表请求，不启动 worker 或模型，细节见 `P3_INGEST_VALIDATION.md`。这些 S1 批准和局部验证均不替代 Gate 2 Review，也不表示真实正文链路或信源长期稳定性通过。
