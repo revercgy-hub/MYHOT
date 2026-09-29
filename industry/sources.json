@@ -11,7 +11,8 @@
         "linkSelector": "a[href]",
         "titleSelector": "a",
         "publishedAtSelector": "span",
-        "allowUrlPrefixes": ["https://yss.mof.gov.cn/gongzuodongtai/"]
+        "allowUrlPrefixes": ["https://yss.mof.gov.cn/gongzuodongtai/"],
+        "publishedAtUtcOffset": "+08:00"
       },
       "tier": "T1",
       "first_party": true,
@@ -33,7 +34,8 @@
         "linkSelector": "a[href]",
         "titleSelector": "a",
         "publishedAtSelector": "span.bf-pass",
-        "allowUrlPrefixes": ["https://czt.fujian.gov.cn/zwgk/tzgg/"]
+        "allowUrlPrefixes": ["https://czt.fujian.gov.cn/zwgk/tzgg/"],
+        "publishedAtUtcOffset": "+08:00"
       },
       "tier": "T1",
       "first_party": true,
@@ -55,7 +57,8 @@
         "linkSelector": "a[href]",
         "titleSelector": "a",
         "publishedAtSelector": "span",
-        "allowUrlPrefixes": ["https://cz.xm.gov.cn/zwxx/czsj/dfzxx/"]
+        "allowUrlPrefixes": ["https://cz.xm.gov.cn/zwxx/czsj/dfzxx/"],
+        "publishedAtUtcOffset": "+08:00"
       },
       "tier": "T1",
       "first_party": true,
@@ -77,7 +80,9 @@
         "linkSelector": "a[href]",
         "titleSelector": "a",
         "publishedAtSelector": "span.hui12",
-        "allowUrlPrefixes": ["https://xiamen.pbc.gov.cn/xiamen/127699/"]
+        "allowUrlPrefixes": ["https://xiamen.pbc.gov.cn/xiamen/127699/"],
+        "publishedAtUtcOffset": "+08:00",
+        "titleAttribute": "title"
       },
       "tier": "T1",
       "first_party": true,
@@ -85,6 +90,146 @@
       "participation_mode": "editorial",
       "interval_minutes": 120,
       "tags": ["官方", "厦门", "货币金融"],
+      "site_fulltext": false,
+      "syndicate_fulltext": false,
+      "enabled": false
+    },
+    {
+      "id": "mof-policy-release",
+      "name": "财政部·政策发布",
+      "kind": "web_list",
+      "config": {
+        "url": "https://zhs.mof.gov.cn/zhengcefabu/",
+        "itemSelector": "ul.liBox > li",
+        "linkSelector": "a[href]",
+        "titleSelector": "a",
+        "publishedAtSelector": "span",
+        "publishedAtUtcOffset": "+08:00",
+        "allowUrlPrefixes": ["https://zhs.mof.gov.cn/zhengcefabu/"]
+      },
+      "tier": "T1",
+      "first_party": true,
+      "owner_entity_id": "mof",
+      "participation_mode": "editorial",
+      "interval_minutes": 120,
+      "tags": ["官方", "政策发布", "财政金融"],
+      "site_fulltext": false,
+      "syndicate_fulltext": false,
+      "enabled": false
+    },
+    {
+      "id": "mof-finance-notices",
+      "name": "财政部金融司·工作通知",
+      "kind": "web_list",
+      "config": {
+        "url": "https://jrs.mof.gov.cn/gongzuotongzhi/",
+        "itemSelector": "ul.liBox > li",
+        "linkSelector": "a[href]",
+        "titleSelector": "a",
+        "publishedAtSelector": "span",
+        "publishedAtUtcOffset": "+08:00",
+        "allowUrlPrefixes": ["https://jrs.mof.gov.cn/gongzuotongzhi/"]
+      },
+      "tier": "T1",
+      "first_party": true,
+      "owner_entity_id": "mof-finance",
+      "participation_mode": "editorial",
+      "interval_minutes": 120,
+      "tags": ["官方", "财政金融", "政府性融资担保"],
+      "site_fulltext": false,
+      "syndicate_fulltext": false,
+      "enabled": false
+    },
+    {
+      "id": "mof-accounting-notices",
+      "name": "财政部会计司·工作通知",
+      "kind": "web_list",
+      "config": {
+        "url": "https://kjs.mof.gov.cn/gongzuotongzhi/",
+        "itemSelector": "ul.liBox > li",
+        "linkSelector": "a[href]",
+        "titleSelector": "a",
+        "publishedAtSelector": "span",
+        "publishedAtUtcOffset": "+08:00",
+        "allowUrlPrefixes": ["https://kjs.mof.gov.cn/gongzuotongzhi/"]
+      },
+      "tier": "T1",
+      "first_party": true,
+      "owner_entity_id": "mof-accounting",
+      "participation_mode": "editorial",
+      "interval_minutes": 120,
+      "tags": ["官方", "财会监督", "会计准则"],
+      "site_fulltext": false,
+      "syndicate_fulltext": false,
+      "enabled": false
+    },
+    {
+      "id": "pboc-open-market",
+      "name": "中国人民银行·公开市场业务交易公告",
+      "kind": "web_list",
+      "config": {
+        "url": "https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/index.html",
+        "itemSelector": "tr:has(font.newslist_style)",
+        "linkSelector": "a[href]",
+        "titleSelector": "a",
+        "titleAttribute": "title",
+        "publishedAtSelector": "span.hui12",
+        "publishedAtUtcOffset": "+08:00",
+        "allowUrlPrefixes": ["https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/"]
+      },
+      "tier": "T1",
+      "first_party": true,
+      "owner_entity_id": "pboc",
+      "participation_mode": "editorial",
+      "interval_minutes": 120,
+      "tags": ["官方", "货币金融", "公开市场"],
+      "site_fulltext": false,
+      "syndicate_fulltext": false,
+      "enabled": false
+    },
+    {
+      "id": "mof-treasury-debt-data",
+      "name": "财政部国库司·地方政府债券统计",
+      "kind": "web_list",
+      "config": {
+        "url": "https://zwgls.mof.gov.cn/tjsj/",
+        "itemSelector": "ul.liBox > li",
+        "linkSelector": "a[href]",
+        "titleSelector": "a",
+        "publishedAtSelector": "span",
+        "publishedAtUtcOffset": "+08:00",
+        "allowUrlPrefixes": ["https://zwgls.mof.gov.cn/tjsj/"]
+      },
+      "tier": "T1",
+      "first_party": true,
+      "owner_entity_id": "mof",
+      "participation_mode": "editorial",
+      "interval_minutes": 120,
+      "tags": ["官方", "政府债务", "财政数据"],
+      "site_fulltext": false,
+      "syndicate_fulltext": false,
+      "enabled": false
+    },
+    {
+      "id": "xiamen-csrc-regulatory-work",
+      "name": "厦门证监局·监管工作",
+      "kind": "json_list",
+      "config": {
+        "url": "https://www.csrc.gov.cn/searchList/ffe0f9a9de42484cb218be2fd18116d0?_isAgg=false&_isJson=true&_pageSize=20&_template=index&_rangeTimeGte=&_channelName=&page=1",
+        "itemsPath": "data.results",
+        "titlePaths": ["title"],
+        "summaryPaths": ["content"],
+        "publishedAtPath": "publishedTimeStr",
+        "publishedAtUtcOffset": "+08:00",
+        "urlTemplate": "https:{raw:url}",
+        "allowUrlPrefixes": ["https://www.csrc.gov.cn/xiamen/c101757/"]
+      },
+      "tier": "T1",
+      "first_party": true,
+      "owner_entity_id": "csrc-xiamen",
+      "participation_mode": "editorial",
+      "interval_minutes": 120,
+      "tags": ["官方", "厦门", "资本市场监管"],
       "site_fulltext": false,
       "syndicate_fulltext": false,
       "enabled": false

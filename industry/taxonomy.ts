@@ -116,9 +116,15 @@ export const IDENTITY_LEXICON: ReadonlyArray<{ id: string; name: string; pattern
 /** 只列本轮已直连并核验页面结构的官方域名；完成核验后再增补。 */
 export const PUBLISHER_DOMAINS: ReadonlyArray<{ entityId: string; domains: readonly string[] }> = [
   { entityId: "mof-budget", domains: ["yss.mof.gov.cn"] },
+  { entityId: "mof", domains: ["zhs.mof.gov.cn"] },
+  { entityId: "mof-finance", domains: ["jrs.mof.gov.cn"] },
+  { entityId: "mof-accounting", domains: ["kjs.mof.gov.cn"] },
+  { entityId: "mof", domains: ["zwgls.mof.gov.cn"] },
   { entityId: "fujian-finance", domains: ["czt.fujian.gov.cn"] },
   { entityId: "xiamen-finance", domains: ["cz.xm.gov.cn"] },
   { entityId: "pboc-xiamen", domains: ["xiamen.pbc.gov.cn"] },
+  { entityId: "pboc", domains: ["www.pbc.gov.cn"] },
+  { entityId: "mof", domains: ["mof.gov.cn"] },
 ];
 
 export const IDENTITY_CONTEXT_ALIASES: ReadonlyArray<{ entityId: string; pattern: RegExp }> = [];
