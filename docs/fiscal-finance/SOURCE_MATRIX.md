@@ -1,6 +1,17 @@
 # 官方信源验证矩阵
 
-本矩阵区分页面结构、只读 preview 与隔离数据库验证。以下“未运行采集 worker、数据库写入、队列、模型或付费 fallback”仅指九个 HTML 来源的 `previewSource` 和一个 JSON 来源的 `fetchJsonList` dry-run 阶段。其后另在隔离 `_test` 数据库对三个 HTML 来源运行两轮受限 collector ingest，产生 30 篇 backfill 记录和 30 个未消费正文任务；验证范围与结果见 `P3_INGEST_VALIDATION.md`。这 30 篇的最新 SQL 正文汇总为 29 `ok`、1 `unconfirmed`、0 `pending`；30 个 `content.extract-body` 队列项仍未消费。此前的 28/2 是同一批记录的较早状态，已由最新单篇复验更新。另对 `pboc-open-market` 第191号做了一次隔离库两轮小样：首轮入库、二轮判重，结果见 [P3_OMO_VALIDATION.md](P3_OMO_VALIDATION.md)；这不是 30 篇批次的一部分。QA fresh 全回归已完成：35 项 migrations、`npm test` 156/156、typecheck、web build、web tests 11/11、loopback smoke 30/30。Ubuntu `Check` workflow run [36589569943](https://github.com/revercgy-hub/MYHOT/actions/runs/36589569943) 在测试代码 SHA `dafe938` 上通过，详情见 [P3_BODY_VALIDATION.md](P3_BODY_VALIDATION.md)；它验证通用 Linux 测试/构建，不代表真实官方 PDF 已在 Linux 解析。正文验证不代表 Gate 2 或生产稳定性通过。十个来源逐项 Gate 2 证据与金融司正文/附件边界见 [P3_SOURCE_ACCEPTANCE.md](P3_SOURCE_ACCEPTANCE.md)。`industry/sources.json` 目前配置十个来源（九个 HTML、一个 JSON），均为 `enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`。分页、重复和长期可靠性仍需后续 Gate 验收。
+本矩阵区分页面结构、只读 preview 与隔离数据库验证。以下“未运行采集 worker、数据库写入、队列、模型或付费 fallback”仅指原九个 HTML 来源的 `previewSource` 和一个 JSON 来源的 `fetchJsonList` dry-run 阶段。其后另在隔离 `_test` 数据库对三个 HTML 来源运行两轮受限 collector ingest，产生 30 篇 backfill 记录和 30 个未消费正文任务；验证范围与结果见 `P3_INGEST_VALIDATION.md`。这 30 篇的最新 SQL 正文汇总为 29 `ok`、1 `unconfirmed`、0 `pending`；30 个 `content.extract-body` 队列项仍未消费。此前的 28/2 是同一批记录的较早状态，已由最新单篇复验更新。另对 `pboc-open-market` 第191号做了一次隔离库两轮小样：首轮入库、二轮判重，结果见 [P3_OMO_VALIDATION.md](P3_OMO_VALIDATION.md)；这不是 30 篇批次的一部分。原十个来源的既有 P3 证据与后续两轮验证范围保持原样；当前 `industry/sources.json` 另增两个财政部监管局动态来源，合计12个（十一个 HTML、一个 JSON），均为 `enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`。新增来源的单次静态候选验证不等同于 collector 写库、正文验证或 Gate 2，详见下文和[来源调查记录](REGIONAL_SUPERVISION_SOURCES.md)。原十源 QA 与 Ubuntu `Check` workflow run [36589569943](https://github.com/revercgy-hub/MYHOT/actions/runs/36589569943) 的历史记录不代表新增两源经过相同回归；该 CI 在测试代码 SHA `dafe938` 上验证通用 Linux 测试/构建，不代表真实官方 PDF 已在 Linux 解析。所有来源仍需后续 Gate 验收分页、重复、正文和长期可靠性。
+
+## P3 新增：财政部各地监管局动态（2026-09-29）
+
+用户新增全国财政部各地监管局新闻动态覆盖要求。本轮在原十个来源基础上新增两个 disabled `web_list` 配置；没有新增监管局实体或主题页。完整官方入口、原始快照说明、35局目录清单及配置边界见[来源调查记录](REGIONAL_SUPERVISION_SOURCES.md)。目录显示35个局，但只有以下中央选登栏目及厦门局栏目经过本轮实际 HTML/parser 检查；不能将目录核对说成35局栏目核验。
+
+| source ID | 实际候选页与配置解析 | 本轮有限验证 | 边界 |
+|---|---|---|---|
+| `mof-regional-supervision-dynamics` | 财政部“财政新闻”列表 `https://www.mof.gov.cn/zhengwuxinxi/caizhengxinwen/index.htm`；从真实快照验证 `ul.xwfb_listbox > li:has(a[title*='监管局'])`，标题读 `a[title]`，日期读同项 `span`；35个官方目录域名的 HTTP allowlist 限定文章链接。 | 快照原始列表共25项；项目 `fromHtml()` 按实际配置筛出7项，署名涉及广西、云南、吉林、福建、重庆、安徽、山东监管局，URL唯一；抽样标题、列表日期与文章 URL 均在列表项。 | 财政部选登而非35局全量实时源；本轮只读首页，没有抓取其20页历史，也未逐条比对中央列表日期和原局详情发布日期。未运行 `collectSource()`、写库或正文队列。 |
+| `mof-xiamen-supervision-dynamics` | 财政部厦门监管局“工作动态” `https://xm.mof.gov.cn/caizhengjiancha/index.htm`；`ul.liBox > li`，标题读链接 `title` 属性（缺失回退可见文本），日期读列表项 `span`，URL限制在栏目路径内。 | 实际首页快照解析10项；第一条日期2026-09-29。配置列表 selector/标题/日期和 URL 解析经本地 parser 检查；另检查一篇2025详情，题名、正文、发布日期和链接可读。 | 最新列表首项详情未能直取；历史详情样本不是首页首项正文验收。分页脚本有10页，但本轮仅读取少量历史页用于核对存在性，未批量验分页覆盖、重复率、正文完整度或 freshness。未运行 `collectSource()`、写库或正文队列。 |
+
+福建监管局列表/详情有界请求两次均为 HTTP 502，虽中央财政新闻快照选登一篇福建局稿件，本轮没有足够本地列表快照证据来配置福建独立源。中央更专用的“全国财政新闻联播 > 财政部”栏目本次快照陈旧，未采用。全国35局目录仅用于确认官方机构域名和中央来源的链接 allowlist，不推断其它33个局已有可用动态栏目。新增两源均为 T1、每360分钟、`enabled=false`、站内/RSS全文均关闭；具体来源与限制见[来源调查记录](REGIONAL_SUPERVISION_SOURCES.md)。Gate 2 仍未通过，本轮没有开启 worker、模型或大规模采集。
 
 状态含义：
 

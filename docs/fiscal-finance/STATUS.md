@@ -1,20 +1,22 @@
 # 项目状态
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=dafe9386838f6423dba8e080c51cd9114066992f
+CURRENT_SHA=0ec0704c0e60a88d84bc99d558eb569c56731c79
+CI_TESTED_SHA=dafe9386838f6423dba8e080c51cd9114066992f
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
 
-STAGE=P3小范围collector/正文验证、AD-010单篇PDF集成、OMO及七源固定URL两轮样本完成；AD-012本地人工样本预览运行中；Gate 2尚未通过
+STAGE=P3小范围collector/正文验证、AD-010单篇PDF集成、OMO及七源固定URL两轮样本完成；新增财政部全国汇总选登与厦门监管局两条disabled来源，35局目录核对、中央7条及厦门10条离线候选检查完成；AD-012本地人工样本预览运行中；Gate 2尚未通过
 GATE=Gate 1 PASSED；Gate 2 尚未通过，不能开始大规模采集
 REVIEW=Sol Gate 1 Review已由Lead核销修复并通过；AD-008日期/titleAttribute、AD-009短正文与PDF PoC、AD-010附件envelope、AD-011 route文案及AD-012本地人工样本预览均按批准范围实施。fresh fiscalhot_content_preview_test 35 migrations后 npm test 156/156；AD-012 focused guard 4/4、typecheck、web build、web tests 15/15、smoke 30/30通过。Ubuntu Check run [36589569943](https://github.com/revercgy-hub/MYHOT/actions/runs/36589569943) 对 tested SHA `dafe9386838f6423dba8e080c51cd9114066992f` 全绿；验证通用 Linux 测试/构建，不含真实官方PDF解析。厦门第十六期PDF完成一次受限 GET，解析状态 `pdf_page_no_text`；未得到页数/字段，也未保存原始 bytes。Gate 2未通过。
+CURRENT_TURN=新增 `mof-regional-supervision-dynamics` 与 `mof-xiamen-supervision-dynamics` 两条 T1 `web_list` 来源；当前共12源，全部 `enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`。财政部中央选登列表快照经实际 parser 筛出7条；厦门监管局工作动态首页快照解析10条。仅作静态候选与链接/日期结构检查，无 collector 写库、正文队列、模型或 worker。福建局独立栏目本机有界请求两次均502，不配置；35局目录只作为官方域名/中央链接 allowlist 依据，未逐局核验动态栏目。fresh `fiscalhot_regional_sources_test` 已完成35 migrations，`npm test` 156/156、typecheck、来源 allowlist/selector focused 审计、web build、web tests 15/15、smoke 30/30通过。本地 `/all` 返回200且有noindex/预览标识及3条原样本标题；pool恰有3条，均selected=false、score/reason=null，selected snapshot 0条。PostgreSQL/API/Web仅绑定127.0.0.1，Web以 `NODE_ENV=development` 启动且仅Web进程 `LOCAL_PREVIEW_ENABLED=true`，其他安全flags关闭、无worker，预览库未改。本轮不改变历史 `CI_TESTED_SHA` 与 Gate 证据，也不代表 Gate 2 通过。
 BLOCKERS=三源30篇批次最新SQL为29 ok/1 unconfirmed/0 pending，30个content.extract-body jobs仍未消费；金融司历史失败原因unknown，快报25版含RAR仍unconfirmed。OMO第191号限一条URL两轮样本，留1个未消费content.analyze job。预算司、人行厦门各一条固定URL两轮正文可读；厦门财政205字初始Readability结果经DB复核为标题/日期、扫码提示及页尾，无招标结果，source-only `.Custom_UnionStyle` helper fail-closed拒绝未处理附件。第十六期PDF一次 guarded GET 为 HTTP 200、application/pdf、457111字节、无重定向；strict parser返回 `pdf_page_no_text`，无页数/layout/业务字段输出，原始bytes未保存，不能据此推断整份PDF均为扫描件，附件正文仍未验证。福建厅、会计司、厦门证监本轮各完成一个固定URL两轮：福建正文虽629字可读但为领域噪声，现金管理扫描件仍 `pdf_page_no_text`；会计司列表9/21、详情PubDate9/22、正文落款9/17不一致；CSRC列表9/15与详情meta9/23冲突且原始found=20经精确URL allowlist只写一条。三源页面批量、分页与跨周期稳定性未验证；真实官方PDF尚未Linux解析；NAS硬RSS/隔离待验。
 
-COMPLETED=P0接管；财政金融静态改造和Gate 1；10源disabled配置与preview；P3三源30篇列表两轮和正文验证（29 ok/1 unconfirmed）；AD-009/AD-010单篇隔离提取；OMO第191号、预算司、人行厦门、厦门财政、福建厅、会计司、厦门证监各一个固定URL的两轮样本；厦门债第十六期PDF单次受限诊断（pdf_page_no_text，页数和业务字段未知）；AD-012在独立 `fiscalhot_preview_test` 加入34主题及3条人工样本（source/articles/publication/override均3，stories/reports 0）。seed首轮3 created、后续均 unchanged，article/publication/override版本各为1，score/reason null、selected0、正文/analysis/selected ledger/state/receipts/jobs为0。页面 `/all` 展示真实标题，首页精选保持空并显示开发预览入口；API与全量RSS摘要带人工样本前缀，精选snapshot/RSS不含样本。完整 npm test 156/156、typecheck、Web build、Web测试15/15、smoke30/30和seed SQL/SSR证据通过。厦门财政附件正文、福建扫描PDF及日期口径冲突保持阻塞。Ubuntu Check run 36589569943对 `dafe9386838f6423dba8e080c51cd9114066992f` 通过通用检查，未在Linux解析真实官方PDF。
-IN_PROGRESS=本地人工内容预览运行供用户检查；P3剩余任务为有限来源证据、正文质量、真实PDF/Linux/NAS边界，不扩大采集。Web `127.0.0.1:3000` 与API `127.0.0.1:3001`、共享PostgreSQL `127.0.0.1:5432` 均只绑定loopback；本地DB `fiscalhot_preview_test` 完成35 migrations、有34主题和3个人工样本。Web以构建产物和 `NODE_ENV=development` 运行，只有该Web进程 `LOCAL_PREVIEW_ENABLED=true`；其余采集/模型/Jina/IndexNow/Feishu/私网 flags 均 false，无应用worker、DEV_AUTH未设置。实现及此前验收已同步到功能分支；本轮只更新来源证据文档。
-NEXT=保持 `/all` 本地预览供用户查看；继续处理厦门财政附件正文/字段缺口、福建扫描件和剩余栏目批量/分页/freshness证据。Ubuntu通用CI已过，真实官方PDF/Linux解析与NAS RSS/隔离仍待验证。Gate 2前不扩大采集、不部署Production。
+COMPLETED=P0接管；财政金融静态改造和Gate 1；原10源disabled配置与preview；P3三源30篇列表两轮和正文验证（29 ok/1 unconfirmed）；AD-009/AD-010单篇隔离提取；OMO第191号、预算司、人行厦门、厦门财政、福建厅、会计司、厦门证监各一个固定URL的两轮样本；厦门债第十六期PDF单次受限诊断（pdf_page_no_text，页数和业务字段未知）；AD-012在独立 `fiscalhot_preview_test` 加入34主题及3条人工样本（source/articles/publication/override均3，stories/reports 0）。新增财政部各地监管局来源：中央官网选登与厦门局工作动态两源加入配置，35局官方目录域名清单核对；项目parser在离线快照中筛出中央7条、厦门10条候选（合计17条，未入库）。福建监管局独立列表两次请求均502，未配置。seed首轮3 created、后续均 unchanged，article/publication/override版本各1，score/reason null、selected0、正文/analysis/selected ledger/state/receipts/jobs为0。页面 `/all` 展示真实标题，首页精选保持空并显示开发预览入口；API与全量RSS摘要带人工样本前缀，精选snapshot/RSS不含样本。原10源完整 npm test 156/156、typecheck、Web build、Web测试15/15、smoke30/30和seed SQL/SSR证据通过。厦门财政附件正文、福建扫描PDF及日期口径冲突保持阻塞。Ubuntu Check run 36589569943对 `CI_TESTED_SHA=dafe9386838f6423dba8e080c51cd9114066992f` 通过通用检查，未在Linux解析真实官方PDF。
+IN_PROGRESS=本地人工内容预览继续供用户检查；新增监管局来源目前只有离线parser候选验证，无collector写库、逐篇正文质量、跨周期freshness/重复或全35局栏目覆盖证据。财政部中央源是选登汇总而非全量实时；厦门局独立源仅验证首页及有限历史样本；福建局独立源因两次HTTP 502待验。fresh `fiscalhot_regional_sources_test` 与loopback smoke复测通过。Web `127.0.0.1:3000`、API `127.0.0.1:3001`、共享PostgreSQL `127.0.0.1:5432` 均仅绑定loopback；Web以 `NODE_ENV=development` 启动且仅Web进程 `LOCAL_PREVIEW_ENABLED=true`，其他采集/模型/Jina/IndexNow/Feishu/私网安全开关保持关闭，无应用worker、DEV_AUTH未设置。
+NEXT=在Gate 2条件下按逐源计划验证新增来源的详情正文、分页、日期口径、噪声、重复与跨周期freshness；继续处理厦门财政附件正文/字段缺口、福建扫描件及真实官方PDF/Linux/NAS边界。Gate 2前不扩大采集、不部署Production。
 
-`CURRENT_SHA` 是本次文档更新之前的代码与CI tested HEAD；此后若有纯文档提交，最新文档 HEAD 以 `git rev-parse HEAD` 为准。
+`CURRENT_SHA` 是本轮来源配置代码HEAD；`CI_TESTED_SHA` 是最近 Ubuntu 通用CI的旧 tested HEAD，本轮没有新CI。后续纯文档提交不改变来源代码HEAD。
 
 ## 安全和验证环境
 
