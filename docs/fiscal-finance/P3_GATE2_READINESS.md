@@ -9,13 +9,15 @@ SCOPE=核对当前12条配置来源各自已有证据、缺口与进入正式 So
 
 目前事实足以向 Sol 说明 Gate 2 尚未就绪，不足以支持核心源稳定或 Gate 2 通过。12 个配置源仍全部 `enabled=false`，`site_fulltext=false`、`syndicate_fulltext=false`。多条来源仅对一个精确 URL 做了两轮隔离 collector；这种证据只支持该 URL 的幂等行为。现有材料还记录了明确正文假阳性、领域噪声、附件正文缺失、较旧栏目和尚未核验的历史/周期覆盖。日期审计已纠正会计司 UTC 切日误读，并说明厦门证监元数据语义未知；这些澄清不构成周期稳定性验证。监管局两条来源已有固定文章正文入库成功，但首页覆盖、历史页和长周期稳定性还没有证明。
 
+本次又完成会计司/预算司与财政部中央/厦门监管局两批完整配置首页隔离验证。核心20篇候选的一天内两轮产生 `10/0` 与 `1/9` 的创建数，且12篇正文样本呈 `6 ok / 6 unconfirmed / 8 pending`；区域18篇正文均`ok/rev2`。这提高了当前首页和所抽正文的事实覆盖，但仍是有界快照批次。两批HTTP计数 hook 均失效，实际 hop 总量/预算上限不能证明；正文 `ok` 也不等于逐字段完整性。首次预算司导入12个月窗口和之后cursor同步行为的差异、失败原因unknown、区域短正文、噪声及长期freshness仍需处理。
+
 这份审计不筛掉问题源，也不通过降低核心源标准来制造 Gate 通过。区域分页和 OMO freshness 两份报告已完成，原始 HTML 与机器/SQL记录均已复核。若问题样本继续保留，正式审查材料必须原样呈现其限制和失败。
 
 ## 任务书与阶段依赖核对
 
 仓库根目录《财政金融热点站完整开发与部署任务书.md》“首批核心源验证”列出每个源必须形成记录的项目：HTTP、文章发现、标题、发布时间、URL、正文、重复、导航、党建、招聘、培训、错栏目；Gate 2 原文是“核心官方源稳定以后才能打开模型调用”。`PROJECT_PLAN.md` 将 P3 定义为逐源真实抓取，并将 Gate 2 放在 P3 后、P4 模型验证前。任务书并未写明 Gate 2 要求实现通用自动分页，也没有要求在此阶段完成 NAS 部署或真实官方 PDF 的 Linux 解析。
 
-历史来源状态/交接文档曾将真实 PDF Linux 解析、NAS RSS 硬限制与运行隔离列为 Gate 2 前风险/待办，或使用“Gate 2 阻塞”字样。保留真实结果（PDF 请求返回 `pdf_page_no_text`、Linux CI 未解析 PDF、NAS限制未测），不改写过去的失败事实。Lead安排的S1审查已由GPT-6.1 Sol完成，见 [ARCHITECTURE_PHASE_DEPENDENCIES.md](ARCHITECTURE_PHASE_DEPENDENCIES.md)：`DECISION=APPROVED`仅适用于阶段依赖/范围，`GATE_2=NOT_PASSED`。当前不批准通用分页、OCR或管线实现。重要业务PDF正文属于P3/Gate2样本质量，已实现PDF路径的真实Linux兼容性最迟P7/Gate4前验证，NAS容器硬RSS/隔离和持续运行在P8/P9/Gate5阶段验证。以上裁决不把真实正文缺口改成通过。
+历史来源状态/交接文档曾将真实 PDF Linux 解析、NAS RSS 硬限制与运行隔离列为 Gate 2 前风险/待办，或使用“Gate 2 阻塞”字样。保留真实结果（PDF 请求返回 `pdf_page_no_text`、Linux CI 未解析 PDF、NAS限制未测），不改写过去的失败事实。阶段依赖S1见 [ARCHITECTURE_PHASE_DEPENDENCIES.md](ARCHITECTURE_PHASE_DEPENDENCIES.md)：`DECISION=APPROVED`仅适用于阶段依赖/范围，`GATE_2=NOT_PASSED`。原裁决不批准通用分页/OCR或管线实现。针对持续自动获取核心业务公告的新提案 [P3_SCAN_BODY_PROPOSAL.md](P3_SCAN_BODY_PROPOSAL.md) 已由 GPT-6.1 Sol 在 [S1_SCAN_OCR_POC_REVIEW.md](S1_SCAN_OCR_POC_REVIEW.md) 批准一次固定五页、本机 Tesseract 离线实验及最多三次有界官方语言文件请求；没有批准 OCR worker/collector集成、通用 OCR、NAS安装或改变 Gate 2。实验结果尚未完成。重要业务PDF正文属于P3来源样本质量；已实现PDF路径的真实Linux兼容性最迟P7/Gate4前验证，NAS容器硬RSS/隔离和持续运行在P8/P9/Gate5阶段验证。以上裁决不把真实正文缺口改成通过。
 
 分页/历史是必须记录和评估的来源质量证据；现有 collector 每轮读取一个 `config.url`。S1明确Gate2不要求遍历全部历史页或将全部历史档案接入持续采集。P3必须结合实际首页容量、最旧候选日期/排序、常规新增速度和突发批量发布、轮询间隔、失败退避及最长中断、初始导入数量/时间上限，检查是否有条目在两次成功轮询间滑出首页。只有新证据显示首页不足时，才提交有页数/请求/时间上限、URL安全范围、跨页去重和故障游标语义的分页S1；当前不改 `apps/`、`packages/`。
 
@@ -23,17 +25,18 @@ SCOPE=核对当前12条配置来源各自已有证据、缺口与进入正式 So
 
 | source ID | 已验证事实 | 未验证/阻塞 Gate 2 评估的事实 |
 |---|---|---|
-| `mof-budget-work` | 官方首页快照按当前 parser 为10项、10个唯一URL，日期顺序新到旧，2026-03-26至2023-07-24；第二页有2023/2022历史项。隔离库固定URL两轮 `1/1/0 → 1/0/0`，指定正文 `ok`、2,272字。日期/首页审计指出默认首次导入近12个月、最多30条套用于此快照时只有1条落在时间窗；这只是条件推算。 | 首页最新可见日仍旧；单快照不能推断通常或突发发布率、更新周期及将来首页滑窗风险；该10项没有完整collector入库证据，首页含会议/培训等非政策内容；历史页采集覆盖与栏目噪声率未验。 |
-| `fujian-finance-notices` | 官方首屏selector解析5项，5个候选URL唯一；原始页面还预渲染22个列表块/108项。固定领证通知两轮 `1/1/0 → 1/0/0`，正文 `ok`、629字。 | 该正文是会计资格领证服务噪声，不能证明领域质量。首屏含PDF；重要现金管理公告扫描件此前视觉确认，解析为 `pdf_page_no_text`，无OCR/正文。配置selector仅取第一组5项；未验证全栏目时间覆盖、噪声率、附件文章内容完整性与长期freshness。 |
-| `xiamen-finance-debt` | 官方首页解析15项，覆盖2026-05-08至09-11；固定 URL 两轮 `1/1/0 → 1/0/0`。 | 205字 Readability 被标 `ok` 是正文假阳性：DB内容为标题/日期、扫码提示和页尾，没有招标结果。精确 `.Custom_UnionStyle` selector 经 helper fail-closed，识别其外 PDF 附件；PDF受限请求后解析 `pdf_page_no_text`，没有页数或业务字段。首页没观察到分页链接；其余14项正文、历史/刷新范围、噪声未验证。 |
+| `mof-budget-work` | 官方首页快照10项、10个唯一URL，2026-03-26至2023-07-24；第二页有2023/2022历史项。完整配置隔离批次两轮 `found/accepted/created/revised=10/1/1/0 → 10/10/9/0`，真实观察到首轮近12个月窗仅入2026-03-26一条、次轮因cursor已初始化放入其余9篇旧文；固定URL既有正文样本 `ok`、2,272字。 | 本批只取得一个长期较旧的首页窗，不能推断更新速度/稳定性或滑窗风险。12篇正文本轮共调用、此源2篇被调用；未确认的动员会正文1篇，原因unknown；8篇预算司正文保持pending未请求。首轮时间窗只限制首轮导入，不能表述为后续同步一直限近12个月。未确认原因及噪声人工判定仍缺；HTTP hop上限未证。 |
+| `fujian-finance-notices` | 官方首屏selector解析5项，5个候选URL唯一；原始页面还预渲染22个列表块/108项。固定领证通知两轮 `1/1/0 → 1/0/0`，正文 `ok`、629字。Lead接受现金管理扫描 PDF 人工样本：4页23行双人逐格一致，额度和预计利息合计相符。 | 领证正文是会计资格服务噪声，不能证明领域质量。现金管理 PDF 机器文本层每页为空，正文 `unconfirmed`；人工转录不证明自动提取。配置selector仅取第一组5项；未验证全栏目时间覆盖、噪声率、附件文章内容完整性与长期freshness。 |
+| `xiamen-finance-debt` | 官方首页解析15项，覆盖2026-05-08至09-11；固定 URL 两轮 `1/1/0 → 1/0/0`。Lead接受厦门第十六期债券 PDF 人工单页字段复核。 | 205字 Readability 被标 `ok` 是正文假阳性：DB内容为标题/日期、扫码提示和页尾，没有招标结果。精确 `.Custom_UnionStyle` selector 经 helper fail-closed，识别其外 PDF 附件；PDF受限请求后解析 `pdf_page_no_text`；人工转录不证明自动提取。首页没观察到分页链接；其余14项正文、历史/刷新范围、噪声未验证。 |
 | `pboc-xiamen-work` | 官方首页20项，声明663条/34页；直查第2页20项与首页 URL 无重叠。固定 URL 两轮 `1/1/0 → 1/0/0`，正文 `ok`、1,745字；完整标题属性已配置。 | 仅单篇进行了持久 collector/正文验证；首页其余候选正文与噪声、34页深度/历史重复、候选窗口是否能覆盖两小时采集间隔及跨周期 freshness 未验证。 |
 | `mof-policy-release` | 首页10项；隔离库两轮各10个候选，`10/10/0 → 10/0/0`；30篇批次正文后续 SQL 汇总29 `ok`、1 `unconfirmed`，该源10/10 `ok`；代表正文4,024字。历史第2页静态结构和异类内容已有观察。 | 最新可见日2026-08-26；跨周期 freshness 未验证。collector仍只读首页，旧页/历史正文和重复完整率未验证；综合栏目含彩票等内容，噪声率与编辑边界未验收。 |
 | `mof-finance-notices` | 首页10项两轮 `10/10/0 → 10/0/0`；检查首页与历史第2页各10项，精确URL无重复；有同标题不同年度URL。30篇批次最新SQL本源9 `ok`、1 `unconfirmed`；另一个历史样本从0字经单篇HTML+PDF复核成1,454字。 | 最新列表日2026-07-16，约75天旧；首页到第二页日期边界有重叠，逐条标题/URL重叠判断不完整。短正文/PDF/RAR混合；RAR样本仍不确认，PDF未在Linux解析（S1列为P7/Gate4兼容性验证）。单个历史附件复验不代表附件路径整体可靠或周期稳定。 |
-| `mof-accounting-notices` | 首页10项、详情结构已核验；固定征求意见函两轮 `1/1/0 → 1/0/0`，正文 `ok`、473字。第2页抽查10项，与首页精确URL无重复；发现不同周期同标题条目。日期复核报告确认列表 `<span>`、详情 `PubDate` 和正文可见发布日期均为2026-09-22；parser 的 `2026-09-21T16:00:00Z` 换算为中国时间也是9/22，文书落款为9/17。 | 只有固定单篇 collector 入库；整页/历史正文、噪声比例和周期稳定性未验。此前日期冲突表述是把UTC日或URL路径日误当列表日，已纠正。 |
+| `mof-accounting-notices` | 首页10项、详情结构已核验；固定征求意见函两轮 `1/1/0 → 1/0/0`，正文 `ok`、473字。全首页隔离批次实际两轮 `10/10/10/0 → 10/10/0/0`。正文本批调用10篇，其中5篇 `ok`、5篇 `unconfirmed`（失败原因未被helper接口/日志记录，unknown）；另有预算司未调用文章留在pending。日期复核确认列表 `<span>`、详情 `PubDate` 和正文日期均为2026-09-22；UTC `2026-09-21T16:00:00Z` 按+08:00为9/22，函件落款9/17。 | 该全首页仅一天间复读，不能证明周期稳定；旧快照仅有5/10 URL可精确比较，另5条与旧 representative-only 输出无法差分。正文有6篇被调的结果归因与原始材料见批次报告；未确认失败原因unknown，且 `ok`不等于逐字段完整；噪声、长周期freshness及HTTP预算未验。此前日期冲突是UTC日/URL路径误读。 |
 | `pboc-open-market` | 首页20条逐日公告、URL唯一；9/29与9/30两份真实首页经同一parser比较，新第192号进入、旧第172号退出首页；隔离库该固定URL两轮 `1/1/0 → 1/0/0`。正文135字、1张表，7天期和0亿元两列与原文吻合；公告没有利率字段，正文也没有补写利率。`extractArticleBody`返回`skipped`，因为collector已保存 `ok` 正文。 | 这是一个跨日样本，不是长期周期稳定性；其他首页19项正文、分页、未来更新频率仍未核。运行后留下1个 `content.analyze` `created/retry0` job；`analyses` 表0行，receipts/models为0且未启动worker，不能把队列误报为已分析。执行脚本末尾错误断言将job数误当analysis行数导致非零退出，报告已独立SQL分清并记录，未重跑。 |
 | `mof-treasury-debt-data` | 首页10项及第2页10项被检查；精确候选结构可解析。隔离库两轮 `10/10/0 → 10/0/0`；30篇批次本源正文均 `ok`（按SOURCE_MATRIX该源10/10），代表正文1,021字。列表最新日2026-09-24，详情标题/PubDate匹配。 | 首页第2页最新日回溯到2025年10月且混有PDF、中央收支统计；collector仅请求首页，未核定这些栏目交叉内容/历史噪声风险。完整多页重复率、周期更新和候选窗口无漏项能力未验证。 |
 | `xiamen-csrc-regulatory-work` | 官方JSON API page1 20项、page2 20项且URL无重叠；列表 `publishedTimeStr=2026-09-15 12:43:00` 与 epoch 和正文可见9/15一致。固定样本两轮 API 每轮 `found=20`、精确allowlist仅写1条；正文 `ok`、1,157字。当前配置按 `+08:00` 读取该列表字符串。 | 详情 `PubDate` 与页面生成元数据均为09-23，语义未知；当前配置未读取 `PubDate`，不构成已证实的映射错误。总量399项、只抽page1/page2；未测深页、轮询漏项风险、全量重复/噪声。 |
-| `mof-xiamen-supervision-dynamics` | 厦门局工作动态首页10项、10个唯一URL；固定普惠金融URL两轮 `1/1/0 → 1/0/0`，数据库正文 `ok/rev2`、1,935字。新分页证据：`index_1.htm`返回200并解析10项；相邻页精确URL重复0。历史业务稿正文1,979字，标题和列表日/详情PubDate同日。 | 首页/历史页各仅取一页（站内声明10页），collector仍只抓首页；仅核一篇历史正文，剩余候选正文、噪声、跨周期更新和更深历史重复未验证。上述中央新增条目与厦门当前首页三种比较均无匹配，且尚无跨源collector去重实测。该一局样本不能外推其他34局。原始HTML、完整hash及候选见忽略目录 `.data/fiscal-regional-paging-validation/`。 |
+| `mof-regional-supervision-dynamics` | 完整配置首页8项，两轮 `8/8/8/0 → 8/8/0/0`；8篇正文 `ok/rev2`。既有分页快照首页/相邻历史页8/7项、URL重复0、历史正文1,832字。 | 仅首页collector、网页声明20页；中央选登不是35局全量。批次与厦门候选身份无重叠，因此运行时跨源去重unknown；长周期/深页未验。预定28 hop上限未证，至少25次guardedFetch、实际redirect hop unknown，不能预算PASS。 |
+| `mof-xiamen-supervision-dynamics` | 厦门局工作动态完整首页10项，collector两轮 `10/10/10/0 → 10/10/0/0`；10篇正文均`ok/rev2`。固定普惠金融URL正文1,935字；相邻历史页10项、历史业务稿1,979字。 | 网页声明10页，本批只抓首页、旧快照只看相邻页；5篇本批正文短（223–379字）须逐篇复核，10篇正文未载明确发布日期。长周期更新、深页重复及栏目噪声未核；无跨源overlap所以collector dedupe unknown；HTTP上限28 hop未证，实际redirect hop unknown。不能外推其他34局。详见 `P3_REGIONAL_BATCH_2026-09-30.md`。 |
 
 所有12项当前配置行都保留为 disabled，且两项全文发布许可为 false。逐项更完整的旧证据见 `SOURCE_MATRIX.md`、`P3_INGEST_VALIDATION.md`、`P3_LOCAL_SOURCE_VALIDATION.md`、`P3_REMAINING_SOURCE_VALIDATION.md`、`P3_OMO_VALIDATION.md`、`P3_REGIONAL_COLLECTOR_VALIDATION.md`、`P3_REGIONAL_BODY_VALIDATION.md` 与 `P3_XIAMEN_DEBT_PDF_VALIDATION.md`。不将同源某篇成功正文外推为该来源整体通过。
 
@@ -54,15 +57,15 @@ SCOPE=核对当前12条配置来源各自已有证据、缺口与进入正式 So
 
 ## 送正式 Sol Gate 2 Review 前最小工作包（3–5项）
 
-1. 区域分页与 OMO freshness 报告已复核。区域报告检查了保存的HTML和机器结果：中央首页8/历史页7、厦门10/10，相邻页URL重复均0，两篇历史详情正文1,832/1,979字。OMO报告证实9/29→9/30首页由第191号更新为第192号、20项窗口一入一出，正文和表格经核对；独立SQL分清队列job=1与analyses表=0，错误断言导致的非零退出已解释，未重跑。证据仍分别只有各一页历史、各一篇历史正文与一次OMO跨日变化。
+1. 两批完整配置证据现已落盘：[核心两源批次](P3_CORE_BATCH_2026-09-30.md)、[区域两源批次](P3_REGIONAL_BATCH_2026-09-30.md)。会计司 `10/10/10/0→10/10/0/0`；预算司 `10/1/1/0→10/10/9/0`，第二轮实际补入9篇旧文。20篇库样本的正文 helper调用12次：6 `ok`、6 `unconfirmed`、8 `pending`；六个失败原因unknown，另有20个未消费 extraction jobs。区域两源18/18正文 `ok/rev2`，第二轮均0新增。两报告各自 HTTP hop 计数 hook 未命中，计数预算均不能判定通过；区域至少25次guardedFetch且跳转hop未知，核心批次实际hop总数unknown。区域只有相邻页快照；OMO报告证实9/29→9/30第192号进入、旧第172号退出的单次跨日变化，并说明队列job=1、analyses表=0和脚本非零退出原因。上述都不能外推长期稳定性。
 2. 按S1要求补首页覆盖窗口证据：逐源记录首页实际容量、最旧候选日期/排序、正常新增速度和突发批量发布、轮询间隔、失败退避/最长中断、初始导入上限及可能滑出窗口的文章；以有界快照说明持续新增是否会漏项。
-3. 对核心来源补足跨周期有界复读与DB前后比较，核不同日期/新条目、URL重复、正文状态、日期语义及候选窗口；固定URL第二轮判重不算跨周期稳定性。
-4. 为问题正文与来源元数据形成处置结论或保留阻塞：至少厦门专项债结果缺文、福建扫描附件及领证噪声；保留厦门证监生成元数据语义未知。会计司日期差异已确认是UTC日/URL路径误读，厦门证监API与可见正文日期一致。不能隐去问题样本或缩减核心源来绕过验收。重要材料计划送pilot前必须逐样本核实正文完整。
+3. 离线工具 `scripts/fiscal/p3-http-budget.ts` 已锚定后端实际 Undici 8.11.2，以 Agent/ProxyAgent dispatch admission 计数并在第 N+1 次进入原 dispatch 前拒绝；5项 localhost 测试覆盖跳转上限、代理委派、错误响应与卸载恢复。该工具只覆盖精确后端 Undici 实例的 dispatch 边界，不是 OS 全局网络预算；global fetch/其他 Undici 副本/worker/私网旁路及 proxy CONNECT 内部仍不在计数范围。本地工具验证不追认两轮批次的历史网络计数，既有核心 hop总数仍unknown、区域仍至少25次 guardedFetch且总hop未知。后续由 Lead 决定是否另开新的有界联网预算；确认计数方案符合具体来源路径后，再对核心来源补跨周期有界复读与DB前后比较，核不同日期/新条目、URL重复、正文状态、日期语义及候选窗口；固定URL第二轮判重不算跨周期稳定性。
+4. 为问题正文与来源元数据形成处置结论或保留阻塞：至少厦门专项债结果缺文、福建扫描附件及领证噪声；保留厦门证监生成元数据语义未知。厦门与福建 PDF 的人工字段已双人核对，但机器正文仍未通过。Lead明确核心财政公告需要持续自动获取；限定 OCR PoC 已按 S1 发出两次官方请求：commit定位成功，固定版本 `chi_sim.traineddata`虽响应HTTP 200但未在30秒内完整接收；遵照不重试边界停止，没有许可证文件、OCR或gold结果，完整记录见 [P3_SCAN_OCR_POC_RESULT.md](P3_SCAN_OCR_POC_RESULT.md)。若继续，须Lead另行有限授权；不付费调用、不安装 NAS、不接入业务处理job、不变更 Gate 2 通用条件。会计司日期差异已确认是UTC日/URL路径误读，厦门证监API与可见正文日期一致。不能隐去问题样本或缩减核心源来绕过验收。重要材料计划送pilot前必须逐样本核实正文完整。
 5. 证据齐备后由GPT-6.1 Sol安排正式Gate 2 Review。reviewer须能查到原始数据、失败样本、分支/代码SHA与安全开关；正式结论前保持`NOT_PASSED`，不得打开模型/规模采集。
 
 ## 下批 Agent 文件所有权与风险
 
-区域分页核验 Agent 独占 `P3_REGIONAL_PAGING_VALIDATION.md`，OMO freshness Agent 独占 `P3_OMO_FRESHNESS_2026-09-30.md`；两报告已交付。阶段依赖由S1文件独占裁决，结论是当前无需实现通用分页/OCR，也无需将NAS/Linux整体前置；不与来源审计并行改collector代码。
+区域分页、区域全首页、会计司/预算司全首页及OMO freshness报告均已交付，分别见相应 `P3_*` 文件。原 S1 依赖裁决没有批准泛 OCR、分页或管线实现，也无需将 NAS/Linux 整体前置；新的限定扫描 S1 已批准一次固定五张图的本机 OCR PoC及最多三次官方语言文件请求。本次官方语言文件响应未在限时内完成，遵照不重试边界停止，OCR和gold比对`NOT_RUN`；resource-monitor路径未通过fake-child验证，CLI默认`OCR_RUN_ENABLED=false`。详见 [P3_SCAN_OCR_POC_RESULT.md](P3_SCAN_OCR_POC_RESULT.md) 和独立gold报告；不得扩展为通用 OCR、业务处理job、NAS安装或 Gate 2 前置。HTTP hop 本机计数 helper 已实现并通过5项 localhost tests，仍需由 Lead 决定后续真实来源预算运行；helper 的实例/dispatch边界与两个历史批次budget unknown均须保留。
 
 ## Git 与修订
 

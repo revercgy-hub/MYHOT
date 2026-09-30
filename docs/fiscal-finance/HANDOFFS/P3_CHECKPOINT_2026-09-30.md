@@ -90,3 +90,37 @@ Lead有限裁定见 [P3_CORE_BODY_RESOLUTION.md](../P3_CORE_BODY_RESOLUTION.md)�
 - 本轮恢复/核对的预览仍用既有 `fiscalhot_preview_test`，35 migrations，3 articles/3 publications；来源disabled/fulltext关闭，body_status=none、revision=1、selected=0、score/reason为空、analysis/receipt/job_runs=0。API/Web/PostgreSQL仅监听 `127.0.0.1:3001/3000/5432`；采集、模型、Jina、IndexNow、Feishu、私网旗标显式false，DEV_AUTH未设置，没有应用worker。`/api/site/pool`3条，主页、`/all`与样本详情200，人工标记和noindex可见；`node scripts/smoke.ts --base http://127.0.0.1:3000` 30/30通过。
 
 **NEXT**：优先补核心首页整批、首页滑窗/跨周期证据；评估扫描材料是否确有机器可读业务需要，再提交必要的最小S1架构提案，不预设OCR实现。保持所有来源关闭与P3遗留jobs隔离。等有新证据组成完整包后安排正式Gate 2 Review。
+
+## 2026-09-30 扫描正文提案与预览复核追加
+
+**状态仍为 `P3=IN_PROGRESS` / `Gate 2=NOT_PASSED`。** 区域分页和 OMO 跨日两批 Agent 报告已各自独立交付并纳入 [SOURCE_MATRIX](../SOURCE_MATRIX.md)、[Gate 2 就绪审计](../P3_GATE2_READINESS.md)：区域报告6次 guarded fetch 均200，中央首页/相邻历史页8/7项、厦门10/10项，跨页精确URL重叠各0，两篇历史详情正文1,832/1,979字；仅覆盖相邻两页。OMO报告比较9/29与9/30的20项首页，第192号进入、第172号退出；第192号两轮 `1/1/0 → 1/0/0`，135字正文含完整表格。脚本退出非零由把 `content.analyze` 队列任务数误作 analyses 行数的断言造成；独立 SQL 为队列一个 `created/retry0`，analyses/receipts/model记录为0，未启动worker且未重跑。该跨日样本只有一次，不证明长期稳定。中央厦门候选与厦门当前首页三种比较均无匹配，但未请求候选详情、未验证跨源 collector 去重。
+
+Lead确认产品需要核心财政业务公告持续自动获取。福建现金管理4页23行和厦门专项债1页字段均已双Luna视觉复核并接受为 `P3 manual_sample_evidence=ACCEPTED`，但这不代表机器正文 `ok`；福建仍 `unconfirmed`、厦门旧 parser 仍 `pdf_page_no_text`，Readability 假阳性不变。新增 [P3_SCAN_BODY_PROPOSAL.md](../P3_SCAN_BODY_PROPOSAL.md) 后，GPT-6.1 Sol已按 [S1_SCAN_OCR_POC_REVIEW.md](../S1_SCAN_OCR_POC_REVIEW.md) 批准一次固定五张现有PNG的本机OCR PoC和最多三次固定版本官方语言文件请求；只允许离线实验，不接collector/body job，不改变Gate 2或P4。当前Tesseract `5.5.0.20241111`只有`eng`/`osd`、缺`chi_sim.traineddata`；语言文件尚未获取，OCR尚未运行。默认不付费、不安装NAS。PoC不需 `apps/`、业务管线或迁移；未来持续集成另审 `packages/backend` 有界适配器。
+
+**本轮预览复核**：开始时 PostgreSQL 在 `127.0.0.1:5432` 监听，API/Web未监听，初始 smoke 30项失败。按既有授权启动 API `127.0.0.1:3001` 与构建版 Web `127.0.0.1:3000`，环境显式设置 `NODE_ENV=development`、固定 `fiscalhot_preview_test`、loopback Host/URL、Web `LOCAL_PREVIEW_ENABLED=true`，`COLLECT_ENABLED=false`、`MODEL_CALLS_ENABLED=false`、Jina/IndexNow/Feishu/私网均关闭；没有 worker。恢复后只读 HTTP 检查 `/`、`/all`、health、`/api/site/pool` 均200，pool显示3条；smoke 30/30通过。未重新运行 seed、没有 SQL写入/数据库重建、没有触及 private OMO 55432 集群。预览服务继续运行供用户查看。API/Web由本轮可管理 exec 会话维持。
+
+**Git与检查范围**：开始工作时分支 `feat/fiscal-finance-hot`，HEAD `d9b2433b9f032cdab7cccd07b549df7fb07ebb18`，干净工作树。当前只新增扫描提案并编辑 `STATUS.md`、`SOURCE_MATRIX.md`、`P3_GATE2_READINESS.md`、本检查点；没有应用/包/schema/source config改动。以实际 git 最终状态为准。docs-only不跑 typecheck/npm test/build；本轮 smoke 是唯一新运行验证。CI仍是早前成功 SHA `8e845812b6ce1db45821ade7b2162a90f589e1de`，不代表本轮文档或真实PDF Linux OCR。
+
+**NEXT（记录时点）**：当时扫描路线 S1 尚待 Lead 决定。后续 GPT-6.1 Sol已批准一次固定图像离线OCR PoC及其严格输入/资源/官方训练数据获取边界；结果尚未生成。Lead另已批准离线HTTP hop工具修复和localhost测试任务。二者都不代表 Gate 2通过、业务OCR集成或新来源请求预算。Gate 2仍不得写作通过。
+
+## 2026-09-30 两批完整首页采集证据追加
+
+正式报告现已落盘并纳入 [SOURCE_MATRIX](../SOURCE_MATRIX.md) 和 [P3 Gate 2 就绪审计](../P3_GATE2_READINESS.md)：[会计司/预算司批次](../P3_CORE_BATCH_2026-09-30.md) 与 [财政部区域两源批次](../P3_REGIONAL_BATCH_2026-09-30.md)。两份报告是隔离库中的实际执行证据，不能并入公开 preview 或误写成来源通过。
+
+**核心两源**：会计司两轮 `found/accepted/created/revised=10/10/10/0 → 10/10/0/0`；预算司 `10/1/1/0 → 10/10/9/0`。预算司首轮 12 个月窗口实际只收一篇，第二轮 `cursor.initializedAt` 已建立后补入9篇旧文，这是实际行为。数据库20篇中正文 helper只调用12篇，SQL和逐篇列表核为6 `ok`、6 `unconfirmed`、8 `pending`；6个失败原因没有进入helper返回值/日志，只能标 `unknown`。20个 `content.extract-body` jobs 均 `created` 未消费，analyses/receipts/job_runs为0。会计司旧完整快照仅5/10 URL可完整精确比较；预算司旧HTML10/10与新候选相同，但新运行没有保存列表响应正文。此批也观察到栏目会议、会计边缘内容，过滤规则为0不能当成零噪声。
+
+**区域两源**：中央配置首页两轮 `8/8/8/0 → 8/8/0/0`，厦门 `10/10/10/0 → 10/10/0/0`；18篇正文全 `ok/rev2`。中央8篇正文日期与列表日一致；厦门10篇列表日期解析完整，但正文未见发布日期，且5篇正文只有223–379字需逐篇人工核对。两个候选集合 `identityKey` overlap=0，因此本轮跨源 collector dedupe 实测为 `unknown`。仍仅采首页；中央声明20页、厦门10页，区域相邻分页报告也只核一页历史。
+
+**两批预算计数失效**：执行器覆写 `Agent.prototype.dispatch` 的hook都未命中。核心批次实际 HTTP hop 总数 `unknown`；区域批次预设28 hop，但可核 24 次批次 guardedFetch 加一探针（至少25 hops），其余 redirect hop无日志。均不能证明请求硬预算上限，也不把顶层函数调用量当网络次数。发现失效后已停止联网、没有重试/重跑。下一开发任务为先离线确定并修复计数与硬停止，再用无外网 localhost/canary确认hook可见且第N+1 hop被拒绝；没有 Lead 批准前不安排新来源请求。regional batch报告含诊断边界与建议的undici diagnostics事件及验证dispatcher方案，不虚构具体hook失效原因。
+
+核心正文机器路线上，Lead已明确产品要求核心财政公告持续自动获取。双Luna人工复核只支撑P3样本字段事实，不支撑自动提取。离线 OCR PoC 的限缩 S1 已由 GPT-6.1 Sol `APPROVED`，固定五张PNG及最多三次官方语言文件请求；当前没有获取语言模型、未调用OCR、不接业务管线。Lead要求实验只产出逐页raw TSV/text、candidate字段及资源/来源manifest和完整独立gold checklist；由另一位Luna对照全部字段，不开发通用表格gold抽取算法，unknown行不能凑成机器匹配。S1不扩大为Gate 2通用OCR前置。HTTP计数工具已实现，5项localhost测试通过；其准确范围是后端 Undici 8.11.2 Agent/ProxyAgent dispatch admission cap，未覆盖全局所有网络路径，也不追认两个历史批次预算。
+
+**阶段结论仍是 `P3=IN_PROGRESS` / `Gate 2=NOT_PASSED`**。两批只证明给定快照与样本的隔离执行结果，预算未证，跨周期、来源噪声、首页滑窗、区域短正文及已知扫描附件机器提取仍需审查；12个来源均继续disabled且全文关闭，模型开关false，无worker。本次文章/队列都只在专用隔离库；原来三条公开人工预览样本未重建，服务端口仍为loopback，Smoke 30/30通过。
+
+## 离线工具验收与扫描 PoC 结果（2026-09-30）
+
+`scripts/fiscal/p3-http-budget.ts` 通过本地服务5项测试，包括第N+1请求在原dispatch前拒绝、redirect hop分别计数、ProxyAgent内部委派不双计、observer不改变错误响应、卸载恢复。覆盖仅限 backend Undici 8.11.2 的Agent/ProxyAgent dispatch admission；global fetch/其他Undici/worker/私网dispatcher旁路及proxy CONNECT内部调用不覆盖。既有核心批次HTTP hop仍unknown、区域至少25次guardedFetch且完整hop未知，不因该离线验证变成预算PASS；新来源联网运行仍待Lead授权。
+
+固定五图扫描 PoC 结果见 [执行报告](../P3_SCAN_OCR_POC_RESULT.md) 和 [独立 gold 审阅](../P3_SCAN_OCR_GOLD_REVIEW.md)。官方commit定位请求成功；固定版本 `chi_sim.traineddata`响应为HTTP 200，但30秒内响应流未完整读取，因S1不重试边界停止，第三次许可证请求未发出。ignored目录仅含`prepare-failure.json`和不完整`manifest.json`，没有模型、许可证、OCR文本/TSV或`run.json`。因此OCR与gold字段对比均`NOT_RUN`；五图哈希和尺寸边界已核对，但机器候选为零。`OCR_RUN_ENABLED=false`，运行资源监控、超时/kill-wait尚无fake-child或native-process证据；不能将CLI离线测试通过表述为可运行OCR PoC。
+
+**完整检查**：全仓 `npm run typecheck`通过；新鲜 `fiscalhot_agent_verification2_test` 数据库运行35项migration，`npm test` 165/165通过；Web production build成功，Web tests 15/15通过；既有loopback preview smoke 30/30通过。`node scripts/fiscal/ocr-scan-poc.ts run`在模型读取/子进程启动前按预期返回disabled。准备一次曾在30秒请求限制上终止模型下载；不能重试也未启动OCR。GitHub Actions [Check #36676119420](https://github.com/revercgy-hub/MYHOT/actions/runs/36676119420) 对工具代码 `aaea0502e9fe8df7b858c64df61bb46e207b71de` 全绿，含Ubuntu typecheck/build/webtests/migrations/smoke/backend tests及Docker build/compose smoke。CI未获取语言模型，未运行OCR或资源monitor。preview数据库没有用于P3测试写入，worker/source/publication开关维持关闭。本段用于本轮质量记录，最终文件范围与Git状态以Lead最后检查为准。
