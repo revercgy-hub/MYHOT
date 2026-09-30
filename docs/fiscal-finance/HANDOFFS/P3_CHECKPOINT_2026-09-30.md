@@ -56,3 +56,21 @@ P3 要逐源验证真实抓取结果，包括标题、日期、详情页、URL�
 ## 修订记录
 
 - 2026-09-30：根据 SOURCE_MATRIX、监管局来源调查、collector 与正文验证报告、当前 STATUS 和 Git 快照建立进行中检查点；记录两条固定 URL 的隔离 collector/正文入库证据、HTTP-hop预算审计及 Gate 边界。
+
+## 2026-09-30 后续检查点追加：区域分页、OMO跨日与S1阶段裁决
+
+以下追加信息保留此前检查点记录时点的历史描述；新报告扩展了证据，不覆盖旧结论或改写旧范围。
+
+**当前状态**：`P3=IN_PROGRESS`，`Gate 2=NOT_PASSED`。12个来源继续全部`enabled=false`且`site_fulltext=false`、`syndicate_fulltext=false`。新文件包括 [区域分页核验](../P3_REGIONAL_PAGING_VALIDATION.md)、[OMO跨日核验](../P3_OMO_FRESHNESS_2026-09-30.md)、[Gate2就绪审计](../P3_GATE2_READINESS.md) 和 GPT-6.1 Sol 的 [S1阶段依赖裁决](../ARCHITECTURE_PHASE_DEPENDENCIES.md)。S1 `DECISION=APPROVED` 仅是依赖范围批准，`GATE_2=NOT_PASSED`；不能在任务交接中称 Gate 2 已批准或通过。
+
+区域只读分页核验共6次guarded fetch，均HTTP200、无重定向，证据完整HTML/哈希保存在 ignored `.data/fiscal-regional-paging-validation/`。配置 parser 从中央首页/相邻历史页分别解析8/7项，从厦门首页/历史页解析10/10项；相邻URL精确重复各0；历史详情正文1,832/1,979字。中央首页对照旧快照新增厦门局一篇候选；与本轮厦门当前首页的exact URL、same host/path及标题比较均无匹配。未来同host/path经 `normalizeUrl` 的HTTPS规范URL产生同identityKey仅是代码路径事实，本轮无跨源collector写库。中央页脚声明20页、厦门10页，本轮各仅读两页；collector仍只请求配置首页，不声称实现翻页。
+
+OMO检查比较2026-09-29和09-30首页，均解析20项；第192号进入首页，旧第172号滑出。第192号隔离库两轮为`1/1/0 → 1/0/0`，正文SQL 135字、1完整表格，与原始HTML一致；未给公告补写不存在的利率数据。调用一次`extractArticleBody`结果`skipped`，因采集器已把完整短正文标为`ok`。报告记录脚本末尾错误断言退出非零；错误是将`content.analyze`队列job计数误作`analyses`表计数。最终独立SQL证据为队列一个`created/retry0`、analysis表0行、receipts/model记录0；未重跑。此样本说明一天窗口间出现一次更新，不证明长周期稳定性。
+
+**S1裁决与下一步**：不新增通用分页或OCR实现，不要求P3完成NAS。P3需基于实际首页容量、最旧候选日期/排序、常规与突发新增、轮询间隔、失败退避及中断、初始backfill上限验证是否可能滑窗漏项；如证据不足，才提交有界分页S1。必要业务PDF正文属于P3源质量；已实现解析路径的真实PDF Linux集成最迟P7/Gate4前验证，NAS硬RSS/隔离在P8/P9/Gate5前。只有完成P3证据并正式通过Sol Gate2 Review后才能进入P4。P4须用全新隔离pilot库，固定完整的article ID/revision/content hash并逐条人工核正文；不可将含P3未消费jobs的数据库交给泛worker/sweeper/requeue。`source.enabled=false`不能阻断已经排队的`unconfirmed`分析job；当前安全依靠`MODEL_CALLS_ENABLED=false`且无worker。未确认PDF/RAR、partial HTML和已知假阳性不得入pilot或发布。
+
+**人工预览当前环境**：按Lead授权恢复原有`.data/test-pg/cluster`共享PostgreSQL集群，使用仓库忽略目录中的EDB PostgreSQL 17.11-3 binaries。`127.0.0.1:5432`、API `127.0.0.1:3001`和Web `127.0.0.1:3000`均已验证监听loopback。只读SQL核实既有`fiscalhot_preview_test`仍为35 migrations、34 topics、3 articles、3 publications；3 source均disabled/fulltext=false；3条样本score/reason null、selected=0、analysis/receipt=0。首页、`/all`、health和pool端点均HTTP200；pool为3条且未精选；smoke 30/30通过。API/Web由可管理exec会话运行，`NODE_ENV=development`，Web预览flag true，其余COLLECT/MODEL/JINA/IndexNow/Feishu/私网flag false，DEV_AUTH为空；未启动worker。未重建数据库、不触碰私有OMO `55432`集群、不消费任何P3 job。预览保持运行给用户查看。
+
+**Git快照**：追加工作开始时`feat/fiscal-finance-hot` HEAD=`21cd590f9d5283b9a50d5827f8acc870564e8897`；源配置代码SHA仍为`0ec0704c0e60a88d84bc99d558eb569c56731c79`；S1审查针对HEAD `21cd590f9d5283b9a50d5827f8acc870564e8897`。本段只依据已报告结果和只读原始文件审计，无代码修改或新CI。文档提交SHA在提交后由Git命令记录。
+
+修订：2026-09-30，阶段负责人依据新分页/OMO报告、S1裁决、原始ignored证据、preview恢复只读核验追加；Gate 2仍未通过。

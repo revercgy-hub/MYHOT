@@ -1,6 +1,6 @@
 # 官方信源验证矩阵
 
-本矩阵区分页面结构、只读 preview 与隔离数据库验证。以下“未运行采集 worker、数据库写入、队列、模型或付费 fallback”仅指原九个 HTML 来源的 `previewSource` 和一个 JSON 来源的 `fetchJsonList` dry-run 阶段。其后另在隔离 `_test` 数据库对三个 HTML 来源运行两轮受限 collector ingest，产生 30 篇 backfill 记录和 30 个未消费正文任务；验证范围与结果见 `P3_INGEST_VALIDATION.md`。这 30 篇的最新 SQL 正文汇总为 29 `ok`、1 `unconfirmed`、0 `pending`；30 个 `content.extract-body` 队列项仍未消费。此前的 28/2 是同一批记录的较早状态，已由最新单篇复验更新。另对 `pboc-open-market` 第191号做了一次隔离库两轮小样：首轮入库、二轮判重，结果见 [P3_OMO_VALIDATION.md](P3_OMO_VALIDATION.md)；这不是 30 篇批次的一部分。原十个来源的既有 P3 证据与后续两轮验证范围保持原样；当前 `industry/sources.json` 另增两个财政部监管局动态来源，合计12个（十一个 HTML、一个 JSON），均为 `enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`。新增来源的单次静态候选验证不等同于 collector 写库、正文验证或 Gate 2，详见下文和[来源调查记录](REGIONAL_SUPERVISION_SOURCES.md)。原十源 QA 与 Ubuntu `Check` workflow run [36589569943](https://github.com/revercgy-hub/MYHOT/actions/runs/36589569943) 的历史记录不代表新增两源经过相同回归；该 CI 在测试代码 SHA `dafe938` 上验证通用 Linux 测试/构建，不代表真实官方 PDF 已在 Linux 解析。所有来源仍需后续 Gate 验收分页、重复、正文和长期可靠性。
+本矩阵区分页面结构、只读 preview 与隔离数据库验证。原九个 HTML 来源的 `previewSource` 和一个 JSON 来源的 `fetchJsonList` 是早期 dry-run 阶段，并不代表采集器写库。随后三源在隔离 `_test` 数据库做30篇backfill两轮验证，最新正文汇总29 `ok`、1 `unconfirmed`、0 `pending`，30个 `content.extract-body` jobs未消费，详见 `P3_INGEST_VALIDATION.md`。另对 `pboc-open-market` 第191号和第192号分别完成单篇受控两轮验证；9/30又以第192号提供一次跨日首页变化证据，分别见 [P3_OMO_VALIDATION.md](P3_OMO_VALIDATION.md) 与 [P3_OMO_FRESHNESS_2026-09-30.md](P3_OMO_FRESHNESS_2026-09-30.md)。区域两源已完成固定URL隔离写入/正文核验，以及两页相邻历史页只读验证，详见 [P3_REGIONAL_COLLECTOR_VALIDATION.md](P3_REGIONAL_COLLECTOR_VALIDATION.md)、[P3_REGIONAL_BODY_VALIDATION.md](P3_REGIONAL_BODY_VALIDATION.md) 与 [P3_REGIONAL_PAGING_VALIDATION.md](P3_REGIONAL_PAGING_VALIDATION.md)。这些证据均有明确单篇/单日/分页边界，不自动构成来源整体稳定或 Gate 2。当前12个已配置来源（十一个HTML、一个JSON）全部 `enabled=false`，两项全文许可均关闭。旧 Ubuntu `Check` workflow [36589569943](https://github.com/revercgy-hub/MYHOT/actions/runs/36589569943) 测试SHA `dafe938` 验证通用Linux测试/构建，不代表真实官方PDF已在Linux解析。Gate 2仍未通过。
 
 ## P3 新增：财政部各地监管局动态（2026-09-29）
 
@@ -8,8 +8,8 @@
 
 | source ID | 实际候选页与配置解析 | 本轮有限验证 | 边界 |
 |---|---|---|---|
-| `mof-regional-supervision-dynamics` | 财政部“财政新闻”列表 `https://www.mof.gov.cn/zhengwuxinxi/caizhengxinwen/index.htm`；从真实快照验证 `ul.xwfb_listbox > li:has(a[title*='监管局'])`，标题读 `a[title]`，日期读同项 `span`；35个官方目录域名的 HTTP allowlist 限定文章链接。 | 快照原始列表共25项；项目 `fromHtml()` 按实际配置筛出7项，署名涉及广西、云南、吉林、福建、重庆、安徽、山东监管局，URL唯一；抽样标题、列表日期与文章 URL 均在列表项。 | 财政部选登而非35局全量实时源；本轮只读首页，没有抓取其20页历史，也未逐条比对中央列表日期和原局详情发布日期。未运行 `collectSource()`、写库或正文队列。 |
-| `mof-xiamen-supervision-dynamics` | 财政部厦门监管局“工作动态” `https://xm.mof.gov.cn/caizhengjiancha/index.htm`；`ul.liBox > li`，标题读链接 `title` 属性（缺失回退可见文本），日期读列表项 `span`，URL限制在栏目路径内。 | 实际首页快照解析10项；第一条日期2026-09-29。配置列表 selector/标题/日期和 URL 解析经本地 parser 检查；另检查一篇2025详情，题名、正文、发布日期和链接可读。 | 最新列表首项详情未能直取；历史详情样本不是首页首项正文验收。分页脚本有10页，但本轮仅读取少量历史页用于核对存在性，未批量验分页覆盖、重复率、正文完整度或 freshness。未运行 `collectSource()`、写库或正文队列。 |
+| `mof-regional-supervision-dynamics` | 财政部“财政新闻”列表 `https://www.mof.gov.cn/zhengwuxinxi/caizhengxinwen/index.htm`；selector `ul.xwfb_listbox > li:has(a[title*='监管局'])`，标题读 `a[title]`，日期读同项 `span`；35个已核目录域名用于 HTTP allowlist。 | 初次保存首页25项筛7项；固定广西URL隔离collector两轮 `1/1/0 → 1/0/0`，正文DB `ok/rev2`、1,720字。新只读分页证据中首页8项、`index_1.htm` 7项，各页URL唯一、跨页重复0；北京历史稿详情HTTP 200，标题/日期匹配、正文1,832字。 | 首页由保存快照7条更新到8条；新增厦门局文章与厦门局当前首页比较 exact URL、host/path、标题均无match，因此当前候选不是两份首页内同篇；identityKey设计规范HTTPS后相同，但尚未在跨源collector中实测。中央栏目是选登不是35局全量。页面声明20页，当前只查相邻两页；collector仍只抓首页；未评长期freshness、深页重复或其他局覆盖。独立福建局栏目两次502。原始材料见 `.data/fiscal-regional-paging-validation/`（ignored）及 [分页验证报告](P3_REGIONAL_PAGING_VALIDATION.md)。 |
+| `mof-xiamen-supervision-dynamics` | 厦门监管局“工作动态” `https://xm.mof.gov.cn/caizhengjiancha/index.htm`；`ul.liBox > li`，标题读链接`title`（缺失回退文本）、日期同项`span`，URL限制栏目路径。 | 首页10项；固定普惠金融URL隔离collector两轮 `1/1/0 → 1/0/0`，正文DB `ok/rev2`、1,935字。当前首页与 `index_1.htm` 各解析10项、跨页URL重复0；历史详情HTTP 200，题名/日期匹配、正文1,979字。 | 页面脚本声明10页但只有当前与相邻历史页被核验，collector仍只抓首页。历史页日期顺序非单调；未测深页重复、长期freshness、其余文章正文及全栏目噪声率。中央首页新增厦门稿不在此次当前厦门首页10项里；只证明页面候选窗口不同，不证明未来跨源collector的去重运行。此一局不能外推其他34局。原始材料见 `.data/fiscal-regional-paging-validation/`（ignored）及[分页验证报告](P3_REGIONAL_PAGING_VALIDATION.md)。 |
 
 福建监管局列表/详情有界请求两次均为 HTTP 502，虽中央财政新闻快照选登一篇福建局稿件，本轮没有足够本地列表快照证据来配置福建独立源。中央更专用的“全国财政新闻联播 > 财政部”栏目本次快照陈旧，未采用。全国35局目录仅用于确认官方机构域名和中央来源的链接 allowlist，不推断其它33个局已有可用动态栏目。新增两源均为 T1、每360分钟、`enabled=false`、站内/RSS全文均关闭；具体来源与限制见[来源调查记录](REGIONAL_SUPERVISION_SOURCES.md)。Gate 2 仍未通过，本轮没有开启 worker、模型或大规模采集。
 
@@ -153,3 +153,26 @@ Mozilla PDF.js 官方 Node 示例导入 `pdfjs-dist/legacy/build/pdf.mjs` 的 `g
 | 生产附件链路 | 单篇 HTML+PDF 组合已有隔离库证据；Linux CI的一般构建/测试已通过，但未在Linux解析官方PDF样本；其他来源/附件类型、NAS容器RSS和运行隔离尚未验收。 | 生产路线③尚未全面验收。十个 source 均保持 `enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`；Gate 2 未通过。 |
 
 来源配置更新后的最新 fresh 回归在 fiscalhot_pagecopy_test 完成 35 项 migrations，npm test 156/156、typecheck、来源 whitelist 和厦门财政保存 HTML selector focused 检查均通过。其后对第十六期 PDF 的一次 guarded GET 收到 200 / `application/pdf` / 457,111 字节，严格解析为 `pdf_page_no_text`；失败结果未提供页数或字段，因此附件正文仍未核实。它验证代码/配置兼容性，不弥补 Gate 2 的栏目覆盖或 PDF 正文完整性证据；十个来源仍 disabled。详见 [P3_XIAMEN_DEBT_PDF_VALIDATION.md](P3_XIAMEN_DEBT_PDF_VALIDATION.md)。
+
+## P3 区域来源历史分页与正文抽查（2026-09-30）
+
+只读验证报告：[P3_REGIONAL_PAGING_VALIDATION.md](P3_REGIONAL_PAGING_VALIDATION.md)。实际保存中央选登及厦门局首页、各自 `index_1.htm`，再各取一篇历史详情，共6次 `guardedFetch`，6次均200；所有运行安全开关false，未操作数据库、collector、worker、模型、Jina、发布或preview。原始HTML、请求hash和结构化机器结果保存在Git ignored `.data/fiscal-regional-paging-validation/`。
+
+| 来源 | 当前首页 / 第2页候选 | URL跨页重复 | 历史详情正文 | 边界 |
+|---|---:|---:|---|---|
+| `mof-regional-supervision-dynamics` | 8 / 7 | 0 | 北京监管局稿：题名一致、列表日与`PubDate`同为2026-09-16，正文1,832字、SHA-256见报告和机器证据 | 网站脚本声明20页；只核相邻两页，不代表35局全量；collector仍仅读configured home URL |
+| `mof-xiamen-supervision-dynamics` | 10 / 10 | 0 | 厦门监管局稿：题名一致、列表日与`PubDate`同为2026-09-04，正文1,979字、SHA-256见报告和机器证据 | 网站脚本声明10页；只核相邻两页，collector仍只读首页；日期顺序不单调 |
+
+中央首页相对前一保存快照从7条变8条，新增厦门局《激活财政科学管理“源动力”跑出预算监管提质“加速度”》。与本次厦门当前首页候选比较，exact URL、同host/path和标题匹配均0；此项没有作详情读取或跨源collector入库。仓库 `normalizeUrl` 会将该http URL规范为https identityKey，代码路径设计上相同host/path可合并，但这不是本次实测过的跨源collector行为。跨日/跨页一次样本不证明长期freshness、深层历史完整或更广覆盖；本次报告没有新增分页实现。
+
+## P3 OMO 公告跨日更新抽查（2026-09-30）
+
+报告：[P3_OMO_FRESHNESS_2026-09-30.md](P3_OMO_FRESHNESS_2026-09-30.md)。同一 `fromHtml()` parser 对9/29保存首页和9/30真实首页各解析20项；新第192号进入窗口，旧第172号移出窗口。第192号官方详情HTTP200，`ArticleTitle`与`PubDate=2026-09-30`符合首页。fresh隔离库 `fiscalhot_omo_freshness_test` 35 migrations；source仍disabled/fulltext=false，临时固定URL allowlist/backfill=1。两轮collector均成功：`1/1/0 → 1/0/0`。数据库中唯一文章`body_status=ok`、135字、1个完整表格，`#zoom`短正文配置保留期限/投标量/中标量、7天、两格0亿元，以及正文原句“同时，开展了8335亿元隔夜逆回购操作。”该公告不含利率数据，未补写利率。`extractArticleBody`显式单次调用结果为`skipped`，因为首轮collector已入库`ok`正文，没有第二次详情网络请求。
+
+此轮计划最多20个HTTP hop；collector不记录每次实际重定向数，故实际网络hop数未知，不能把调用预算说成实际GET数。脚本末尾检查错误导致退出非零：独立记录中的 `ledgers.analyses=1`统计的是一个 `content.analyze` `created/retry0` job；最终SQL核实 `analyses`表0行、receipts及model记录0，没有启动worker。此次没有重跑。ignored证据在 `.data/omo-freshness-20260930/`，本地临时PG绑定127.0.0.1:55432且已停止。只证明一个跨日变化及一个固定URL两轮幂等，不证明长期更新稳定性、深页覆盖或全部公告正文正确，不构成Gate 2通过。
+
+## Gate 2 依赖与核验结论（2026-09-30）
+
+Gate 2证据就绪审计见 [P3_GATE2_READINESS.md](P3_GATE2_READINESS.md)，阶段依赖范围审查见 [ARCHITECTURE_PHASE_DEPENDENCIES.md](ARCHITECTURE_PHASE_DEPENDENCIES.md)。GPT-6.1 Sol的`DECISION=APPROVED`仅表示该文件定义的阶段依赖与工作范围获得批准；`GATE_2=NOT_PASSED`。S1确认Gate 2不是通用分页/OCR实现或NAS完成验收的硬前置，当前不批准自动分页、OCR或通用管线实现；但P3必须以实测首页容量、最旧候选/排序、常规与突发更新、轮询/失败退避和可能滑出窗口的风险证明覆盖要求。重要业务PDF正文缺口依旧属于P3来源样本质量问题。真实PDF Linux集成在P7/Gate4前补验证，NAS RSS硬限制/隔离和连续运行在P8/P9/Gate5前验证。已知失败不改写成通过。
+
+S1还核实 `source.enabled=false` 不能隔离已排队处理任务：`unconfirmed`可继续进入analyze，`ok`文章调用extractor会跳过。因此P4不得复用存在遗留jobs的P3数据库启动泛worker。正式Gate2通过后另建隔离pilot库，逐条固定完整文章ID/revision/content hash和人工正文检查；未确认附件、partial HTML与已知正文假阳性不送模型。所有12个已配置source仍disabled、全文关闭；Gate2保持NOT_PASSED。
