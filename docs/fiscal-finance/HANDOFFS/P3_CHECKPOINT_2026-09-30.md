@@ -74,3 +74,19 @@ OMO检查比较2026-09-29和09-30首页，均解析20项；第192号进入首页
 **Git快照**：追加工作开始时`feat/fiscal-finance-hot` HEAD=`21cd590f9d5283b9a50d5827f8acc870564e8897`；源配置代码SHA仍为`0ec0704c0e60a88d84bc99d558eb569c56731c79`；S1审查针对HEAD `21cd590f9d5283b9a50d5827f8acc870564e8897`。本段只依据已报告结果和只读原始文件审计，无代码修改或新CI。文档提交SHA在提交后由Git命令记录。
 
 修订：2026-09-30，阶段负责人依据新分页/OMO报告、S1裁决、原始ignored证据、preview恢复只读核验追加；Gate 2仍未通过。
+
+## 2026-09-30 后续质量、日期与人工证据追加
+
+**状态仍为 `P3=IN_PROGRESS` / `Gate 2=NOT_PASSED`。** 区域两源一页历史与OMO一次跨日数据只是有限快照；中央新增厦门候选相对当前厦门首页 exact URL、host/path、标题均0匹配，未请求详情，未做跨源collector去重实测。
+
+日期/首页窗口审计见 [P3_DATE_COVERAGE_AUDIT.md](../P3_DATE_COVERAGE_AUDIT.md)：会计司原始列表span、详情PubDate、正文发布日期同为9/22，parser UTC `2026-09-21T16:00:00Z` 换算中国日也是9/22，旧记录已按UTC切日/URL路径误读更正；厦门证监API字符串/正文可见日期同9/15，`PubDate`与生成元数据9/23的含义未知。预算司保存首页10条、日期新到旧2026-03-26至2023-07-24；首次导入12个月条件在此快照仅剩1条是代码条件推算，不是collector结果。
+
+Lead有限裁定见 [P3_CORE_BODY_RESOLUTION.md](../P3_CORE_BODY_RESOLUTION.md)：福建现金管理四页23行和厦门第十六期专项债单页转录均经双Luna逐字段/逐格核对并接受为 `P3 manual_sample_evidence=ACCEPTED`。详见 [福建复核](../P3_FUJIAN_TRANSCRIPTION_REVIEW.md) 和 [厦门复核](../P3_XIAMEN_MANUAL_REVIEW.md)。此范围只认可手工核对的P3样本事实；不认可机器正文 `ok`、来源验收、Gate 2通过、P4导入/模型/publication。福建机器正文仍unconfirmed；厦门旧 `pdf_page_no_text` 与205字Readability假阳性不变。未发生数据库或正文状态修改。
+
+### 本轮环境、Git与检查
+
+- 本轮质量核验基线：branch `feat/fiscal-finance-hot`，HEAD `d9b2433b9f032cdab7cccd07b549df7fb07ebb18`；`SOURCE_CONFIG_SHA=0ec0704c0e60a88d84bc99d558eb569c56731c79`；阶段基线 `589f79eff09470b31ba8a7f1d9eb62d36ff2be6c`。本次无代码/config更改；本文和三份共享矩阵/状态文档以及四份证据报告为待审docs改动，最终提交HEAD未知，不预测。
+- `CI_TESTED_SHA=8e845812b6ce1db45821ade7b2162a90f589e1de` 对应已成功run 36647432023；其早于本轮当前基线，不含当前文档修订，也不解析真实官方PDF。本轮未重跑typecheck、npm test或web build。
+- 本轮恢复/核对的预览仍用既有 `fiscalhot_preview_test`，35 migrations，3 articles/3 publications；来源disabled/fulltext关闭，body_status=none、revision=1、selected=0、score/reason为空、analysis/receipt/job_runs=0。API/Web/PostgreSQL仅监听 `127.0.0.1:3001/3000/5432`；采集、模型、Jina、IndexNow、Feishu、私网旗标显式false，DEV_AUTH未设置，没有应用worker。`/api/site/pool`3条，主页、`/all`与样本详情200，人工标记和noindex可见；`node scripts/smoke.ts --base http://127.0.0.1:3000` 30/30通过。
+
+**NEXT**：优先补核心首页整批、首页滑窗/跨周期证据；评估扫描材料是否确有机器可读业务需要，再提交必要的最小S1架构提案，不预设OCR实现。保持所有来源关闭与P3遗留jobs隔离。等有新证据组成完整包后安排正式Gate 2 Review。
