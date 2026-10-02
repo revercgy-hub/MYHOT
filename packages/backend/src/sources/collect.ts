@@ -160,7 +160,7 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
         expectedTitle: c.title,
         expectedPublishedAt: c.publishedAt ?? null,
       };
-      if (!need.date && !need.title && !need.summary && !(need.body && d.bodySelector)) continue;
+      if (!need.date && !need.title && !need.summary && !(need.body && (d.bodySelector || Array.isArray(d.bodyPolicies)))) continue;
       detailUsed += 1;
       try {
         const got = await fetchDetail(c.url, source, need);

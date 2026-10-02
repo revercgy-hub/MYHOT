@@ -7,7 +7,14 @@ import type { ExtractedBody } from "./extract.ts";
 export interface SelectedBodyConfig {
   bodySelector?: string;
   allowShortBody?: boolean;
+  bodyPolicies?: SelectedBodyPolicy[];
   publishedAtUtcOffset?: string;
+}
+
+export interface SelectedBodyPolicy {
+  selector: string;
+  minTextChars: number;
+  table?: { requiredHeaderCells: string[]; minCompleteDataRows: number };
 }
 
 export interface SelectedArticleEnvelopeConfig extends SelectedBodyConfig {
@@ -23,7 +30,7 @@ export interface BodyIdentity {
 
 export interface SelectedBodyResult {
   body: ExtractedBody | null;
-  reason: "selector_missing" | "selector_not_unique" | "non_article_container" | "empty_body" | "short_body_not_allowed" | "identity_missing" | "identity_mismatch" | "attachments_unprocessed" | null;
+  reason: "selector_missing" | "selector_not_unique" | "body_policy_invalid" | "body_policy_ambiguous" | "body_policy_table_invalid" | "non_article_container" | "empty_body" | "short_body_not_allowed" | "identity_missing" | "identity_mismatch" | "attachments_unprocessed" | null;
   attachments: Array<{ url: string; title: string }>;
 }
 
@@ -113,6 +120,69 @@ function imagesFromHtml(html: string): ExtractedBody["images"] {
   });
 }
 
+const MAX_BODY_POLICIES = 8;
+const MAX_POLICY_TEXT_CHARS = 1_000_000;
+const MAX_POLICY_ROWS = 1_000;
+const MAX_POLICY_HEADER_CELLS = 50;
+
+/** Shared shape checks keep direct helper use and source-config validation fail-closed. */
+export function validateBodyPolicies(value: unknown): string[] {
+  if (!Array.isArray(value) || value.length < 1 || value.length > MAX_BODY_POLICIES) return ["bodyPolicies must contain 1 to 8 policies"];
+  const errors: string[] = [];
+  value.forEach((raw, index) => {
+    const prefix = `bodyPolicies[${index}]`;
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) { errors.push(`${prefix} must be an object`); return; }
+    const policy = raw as Record<string, unknown>;
+    for (const key of Object.keys(policy)) if (!(["selector", "minTextChars", "table"] as const).includes(key as never)) errors.push(`${prefix}.${key} is unsupported`);
+    if (typeof policy.selector !== "string" || !policy.selector.trim() || policy.selector.length > 500) errors.push(`${prefix}.selector must be a non-empty string of at most 500 characters`);
+    if (!Number.isSafeInteger(policy.minTextChars) || Number(policy.minTextChars) < 1 || Number(policy.minTextChars) > MAX_POLICY_TEXT_CHARS) errors.push(`${prefix}.minTextChars must be an integer from 1 to ${MAX_POLICY_TEXT_CHARS}`);
+    if (policy.table !== undefined) {
+      if (!policy.table || typeof policy.table !== "object" || Array.isArray(policy.table)) { errors.push(`${prefix}.table must be an object`); return; }
+      const table = policy.table as Record<string, unknown>;
+      for (const key of Object.keys(table)) if (!(["requiredHeaderCells", "minCompleteDataRows"] as const).includes(key as never)) errors.push(`${prefix}.table.${key} is unsupported`);
+      if (!Array.isArray(table.requiredHeaderCells) || table.requiredHeaderCells.length < 1 || table.requiredHeaderCells.length > MAX_POLICY_HEADER_CELLS ||
+        table.requiredHeaderCells.some((cell) => typeof cell !== "string" || !collapseWhitespace(cell) || cell.length > 200)) {
+        errors.push(`${prefix}.table.requiredHeaderCells must contain 1 to ${MAX_POLICY_HEADER_CELLS} non-empty strings`);
+      } else {
+        const normalized = table.requiredHeaderCells.map((cell) => collapseWhitespace(cell as string));
+        if (new Set(normalized).size !== normalized.length) errors.push(`${prefix}.table.requiredHeaderCells must be unique`);
+      }
+      if (!Number.isSafeInteger(table.minCompleteDataRows) || Number(table.minCompleteDataRows) < 1 || Number(table.minCompleteDataRows) > MAX_POLICY_ROWS) errors.push(`${prefix}.table.minCompleteDataRows must be an integer from 1 to ${MAX_POLICY_ROWS}`);
+    }
+  });
+  return errors;
+}
+
+function policyTableIsComplete(html: string, policy: SelectedBodyPolicy): boolean {
+  if (!policy.table) return true;
+  const $ = cheerio.load(html, null, false);
+  const tables = $("table");
+  if (tables.length !== 1 || tables.find("table").length > 0) return false;
+  const table = tables.first();
+  if (table.is("[rowspan], [colspan]") || table.find("[rowspan], [colspan]").length > 0) return false;
+  const rows = table.find("tr").toArray();
+  const required = policy.table.requiredHeaderCells.map(collapseWhitespace);
+  const headerIndexes = rows.flatMap((row, index) => {
+    const cells = $(row).children("th,td").toArray().map((cell) => collapseWhitespace($(cell).text()));
+    return cells.length === required.length && cells.every((cell, i) => cell === required[i]) ? [index] : [];
+  });
+  if (headerIndexes.length !== 1) return false;
+  const headerIndex = headerIndexes[0]!;
+  let completeRows = 0;
+  for (const row of rows.slice(headerIndex + 1)) {
+    const cells = $(row).children("th,td").toArray().map((cell) => collapseWhitespace($(cell).text()));
+    if (cells.length !== required.length || cells.some((cell) => !cell)) return false;
+    completeRows += 1;
+  }
+  return completeRows >= policy.table.minCompleteDataRows;
+}
+
+function hasUnsupportedTableLayout(html: string): boolean {
+  const $ = cheerio.load(html, null, false);
+  const tables = $("table");
+  return tables.length > 1 || tables.is("[rowspan], [colspan]") || tables.find("[rowspan], [colspan]").length > 0;
+}
+
 /** Strict opt-in body extraction for a source-verified, unique article container. */
 export function extractSelectedBody(
   html: string,
@@ -121,17 +191,38 @@ export function extractSelectedBody(
   expected: BodyIdentity,
   options: { pdfAttachmentsPrevalidated?: boolean } = {},
 ): SelectedBodyResult {
-  const selector = config.bodySelector?.trim();
-  if (!selector) return { body: null, reason: "selector_missing", attachments: [] };
-  const $ = cheerio.load(html, null, false);
-  let matches: cheerio.Cheerio<any>;
-  try {
-    matches = $(selector);
-  } catch {
-    return { body: null, reason: "selector_missing", attachments: [] };
+  const policies = config.bodyPolicies;
+  const policyMode = policies !== undefined;
+  if (policyMode && (config.bodySelector !== undefined || config.allowShortBody !== undefined || validateBodyPolicies(policies).length > 0)) {
+    return { body: null, reason: "body_policy_invalid", attachments: [] };
   }
-  if (matches.length !== 1) return { body: null, reason: "selector_not_unique", attachments: pdfLinks($, url) };
-  const selected = matches.first();
+  const selector = config.bodySelector?.trim();
+  if (!policyMode && !selector) return { body: null, reason: "selector_missing", attachments: [] };
+  const $ = cheerio.load(html, null, false);
+  let selected: cheerio.Cheerio<any>;
+  let activePolicy: SelectedBodyPolicy | undefined;
+  if (policyMode) {
+    const matched: Array<{ policy: SelectedBodyPolicy; container: cheerio.Cheerio<any> }> = [];
+    try {
+      for (const policy of policies!) {
+        const matches = $(policy.selector);
+        if (matches.length > 1) return { body: null, reason: "selector_not_unique", attachments: pdfLinks($, url) };
+        if (matches.length === 1) matched.push({ policy, container: matches.first() });
+      }
+    } catch {
+      return { body: null, reason: "body_policy_invalid", attachments: pdfLinks($, url) };
+    }
+    if (matched.length === 0) return { body: null, reason: "selector_missing", attachments: pdfLinks($, url) };
+    if (matched.length !== 1) return { body: null, reason: "body_policy_ambiguous", attachments: pdfLinks($, url) };
+    activePolicy = matched[0]!.policy;
+    selected = matched[0]!.container;
+  } else {
+    let matches: cheerio.Cheerio<any>;
+    try { matches = $(selector!); }
+    catch { return { body: null, reason: "selector_missing", attachments: [] }; }
+    if (matches.length !== 1) return { body: null, reason: "selector_not_unique", attachments: pdfLinks($, url) };
+    selected = matches.first();
+  }
   if (selected.is(BLOCKED_CONTAINERS) || selected.find(BLOCKED_CONTAINERS).length > 0 || selected.find(STRUCTURED_CONTENT).length === 0) {
     return { body: null, reason: "non_article_container", attachments: pdfLinks($, url) };
   }
@@ -142,6 +233,7 @@ export function extractSelectedBody(
 
   const attachments = options.pdfAttachmentsPrevalidated ? [] : pdfLinks($, url);
   if (!options.pdfAttachmentsPrevalidated && attachments.length > 0) return { body: null, reason: "attachments_unprocessed", attachments };
+  if (activePolicy?.table && hasUnsupportedTableLayout(rawHtml)) return { body: null, reason: "body_policy_table_invalid", attachments };
   const pageIdentity = identityFromHtml($, config.publishedAtUtcOffset ?? "+08:00");
   if (!pageIdentity?.publishedAt || !expected.title.trim() || !expected.publishedAt) {
     return { body: null, reason: "identity_missing", attachments };
@@ -156,7 +248,8 @@ export function extractSelectedBody(
   const clean = trimTrailingChrome(sanitizeBody(rawHtml, url));
   const text = textKeepingTableCells(clean);
   if (!text) return { body: null, reason: "empty_body", attachments };
-  if (text.length < 200 && config.allowShortBody !== true) {
+  if (activePolicy?.table && !policyTableIsComplete(clean, activePolicy)) return { body: null, reason: "body_policy_table_invalid", attachments };
+  if (activePolicy ? text.length < activePolicy.minTextChars : text.length < 200 && config.allowShortBody !== true) {
     return { body: null, reason: "short_body_not_allowed", attachments };
   }
   return { body: { html: clean, text, images: imagesFromHtml(clean), via: "selector" }, reason: null, attachments };
@@ -172,6 +265,7 @@ export function extractSelectedArticleEnvelope(
   config: SelectedArticleEnvelopeConfig,
   expected: BodyIdentity,
 ): SelectedArticleEnvelopeResult {
+  if (config.bodyPolicies !== undefined) return { body: null, attachment: null, reason: "body_policy_invalid" };
   const $ = cheerio.load(html, null, false);
   let articles: cheerio.Cheerio<any>;
   try { articles = $(config.articleSelector); } catch { return { body: null, attachment: null, reason: "article_missing" }; }

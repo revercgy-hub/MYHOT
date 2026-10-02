@@ -136,16 +136,18 @@ export async function extractArticleBody(articleId: string, allowJina = process.
   if (a.x_post?.tweetId) return extractXArticle(a.id, a.x_post.tweetId);
   const detail = a.source_config.detail ?? {};
   const bodySelector = typeof detail.bodySelector === "string" ? detail.bodySelector : undefined;
+  const bodyPolicies = Array.isArray(detail.bodyPolicies) ? detail.bodyPolicies : undefined;
   const pdfBodyConfigured = detail.pdfDirect === true || typeof detail.attachmentSelector === "string";
-  const selectedBody = bodySelector || pdfBodyConfigured
+  const selectedBody = bodySelector || bodyPolicies || pdfBodyConfigured
     ? { config: {
         bodySelector,
-        allowShortBody: detail.allowShortBody === true,
+        ...(!bodyPolicies ? { allowShortBody: detail.allowShortBody === true } : {}),
+        bodyPolicies,
         publishedAtUtcOffset: detail.publishedAtUtcOffset ?? a.source_config.publishedAtUtcOffset,
         articleSelector: detail.articleSelector,
         attachmentSelector: detail.attachmentSelector,
         attachmentMode: detail.attachmentMode,
-        pdfDirect: detail.pdfDirect === true,
+        ...(!bodyPolicies ? { pdfDirect: detail.pdfDirect === true } : {}),
       }, expected: { title: a.title, publishedAt: a.published_at }, allowUrlPrefixes: a.source_config.allowUrlPrefixes ?? [] }
     : undefined;
   let selectedFailure: string | null = null;

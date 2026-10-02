@@ -3,6 +3,7 @@
 // back silently (junk titles, RSS entries outside the source's URL rules, dates from the wrong place).
 import { tag } from "./setup.ts";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import http from "node:http";
 import { after, before, test } from "node:test";
 import { config } from "@aihot/backend/config";
@@ -18,6 +19,7 @@ let jinaDetailReads = 0;
 let jinaListingReads = 0;
 const pageReads = new Map<string, number>();
 const ARTICLE_BODY = "A complete article with enough material to preserve the same extraction result without downloading it twice. ".repeat(6);
+const ACCOUNTING_POLICY_FIXTURE = readFileSync(new URL("./fixtures/fiscal-accounting-body/real-short-table.html", import.meta.url), "utf8");
 const html = (head: string, body: string) => `<html><head>${head}</head><body>${body}</body></html>`;
 const pages: Record<string, (base: string) => string> = {
   "/feed.xml": () =>
@@ -31,6 +33,8 @@ const pages: Record<string, (base: string) => string> = {
   [`/selector-list-${T}`]: () => html("", `<ul><li><a href="${base}/selector-item-${T}">OMO announcement ${T}</a><time datetime="2026-09-29T00:00:00+08:00">Sep 29</time></li></ul>`),
   [`/selector-item-${T}`]: () => html(`<meta name="ArticleTitle" content="OMO announcement ${T}"><meta name="PubDate" content="2026-09-29">`,
     `<div id="notice"><p>Short but complete verified notice ${T}</p><table><tr><th>Term</th><th>Rate</th><th>Amount</th></tr><tr><td>7 days</td><td>1.40%</td><td>905 yuan</td></tr></table></div>`),
+  [`/accounting-policy-list-${T}`]: () => html("", `<ul><li><a href="${base}/accounting-policy-item-${T}">从事证券服务业务会计师事务所注销备案名单</a><time datetime="2026-09-04T00:00:00+08:00">2026-09-04</time></li></ul>`),
+  [`/accounting-policy-item-${T}`]: () => ACCOUNTING_POLICY_FIXTURE,
   [`/j/1-${T}`]: () => html(`<meta property="article:published_time" content="2026-09-27T01:00:00Z">`, "<p>one</p>"),
   [`/j/2-${T}`]: () => html(`<meta property="article:published_time" content="2026-09-27T02:00:00Z">`, "<p>two</p>"),
 };
@@ -72,6 +76,20 @@ const SOURCES = {
       url: `${base}/selector-list-${T}`, parseMode: "html", itemSelector: "li", linkSelector: "a", titleSelector: "a", publishedAtSelector: "time",
       allowUrlPrefixes: [`${base}/selector-item-${T}`],
       detail: { maxFetches: 10, bodySelector: "#notice", allowShortBody: true, publishedAtUtcOffset: "+08:00" },
+    },
+  },
+  accountingPolicy: {
+    kind: "web_list",
+    config: {
+      url: `${base}/accounting-policy-list-${T}`, parseMode: "html", itemSelector: "li", linkSelector: "a", titleSelector: "a", publishedAtSelector: "time",
+      allowUrlPrefixes: [`${base}/accounting-policy-item-${T}`],
+      detail: {
+        maxFetches: 10, publishedAtUtcOffset: "+08:00",
+        bodyPolicies: [
+          { selector: ".my_doccontent > .TRS_Editor:has(table)", minTextChars: 1, table: { requiredHeaderCells: ["序号", "会计师事务所名称", "统一社会信用代码", "注销备案公告日期", "注销备案情形"], minCompleteDataRows: 1 } },
+          { selector: ".my_doccontent > .TRS_Editor:has(p + p)", minTextChars: 200 },
+        ],
+      },
     },
   },
   jina: { kind: "web_list", config: { url: `https://r.jina.ai/${base}/jlist-${T}`, parseMode: "markdown", allowUrlPrefixes: [`${base}/j/`], detail: { maxFetches: 5, titleRegex: "^# (.+)$" } } },
@@ -137,6 +155,25 @@ test("an explicit body selector shares the verified short-body result between co
   assert.match(row?.body_html ?? "", /<table>/);
   assert.equal(pageReads.get(`/selector-item-${T}`), 1, "metadata collection uses the same selector contract; extraction does not redownload a confirmed body");
   assert.equal(await extractArticleBody(row!.id, false), "skipped");
+});
+
+test("a policy-only source passes the detail gate and the article-body job reuses the policy driver", async () => {
+  const sourceId = id("accountingPolicy");
+  const result = await collectSource(sourceId, { force: true });
+  assert.equal(result.status, "ok");
+  const [row] = await sql<{ id: string; body_text: string | null; body_status: string }[]>`
+    SELECT id, body_text, body_status FROM articles WHERE source_id = ${sourceId}`;
+  assert.equal(row?.body_status, "ok");
+  assert.equal(row?.body_text?.length, 180);
+  assert.match(row?.body_text ?? "", /河南守正创新会计师事务所（普通合伙）/);
+  assert.equal(pageReads.get(`/accounting-policy-item-${T}`), 1, "policy-only config triggers a budgeted detail fetch");
+
+  await sql`UPDATE articles SET body_html = NULL, body_text = NULL, body_status = 'pending' WHERE id = ${row!.id}`;
+  assert.equal(await extractArticleBody(row!.id, false), "ok");
+  assert.equal(pageReads.get(`/accounting-policy-item-${T}`), 2, "the body job reconstructs and applies the same source policy");
+  const [after] = await sql<{ body_status: string; body_text: string | null }[]>`SELECT body_status, body_text FROM articles WHERE id = ${row!.id}`;
+  assert.equal(after?.body_status, "ok");
+  assert.equal(after?.body_text?.length, 180);
 });
 
 test("a Jina listing is read on every fetch, and buys a detail rendering only where a regex rule needs it", async () => {

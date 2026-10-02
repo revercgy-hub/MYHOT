@@ -158,7 +158,24 @@
         "titleSelector": "a",
         "publishedAtSelector": "span",
         "publishedAtUtcOffset": "+08:00",
-        "allowUrlPrefixes": ["https://kjs.mof.gov.cn/gongzuotongzhi/"]
+        "allowUrlPrefixes": ["https://kjs.mof.gov.cn/gongzuotongzhi/"],
+        "detail": {
+          "publishedAtUtcOffset": "+08:00",
+          "bodyPolicies": [
+            {
+              "selector": ".my_doccontent > .TRS_Editor:has(table)",
+              "minTextChars": 1,
+              "table": {
+                "requiredHeaderCells": ["序号", "会计师事务所名称", "统一社会信用代码", "注销备案公告日期", "注销备案情形"],
+                "minCompleteDataRows": 1
+              }
+            },
+            {
+              "selector": ".my_doccontent > .TRS_Editor:has(p + p)",
+              "minTextChars": 200
+            }
+          ]
+        }
       },
       "tier": "T1",
       "first_party": true,

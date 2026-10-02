@@ -2,6 +2,7 @@
 // know would otherwise fall back silently to the generic parse (menus and sentence fragments as
 // articles, dates never found).
 import type { SourceRow } from "./types.ts";
+import { validateBodyPolicies } from "../content/selected-body.ts";
 
 // Rules applied in collect.ts to every kind read through collectSource.
 const COLLECTED = ["_aihot", "allowUrlPrefixes", "denyUrlPrefixes", "ingestNoiseFilter", "itemUrlPrefixRewrite", "sortByPublishedAt", "detail", "fetchPublicContent"];
@@ -32,7 +33,7 @@ const NESTED: Record<string, string[]> = {
   minNumeric: ["path", "min"],
   detail: [
     "maxFetches", "publishedAtSelector", "publishedAtRegex", "publishedAtUtcOffset", "publishedAtAuthoritative", "upgradeDatePrecision",
-    "titleSelector", "titleRegex", "titleAuthoritative", "summarySelector", "articleSelector", "bodySelector", "allowShortBody",
+    "titleSelector", "titleRegex", "titleAuthoritative", "summarySelector", "articleSelector", "bodySelector", "allowShortBody", "bodyPolicies",
     "attachmentSelector", "attachmentMode", "pdfDirect",
   ],
 };
@@ -53,6 +54,13 @@ export function unsupportedConfig(kind: SourceRow["kind"], config: Record<string
       const nested = value as Record<string, unknown>;
       for (const sub of Object.keys(nested)) if (!NESTED[key]!.includes(sub)) out.push(`${key}.${sub}`);
       if (key === "detail") {
+        if (nested.bodyPolicies !== undefined) {
+          for (const error of validateBodyPolicies(nested.bodyPolicies)) out.push(`detail.${error}`);
+          if (kind !== "web_list") out.push("detail.bodyPolicies is only supported by web_list");
+          for (const legacy of ["bodySelector", "allowShortBody", "articleSelector", "attachmentSelector", "attachmentMode", "pdfDirect"] as const) {
+            if (nested[legacy] !== undefined) out.push(`detail.bodyPolicies cannot be combined with detail.${legacy}`);
+          }
+        }
         if (nested.bodySelector !== undefined && (typeof nested.bodySelector !== "string" || !nested.bodySelector.trim())) out.push("detail.bodySelector");
         if (nested.allowShortBody !== undefined && typeof nested.allowShortBody !== "boolean") out.push("detail.allowShortBody");
         if (nested.allowShortBody === true && !nested.bodySelector) out.push("detail.allowShortBody requires detail.bodySelector");

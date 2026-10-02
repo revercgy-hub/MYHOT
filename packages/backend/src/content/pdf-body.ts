@@ -162,6 +162,14 @@ export async function extractConfiguredHtmlBody(
   allowUrlPrefixes: string[],
   fetcher: PdfFetcher = guardedFetch,
 ): Promise<PdfBodyResult> {
+  if ("bodyPolicies" in config && config.bodyPolicies !== undefined &&
+    (config.bodySelector !== undefined || config.allowShortBody !== undefined ||
+      ("articleSelector" in config && config.articleSelector !== undefined) ||
+      ("attachmentSelector" in config && config.attachmentSelector !== undefined) ||
+      ("attachmentMode" in config && config.attachmentMode !== undefined) ||
+      ("pdfDirect" in config && config.pdfDirect !== undefined))) {
+    return { body: null, reason: "body_policy_invalid" };
+  }
   if ("attachmentSelector" in config && typeof config.attachmentSelector === "string") {
     return extractHtmlEnvelopeWithPdf(html, url, config as PdfSourceBodyConfig, expected, allowUrlPrefixes, fetcher);
   }

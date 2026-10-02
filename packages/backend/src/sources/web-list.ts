@@ -315,16 +315,18 @@ export async function fetchDetail(url: string, source: SourceRow, need: DetailNe
     body = result.body;
     if (!body && result.reason) console.warn(JSON.stringify({ level: "warn", msg: "source body selector declined", source: source.id, reason: result.reason }));
   }
-  if (!d.pdfDirect && ((need.date && !dateInJina) || (need.title && !titleInJina) || need.summary || (need.body && (!!d.bodySelector || !!d.attachmentSelector)))) {
-    const res = await fetcher(url, { timeoutMs: 20_000, ...(need.body && (d.bodySelector || d.attachmentSelector) ? { maxBytes: 6 * 1024 * 1024 } : {}) });
+  const hasSelectedBodyConfig = !!d.bodySelector || !!d.attachmentSelector || Array.isArray(d.bodyPolicies);
+  if (!d.pdfDirect && ((need.date && !dateInJina) || (need.title && !titleInJina) || need.summary || (need.body && hasSelectedBodyConfig))) {
+    const res = await fetcher(url, { timeoutMs: 20_000, ...(need.body && hasSelectedBodyConfig ? { maxBytes: 6 * 1024 * 1024 } : {}) });
     if (res.status === 200) {
       html = res.text();
       if (need.body && /html/i.test(res.headers.get("content-type") ?? "")) {
         try {
-          if (d.bodySelector || d.attachmentSelector) {
+          if (hasSelectedBodyConfig) {
             const bodyConfig: PdfSourceBodyConfig = {
               bodySelector: d.bodySelector,
-              allowShortBody: d.allowShortBody === true,
+              ...(!d.bodyPolicies ? { allowShortBody: d.allowShortBody === true } : {}),
+              bodyPolicies: d.bodyPolicies,
               publishedAtUtcOffset: d.publishedAtUtcOffset ?? source.config.publishedAtUtcOffset,
               articleSelector: d.articleSelector,
               attachmentSelector: d.attachmentSelector,
@@ -337,13 +339,13 @@ export async function fetchDetail(url: string, source: SourceRow, need: DetailNe
           } else body = readable(html, res.url);
         }
         catch {
-          if (d.bodySelector || d.attachmentSelector) console.warn(JSON.stringify({ level: "warn", msg: "source body selector declined", source: source.id, reason: "body_extraction_failed" }));
+          if (hasSelectedBodyConfig) console.warn(JSON.stringify({ level: "warn", msg: "source body selector declined", source: source.id, reason: "body_extraction_failed" }));
           /* A failed extraction must not discard the detail metadata. */
         }
-      } else if (need.body && (d.bodySelector || d.attachmentSelector)) {
+      } else if (need.body && hasSelectedBodyConfig) {
         console.warn(JSON.stringify({ level: "warn", msg: "source body selector declined", source: source.id, reason: "article_not_html" }));
       }
-    } else if (need.body && (d.bodySelector || d.attachmentSelector)) {
+    } else if (need.body && hasSelectedBodyConfig) {
       console.warn(JSON.stringify({ level: "warn", msg: "source body selector declined", source: source.id, reason: "article_http_status" }));
     }
   }
