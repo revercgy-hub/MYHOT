@@ -95,3 +95,23 @@ SCOPE=核对当前12条配置来源各自已有证据、缺口与进入正式 So
 - Lead裁定接受福建23行/四页与厦门一页逐字段双Luna复核为 `P3 manual_sample_evidence=ACCEPTED`。该范围只认可带来源、hash、页数/转录及独立复核的人工样本事实；不认可机器 `body_status=ok`、来源验收、Gate 2、P4导入/模型/publication。厦门原严格解析 `pdf_page_no_text` 与旧205字Readability假阳性、福建机器文本层空白和 `unconfirmed` 均保留。
 - 中央新增厦门条目与当前厦门首页 exact URL、host/path、标题三种比较均无匹配；其详情未请求，也没有跨源collector去重实测。单项无匹配是有限快照观察，不支持重复，也不证明跨源去重行为。
 - 本轮最新质量核对 Git 基线 HEAD 为 `d9b2433b9f032cdab7cccd07b549df7fb07ebb18`；工作树待提交，仅文档变更。CI仍引用成功 workflow run 36647432023 / tested SHA `8e845812b6ce1db45821ade7b2162a90f589e1de`，不是此HEAD。此次 docs-only 未重跑 typecheck、npm test 或 web build；恢复既有 loopback preview 后 `node scripts/smoke.ts --base http://127.0.0.1:3000` 30/30通过，未启动应用worker。
+
+## 2026-10-02 五源首页与本地预览增量质量证据
+
+来源细节和 ignored 原始材料索引见 [P3_SOURCE_CHECKPOINT_2026-10-02.md](P3_SOURCE_CHECKPOINT_2026-10-02.md)。五个官方首页各一次GET、会计司两个失败详情各一次GET；7次真实请求均HTTP200且无redirect，backend Undici 8.11.2 dispatch hard cap=12，7/12使用、拒绝0，request create/sendHeaders/headers事件完整。列表由项目 `fromHtml()` 解析，不是 collector 写库。预算司旧快照10/10重合但首页最旧日期2023-07-24；会计司当前10项对9/30 accepted集合9/10、对9/29 parser样本5/5重合，而9/30原始HTML缺失，不能推断其余候选是新增发布；中央监管局选登8项，较9/30快照增3退3；厦门监管局与两份相邻首页均10/10重合；OMO对9/29新增第192号并退出9/3第173号。上述为有限快照差分，不建立长期覆盖或周期稳定。
+
+两条会计司详情均HTTP200且title/date符合列表：一条当前 `.TRS_Editor` 仅24字并提供XLSX，另一条有323字和2-row table但未过现行抽取门槛；未请求附件、未运行正文helper、未写数据库状态。中央汇总厦门稿与厦门自身首页当前候选无exact URL交集，但没有实际运行时去重结论。此前两个全首页批次的历史HTTP预算仍分别unknown；本次小规模dispatch观测不追认旧批次。
+
+预览以现有 `fiscalhot_preview_test` 恢复：35 migrations、3篇固定人工样本 `body_status=none/revision=1`，3条publication `score=NULL/selected=false/eligible=true`，分析、回执、job_runs为0；3 sources disabled、全文开关关闭。loopback PostgreSQL/API/Web为5432/3001/3000；health、`/`、`/all`、pool API 200，页面 `noindex, nofollow`。smoke本轮实际输出29项通过；先前交接记录30/30，差异原因未核实。没有应用worker，API进程的配置显式关闭采集、模型、Jina、IndexNow、Feishu和私网开关。此仅为展示预览，不影响Gate判断。
+
+扫描PoC 9/30旧失败事实保留：30秒请求中断、实际流字节数未记、未取LICENSE；不是新批次的结果。正式新S1 [P3范围裁定](S1_P3_OCT02_SCOPE_REVIEW.md)批准复用immutable commit、固定官方模型/许可证URL各一次、redirect0/no retry、每请求120秒/全批240秒及32MiB/1MiB界限。Lead核销后A于10/2执行一次新目录准备，只发出模型URL一个HTTP请求：status 200、Content-Length 2,469,156，实际仅收到16,384 bytes，70.7秒后 `TypeError: terminated`，未到120秒deadline且`eofComplete=false`；无hash，LICENSE请求未发出。停止无retry；新manifest标 `incomplete/runnable=false`，未写模型，OCR未运行。ignored机器记录 `.data/fiscal-qa/scan-ocr-poc-20261002/prepare-failure.json`，旧9/30目录未覆盖。数据准备与OCR运行是两项授权；fake-child 17项通过只核销部分执行故障行为，Lead未核销长时间monitor cadence或解除run lock。
+
+S1后续 [会计司正文selector报告](P3_ACCOUNTING_BODY_FIX_2026-10-02.md)的6/6 focused tests证明union候选保留三个缓存正例、拒绝题名+附件，但错收短多段通知及装饰表格；较收窄CSS仍错收装饰表。行业source配置未改。Fresh全套回归：`npm run typecheck`通过；`fiscalhot_oct02_full_test` fresh 35 migrations、`npm test`184/184通过（测试本地provider stubs）；Web build通过、web tests 15/15；loopback services恢复后的smoke 29项全过。Gate 2仍 `NOT_PASSED`，12源全部关闭。
+
+## 2026-10-03 原10/2交付回归与远端CI状态
+
+独立复核基线是已提交代码SHA `26ca72f2b94d37383072c0e54be6f94682b0e9bd`。`npm run typecheck`通过；新隔离 `fiscalhot_oct03_verify_test` 空库迁移35项；`npm test` 184/184、Web build和Web tests 15/15通过。运行记录保存在ignored `.data/test-pg/`，来源快照与失败正文状态没有数据库写入。会计正文fixture中union误收短多段与装饰表，严格CSS仍误收装饰表，故未修改 `industry/sources.json`。OCR process 17项验证亦通过，但只覆盖报告所列fake-child路径；未运行Tesseract，训练文件准备仍是不完整manifest，run lock关闭。
+
+预览只读核实三条人工样本和publication状态未变，12源仍禁用，未启动worker。10/2既有smoke记录29项全过；本次10/3当前脚本输出30项全过，差异原因unknown，不把本次计数覆盖为旧批次结果。GitHub Check run [37077418870](https://github.com/revercgy-hub/MYHOT/actions/runs/37077418870) 经 `workflow_dispatch` 对指定repository `revercgy-hub/MYHOT` 和feature branch运行；其tested SHA为 `26ca72f2b94d37383072c0e54be6f94682b0e9bd`。最终run结论为failure：Docker job成功，check job其余install/typecheck/Web build/tests/migration/seed/smoke步骤成功，backend tests 183/184。唯一失败是Windows-only真实monitor测试在Ubuntu找不到`powershell.exe`（ENOENT）；本地Windows `npm test`仍为184/184。该SHA不能标成CI通过，修复由OCR代码owner接手。
+
+这些回归只说明原10/2代码范围和测试库，不增加来源周期/页面覆盖，不变更source/body状态，也不满足Gate 2退出条件。Gate 2继续 `NOT_PASSED`。

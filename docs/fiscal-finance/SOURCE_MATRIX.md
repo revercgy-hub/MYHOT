@@ -208,11 +208,39 @@ S1还核实 `source.enabled=false` 不能隔离已排队处理任务：`unconfir
 
 以上是人工样本事实证据，不代表采集器或parser抓到同样正文，不更改DB/article/body status，不构成来源验收、跨周期稳定、Gate 2通过或P4/模型/publication授权。厦门源正文自动提取和福建扫描附件的机器路线仍未通过；12源维持disabled/fulltext关闭。产品要求核心财政业务公告持续自动获取，扫描机器路线的固定样本离线PoC已获限域S1批准，详见 [P3_SCAN_BODY_PROPOSAL.md](P3_SCAN_BODY_PROPOSAL.md) 与 [S1_SCAN_OCR_POC_REVIEW.md](S1_SCAN_OCR_POC_REVIEW.md)。这不把OCR变成Gate 2通用前置或业务管线批准；两类材料若纳入自动处理，在对应范围验收前仍受机器正文缺口阻塞。
 
+## P3 五源官方首页只读快照（2026-10-02）
+
+本轮增量报告及原始证据路径见 [P3_SOURCE_CHECKPOINT_2026-10-02.md](P3_SOURCE_CHECKPOINT_2026-10-02.md)。对表列五源按当前 `industry/sources.json` 各发起一次官方首页 GET，并使用实际 backend `fromHtml()` 离线解析；另外对会计司两篇既知 `unconfirmed` 详情各发起一次只读 GET。7次请求均由 Undici 8.11.2 Agent/ProxyAgent admission helper完整观测：`maxRequests=12`、attempted/dispatched=7/7、rejected=0，每个请求分别可见create、sendHeaders、headers事件；均为HTTP 200且无重定向。未运行collector或数据库写入、未请求附件，结果不改变任何 source/body状态。此前核心/区域批次的hook缺失与budget unknown仍原样保留。
+
+| source ID | 本次列表快照/解析与日期 | 相对快照差分 | 仍未证明 |
+|---|---|---|---|
+| `mof-accounting-notices` | 14,233 bytes；10项，解析顺序最新/最旧列表日2026-09-30 / 2026-08-14。 | 对9/30 collector accepted URL集合9/10相同；对9/29原始HTML parser仅5项，当前与旧5项全重合。9/30没有可用原始整页HTML，故两个差分集合粒度不同。 | 不把当前多出的5个candidate都算作跨日新发布。仅诊断两个既知失败详情；附件和完整机器正文未解决。 |
+| `mof-budget-work` | 12,368 bytes；10项，2026-03-26 / 2023-07-24。 | 与9/30 accepted集合10/10重合，与9/29原始HTML 10/10重合。 | 一次静态复读及旧首页快照不证明日常发布频率、未来滑窗风险或首页之外覆盖。 |
+| `mof-regional-supervision-dynamics` | 21,332 bytes；8项，2026-09-30 / 2026-09-22。 | 与9/30原始首页5/8重合，新进3项、退出3项；与9/29原始首页4/7重合，新进4项、退出3项。 | 中央汇总只代表选登候选，不能声称覆盖35局全量；未做运行时跨源去重或长期稳定性验证。 |
+| `mof-xiamen-supervision-dynamics` | 12,797 bytes；10项，2026-09-29 / 2026-09-01。 | 与9/29、9/30两份原始首页均10/10重合，顺序及日期范围一致。 | 相邻日期快照复读不代表长期稳定；党建/会议等候选是否为有效业务噪声仍需评估。 |
+| `pboc-open-market` | 40,079 bytes；20项，2026-09-30 / 2026-09-04。 | 与9/30原始首页20/20重合；相对9/29为19/20，新进第192号、退出9/3第173号。 | 此差分延续先前单次跨日样本，不证明周期更新或深页覆盖。 |
+
+正文详情只读诊断：会计司 `t20260920_3997803.htm` 为200、标题匹配列表、PubDate中国日9/20；Readability无正文，`.TRS_Editor`只含24字标题并提供XLSX链接，附件未请求。`t20260904_3996714.htm` 为200、标题及9/4日期匹配；Readability未达门槛，`.TRS_Editor`含323字和一张两行表格。机器抽取器可能低估第二篇结构化内容，但本轮没有更改配置、parser或数据库状态。中央监管汇总中出现的厦门文章与厦门源当前首页无exact URL重合；该有限窗口比较不是collector identity dedupe实测。
+
+以上五源都保持配置 `enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`；首页只读结果仅增加有限的候选窗口快照和正文诊断，不构成来源验收、Gate 2通过或业务自动化依据。
+
+会计司正文配置的独立范围裁定见 [S1_P3_OCT02_SCOPE_REVIEW.md](S1_P3_OCT02_SCOPE_REVIEW.md)：table-only selector 被判 `CHANGES_REQUIRED`，因为它会使既存473字、无表征求意见函退化为未确认；Sol批准对顶层 `.TRS_Editor:has(table)` 与 `.TRS_Editor:has(p + p)` 候选做行业离线fixture验证(scope only)。B的 [selector复核报告](P3_ACCOUNTING_BODY_FIX_2026-10-02.md) 与 `tests/fiscal-accounting-body.test.ts` 使用三份当前缓存真实HTML和短多段、五格装饰表两个身份匹配负例；focused test 6/6通过。union候选保留180字注销表和473字征求函、拒绝24字题名+XLSX，但也错收短通知和装饰表；更严CSS仍错收装饰表。由于S1配置条件未满足，`industry/sources.json`未改，来源状态和正文旧状态未变；结果不扩大来源网络/DB预算。
+
 ## P3 HTTP 预算工具离线验证（2026-09-30）
 
 两份既有完整首页批次的真实HTTP hop证据仍分别为核心 `unknown`、区域至少25次 guardedFetch但重定向总hop `unknown`；其dispatch hook未命中，不能追认预算通过。后续工具 [p3-http-budget.ts](../../scripts/fiscal/p3-http-budget.ts) 锚定后端解析的 Undici 8.11.2，统计 Agent/ProxyAgent 的dispatch admission，并在达到配置上限后于原 dispatch 前拒绝；localhost测试用本地服务验证了两跳、N+1拒绝、ProxyAgent内部委派不双计及卸载恢复（5/5通过）。诊断频道只记录观察，不承担硬停止。
 
 该工具仅验证对应后端 Undici 实例的dispatch边界，不声称操作系统全局网络限额，也不覆盖其他Undici副本、worker、私网绕过global dispatcher或proxy CONNECT内部请求。离线localhost通过只验证工具行为，未重跑来源批次或核定具体来源路径；是否安排新的有界联网运行须由Lead另行决定。
+
+## 2026-10-02 扫描准备与本地进程验证增量
+
+本段不改变任何来源配置或Gate状态。9/30模型下载失败（30秒中断、实收字节未知）继续作为独立历史记录。10/2获批批次只执行一次：仅有一条固定模型URL请求，HTTP 200 / Content-Length 2,469,156，收到16,384 bytes后于70,722ms以 `TypeError: terminated` 终止，EOF=false，未到120秒期限；没有license请求、hash或完整模型文件。无重试、manifest incomplete/runnable=false，OCR未运行，旧失败材料未覆盖。审计详见 [P3_SCAN_OCR_REVIEW_2026-10-02.md](P3_SCAN_OCR_REVIEW_2026-10-02.md)。
+
+本地OCR过程核验报告 [P3_OCR_PROCESS_VERIFICATION_2026-10-02.md](P3_OCR_PROCESS_VERIFICATION_2026-10-02.md)记录17/17 focused tests与typecheck通过。Windows monitor对单个短fake-child实测首采样72ms、最大样本间隔162ms；这不是OCR负载下持续cadence、硬RSS或进程树行为证据。执行锁仍false。以上扫描证据与来源覆盖结论无关。
+
+## 2026-10-03 原范围代码交付核验
+
+代码侧selector probe与OCR守护器已有独立fixture/test，fresh隔离全套回归通过（35 migrations、184/184 backend、typecheck、Web build、15/15 Web tests）；不改 `industry/sources.json`、数据库source/body状态或collector。preview仍为3个固定人工样本与disabled来源；Gate 2仍未通过。这些工具测试不能外推为来源覆盖、运行期抓取或机器正文验收。10/2 preview smoke保留29项记录，10/3复核显示30项通过，计数差异unknown。
 
 ## P3 扫描附件本机 PoC 结果（2026-09-30）
 
