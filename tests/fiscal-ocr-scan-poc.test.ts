@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { assertPrepareNotAttempted, assertPreparedManifest, boundedFetch, cellText, compareCell, invokeTesseract, LIMITS, normalizeCandidate, OCR_RUN_ENABLED, parseTsv, sha256 } from '../scripts/fiscal/ocr-scan-poc.ts';
+import { assertPrepareNotAttempted, assertPreparedManifest, cellText, compareCell, decodeCanonicalBase64, gitBlobSha1, invokeTesseract, LIMITS, normalizeCandidate, OCR_RUN_ENABLED, parsePinnedRootDirectory, parseTsv, prepareForOfflineTest, sha256 } from '../scripts/fiscal/ocr-scan-poc.ts';
 import { execPath } from 'node:process';
 
 let scratch: string;
@@ -71,52 +71,221 @@ test('a neighboring cell cannot satisfy the target cell', () => {
 test('incomplete download manifest, missing model, and altered model are rejected before OCR', () => {
   assert.equal(OCR_RUN_ENABLED, false);
   assert.throws(() => assertPreparedManifest({ status: 'incomplete', trainedDataComplete: false, runnable: false }), /incomplete/u);
-  const bytes = Buffer.from('fixed fake model bytes');
-  const license = Buffer.from('Apache License\nVersion 2.0, January 2004');
-  const commit = '87416418657359cb625c412a48b6e1d6d41c29bd';
-  const base = `https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/${commit}`;
-  const complete = {
-    schemaVersion: 1, language: 'chi_sim', status: 'complete', trainedDataComplete: true, runnable: true, repository: 'tesseract-ocr/tessdata_fast', commit,
-    modelUrl: `${base}/chi_sim.traineddata`, modelSha256: sha256(bytes), modelBytes: bytes.length,
-    licenseUrl: `${base}/LICENSE`, licenseName: 'Apache-2.0', licenseSha256: sha256(license), licenseBytes: license.length,
-  };
+  const f = fixture(); const complete = manifestForFixture(f);
   assert.throws(() => assertPreparedManifest(complete), /missing/u);
-  assert.throws(() => assertPreparedManifest(complete, Buffer.from('different bytes'), license), /changed/u);
-  assert.throws(() => assertPreparedManifest(complete, bytes), /license text missing/u);
-  assert.throws(() => assertPreparedManifest({ ...complete, commit: '0'.repeat(40) }, bytes, license), /approved repository commit/u);
-  assert.throws(() => assertPreparedManifest({ ...complete, licenseUrl: `${base}/../LICENSE` }, bytes, license), /URLs are not pinned/u);
-  assert.throws(() => assertPreparedManifest(complete, bytes, Buffer.from('unknown license')), /Apache-2.0/u);
-  assert.doesNotThrow(() => assertPreparedManifest(complete, bytes, license));
+  assert.throws(() => assertPreparedManifest(complete, Buffer.from('different bytes'), f.license), /missing, changed/u);
+  assert.throws(() => assertPreparedManifest(complete, f.model, Buffer.from('unknown license')), /SHA|Apache/u);
+  assert.throws(() => assertPreparedManifest({ ...complete, commit: '0'.repeat(40) }, f.model, f.license), /GitHub API profile/u);
+  assert.throws(() => assertPreparedManifest({ ...complete, rootUrl: `${ROOT_URL}&evil=1` }, f.model, f.license), /GitHub API profile/u);
+  assert.throws(() => assertPreparedManifest({ ...complete, files: { ...complete.files, model: { ...complete.files.model, url: 'https://untrusted.invalid/blob' } } }, f.model, f.license), /model API blob identity/u);
+  assert.doesNotThrow(() => assertPreparedManifest(complete, f.model, f.license));
 });
 
-test('official download helper enforces exact URL admission, one-shot request budget, redirect, timeout, byte cap, and EOF', async () => {
-  const commit = '87416418657359cb625c412a48b6e1d6d41c29bd';
-  const modelUrl = `https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast/${commit}/chi_sim.traineddata`;
-  let calls = 0;
-  const okFetch: typeof fetch = async () => { calls++; return new Response('ok', { status: 200 }); };
-  await assert.rejects(boundedFetch('https://example.invalid/file', 10, [], okFetch), /allowlist/u);
-  await assert.rejects(boundedFetch(modelUrl, LIMITS.modelBytes + 1, [], okFetch), /approved file limit/u);
-  await assert.rejects(boundedFetch(modelUrl, 10, [{}, {}], okFetch), /budget exhausted/u);
-  assert.equal(calls, 0);
-  await assert.rejects(boundedFetch(modelUrl, 10, [{ url: modelUrl }], okFetch), /already attempted/u);
-  const redirected: typeof fetch = async () => { calls++; return new Response(null, { status: 302, headers: { location: modelUrl } }); };
-  await assert.rejects(boundedFetch(modelUrl, 10, [], redirected), /redirect rejected/u);
-  const oversized: typeof fetch = async () => { calls++; return new Response('0123456789', { status: 200 }); };
-  await assert.rejects(boundedFetch(modelUrl, 4, [], oversized), /exceeds 4 bytes/u);
-  const shortEof: typeof fetch = async () => ({
-    status: 200, headers: new Headers({ 'content-length': '5' }),
-    body: new ReadableStream({ start(controller) { controller.enqueue(new TextEncoder().encode('ab')); controller.close(); } }),
-  } as Response);
-  await assert.rejects(boundedFetch(modelUrl, 10, [], shortEof), /incomplete response/u);
-  const timeoutFetch: typeof fetch = async (_url, init) => new Promise((_resolve, reject) => {
-    init?.signal?.addEventListener('abort', () => reject(new Error('aborted')), { once: true });
+const PIN = '87416418657359cb625c412a48b6e1d6d41c29bd';
+const API = 'https://api.github.com/repos/tesseract-ocr/tessdata_fast';
+const ROOT_URL = `${API}/contents?ref=${PIN}`;
+const LICENSE_BYTES = Buffer.from('Apache License\nVersion 2.0, January 2004\n');
+
+function blobEntry(name: string, bytes: Buffer, overrides: Record<string, unknown> = {}) {
+  return { name, path: name, type: 'file', sha: gitBlobSha1(bytes), size: bytes.length, download_url: 'https://untrusted.invalid/never-fetch', git_url: 'https://untrusted.invalid/never-fetch', ...overrides };
+}
+function fixture(model = Buffer.from('mock chi_sim model bytes'), license = LICENSE_BYTES, changes: { entries?: any[]; modelObject?: any; licenseObject?: any } = {}) {
+  const modelEntry = blobEntry('chi_sim.traineddata', model);
+  const licenseEntry = blobEntry('LICENSE', license);
+  const entries = changes.entries ?? [modelEntry, licenseEntry];
+  const modelUrl = `${API}/git/blobs/${modelEntry.sha}`;
+  const licenseUrl = `${API}/git/blobs/${licenseEntry.sha}`;
+  const makeBlob = (bytes: Buffer, entry: any, override?: any) => Buffer.from(JSON.stringify({ encoding: 'base64', size: entry.size, sha: entry.sha, content: bytes.toString('base64'), url: 'https://untrusted.invalid/never-fetch', ...override }));
+  const bodies = new Map<string, Buffer>([
+    [ROOT_URL, Buffer.from(JSON.stringify(entries))],
+    [modelUrl, makeBlob(model, modelEntry, changes.modelObject)],
+    [licenseUrl, makeBlob(license, licenseEntry, changes.licenseObject)],
+  ]);
+  const fetchImpl: typeof fetch = async (input, init) => {
+    const url = String(input);
+    if (init?.redirect !== 'manual') throw new Error('redirect mode not manual');
+    const bytes = bodies.get(url);
+    if (!bytes) throw new Error(`unexpected URL ${url}`);
+    return new Response(bytes, { status: 200, headers: { 'content-length': String(bytes.length) } });
+  };
+  return { model, license, modelEntry, licenseEntry, modelUrl, licenseUrl, rootBytes: bodies.get(ROOT_URL)!, bodies, fetchImpl };
+}
+
+function testOutput(name: string) {
+  const workspace = join(scratch, name);
+  return { workspace, outDir: join(workspace, '.data/fiscal-qa/scan-ocr-poc-20261003') };
+}
+
+function manifestForFixture(f: ReturnType<typeof fixture>) {
+  return {
+    schemaVersion: 1, status: 'complete', trainedDataComplete: true, runnable: true, language: 'chi_sim',
+    repository: 'tesseract-ocr/tessdata_fast', commit: PIN, transport: 'github-rest-git-blob-v1', rootUrl: ROOT_URL,
+    rootEntries: { model: { path: f.modelEntry.path, sha: f.modelEntry.sha, size: f.modelEntry.size }, license: { path: f.licenseEntry.path, sha: f.licenseEntry.sha, size: f.licenseEntry.size } },
+    files: {
+      model: { path: 'chi_sim.traineddata', blobSha: f.modelEntry.sha, size: f.model.length, url: f.modelUrl, sha256: sha256(f.model) },
+      license: { path: 'LICENSE', blobSha: f.licenseEntry.sha, size: f.license.length, url: f.licenseUrl, sha256: sha256(f.license) },
+    },
+    modelSha256: sha256(f.model), modelBytes: f.model.length, licenseSha256: sha256(f.license), licenseBytes: f.license.length,
+    licenseName: 'Apache-2.0', requests: [ROOT_URL, f.modelUrl, f.licenseUrl].map(url => ({ url, status: 200, eofComplete: true, bytesReceived: f.bodies.get(url)!.length, contentLength: f.bodies.get(url)!.length })),
+  };
+}
+
+test('Git blob SHA1 uses a NUL byte in the Git object header', () => {
+  assert.equal(gitBlobSha1(Buffer.from('test content')), '08cf6101416f0ce0dda3c80e627f333854c4085c');
+});
+
+test('pinned root parser requires unique exact regular-file identities and bounded sizes', () => {
+  const f = fixture();
+  assert.deepEqual(parsePinnedRootDirectory(f.rootBytes), {
+    model: { path: 'chi_sim.traineddata', sha: f.modelEntry.sha, size: f.model.length },
+    license: { path: 'LICENSE', sha: f.licenseEntry.sha, size: f.license.length },
   });
-  await assert.rejects(boundedFetch(modelUrl, 10, [], timeoutFetch, Date.now() + 20), /aborted/u);
-  const successfulLog: any[] = [];
-  assert.equal((await boundedFetch(modelUrl, 10, successfulLog, okFetch)).toString(), 'ok');
-  assert.equal(successfulLog[0].eofComplete, true);
-  assert.equal(successfulLog[0].bytesReceived, 2);
+  const entries = JSON.parse(f.rootBytes.toString());
+  for (const invalid of [
+    [entries[0], { ...entries[1], name: 'LICENSE-OLD' }],
+    [entries[0], entries[1], entries[0]],
+    [{ ...entries[0], type: 'dir' }, entries[1]],
+    [{ ...entries[0], path: '../chi_sim.traineddata' }, entries[1]],
+    [{ ...entries[0], sha: '1'.repeat(39) }, entries[1]],
+    [{ ...entries[0], size: LIMITS.modelBytes + 1 }, entries[1]],
+  ]) assert.throws(() => parsePinnedRootDirectory(Buffer.from(JSON.stringify(invalid))));
+  assert.throws(() => parsePinnedRootDirectory(Buffer.alloc(LIMITS.metadataBytes + 1)), /exceeds 1 MiB/u);
+  assert.throws(() => parsePinnedRootDirectory(Buffer.from('{broken')), /JSON is invalid/u);
+});
+
+test('GitHub Base64 accepts canonical content and quartet-wrapped LF/CRLF only', () => {
+  const bytes = Buffer.from('0123456789abcdef');
+  const encoded = bytes.toString('base64');
+  assert.deepEqual(decodeCanonicalBase64(encoded, bytes.length), bytes);
+  assert.deepEqual(decodeCanonicalBase64(`${encoded.slice(0, 8)}\n${encoded.slice(8)}`, bytes.length), bytes);
+  assert.deepEqual(decodeCanonicalBase64(`${encoded.slice(0, 8)}\r\n${encoded.slice(8)}\r\n`, bytes.length), bytes);
+  for (const bad of [` ${encoded}`, `${encoded}=`, `${encoded.slice(0, 6)}\n${encoded.slice(6)}`, `${encoded}\n\n`, encoded.replace(/[A-Za-z0-9+/]/u, '!')]) {
+    assert.throws(() => decodeCanonicalBase64(bad, bytes.length));
+  }
+  assert.throws(() => decodeCanonicalBase64(encoded, bytes.length + 1), /wrong size/u);
+});
+
+test('fixed API prepare uses exactly root plus the two SHA-derived blob URLs and commits complete files last', async () => {
+  const f = fixture(); const output = testOutput('api-success'); const calls: string[] = [];
+  const fetchImpl: typeof fetch = async (input, init) => { calls.push(String(input)); return f.fetchImpl(input, init); };
+  await prepareForOfflineTest(output.workspace, output.outDir, fetchImpl, { requestMs: 1000, prepareMs: 5000 });
+  assert.deepEqual(calls, [ROOT_URL, f.modelUrl, f.licenseUrl]);
+  assert.ok(calls.every(url => url.startsWith(`${API}/`)));
+  assert.ok(!calls.some(url => url.includes('untrusted.invalid')));
+  const manifest = JSON.parse(await readFile(join(output.outDir, 'manifest.json'), 'utf8'));
+  assert.equal(manifest.status, 'complete');
+  assert.equal(manifest.runnable, true);
+  assert.equal(manifest.transport, 'github-rest-git-blob-v1');
+  assert.equal(manifest.commit, PIN);
+  assert.equal(manifest.files.model.blobSha, f.modelEntry.sha);
+  assert.equal(manifest.files.license.blobSha, f.licenseEntry.sha);
+  assert.equal(manifest.files.model.sha256, sha256(f.model));
+  assert.equal(manifest.files.license.sha256, sha256(f.license));
+  assert.equal(manifest.requests.length, 3);
+  assert.ok(manifest.requests.every((entry: any) => entry.eofComplete && entry.bytesReceived === entry.contentLength));
+  assert.deepEqual(await readFile(join(output.outDir, 'tessdata/chi_sim.traineddata')), f.model);
+  assert.deepEqual(await readFile(join(output.outDir, 'LICENSE')), f.license);
+  assert.doesNotThrow(() => assertPreparedManifest(manifest, f.model, f.license));
+  assert.throws(() => assertPreparedManifest({ ...manifest, transport: 'raw-url-v0' }, f.model, f.license), /GitHub API profile/u);
+});
+
+test('pinned API aborts after invalid root metadata without requesting either blob', async () => {
+  const f = fixture(); const output = testOutput('bad-root'); const calls: string[] = [];
+  const entries = JSON.parse(f.rootBytes.toString()); entries[0].path = '../chi_sim.traineddata';
+  const fetchImpl: typeof fetch = async input => { calls.push(String(input)); return new Response(JSON.stringify(entries), { status: 200 }); };
+  await assert.rejects(prepareForOfflineTest(output.workspace, output.outDir, fetchImpl, { requestMs: 1000, prepareMs: 5000 }));
+  assert.deepEqual(calls, [ROOT_URL]);
+  const failure = JSON.parse(await readFile(join(output.outDir, 'prepare-failure.json'), 'utf8'));
+  const manifest = JSON.parse(await readFile(join(output.outDir, 'manifest.json'), 'utf8'));
+  assert.equal(failure.requests.length, 1);
+  assert.equal(failure.requests[0].error.message, 'pinned directory entry invalid for chi_sim.traineddata');
+  assert.equal(manifest.runnable, false);
+  await assert.rejects(stat(join(output.outDir, 'tessdata/chi_sim.traineddata')));
+});
+
+test('blob JSON identity, size, encoding, Base64, and Git SHA failures stop before complete files', async t => {
+  const variants = [
+    { name: 'wrong model sha', change: (f: ReturnType<typeof fixture>) => fixture(f.model, f.license, { modelObject: { sha: '0'.repeat(40) } }) },
+    { name: 'wrong model size', change: (f: ReturnType<typeof fixture>) => fixture(f.model, f.license, { modelObject: { size: f.model.length + 1 } }) },
+    { name: 'wrong encoding', change: (f: ReturnType<typeof fixture>) => fixture(f.model, f.license, { modelObject: { encoding: 'utf8' } }) },
+    { name: 'invalid base64', change: (f: ReturnType<typeof fixture>) => fixture(f.model, f.license, { modelObject: { content: '%%%=' } }) },
+    { name: 'content hash mismatch', change: (f: ReturnType<typeof fixture>) => fixture(f.model, f.license, { modelObject: { content: Buffer.from('X'.repeat(f.model.length)).toString('base64') } }) },
+  ];
+  for (const item of variants) await t.test(item.name, async () => {
+    const f = item.change(fixture()); const output = testOutput(item.name.replaceAll(' ', '-')); const calls: string[] = [];
+    const fetchImpl: typeof fetch = async (input, init) => { calls.push(String(input)); return f.fetchImpl(input, init); };
+    await assert.rejects(prepareForOfflineTest(output.workspace, output.outDir, fetchImpl, { requestMs: 1000, prepareMs: 5000 }));
+    assert.equal(calls.length, 2);
+    assert.equal(calls[0], ROOT_URL);
+    assert.equal(calls[1], f.modelUrl);
+    const manifest = JSON.parse(await readFile(join(output.outDir, 'manifest.json'), 'utf8'));
+    assert.equal(manifest.runnable, false);
+    await assert.rejects(stat(join(output.outDir, 'tessdata/chi_sim.traineddata')));
+    await assert.rejects(stat(join(output.outDir, 'LICENSE')));
+  });
+});
+
+test('redirect, stream truncation, stream error, and encoded cap fail closed', async t => {
+  const cases: Array<{ name: string; response: (url: string) => Response }> = [
+    { name: 'redirect', response: () => new Response(null, { status: 302, headers: { location: `${API}/git/blobs/${'a'.repeat(40)}` } }) },
+    { name: 'content-length truncation', response: () => new Response(Buffer.from('[]'), { status: 200, headers: { 'content-length': '999' } }) },
+    { name: 'stream error', response: () => new Response(new ReadableStream({ start(controller) { controller.error(Object.assign(new Error('socket ended at 192.168.4.2:1234'), { code: 'ECONNRESET' })); } }), { status: 200 }) },
+    { name: 'encoded cap', response: () => new Response(Buffer.from(JSON.stringify([]) + ' '.repeat(LIMITS.metadataBytes)), { status: 200 }) },
+  ];
+  for (const item of cases) await t.test(item.name, async () => {
+    const output = testOutput(item.name.replaceAll(' ', '-')); let calls = 0;
+    const fetchImpl: typeof fetch = async (_input, init) => { calls++; assert.equal(init?.redirect, 'manual'); return item.response(String(_input)); };
+    await assert.rejects(prepareForOfflineTest(output.workspace, output.outDir, fetchImpl, { requestMs: 1000, prepareMs: 5000 }));
+    assert.equal(calls, 1);
+    const failure = JSON.parse(await readFile(join(output.outDir, 'prepare-failure.json'), 'utf8'));
+    const rendered = JSON.stringify(failure);
+    assert.ok(!rendered.includes('192.168.4.2'));
+    assert.ok(!rendered.includes('untrusted.invalid'));
+    if (item.name === 'stream error') assert.equal(failure.requests[0].error.code, 'ECONNRESET');
+    assert.equal(JSON.parse(await readFile(join(output.outDir, 'manifest.json'), 'utf8')).runnable, false);
+  });
+});
+
+test('license content is verified before any file can be committed runnable', async () => {
+  const badLicense = Buffer.from('not the approved license'); const f = fixture(Buffer.from('model'), badLicense); const output = testOutput('bad-license');
+  await assert.rejects(prepareForOfflineTest(output.workspace, output.outDir, f.fetchImpl, { requestMs: 1000, prepareMs: 5000 }), /not Apache-2.0/u);
+  assert.equal(JSON.parse(await readFile(join(output.outDir, 'manifest.json'), 'utf8')).runnable, false);
+  await assert.rejects(stat(join(output.outDir, 'tessdata/chi_sim.traineddata')));
+  await assert.rejects(stat(join(output.outDir, 'LICENSE')));
+});
+
+test('deadline abort, one-shot reuse, and out-of-scope path never admit extra requests', async () => {
+  const output = testOutput('one-shot'); const f = fixture(); let calls = 0;
+  const fetchImpl: typeof fetch = async (input, init) => { calls++; return f.fetchImpl(input, init); };
+  await prepareForOfflineTest(output.workspace, output.outDir, fetchImpl, { requestMs: 1000, prepareMs: 5000 });
+  await assert.rejects(prepareForOfflineTest(output.workspace, output.outDir, fetchImpl, { requestMs: 1000, prepareMs: 5000 }), /already attempted/u);
   assert.equal(calls, 3);
+  await assert.rejects(prepareForOfflineTest(output.workspace, join(output.workspace, 'outside'), fetchImpl, { requestMs: 1000, prepareMs: 5000 }), /outside the fixed/u);
+  assert.equal(calls, 3);
+
+  const deadline = testOutput('deadline'); let abortCalls = 0;
+  const abortFetch: typeof fetch = async (_input, init) => {
+    abortCalls++;
+    return new Promise((_resolve, reject) => init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')), { once: true }));
+  };
+  await assert.rejects(prepareForOfflineTest(deadline.workspace, deadline.outDir, abortFetch, { requestMs: 20, prepareMs: 1000 }));
+  assert.equal(abortCalls, 1);
+  const failure = JSON.parse(await readFile(join(deadline.outDir, 'prepare-failure.json'), 'utf8'));
+  assert.equal(failure.requests.length, 1);
+  assert.equal(failure.requests[0].error.name, 'AbortError');
+
+  const total = testOutput('total-deadline'); let totalCalls = 0;
+  const slowFirstResponse: typeof fetch = async () => {
+    totalCalls++;
+    await new Promise(resolve => setTimeout(resolve, 35));
+    return new Response(f.rootBytes, { status: 200 });
+  };
+  await assert.rejects(prepareForOfflineTest(total.workspace, total.outDir, slowFirstResponse, { requestMs: 500, prepareMs: 20 }), /deadline exhausted/u);
+  assert.equal(totalCalls, 1);
+  const totalFailure = JSON.parse(await readFile(join(total.outDir, 'prepare-failure.json'), 'utf8'));
+  assert.equal(totalFailure.requests.length, 1);
+  assert.equal(totalFailure.manifest, undefined);
+  assert.equal(JSON.parse(await readFile(join(total.outDir, 'manifest.json'), 'utf8')).runnable, false);
 });
 
 test('prepare one-shot marker rejects a repeat attempt before any request', async () => {
@@ -125,7 +294,7 @@ test('prepare one-shot marker rejects a repeat attempt before any request', asyn
   await assert.rejects(assertPrepareNotAttempted(scratch), /already attempted/u);
 });
 
-test('real Windows monitor observes the exact fake-child PID and records natural close/wait', async t => {
+test('real Windows monitor observes the exact fake-child PID and records natural close/wait', { skip: process.platform !== 'win32' }, async t => {
   const task = invocation("console.error(JSON.stringify({keys:Object.keys(process.env).sort(),env:process.env}));setTimeout(()=>{},180);", 'normal');
   await task.run();
   const rows = (await readFile(join(scratch, 'normal.jsonl'), 'utf8')).trim().split(/\r?\n/u).map(line => JSON.parse(line));

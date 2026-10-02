@@ -1,11 +1,12 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const LIMITS = Object.freeze({
-  requests: 2, requestMs: 120_000, prepareMs: 240_000, modelBytes: 32 * 1024 * 1024, metadataBytes: 1024 * 1024,
+  requests: 3, requestMs: 120_000, prepareMs: 240_000, modelBytes: 32 * 1024 * 1024, licenseBytes: 1024 * 1024,
+  metadataBytes: 1024 * 1024, metadataEntries: 1000, apiJsonOverheadBytes: 64 * 1024,
   pagePixels: 25_000_000, pageBytes: 20 * 1024 * 1024, totalInputBytes: 100 * 1024 * 1024,
   pageMs: 30_000, runMs: 180_000, pageOutputBytes: 1024 * 1024, outputBytes: 5 * 1024 * 1024,
   textChars: 120_000, workingSetSoftBytes: 512 * 1024 * 1024, sampleMs: 20, directoryBytes: 10 * 1024 * 1024,
@@ -14,11 +15,12 @@ export const LIMITS = Object.freeze({
 export const OCR_RUN_ENABLED = false;
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
-const OUT = join(ROOT, '.data/fiscal-qa/scan-ocr-poc-20261002');
-const MODEL_URL_BASE = 'https://raw.githubusercontent.com/tesseract-ocr/tessdata_fast';
+const OUT = join(ROOT, '.data/fiscal-qa/scan-ocr-poc-20261003');
+const API_BASE = 'https://api.github.com/repos/tesseract-ocr/tessdata_fast';
 const APPROVED_MODEL_COMMIT = '87416418657359cb625c412a48b6e1d6d41c29bd';
-const MODEL_URL = `${MODEL_URL_BASE}/${APPROVED_MODEL_COMMIT}/chi_sim.traineddata`;
-const LICENSE_URL = `${MODEL_URL_BASE}/${APPROVED_MODEL_COMMIT}/LICENSE`;
+const ROOT_CONTENTS_URL = `${API_BASE}/contents?ref=${APPROVED_MODEL_COMMIT}`;
+const MODEL_PATH = 'chi_sim.traineddata';
+const LICENSE_PATH = 'LICENSE';
 const PAGES = [
   { id: 'fujian-1', path: '.data/fiscal-central-audit/rendered/fujian-1.png', sha256: '0D40BD4CCCBE928AC564185F089D177991C6DFD758CF732296E542872C7A016A', page: 1 },
   { id: 'fujian-2', path: '.data/fiscal-central-audit/rendered/fujian-2.png', sha256: 'F577BAC70BAAF3E9BABB855FBBB6284DFBAA47B38A4F5A744F2C13D8A9CCE97E', page: 2 },
@@ -56,87 +58,226 @@ export function cellText(words: Word[], box: [number, number, number, number]): 
   }).sort((a, b) => Math.abs(a.y - b.y) > 8 ? a.y - b.y : a.x - b.x).map(w => w.text).join(' ');
 }
 
+export function gitBlobSha1(bytes: Buffer): string {
+  return createHash('sha1').update(Buffer.from(`blob ${bytes.length}\0`, 'ascii')).update(bytes).digest('hex');
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function requireJson(bytes: Buffer, label: string): unknown {
+  try { return JSON.parse(bytes.toString('utf8')); }
+  catch { throw new Error(`${label} JSON is invalid`); }
+}
+
+function requireFileIdentity(value: unknown, path: string, maxBytes: number): { path: string; sha: string; size: number } {
+  if (!isRecord(value) || value.type !== 'file' || value.name !== path || value.path !== path) throw new Error(`pinned directory entry invalid for ${path}`);
+  if (typeof value.sha !== 'string' || !/^[a-f0-9]{40}$/u.test(value.sha)) throw new Error(`pinned blob SHA invalid for ${path}`);
+  if (!Number.isSafeInteger(value.size) || (value.size as number) <= 0 || (value.size as number) > maxBytes) throw new Error(`pinned blob size invalid for ${path}`);
+  return { path, sha: value.sha, size: value.size as number };
+}
+
+export function parsePinnedRootDirectory(bytes: Buffer): { model: { path: string; sha: string; size: number }; license: { path: string; sha: string; size: number } } {
+  if (bytes.length > LIMITS.metadataBytes) throw new Error('root directory JSON exceeds 1 MiB');
+  const entries = requireJson(bytes, 'root directory');
+  if (!Array.isArray(entries) || entries.length > LIMITS.metadataEntries) throw new Error('root directory shape or entry count invalid');
+  const models = entries.filter(item => isRecord(item) && (item.name === MODEL_PATH || item.path === MODEL_PATH));
+  const licenses = entries.filter(item => isRecord(item) && (item.name === LICENSE_PATH || item.path === LICENSE_PATH));
+  if (models.length !== 1 || licenses.length !== 1) throw new Error('root directory must contain one unique model and LICENSE entry');
+  const model = requireFileIdentity(models[0], MODEL_PATH, LIMITS.modelBytes);
+  const license = requireFileIdentity(licenses[0], LICENSE_PATH, LIMITS.licenseBytes);
+  if (model.sha === license.sha) throw new Error('model and license must have distinct blob identities');
+  return { model, license };
+}
+
+function base64Length(size: number): number { return 4 * Math.ceil(size / 3); }
+function blobResponseCap(size: number): number { return 2 * base64Length(size) + LIMITS.apiJsonOverheadBytes; }
+
+export function decodeCanonicalBase64(value: string, expectedSize: number): Buffer {
+  if (typeof value !== 'string' || expectedSize <= 0) throw new Error('blob Base64 content or size invalid');
+  // GitHub may wrap Base64 at line boundaries. Allow LF/CRLF only between complete quartets.
+  if (/\r(?!\n)|[^\x00-\x7f]/u.test(value)) throw new Error('blob Base64 contains unsupported whitespace or characters');
+  const lines = value.split(/\r?\n/u);
+  if (lines.some((line, index) => line.length === 0 && index !== lines.length - 1)) throw new Error('blob Base64 contains an empty wrapped line');
+  for (const line of lines.slice(0, -1)) if (line.length % 4 !== 0) throw new Error('blob Base64 line break is not on a quartet boundary');
+  const compact = lines.join('');
+  if (compact.length !== base64Length(expectedSize) || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/u.test(compact)) throw new Error('blob Base64 alphabet or padding invalid');
+  const decoded = Buffer.from(compact, 'base64');
+  if (decoded.length !== expectedSize || decoded.toString('base64') !== compact) throw new Error('blob Base64 is not canonical or has the wrong size');
+  return decoded;
+}
+
+function parseBlobJson(bytes: Buffer, identity: { path: string; sha: string; size: number }): Buffer {
+  if (bytes.length > blobResponseCap(identity.size)) throw new Error(`blob JSON exceeds encoded cap for ${identity.path}`);
+  const response = requireJson(bytes, `blob ${identity.path}`);
+  if (!isRecord(response) || response.sha !== identity.sha || response.size !== identity.size || response.encoding !== 'base64' || typeof response.content !== 'string') throw new Error(`blob JSON identity invalid for ${identity.path}`);
+  const decoded = decodeCanonicalBase64(response.content, identity.size);
+  if (gitBlobSha1(decoded) !== identity.sha) throw new Error(`decoded Git blob SHA mismatch for ${identity.path}`);
+  return decoded;
+}
+
 export function assertPreparedManifest(manifest: any, modelBytes?: Buffer, licenseBytes?: Buffer): void {
   if (manifest?.schemaVersion !== 1 || manifest?.status !== 'complete' || manifest?.trainedDataComplete !== true || manifest?.runnable !== true || manifest?.language !== 'chi_sim') throw new Error('prepared chi_sim data is incomplete; run is forbidden');
-  if (manifest.commit !== APPROVED_MODEL_COMMIT || manifest.repository !== 'tesseract-ocr/tessdata_fast') throw new Error('chi_sim data is not from the approved repository commit');
-  if (manifest.modelUrl !== MODEL_URL || manifest.licenseUrl !== LICENSE_URL) throw new Error('chi_sim data URLs are not pinned to the approved commit');
-  if (!modelBytes || modelBytes.length === 0 || !manifest.modelSha256 || modelBytes.length !== manifest.modelBytes || sha256(modelBytes) !== manifest.modelSha256 || modelBytes.length > LIMITS.modelBytes) throw new Error('chi_sim data missing, changed, or over limit');
-  if (!licenseBytes || !manifest.licenseSha256 || licenseBytes.length !== manifest.licenseBytes || licenseBytes.length > LIMITS.metadataBytes || sha256(licenseBytes) !== manifest.licenseSha256) throw new Error('pinned Apache-2.0 license text missing, changed, or over limit');
+  if (manifest.repository !== 'tesseract-ocr/tessdata_fast' || manifest.commit !== APPROVED_MODEL_COMMIT || manifest.transport !== 'github-rest-git-blob-v1' || manifest.rootUrl !== ROOT_CONTENTS_URL) throw new Error('prepared data is not from the approved GitHub API profile');
+  const model = manifest.files?.model, license = manifest.files?.license;
+  const rootModel = manifest.rootEntries?.model, rootLicense = manifest.rootEntries?.license;
+  if (!isRecord(rootModel) || rootModel.path !== MODEL_PATH || !isRecord(model) || model.path !== MODEL_PATH || model.blobSha !== rootModel.sha || model.size !== rootModel.size || model.url !== `${API_BASE}/git/blobs/${model.blobSha}`) throw new Error('model API blob identity is not pinned');
+  if (!isRecord(rootLicense) || rootLicense.path !== LICENSE_PATH || !isRecord(license) || license.path !== LICENSE_PATH || license.blobSha !== rootLicense.sha || license.size !== rootLicense.size || license.url !== `${API_BASE}/git/blobs/${license.blobSha}`) throw new Error('license API blob identity is not pinned');
+  if (!/^[a-f0-9]{40}$/u.test(String(model.blobSha)) || !/^[a-f0-9]{40}$/u.test(String(license.blobSha)) || model.blobSha === license.blobSha) throw new Error('prepared blob SHA invalid');
+  if (!modelBytes || modelBytes.length === 0 || modelBytes.length !== model.size || modelBytes.length !== manifest.rootEntries.model.size || modelBytes.length > LIMITS.modelBytes || !manifest.modelSha256 || sha256(modelBytes) !== manifest.modelSha256 || gitBlobSha1(modelBytes) !== model.blobSha) throw new Error('chi_sim data missing, changed, or over limit');
+  if (!licenseBytes || licenseBytes.length === 0 || licenseBytes.length !== license.size || licenseBytes.length !== manifest.rootEntries.license.size || licenseBytes.length > LIMITS.licenseBytes || !manifest.licenseSha256 || sha256(licenseBytes) !== manifest.licenseSha256 || gitBlobSha1(licenseBytes) !== license.blobSha) throw new Error('pinned Apache-2.0 license text missing, changed, or over limit');
+  if (model.sha256 !== manifest.modelSha256 || manifest.modelBytes !== modelBytes.length || license.sha256 !== manifest.licenseSha256 || manifest.licenseBytes !== licenseBytes.length) throw new Error('prepared file hashes and sizes are inconsistent');
+  const expectedUrls = [ROOT_CONTENTS_URL, model.url, license.url];
+  const validRequest = (entry: unknown, index: number) => isRecord(entry) && entry.url === expectedUrls[index] && entry.status === 200 && entry.eofComplete === true && typeof entry.bytesReceived === 'number' && Number.isSafeInteger(entry.bytesReceived) && entry.bytesReceived > 0 && (entry.contentLength === null || entry.contentLength === undefined || (typeof entry.contentLength === 'number' && entry.contentLength === entry.bytesReceived));
+  if (!Array.isArray(manifest.requests) || manifest.requests.length !== LIMITS.requests || manifest.requests.some((entry: unknown, index: number) => !validRequest(entry, index))) throw new Error('prepared request provenance is incomplete or inconsistent');
   const licenseText = licenseBytes.toString('utf8');
   if (manifest.licenseName !== 'Apache-2.0' || !licenseText.includes('Apache License') || !licenseText.includes('Version 2.0')) throw new Error('pinned license text is not identified as Apache-2.0');
 }
 
-export async function boundedFetch(url: string, maxBytes: number, log: any[], fetchImpl: typeof fetch = fetch, totalDeadline = Date.now() + LIMITS.prepareMs): Promise<Buffer> {
-  if (url !== MODEL_URL && url !== LICENSE_URL) throw new Error('request URL is outside the approved fixed-file allowlist');
-  const approvedMaxBytes = url === MODEL_URL ? LIMITS.modelBytes : LIMITS.metadataBytes;
-  if (maxBytes > approvedMaxBytes) throw new Error('requested byte cap exceeds the approved file limit');
-  if (log.some(entry => entry.url === url)) throw new Error('approved URL already attempted; do not retry');
-  if (log.length >= LIMITS.requests) throw new Error('request budget exhausted');
+type RequestRecord = { number: number; url: string; startedAt: string; endedAt?: string; elapsedMs?: number; status?: number; contentLength?: number | null; bytesReceived: number; eofComplete: boolean; error?: Record<string, string> };
+
+function safeError(error: unknown): Record<string, string> {
+  const errorRecord = isRecord(error) ? error : {};
+  const cause = isRecord(errorRecord.cause) ? errorRecord.cause : {};
+  const safeText = (value: unknown, max: number) => typeof value === 'string'
+    ? value.replace(/https?:\/\/[^\s"'<>]+/giu, '[url]').replace(/\b(?:\d{1,3}\.){3}\d{1,3}(?::\d+)?\b/gu, '[endpoint]').replace(/(?:token|authorization|password|secret)[=:]\S+/giu, '[redacted]').slice(0, max)
+    : '';
+  const safeCode = (value: unknown) => typeof value === 'string' && /^[A-Za-z0-9_.-]{1,80}$/u.test(value) ? value : '';
+  const result: Record<string, string> = {};
+  const name = safeCode(errorRecord.name); if (name) result.name = name;
+  const message = safeText(errorRecord.message, 240); if (message) result.message = message;
+  const causeName = safeCode(cause.name); if (causeName) result.causeName = causeName;
+  for (const key of ['code', 'errno', 'syscall'] as const) {
+    const topValue = safeCode(errorRecord[key]); if (topValue) result[key] = topValue;
+    const causeValue = safeCode(cause[key]); if (causeValue) result[`cause${key[0].toUpperCase()}${key.slice(1)}`] = causeValue;
+  }
+  return result;
+}
+
+async function boundedApiFetch(url: string, maxWireBytes: number, log: RequestRecord[], fetchImpl: typeof fetch, totalDeadline: number, requestMs: number): Promise<Buffer> {
+  const allowed = url === ROOT_CONTENTS_URL || /^[a-f0-9]{40}$/u.test(url.slice(`${API_BASE}/git/blobs/`.length)) && url.startsWith(`${API_BASE}/git/blobs/`);
+  if (!allowed || !url.startsWith(`${API_BASE}/`)) throw new Error('request URL is outside the approved GitHub API allowlist');
+  if (log.some(entry => entry.url === url)) throw new Error('approved API URL already attempted; do not retry');
+  if (log.length >= LIMITS.requests) throw new Error('API request budget exhausted');
   const requestStarted = Date.now();
-  const timeoutMs = Math.min(LIMITS.requestMs, totalDeadline - requestStarted);
-  if (timeoutMs <= 0) throw new Error('prepare total deadline exhausted');
-  const entry: any = { number: log.length + 1, url, startedAt: new Date().toISOString(), redirect: 'manual', bytesReceived: 0, eofComplete: false };
-  log.push(entry); // Count at the actual fetch call boundary, including failures.
+  const timeoutMs = Math.min(requestMs, totalDeadline - requestStarted);
+  if (timeoutMs <= 0) throw new Error('prepare total deadline exhausted before request admission');
+  const entry: RequestRecord = { number: log.length + 1, url, startedAt: new Date(requestStarted).toISOString(), bytesReceived: 0, eofComplete: false };
+  log.push(entry); // Admission is recorded immediately before the fetch call, including failures.
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetchImpl(url, { redirect: 'manual', signal: controller.signal, headers: { 'User-Agent': 'AIHOT-local-OCR-PoC/1.0', Accept: '*/*' } });
+    const response = await fetchImpl(url, { redirect: 'manual', signal: controller.signal, headers: { 'User-Agent': 'AIHOT-local-OCR-PoC/1.0', Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' } });
     entry.status = response.status;
     if (response.status >= 300 && response.status < 400) throw new Error(`redirect rejected (${response.status})`);
     if (response.status !== 200) throw new Error(`unexpected HTTP ${response.status}`);
     const contentLengthHeader = response.headers.get('content-length');
-    const expectedBytes = contentLengthHeader && /^\d+$/u.test(contentLengthHeader) ? Number(contentLengthHeader) : null;
+    if (contentLengthHeader !== null && !/^\d+$/u.test(contentLengthHeader)) throw new Error('invalid Content-Length header');
+    const expectedBytes = contentLengthHeader === null ? null : Number(contentLengthHeader);
+    if (expectedBytes !== null && !Number.isSafeInteger(expectedBytes)) throw new Error('invalid Content-Length value');
     entry.contentLength = expectedBytes;
     const chunks: Buffer[] = []; let total = 0; entry.bytesReceived = 0;
     if (!response.body) throw new Error('empty response stream');
     for await (const chunk of response.body) {
       const b = Buffer.from(chunk); total += b.length;
       entry.bytesReceived = total;
-      if (total > maxBytes) { await response.body.cancel().catch(() => {}); throw new Error(`response exceeds ${maxBytes} bytes`); }
+      if (total > maxWireBytes) { await response.body.cancel().catch(() => {}); throw new Error(`response exceeds encoded cap ${maxWireBytes}`); }
       chunks.push(b);
     }
     if (expectedBytes !== null && total !== expectedBytes) throw new Error(`incomplete response: content-length ${expectedBytes}, received ${total}`);
-    const result = Buffer.concat(chunks); entry.bytes = result.length; entry.sha256 = sha256(result); entry.eofComplete = true; entry.completedAt = new Date().toISOString();
+    const result = Buffer.concat(chunks); entry.eofComplete = true;
     return result;
-  } catch (error) { entry.error = String(error); throw error; }
+  } catch (error) { entry.error = safeError(error); throw error; }
   finally { clearTimeout(timer); entry.endedAt = new Date().toISOString(); entry.elapsedMs = Date.now() - requestStarted; }
 }
 
+function assertOutputScope(outDir: string, workspaceRoot: string): string {
+  const expected = resolve(workspaceRoot, '.data/fiscal-qa/scan-ocr-poc-20261003');
+  if (resolve(outDir) !== expected) throw new Error('prepare output path is outside the fixed ignored batch directory');
+  return expected;
+}
+
 export async function assertPrepareNotAttempted(outDir: string): Promise<void> {
-  for (const name of ['prepare-attempt.json', 'prepare-failure.json', 'upstream.json', 'manifest.json']) {
+  for (const name of ['prepare-attempt.json', 'prepare-failure.json', 'upstream.json', 'manifest.json', 'LICENSE', 'tessdata/chi_sim.traineddata', '.tmp-model', '.tmp-license', '.tmp-manifest']) {
     try { await stat(join(outDir, name)); throw new Error(`one-shot prepare already attempted: ${name}; do not retry`); }
     catch (error: any) { if (error?.code !== 'ENOENT') throw error; }
   }
 }
 
-export async function prepare(): Promise<void> {
+type PrepareTestOptions = { requestMs?: number; prepareMs?: number };
+
+export async function prepareForOfflineTest(workspaceRoot: string, outDir: string, fetchImpl: typeof fetch, budgets: PrepareTestOptions = {}): Promise<void> {
+  const output = assertOutputScope(outDir, workspaceRoot);
   const prepareStarted = Date.now();
-  const totalDeadline = prepareStarted + LIMITS.prepareMs;
-  await mkdir(join(OUT, 'tessdata'), { recursive: true });
-  await assertPrepareNotAttempted(OUT);
-  const requests: any[] = [];
-  await writeFile(join(OUT, 'prepare-attempt.json'), JSON.stringify({ startedAt: new Date(prepareStarted).toISOString(), commit: APPROVED_MODEL_COMMIT, modelUrl: MODEL_URL, licenseUrl: LICENSE_URL }, null, 2), { flag: 'wx' });
+  const requestMs = budgets.requestMs ?? LIMITS.requestMs, prepareMs = budgets.prepareMs ?? LIMITS.prepareMs;
+  if (!Number.isSafeInteger(requestMs) || requestMs < 1 || requestMs > LIMITS.requestMs || !Number.isSafeInteger(prepareMs) || prepareMs < 1 || prepareMs > LIMITS.prepareMs) throw new Error('prepare test budgets must remain within approved maximums');
+  const totalDeadline = prepareStarted + prepareMs;
+  await mkdir(join(output, 'tessdata'), { recursive: true });
+  await assertPrepareNotAttempted(output);
+  const requests: RequestRecord[] = [];
+  await writeFile(join(output, 'prepare-attempt.json'), JSON.stringify({ startedAt: new Date(prepareStarted).toISOString(), repository: 'tesseract-ocr/tessdata_fast', commit: APPROVED_MODEL_COMMIT, rootUrl: ROOT_CONTENTS_URL, paths: [MODEL_PATH, LICENSE_PATH], requestLimit: LIMITS.requests }, null, 2), { flag: 'wx' });
+  const tempFiles = [join(output, '.tmp-model'), join(output, '.tmp-license'), join(output, '.tmp-manifest')];
+  const finalFiles = [join(output, 'tessdata/chi_sim.traineddata'), join(output, 'LICENSE'), join(output, 'upstream.json'), join(output, 'manifest.json')];
+  const timeLeft = () => totalDeadline - Date.now();
   try {
-    const commit = APPROVED_MODEL_COMMIT;
-    const model = await boundedFetch(MODEL_URL, LIMITS.modelBytes, requests, fetch, totalDeadline);
-    const license = await boundedFetch(LICENSE_URL, LIMITS.metadataBytes, requests, fetch, totalDeadline);
+    const request = async (url: string, cap: number) => {
+      if (timeLeft() <= 0) throw new Error('prepare total deadline exhausted before request admission');
+      const result = await boundedApiFetch(url, cap, requests, fetchImpl, totalDeadline, requestMs);
+      if (timeLeft() <= 0) throw new Error('prepare total deadline exhausted after response');
+      return result;
+    };
+    const parseLast = <T>(fn: () => T): T => {
+      try { return fn(); }
+      catch (error) { const last = requests.at(-1); if (last) last.error = safeError(error); throw error; }
+    };
+    const rootBytes = await request(ROOT_CONTENTS_URL, LIMITS.metadataBytes);
+    const root = parseLast(() => parsePinnedRootDirectory(rootBytes));
+    const modelUrl = `${API_BASE}/git/blobs/${root.model.sha}`;
+    const licenseUrl = `${API_BASE}/git/blobs/${root.license.sha}`;
+    const modelWire = await request(modelUrl, blobResponseCap(root.model.size));
+    const model = parseLast(() => parseBlobJson(modelWire, root.model));
+    const licenseWire = await request(licenseUrl, blobResponseCap(root.license.size));
+    const license = parseLast(() => parseBlobJson(licenseWire, root.license));
+    if (model.length + license.length > LIMITS.modelBytes + LIMITS.licenseBytes) throw new Error('combined decoded files exceed 33 MiB');
     const licenseText = license.toString('utf8');
     if (!licenseText.includes('Apache License') || !licenseText.includes('Version 2.0')) throw new Error('pinned repository LICENSE is not Apache-2.0');
-    if (Date.now() > totalDeadline) throw new Error('prepare total deadline exhausted before finalization');
-    if (Date.now() >= totalDeadline) throw new Error('prepare total deadline exhausted before saving files');
-    await writeFile(join(OUT, 'tessdata/chi_sim.traineddata'), model, { flag: 'wx' });
-    if (Date.now() >= totalDeadline) throw new Error('prepare total deadline exhausted before saving license');
-    await writeFile(join(OUT, 'LICENSE'), license, { flag: 'wx' });
-    if (Date.now() >= totalDeadline) throw new Error('prepare total deadline exhausted before saving manifest');
-    await writeFile(join(OUT, 'upstream.json'), JSON.stringify({ repository: 'tesseract-ocr/tessdata_fast', commit, commitUrl: `https://github.com/tesseract-ocr/tessdata_fast/commit/${commit}`, modelUrl: MODEL_URL, licenseUrl: LICENSE_URL, retrievedAt: new Date().toISOString(), modelBytes: model.length, modelSha256: sha256(model), licenseBytes: license.length, licenseSha256: sha256(license), licenseName: 'Apache-2.0', requests, elapsedMs: Date.now() - prepareStarted }, null, 2), { flag: 'wx' });
-    await writeFile(join(OUT, 'manifest.json'), JSON.stringify({ schemaVersion: 1, status: 'complete', trainedDataComplete: true, runnable: true, repository: 'tesseract-ocr/tessdata_fast', commit, modelUrl: MODEL_URL, modelSha256: sha256(model), modelBytes: model.length, language: 'chi_sim', licenseUrl: LICENSE_URL, licenseName: 'Apache-2.0', licenseSha256: sha256(license), licenseBytes: license.length }, null, 2), { flag: 'wx' });
-    console.log(`prepared commit=${commit} model_bytes=${model.length} license_bytes=${license.length}`);
+    const manifest = {
+      schemaVersion: 1, status: 'complete', trainedDataComplete: true, runnable: true, language: 'chi_sim',
+      repository: 'tesseract-ocr/tessdata_fast', commit: APPROVED_MODEL_COMMIT, transport: 'github-rest-git-blob-v1', rootUrl: ROOT_CONTENTS_URL,
+      rootEntries: { model: root.model, license: root.license },
+      files: {
+        model: { path: MODEL_PATH, blobSha: root.model.sha, size: model.length, url: modelUrl, sha256: sha256(model) },
+        license: { path: LICENSE_PATH, blobSha: root.license.sha, size: license.length, url: licenseUrl, sha256: sha256(license) },
+      },
+      modelSha256: sha256(model), modelBytes: model.length, licenseSha256: sha256(license), licenseBytes: license.length,
+      licenseName: 'Apache-2.0', requests, startedAt: new Date(prepareStarted).toISOString(), elapsedMs: Date.now() - prepareStarted,
+    };
+    assertPreparedManifest(manifest, model, license);
+    const upstream = { ...manifest, modelGitBlobSha1: root.model.sha, licenseGitBlobSha1: root.license.sha, modelSha256: sha256(model), modelBytes: model.length, licenseSha256: sha256(license), licenseBytes: license.length };
+    if (timeLeft() <= 0) throw new Error('prepare total deadline exhausted before staging files');
+    await writeFile(tempFiles[0], model, { flag: 'wx' });
+    if (timeLeft() <= 0) throw new Error('prepare total deadline exhausted while staging model');
+    await writeFile(tempFiles[1], license, { flag: 'wx' });
+    if (timeLeft() <= 0) throw new Error('prepare total deadline exhausted while staging license');
+    await writeFile(tempFiles[2], JSON.stringify(manifest, null, 2), { flag: 'wx' });
+    await rename(tempFiles[0], finalFiles[0]);
+    await rename(tempFiles[1], finalFiles[1]);
+    await writeFile(finalFiles[2], JSON.stringify(upstream, null, 2), { flag: 'wx' });
+    if (timeLeft() <= 0) throw new Error('prepare total deadline exhausted before complete manifest');
+    await rename(tempFiles[2], finalFiles[3]);
+    if (timeLeft() < 0) throw new Error('prepare total deadline exhausted while committing manifest');
+    console.log(`prepared commit=${APPROVED_MODEL_COMMIT} model_bytes=${model.length} license_bytes=${license.length}`);
   } catch (error) {
-    await writeFile(join(OUT, 'prepare-failure.json'), JSON.stringify({ error: String(error), requests, startedAt: new Date(prepareStarted).toISOString(), endedAt: new Date().toISOString(), elapsedMs: Date.now() - prepareStarted }, null, 2), { flag: 'wx' });
-    await writeFile(join(OUT, 'manifest.json'), JSON.stringify({ schemaVersion: 1, status: 'incomplete', trainedDataComplete: false, runnable: false, modelSha256: null, language: 'chi_sim', reason: String(error), requests }, null, 2), { flag: 'wx' });
+    await Promise.all([...tempFiles, ...finalFiles].map(path => rm(path, { force: true }).catch(() => {})));
+    const failure = { error: safeError(error), requests, startedAt: new Date(prepareStarted).toISOString(), endedAt: new Date().toISOString(), elapsedMs: Date.now() - prepareStarted };
+    await writeFile(join(output, 'prepare-failure.json'), JSON.stringify(failure, null, 2), { flag: 'wx' });
+    await writeFile(join(output, 'manifest.json'), JSON.stringify({ schemaVersion: 1, status: 'incomplete', trainedDataComplete: false, runnable: false, language: 'chi_sim', repository: 'tesseract-ocr/tessdata_fast', commit: APPROVED_MODEL_COMMIT, transport: 'github-rest-git-blob-v1', rootUrl: ROOT_CONTENTS_URL, requests }, null, 2), { flag: 'wx' });
     throw error;
   }
 }
+
+export async function prepare(): Promise<void> { return prepareForOfflineTest(ROOT, OUT, fetch); }
 
 function pngDimensions(buf: Buffer): { width: number; height: number } {
   if (buf.length < 24 || buf.subarray(0, 8).toString('hex') !== '89504e470d0a1a0a' || buf.toString('ascii', 12, 16) !== 'IHDR') throw new Error('invalid PNG header');
@@ -380,5 +521,5 @@ async function run(): Promise<void> {
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const mode=process.argv[2];
-  (mode==='prepare'?prepare():mode==='run'?run():Promise.reject(new Error('usage: node scripts/fiscal/ocr-scan-poc.ts <prepare|run>'))).catch(err=>{console.error(String(err));process.exitCode=1;});
+  (mode==='prepare'?prepare():mode==='run'?run():Promise.reject(new Error('usage: node scripts/fiscal/ocr-scan-poc.ts <prepare|run>'))).catch(err=>{console.error(JSON.stringify(safeError(err)));process.exitCode=1;});
 }
