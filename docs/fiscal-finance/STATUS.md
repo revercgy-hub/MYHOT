@@ -20,7 +20,7 @@ BLOCKERS=Gate 2尚未满足：首页滑窗/跨周期、核心正文缺口及各�
 
 COMPLETED=P0接管；财政金融静态改造和Gate 1；12源disabled配置与preview；P3三源30篇列表两轮和正文验证（29 ok/1 unconfirmed）；AD-009/AD-010单篇隔离提取；OMO第191/192号样本和一次跨日首页变化；区域相邻历史页、双来源完整首页两轮和18篇正文；会计司/预算司完整首页两轮、12篇正文尝试并得6 ok/6 unconfirmed，8篇pending；会计司/厦门证监日期口径审计；福建现金管理四页23行、厦门债券单页字段双Luna人工图像复核，Lead接受为有限P3人工样本事实。以上不改变机器失败状态、来源验收或Gate结论。通用Linux CI未解析真实官方PDF，两个新批次hop预算均未证。
 IN_PROGRESS=P3/Gate 2继续进行；用户已确认首阶段逐一覆盖全国财政部地方监管局新闻动态栏目，35个目录/域名仍待离线映射实际栏目、入口和质量，未映射/验证项不计覆盖，中央选登只作补充。当前仍只有12个disabled配置source。P4只完成只读pilot planner准备、P5只完成Gold元数据validator/模板；两者focused和fresh软件回归通过，不构成正式P4模型验证或P5人工Gold评测。P4模型执行需Gate 2正式通过、用户/负责人提供真实provider配置及单独授权。P6一般25–35 feeds尚未调查，P7和Gate 4未进行。详见逐局覆盖矩阵和最新P4-P7检查点。
-NEXT=继续完成P3 Gate 2证据：按[逐局覆盖矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)核实35个财政部地方监管局新闻动态栏目，并补首页窗口/跨周期与正文质量证据；中央选登只作补充，未映射/核验项不计覆盖。用户决定2内容边界、决定3附件待解析时不自动精选、决定4每日更新检查、决定5首次90天回填均已确认，但尚未全部实现或验证；现有source间隔仍为120/360分钟，首次导入代码仍默认12个月。按[Gate 2行动清单](GATE2_ACTION_CHECKLIST.md)开展最小行业范围实现与QA，并继续逐局小批验证；按[用户决定表](GATE2_USER_DECISIONS.md)记录的目标推进，之后由Root决定正式Sol审查。Gate 2正式通过前仅做P4/P5离线准备，不运行实际模型/worker；真实P4 provider配置仍缺失，P6一般信源扩容与P7验收均未开始。详细阶段准入见[P4-P7执行计划](P4_P7_EXECUTION_PLAN.md)。
+NEXT=继续完成P3 Gate 2证据：按[逐局覆盖矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)核实35个财政部地方监管局新闻动态栏目，并补首页窗口/跨周期与正文质量证据；中央选登只作补充，未映射/核验项不计覆盖。12条disabled行业source JSON现目标为每日1440分钟检查、首次`initialBackfillMonths=3`；尚未导入数据库或启用，且首次过滤仍会保留无发布日期候选，严格90天待S1。已确认的内容边界已写入`prefilter`/`selection-score`提示词，尚无Gold模型效果评估。附件失败的原URL/待解析状态与自动精选阻断仍未实现，最小S1裁定未取得；不能把通用`unconfirmed`一概当附件失败。Gate 2仍未通过；按[Gate 2行动清单](GATE2_ACTION_CHECKLIST.md)继续逐局小批验证，待S1后再限定实现附件和严格日期边界，之后由Root决定正式Sol审查。Gate 2正式通过前仅做P4/P5离线准备，不运行真实模型/worker；P4真实provider配置仍缺失，P6一般信源扩容与P7验收均未开始。详细阶段准入见[P4-P7执行计划](P4_P7_EXECUTION_PLAN.md)及[本轮交接检查点](HANDOFFS/CONFIRMED_RULES_2026-10-04.md)。
 
 ## 2026-10-03 本机诊断与fresh质量回归增量
 
@@ -91,4 +91,8 @@ preview只读复核：`fiscalhot_preview_test`有35 migrations、3条source均di
 
 ## 2026-10-04 用户Q5回填决定增量
 
-用户确认首次上线回填近90天；历史稿必须保留原发布日期，不冒充当天新稿，且不能删除数据库现有数据。当前代码首次导入默认12个月，尚未按新决定修改。本状态仅记录目标，不表示已实现、已验证或已开始回填；后续应限定为最小行业范围改动并验证cursor后续增量不重放历史稿。Q1逐局覆盖、Q2内容边界、Q3附件降级、Q4每日检查、Q5首次90天回填均已确认；这些决定都不表示实现或Gate 2通过。P4真实provider配置仍缺失且属Gate 2后事项，不重复询问。
+用户确认首次上线回填近90天；历史稿必须保留原发布日期，不冒充当天新稿，且不能删除数据库现有数据。随后12条disabled行业source JSON设置`initialBackfillMonths=3`，通用collector默认12个月未改；该值按30天/月计算且无发布日期条目仍可进入，故严格90天边界未实现。daily目标也已写入12条source JSON（1440分钟），但配置未导入数据库，所有来源仍disabled，未运行采集或worker。内容prompt已按决定2更新措辞，无真实模型评测。附件待解析/禁止自动精选仍未实现，待S1最小范围裁定。本状态不表示已完成任何Gate或开始回填。Q1逐局覆盖、Q2内容边界、Q3附件降级、Q4每日检查、Q5首次90天回填均已确认，但不等于全部实现或Gate 2通过。P4真实provider配置仍缺失且属Gate 2后事项，不重复询问。
+
+## 2026-10-04 已确认规则的行业配置、提示词与fresh QA增量
+
+代码提交 `d7b49539e6981cff99b71c6f57c7053e2cda5b40` 将现有12个行业source目标间隔设为1440分钟、`initialBackfillMonths=3`；`79a0f44330b50fe562ba54a03051c271cbc378e6`仅改动`industry/prompts/prefilter.md`与`selection-score.md`，落实已确认的业务事实边界措辞。GitHub Check [37137271384](https://github.com/revercgy-hub/MYHOT/actions/runs/37137271384)对prompt代码SHA全绿（backend 234项/233 pass/0 fail/1 skip，Web 15/15；docker/check均success）。本机fresh全套与边界、完整SHA和日志路径见[交接检查点](HANDOFFS/CONFIRMED_RULES_2026-10-04.md)、[source配置审计](CONFIRMED_RULES_IMPLEMENTATION_AUDIT_2026-10-04.md)及[内容边界报告](CONTENT_BOUNDARY_IMPLEMENTATION_2026-10-04.md)。所有12个source仍`enabled=false`，全文关闭；配置没有导入source数据库行，未运行daily schedule、采集或worker。严格剔除无日期的首次候选，以及附件失败后的待解析持久状态/自动精选阻断均未实现；所需最小S1本轮因agent thread capacity未取得，未绕过审查。内容prompt通过文本更新而非人工Gold或模型输出验证。Gate 2仍`NOT_PASSED`；P4/P5仅离线准备，provider缺口保留在Gate 2后，P6/P7未完成。
