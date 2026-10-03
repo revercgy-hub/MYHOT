@@ -129,6 +129,7 @@ export async function extractHtmlEnvelopeWithPdf(
   allowUrlPrefixes: string[],
   fetcher: PdfFetcher = guardedFetch,
 ): Promise<PdfBodyResult> {
+  if (config.attachmentScopeSelector !== undefined) return { body: null, reason: "attachment_scope_invalid" };
   if (!urlMatchesAllowedPrefixes(url, allowUrlPrefixes)) return { body: null, reason: "article_url_rejected" };
   if (!config.articleSelector || !config.attachmentSelector || !config.bodySelector) return { body: null, reason: "attachment_config_invalid" };
   const envelopeConfig: SelectedArticleEnvelopeConfig = {
@@ -162,6 +163,12 @@ export async function extractConfiguredHtmlBody(
   allowUrlPrefixes: string[],
   fetcher: PdfFetcher = guardedFetch,
 ): Promise<PdfBodyResult> {
+  if ("attachmentScopeSelector" in config && config.attachmentScopeSelector !== undefined &&
+    (typeof config.attachmentScopeSelector !== "string" || !config.attachmentScopeSelector.trim() || config.attachmentScopeSelector.trim().length > 500 ||
+      (!config.bodySelector && !config.bodyPolicies) ||
+      ["articleSelector", "attachmentSelector", "attachmentMode", "pdfDirect"].some((field) => (config as Record<string, unknown>)[field] !== undefined))) {
+    return { body: null, reason: "attachment_scope_invalid" };
+  }
   if ("bodyPolicies" in config && config.bodyPolicies !== undefined &&
     (config.bodySelector !== undefined || config.allowShortBody !== undefined ||
       ("articleSelector" in config && config.articleSelector !== undefined) ||

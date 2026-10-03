@@ -33,7 +33,7 @@ const NESTED: Record<string, string[]> = {
   minNumeric: ["path", "min"],
   detail: [
     "maxFetches", "publishedAtSelector", "publishedAtRegex", "publishedAtUtcOffset", "publishedAtAuthoritative", "upgradeDatePrecision",
-    "titleSelector", "titleRegex", "titleAuthoritative", "summarySelector", "articleSelector", "bodySelector", "allowShortBody", "bodyPolicies",
+    "titleSelector", "titleRegex", "titleAuthoritative", "summarySelector", "articleSelector", "bodySelector", "allowShortBody", "bodyPolicies", "attachmentScopeSelector",
     "attachmentSelector", "attachmentMode", "pdfDirect",
   ],
 };
@@ -62,6 +62,16 @@ export function unsupportedConfig(kind: SourceRow["kind"], config: Record<string
           }
         }
         if (nested.bodySelector !== undefined && (typeof nested.bodySelector !== "string" || !nested.bodySelector.trim())) out.push("detail.bodySelector");
+        if (nested.attachmentScopeSelector !== undefined) {
+          if (typeof nested.attachmentScopeSelector !== "string" || !nested.attachmentScopeSelector.trim() || nested.attachmentScopeSelector.trim().length > 500) {
+            out.push("detail.attachmentScopeSelector must be a non-empty string of at most 500 characters");
+          }
+          if (kind !== "web_list") out.push("detail.attachmentScopeSelector is only supported by web_list");
+          if (nested.bodySelector === undefined && nested.bodyPolicies === undefined) out.push("detail.attachmentScopeSelector requires detail.bodySelector or detail.bodyPolicies");
+          for (const field of ["articleSelector", "attachmentSelector", "attachmentMode", "pdfDirect"] as const) {
+            if (nested[field] !== undefined) out.push(`detail.attachmentScopeSelector cannot be combined with detail.${field}`);
+          }
+        }
         if (nested.allowShortBody !== undefined && typeof nested.allowShortBody !== "boolean") out.push("detail.allowShortBody");
         if (nested.allowShortBody === true && !nested.bodySelector) out.push("detail.allowShortBody requires detail.bodySelector");
         for (const field of ["articleSelector", "attachmentSelector"] as const) {

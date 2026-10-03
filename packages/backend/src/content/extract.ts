@@ -72,6 +72,14 @@ function markdownToHtml(md: string): string {
 
 export async function extractFromUrl(url: string, opts: { allowJina: boolean; subject: string; selectedBody?: { config: PdfSourceBodyConfig; expected: BodyIdentity; allowUrlPrefixes: string[] }; onSelectedBodyFailure?: (reason: string) => void; fetcher?: PdfFetcher }): Promise<ExtractedBody | null> {
   const fetcher = opts.fetcher ?? guardedFetch;
+  if (opts.selectedBody?.config.attachmentScopeSelector !== undefined &&
+    (typeof opts.selectedBody.config.attachmentScopeSelector !== "string" || !opts.selectedBody.config.attachmentScopeSelector.trim() ||
+      opts.selectedBody.config.attachmentScopeSelector.trim().length > 500 ||
+      (!opts.selectedBody.config.bodySelector && !opts.selectedBody.config.bodyPolicies) ||
+      ["articleSelector", "attachmentSelector", "attachmentMode", "pdfDirect"].some((field) => (opts.selectedBody!.config as Record<string, unknown>)[field] !== undefined))) {
+    opts.onSelectedBodyFailure?.("attachment_scope_invalid");
+    return null;
+  }
   if (opts.selectedBody?.config.pdfDirect === true) {
     const result = await extractDirectPdfBody(url, opts.selectedBody.expected.title, opts.selectedBody.allowUrlPrefixes, fetcher);
     if (!result.body) opts.onSelectedBodyFailure?.(result.reason ?? "pdf_body_unconfirmed");
@@ -137,17 +145,19 @@ export async function extractArticleBody(articleId: string, allowJina = process.
   const detail = a.source_config.detail ?? {};
   const bodySelector = typeof detail.bodySelector === "string" ? detail.bodySelector : undefined;
   const bodyPolicies = Array.isArray(detail.bodyPolicies) ? detail.bodyPolicies : undefined;
+  const attachmentScopeSelector = detail.attachmentScopeSelector;
   const pdfBodyConfigured = detail.pdfDirect === true || typeof detail.attachmentSelector === "string";
-  const selectedBody = bodySelector || bodyPolicies || pdfBodyConfigured
+  const selectedBody = bodySelector || bodyPolicies || pdfBodyConfigured || attachmentScopeSelector !== undefined
     ? { config: {
         bodySelector,
         ...(!bodyPolicies ? { allowShortBody: detail.allowShortBody === true } : {}),
         bodyPolicies,
+        attachmentScopeSelector,
         publishedAtUtcOffset: detail.publishedAtUtcOffset ?? a.source_config.publishedAtUtcOffset,
         articleSelector: detail.articleSelector,
         attachmentSelector: detail.attachmentSelector,
         attachmentMode: detail.attachmentMode,
-        ...(!bodyPolicies ? { pdfDirect: detail.pdfDirect === true } : {}),
+        ...(!bodyPolicies && detail.pdfDirect !== undefined ? { pdfDirect: detail.pdfDirect } : {}),
       }, expected: { title: a.title, publishedAt: a.published_at }, allowUrlPrefixes: a.source_config.allowUrlPrefixes ?? [] }
     : undefined;
   let selectedFailure: string | null = null;

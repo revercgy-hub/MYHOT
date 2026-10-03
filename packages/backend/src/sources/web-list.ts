@@ -327,6 +327,7 @@ export async function fetchDetail(url: string, source: SourceRow, need: DetailNe
               bodySelector: d.bodySelector,
               ...(!d.bodyPolicies ? { allowShortBody: d.allowShortBody === true } : {}),
               bodyPolicies: d.bodyPolicies,
+              attachmentScopeSelector: d.attachmentScopeSelector,
               publishedAtUtcOffset: d.publishedAtUtcOffset ?? source.config.publishedAtUtcOffset,
               articleSelector: d.articleSelector,
               attachmentSelector: d.attachmentSelector,

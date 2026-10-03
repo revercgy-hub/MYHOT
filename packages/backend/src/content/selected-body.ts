@@ -8,6 +8,7 @@ export interface SelectedBodyConfig {
   bodySelector?: string;
   allowShortBody?: boolean;
   bodyPolicies?: SelectedBodyPolicy[];
+  attachmentScopeSelector?: string;
   publishedAtUtcOffset?: string;
 }
 
@@ -30,7 +31,7 @@ export interface BodyIdentity {
 
 export interface SelectedBodyResult {
   body: ExtractedBody | null;
-  reason: "selector_missing" | "selector_not_unique" | "body_policy_invalid" | "body_policy_ambiguous" | "body_policy_table_invalid" | "non_article_container" | "empty_body" | "short_body_not_allowed" | "identity_missing" | "identity_mismatch" | "attachments_unprocessed" | null;
+  reason: "selector_missing" | "selector_not_unique" | "body_policy_invalid" | "body_policy_ambiguous" | "body_policy_table_invalid" | "non_article_container" | "empty_body" | "short_body_not_allowed" | "identity_missing" | "identity_mismatch" | "attachment_scope_invalid" | "attachments_unprocessed" | null;
   attachments: Array<{ url: string; title: string }>;
 }
 
@@ -71,9 +72,9 @@ function identityFromHtml($: cheerio.CheerioAPI, offset: string): BodyIdentity |
   return title && publishedAt ? { title, publishedAt } : null;
 }
 
-function pdfLinks($: cheerio.CheerioAPI, baseUrl: string): Array<{ url: string; title: string }> {
+function pdfLinks($: cheerio.CheerioAPI, baseUrl: string, within?: cheerio.Cheerio<any>): Array<{ url: string; title: string }> {
   const found: Array<{ url: string; title: string }> = [];
-  $("a[href]").each((_, node) => {
+  (within ?? $.root()).find("a[href]").each((_, node) => {
     const anchor = $(node);
     const href = anchor.attr("href")?.trim();
     if (!href) return;
@@ -191,8 +192,21 @@ export function extractSelectedBody(
   expected: BodyIdentity,
   options: { pdfAttachmentsPrevalidated?: boolean } = {},
 ): SelectedBodyResult {
+  const rawConfig = config as SelectedBodyConfig & Record<string, unknown>;
+  const scopeConfigured = rawConfig.attachmentScopeSelector !== undefined;
+  if (scopeConfigured) {
+    const scope = rawConfig.attachmentScopeSelector;
+    if (typeof scope !== "string" || !scope.trim() || scope.trim().length > 500 ||
+      (rawConfig.bodySelector === undefined && rawConfig.bodyPolicies === undefined) ||
+      ["articleSelector", "attachmentSelector", "attachmentMode", "pdfDirect"].some((field) => rawConfig[field] !== undefined)) {
+      return { body: null, reason: "attachment_scope_invalid", attachments: [] };
+    }
+  }
   const policies = config.bodyPolicies;
   const policyMode = policies !== undefined;
+  if (scopeConfigured && policyMode && validateBodyPolicies(policies).length > 0) {
+    return { body: null, reason: "attachment_scope_invalid", attachments: [] };
+  }
   if (policyMode && (config.bodySelector !== undefined || config.allowShortBody !== undefined || validateBodyPolicies(policies).length > 0)) {
     return { body: null, reason: "body_policy_invalid", attachments: [] };
   }
@@ -206,44 +220,62 @@ export function extractSelectedBody(
     try {
       for (const policy of policies!) {
         const matches = $(policy.selector);
-        if (matches.length > 1) return { body: null, reason: "selector_not_unique", attachments: pdfLinks($, url) };
+        if (matches.length > 1) return { body: null, reason: "selector_not_unique", attachments: scopeConfigured ? [] : pdfLinks($, url) };
         if (matches.length === 1) matched.push({ policy, container: matches.first() });
       }
     } catch {
-      return { body: null, reason: "body_policy_invalid", attachments: pdfLinks($, url) };
+      return { body: null, reason: "body_policy_invalid", attachments: scopeConfigured ? [] : pdfLinks($, url) };
     }
-    if (matched.length === 0) return { body: null, reason: "selector_missing", attachments: pdfLinks($, url) };
-    if (matched.length !== 1) return { body: null, reason: "body_policy_ambiguous", attachments: pdfLinks($, url) };
+    if (matched.length === 0) return { body: null, reason: "selector_missing", attachments: scopeConfigured ? [] : pdfLinks($, url) };
+    if (matched.length !== 1) return { body: null, reason: "body_policy_ambiguous", attachments: scopeConfigured ? [] : pdfLinks($, url) };
     activePolicy = matched[0]!.policy;
     selected = matched[0]!.container;
   } else {
     let matches: cheerio.Cheerio<any>;
     try { matches = $(selector!); }
     catch { return { body: null, reason: "selector_missing", attachments: [] }; }
-    if (matches.length !== 1) return { body: null, reason: "selector_not_unique", attachments: pdfLinks($, url) };
+    if (matches.length !== 1) return { body: null, reason: "selector_not_unique", attachments: scopeConfigured ? [] : pdfLinks($, url) };
     selected = matches.first();
   }
+  let attachmentScope: cheerio.Cheerio<any> | null = null;
+  if (scopeConfigured) {
+    try {
+      const scopes = $(String(rawConfig.attachmentScopeSelector).trim());
+      if (scopes.length !== 1) return { body: null, reason: "attachment_scope_invalid", attachments: [] };
+      attachmentScope = scopes.first();
+      if (attachmentScope.is(`html, body, ${BLOCKED_CONTAINERS}`) ||
+        !selected.parents().toArray().includes(attachmentScope[0])) {
+        return { body: null, reason: "attachment_scope_invalid", attachments: [] };
+      }
+    } catch {
+      return { body: null, reason: "attachment_scope_invalid", attachments: [] };
+    }
+  }
+  const scanAttachments = () => scopeConfigured
+    ? attachmentScope ? pdfLinks($, url, attachmentScope) : []
+    : pdfLinks($, url);
   if (selected.is(BLOCKED_CONTAINERS) || selected.find(BLOCKED_CONTAINERS).length > 0 || selected.find(STRUCTURED_CONTENT).length === 0) {
-    return { body: null, reason: "non_article_container", attachments: pdfLinks($, url) };
+    return { body: null, reason: "non_article_container", attachments: scanAttachments() };
   }
   const rawHtml = selected.html() ?? "";
   const textOutsideLinks = collapseWhitespace(selected.clone().find("a").remove().end().text());
   const rawText = collapseWhitespace(selected.text());
-  if (!rawText || !textOutsideLinks) return { body: null, reason: "empty_body", attachments: pdfLinks($, url) };
+  if (!rawText || !textOutsideLinks) return { body: null, reason: "empty_body", attachments: scanAttachments() };
 
-  const attachments = options.pdfAttachmentsPrevalidated ? [] : pdfLinks($, url);
-  if (!options.pdfAttachmentsPrevalidated && attachments.length > 0) return { body: null, reason: "attachments_unprocessed", attachments };
-  if (activePolicy?.table && hasUnsupportedTableLayout(rawHtml)) return { body: null, reason: "body_policy_table_invalid", attachments };
+  if (activePolicy?.table && hasUnsupportedTableLayout(rawHtml)) return { body: null, reason: "body_policy_table_invalid", attachments: scanAttachments() };
   const pageIdentity = identityFromHtml($, config.publishedAtUtcOffset ?? "+08:00");
   if (!pageIdentity?.publishedAt || !expected.title.trim() || !expected.publishedAt) {
-    return { body: null, reason: "identity_missing", attachments };
+    return { body: null, reason: "identity_missing", attachments: [] };
   }
   const expectedTitle = collapseWhitespace(expected.title);
   const pageDate = localDateKey(pageIdentity.publishedAt, config.publishedAtUtcOffset ?? "+08:00");
   const expectedDate = localDateKey(expected.publishedAt, config.publishedAtUtcOffset ?? "+08:00");
   if (pageIdentity.title !== expectedTitle || !pageDate || pageDate !== expectedDate) {
-    return { body: null, reason: "identity_mismatch", attachments };
+    return { body: null, reason: "identity_mismatch", attachments: [] };
   }
+
+  const attachments = options.pdfAttachmentsPrevalidated ? [] : scanAttachments();
+  if (!options.pdfAttachmentsPrevalidated && attachments.length > 0) return { body: null, reason: "attachments_unprocessed", attachments };
 
   const clean = trimTrailingChrome(sanitizeBody(rawHtml, url));
   const text = textKeepingTableCells(clean);
@@ -265,6 +297,7 @@ export function extractSelectedArticleEnvelope(
   config: SelectedArticleEnvelopeConfig,
   expected: BodyIdentity,
 ): SelectedArticleEnvelopeResult {
+  if (config.attachmentScopeSelector !== undefined) return { body: null, attachment: null, reason: "attachment_scope_invalid" };
   if (config.bodyPolicies !== undefined) return { body: null, attachment: null, reason: "body_policy_invalid" };
   const $ = cheerio.load(html, null, false);
   let articles: cheerio.Cheerio<any>;
