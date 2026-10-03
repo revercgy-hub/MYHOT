@@ -2,7 +2,7 @@
 
 ## 最新阶段状态
 
-当前财政金融站阶段为 **P3 进行中 / Gate 2 未通过**。最新记录见 [2026-10-03 P3诊断检查点](P3_DIAGNOSTIC_CHECKPOINT_2026-10-03.md)；先读此文件再按下文权限继续。其12源最小优先级及Gate 2下一批候选方案见 [P3_GATE2_NEXT_BATCH_2026-10-03.md](../P3_GATE2_NEXT_BATCH_2026-10-03.md)，不在检查点重复整表。原同日S1代码检查点见 [P3检查点](P3_CHECKPOINT_2026-10-03.md)，10/2恢复记录见 [P3恢复检查点](P3_RECOVERY_CHECKPOINT_2026-10-03.md)，更早的 [2026-10-02](P3_CHECKPOINT_2026-10-02.md) 与 [2026-09-30](P3_CHECKPOINT_2026-09-30.md) 均保留当时证据，不覆盖。
+当前财政金融站阶段为 **P3 进行中 / Gate 2 未通过**。最新记录见 [2026-10-03 P3正文质量检查点](P3_BODY_QUALITY_CHECKPOINT_2026-10-03.md)；先读此文件再按下文权限继续。上一轮诊断检查点见 [P3诊断检查点](P3_DIAGNOSTIC_CHECKPOINT_2026-10-03.md)。本轮附件证据还见 [offline guard审计](../P3_ATTACHMENT_GUARD_AUDIT_2026-10-03.md)、[S1实现](../P3_ATTACHMENT_SCOPE_IMPLEMENTATION_2026-10-03.md)、[单页DOM观察](../P3_ATTACHMENT_SCOPE_DOM_2026-10-03.md)、[区域短正文复核](../P3_REGIONAL_SHORT_BODY_REVIEW_2026-10-03.md)及[S1范围裁定](../S1_P3_ATTACHMENT_SCOPE_REVIEW_2026-10-03.md)。其12源最小优先级及Gate 2下一批候选方案见 [P3_GATE2_NEXT_BATCH_2026-10-03.md](../P3_GATE2_NEXT_BATCH_2026-10-03.md)，不在检查点重复整表。原同日S1代码检查点见 [P3检查点](P3_CHECKPOINT_2026-10-03.md)，10/2恢复记录见 [P3恢复检查点](P3_RECOVERY_CHECKPOINT_2026-10-03.md)，更早的 [2026-10-02](P3_CHECKPOINT_2026-10-02.md) 与 [2026-09-30](P3_CHECKPOINT_2026-09-30.md) 均保留当时证据，不覆盖。
 
 每个阶段结束时，负责人在此目录新建一份独立交接书。交接书必须能让没有本轮上下文的新会话复核状态、继续工作；不得用聊天摘要替代文件。未满足阶段退出条件时，只写检查点或未完成记录，不得写“阶段完成”，不得把任务交给下一阶段。
 

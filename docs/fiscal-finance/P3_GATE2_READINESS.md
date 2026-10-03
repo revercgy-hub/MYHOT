@@ -131,3 +131,11 @@ S1后续 [会计司正文selector报告](P3_ACCOUNTING_BODY_FIX_2026-10-02.md)�
 新代码SHA `e7fac2b23b3e0baa375f273a97edbdf8c1c37584` 的GitHub Check run [37088146532](https://github.com/revercgy-hub/MYHOT/actions/runs/37088146532) 全绿（backend tests 213项、212通过、0失败、1个Windows-only monitor跳过）。本机fresh回归通过35 migrations、typecheck、npm test、Web build、15/15 Web tests及30项smoke；preview DB在恢复服务前后只读状态一致，worker未运行。证据/服务/安全开关细节见 [P3_DIAGNOSTIC_CHECKPOINT_2026-10-03.md](HANDOFFS/P3_DIAGNOSTIC_CHECKPOINT_2026-10-03.md)。
 
 Gate 2继续`NOT_PASSED`。single-URL拒绝reason不证明该页面正文可接受，也不概括其他文章；测试和CI不增加来源覆盖。下一步可在localhost fixture定性无关PDF样式链接的保守误拒风险，若需修改通用guard须另经S1；其余工作优先补可读正文、核心负例、首页窗口及跨周期证据。下一批源级排序与最小验收见上述报告，不重复整张12源矩阵；所有生产source保持disabled/fulltext关闭。
+
+## 2026-10-03 附件scope与短正文QA增量
+
+按 [S1范围裁定](S1_P3_ATTACHMENT_SCOPE_REVIEW_2026-10-03.md) 实现可选、fail-closed的HTML附件祖先scope；focused 34/34、fresh Windows完整回归与同SHA CI通过，证据见 [实现报告](P3_ATTACHMENT_SCOPE_IMPLEMENTATION_2026-10-03.md) 和 [正文质量检查点](HANDOFFS/P3_BODY_QUALITY_CHECKPOINT_2026-10-03.md)。Root核销的单次July14 DOM观察显示两个PDF样式href位于正文外的业务附件区，scope外导航/页脚无PDF；本页的`attachments_unprocessed`应保留。未请求附件，实际MIME/文件内容unknown。行业source scope未获核销，`industry/sources.json`未改。
+
+区域固定五篇短正文只读复核为2项有最小业务证据、3项人工拒绝；2篇详情日期unknown；同批224/259/296字三条未纳入该五篇，不能将五篇当作全部短文。既有五篇报告说明了判定及边界。此结果补充质量证据，不证明全源正文稳定或长周期覆盖。Gate 2继续`NOT_PASSED`，所有生产source仍disabled/fulltext关闭。
+
+代码SHA `8b1c4446a1c3131034a4d9b7c5ed482a92b80166` 经GitHub run [37093486152](https://github.com/revercgy-hub/MYHOT/actions/runs/37093486152) 全绿：backend 222项（221 pass、1 Windows-only skip），Web tests 15/15；fresh本机回归见检查点。代码SHA与docs-only最终HEAD分开记录。

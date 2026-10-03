@@ -263,3 +263,9 @@ S1还核实 `source.enabled=false` 不能隔离已排队处理任务：`unconfir
 请求事件日志显示Undici 8.11.2 hard cap=1、attempted/dispatched/rejected=1/1/0；`request:create`、`sendHeaders`、`headers`各一次，HTTP 200、无request error。机器结果`unconfirmed`、`revision=1`、正文与hash为空；source disabled、全文开关false，publication/analysis/receipt/job_runs均0。structured reason为`attachments_unprocessed`：该安全检查说明所选响应中至少有一个被helper识别为PDF样式的链接，因此在身份、表格和正文长度核验前拒绝；本次未保留响应HTML，链接的实际文件类型及其与页面业务内容的关系均unknown。没有下载附件、重试、collector、worker、模型或OCR。该结果只描述该URL此次请求，9/4固定详情旧请求的reason仍unknown；不改变来源验收或Gate 2结论。后续若需判断无关PDF样式链接是否触发保守拒绝，先用localhost fixture核验；修改通用拒绝逻辑需要另行S1审查。
 
 本机fresh QA全套和CI证据汇总见 [P3诊断检查点](HANDOFFS/P3_DIAGNOSTIC_CHECKPOINT_2026-10-03.md)。所有12个生产source继续`enabled=false`、站内及转发全文关闭。
+
+## 2026-10-03 附件范围与区域短正文QA增量
+
+通用可选HTML附件scope经S1范围批准、实现与QA回归后已合入代码SHA `8b1c4446a1c3131034a4d9b7c5ed482a92b80166`；GitHub run [37093486152](https://github.com/revercgy-hub/MYHOT/actions/runs/37093486152) 对同SHA全绿。它未在本轮配置到任何行业source，12源仍disabled/fulltext关闭。July14会计司一次经核销的单独DOM GET发现两个正文外PDF样式链接均在业务附件下载区；scope外导航/面包屑/页脚PDF计数为0，因此此前该页`attachments_unprocessed`是附件保护的有效拒绝。未下载附件，实际MIME/内容unknown。详见[DOM报告](P3_ATTACHMENT_SCOPE_DOM_2026-10-03.md)。
+
+既有五篇区域短正文人工质量复核结果为2项接受最小业务证据、3项拒绝；两条详情日期unknown。同批另有224、259、296字三项不在该五篇审查范围。该结论是固定样本人工内容判断，不是模型/机器打分，也不证明全部短正文已审。见[短正文复核](P3_REGIONAL_SHORT_BODY_REVIEW_2026-10-03.md)。完整QA边界及测试数见[检查点](HANDOFFS/P3_BODY_QUALITY_CHECKPOINT_2026-10-03.md)。Gate 2继续`NOT_PASSED`。
