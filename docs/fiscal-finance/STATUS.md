@@ -20,7 +20,7 @@ BLOCKERS=Gate 2尚未满足：首页滑窗/跨周期、核心正文缺口及各�
 
 COMPLETED=P0接管；财政金融静态改造和Gate 1；12源disabled配置与preview；P3三源30篇列表两轮和正文验证（29 ok/1 unconfirmed）；AD-009/AD-010单篇隔离提取；OMO第191/192号样本和一次跨日首页变化；区域相邻历史页、双来源完整首页两轮和18篇正文；会计司/预算司完整首页两轮、12篇正文尝试并得6 ok/6 unconfirmed，8篇pending；会计司/厦门证监日期口径审计；福建现金管理四页23行、厦门债券单页字段双Luna人工图像复核，Lead接受为有限P3人工样本事实。以上不改变机器失败状态、来源验收或Gate结论。通用Linux CI未解析真实官方PDF，两个新批次hop预算均未证。
 IN_PROGRESS=P3/Gate 2继续进行。P4只完成只读pilot planner准备、P5只完成Gold元数据validator/模板；两者focused和fresh软件回归通过，不构成正式P4模型验证或P5人工Gold评测。P4模型执行需Gate 2正式通过、用户/负责人提供真实provider配置及单独授权。当前只有12个disabled配置source，P6尚未调查25–35 feeds，P7和Gate 4未进行。详见最新P4-P7检查点。
-NEXT=继续完成P3 Gate 2既定覆盖、首页窗口/跨周期与正文质量证据，再由Root决定正式Sol审查。Gate 2正式通过前仅做P4/P5离线准备，不运行实际模型/worker；Gold标签须由读者人工确认。P6逐源调查并配置25–35目标仍未开始；P7须针对最终完整交付状态重新验证，不能用当前软件绿色代替Gate 4。详细准入边界见[P4-P7执行计划](P4_P7_EXECUTION_PLAN.md)。
+NEXT=继续完成P3 Gate 2既定覆盖、首页窗口/跨周期与正文质量证据。覆盖口径用户决定1仍待答；不得把候选范围或工程建议记作批准。按[Gate 2行动清单](GATE2_ACTION_CHECKLIST.md)推进可离线工作，并按[用户决定表](GATE2_USER_DECISIONS.md)一次一题等待确认，再由Root决定正式Sol审查。Gate 2正式通过前仅做P4/P5离线准备，不运行实际模型/worker；P6逐源调查和P7验收均未开始。详细阶段准入见[P4-P7执行计划](P4_P7_EXECUTION_PLAN.md)。
 
 ## 2026-10-03 本机诊断与fresh质量回归增量
 
@@ -82,4 +82,4 @@ preview只读复核：`fiscalhot_preview_test`有35 migrations、3条source均di
 
 ## 2026-10-03 P4/P5离线准备与P6/P7准入增量
 
-新P4只读样本准备器和P5 Gold schema validator通过本机fresh回归；实际模型调用/分析写入为0。P4 planner的`ready`仅描述read-only快照候选状态；P5模板8条人工决策均为null/needs_review，校验结果`DRAFT_INCOMPLETE`，并非Gold。真实P4 provider缺失：无`.env`且provider环境变量不存在。详细测试、数据库/服务边界和阶段条件见[执行计划](P4_P7_EXECUTION_PLAN.md)、[最新准备检查点](HANDOFFS/P4_P7_PREPARATION_2026-10-03.md)、[P4报告](P4_PILOT_READINESS.md)与[P5报告](P5_GOLD_DATASET_READINESS.md)。Gate 2仍NOT_PASSED；P4/P5正式阶段、P6扩源、P7/Gate4均未完成。
+新P4只读样本准备器和P5 Gold schema validator通过本机fresh回归；实际模型调用/分析写入为0。P4 planner的`ready`仅描述read-only快照候选状态；P5模板8条人工决策均为null/needs_review，校验结果`DRAFT_INCOMPLETE`，并非Gold。真实P4 provider缺失：无`.env`且provider环境变量不存在。详细测试、数据库/服务边界和阶段条件见[执行计划](P4_P7_EXECUTION_PLAN.md)、[最新准备检查点](HANDOFFS/P4_P7_PREPARATION_2026-10-03.md)、[Gate 2行动清单](GATE2_ACTION_CHECKLIST.md)、[用户决定表](GATE2_USER_DECISIONS.md)、[P4报告](P4_PILOT_READINESS.md)与[P5报告](P5_GOLD_DATASET_READINESS.md)。Gate 2仍NOT_PASSED；覆盖口径决定1待用户答复；P4/P5正式阶段、P6扩源、P7/Gate4均未完成。
