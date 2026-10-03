@@ -1,11 +1,12 @@
 # 项目状态
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=26ca72f2b94d37383072c0e54be6f94682b0e9bd（2026-10-03本次原范围代码提交与本地回归SHA；状态文档随后独立提交，当前最终Git HEAD以 `git rev-parse HEAD` 实测为准）
+CURRENT_SHA=9bfa0d1a91dcc765b9870ecf5cb25b9958c9f651（2026-10-03本轮S1代码与fresh本地回归SHA；共享状态文档另行提交，不把文档提交冒充tested code SHA）
 SOURCE_CONFIG_SHA=0ec0704c0e60a88d84bc99d558eb569c56731c79
-CI_TESTED_SHA=aaea0502e9fe8df7b858c64df61bb46e207b71de（此前最后成功CI；本次新run仍在进行）
-CI_FAILED_SHA=26ca72f2b94d37383072c0e54be6f94682b0e9bd
-CI_FAILED_RUN=37077418870
+CI_TESTED_SHA=9bfa0d1a91dcc765b9870ecf5cb25b9958c9f651（GitHub Check run 37078956435，success）
+CI_TESTED_RUN=37078956435
+CI_PREVIOUS_FAILED_SHA=26ca72f2b94d37383072c0e54be6f94682b0e9bd（run 37077418870；平台修复前的历史失败仍保留）
+CI_PREVIOUS_FAILED_RUN=37077418870
 PREVIOUS_CI_TESTED_SHA=8e845812b6ce1db45821ade7b2162a90f589e1de
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
@@ -13,17 +14,17 @@ WORKSPACE=D:\AI-work\MYHOT\AIHOT
 STAGE=P3仍进行中：新增监管局两源完成完整首页各两轮collector、18篇正文与相邻历史页核验；会计司/预算司两个核心源完成完整首页各两轮、正文最多12篇核验；OMO新增一次9/29→9/30首页跨日更新。两批HTTP计数hook失效、hop预算未证；仍缺更长周期、深页/栏目覆盖、区域短正文与正文失败原因处置。本地3样本人工预览已恢复；Gate 2尚未通过。
 GATE=Gate 1 PASSED；Gate 2 尚未通过，不能开始大规模采集。S1范围裁决`ARCHITECTURE_PHASE_DEPENDENCIES.md`的`DECISION=APPROVED`仅适用依赖范围，不等于Gate 2通过。
 REVIEW=Sol Gate 1 Review已由Lead核销修复并通过；AD-008日期/titleAttribute、AD-009短正文与PDF PoC、AD-010附件envelope、AD-011 route文案及AD-012本地人工样本预览均按批准范围实施。fresh fiscalhot_content_preview_test 35 migrations后 npm test 156/156；AD-012 focused guard 4/4、typecheck、web build、web tests 15/15、smoke 30/30通过。Ubuntu Check run [36589569943](https://github.com/revercgy-hub/MYHOT/actions/runs/36589569943) 对 tested SHA `dafe9386838f6423dba8e080c51cd9114066992f` 全绿；验证通用 Linux 测试/构建，不含真实官方PDF解析。厦门第十六期PDF完成一次受限 GET，解析状态 `pdf_page_no_text`；未得到页数/字段，也未保存原始 bytes。Gate 2未通过。
-LATEST_CI=GitHub Actions Check run [36676119420](https://github.com/revercgy-hub/MYHOT/actions/runs/36676119420) 对工具代码 `CI_TESTED_SHA=aaea0502e9fe8df7b858c64df61bb46e207b71de` 成功；Ubuntu检查包含install/typecheck/Web build/Web tests/35 migrations/seed/smoke/backend tests，Docker job构建和compose smoke也成功。CI测试工具代码但未获取OCR训练数据、运行Tesseract或实际Windows资源监控；不代表扫描PoC成功或Gate 2通过。此前通用CI run 36647432023 对 `8e845812b6ce1db45821ade7b2162a90f589e1de` 成功，早于本轮工具代码。
+LATEST_CI=最新 GitHub Check run [37078956435](https://github.com/revercgy-hub/MYHOT/actions/runs/37078956435) 对 `CI_TESTED_SHA=9bfa0d1a91dcc765b9870ecf5cb25b9958c9f651` 成功，Docker与check job均全绿；覆盖install/typecheck/Web build/Web tests/migrations/seed/smoke/backend tests。此前 run 36676119420 对 `aaea0502e9fe8df7b858c64df61bb46e207b71de` 成功、run 37077418870 对 `26ca72f2b94d37383072c0e54be6f94682b0e9bd` 失败，二者仍作为历史记录。本次成功CI不包含真实训练文件传输、Tesseract或真实来源正文验收，也不表示Gate 2通过。
 CURRENT_TURN=12源仍全部disabled、全文关闭。核心会计司/预算司全首页隔离批次：accounting两轮 `10/10/10/0 → 10/10/0/0`，预算司 `10/1/1/0 → 10/10/9/0`，第二轮实际新增9篇旧文。20篇中尝试正文12篇，6 `ok`、6 `unconfirmed`，8 `pending`；失败原因unknown，20个extract jobs未消费。区域完整首页隔离批次：中央/厦门两源 `8/8/8/0→8/8/0/0`、`10/10/10/0→10/10/0/0`，18篇全`ok/rev2`、第二轮0新增。两个批次Undici dispatch计数hook均未命中；核心批次真实hop数unknown，区域至少25次guardedFetch调用且总hop unknown，预算上限均不能判通过。后续新增离线 `scripts/fiscal/p3-http-budget.ts`，以backend Undici Agent/ProxyAgent dispatch admission计数、阻止第N+1次 dispatch；5项localhost测试通过。它仅覆盖该后端Undici实例，不含OS全局请求、其他Undici副本、worker、私网旁路和proxy CONNECT内部；这不追认历史批次预算。暂无新增来源联网授权。区域跨源identity overlap为0、运行时dedupe unknown；短正文、长期窗口、深页和更多来源仍未验。OMO有9/29至9/30第191→192号首页变化，20项窗口一入一出；仅一次跨日证据。会计司列表/详情/正文日均9/22，旧9/21说法为UTC切日/URL误读；厦门证监API列表/可见日均9/15，9/23生成元数据语义未知。Lead已接受福建现金管理PDF23行、厦门债PDF单页的双Luna人工核对，仅为`manual_sample_evidence=ACCEPTED`，不表示机器正文`ok`、来源验收、Gate2、P4或publication。扫描路线提案见 [P3_SCAN_BODY_PROPOSAL.md](P3_SCAN_BODY_PROPOSAL.md)，限域PoC已按S1尝试一次固定五页路线，但`chi_sim.traineddata`请求在30秒时限中断；因无重试授权，OCR/gold对照均`NOT_RUN`，详见 [P3_SCAN_OCR_POC_RESULT.md](P3_SCAN_OCR_POC_RESULT.md) 和独立gold审阅。OCR不是Gate2通用前置。
 BLOCKERS=12源覆盖和长周期稳定性未证。两份完整首页批次的Undici hop预算均无法审计证明，核心批次实际总hop unknown，区域至少25次guardedFetch调用且额外redirect hops unknown；已批准下一devtask修正计数工具。核心批次20篇中8 pending未请求、6 unconfirmed原因unknown，预算司第二轮实际补入9篇近12个月外旧文需进一步裁定同步语义；区域5篇短正文和厦门列表/正文日期未逐项对照。旧三源30篇有29 ok/1 unconfirmed、30个extract jobs未消费；OMO旧第191/新第192有未消费analyze job，不得对遗留job库启动泛worker。厦门财政旧205字Readability正文是假阳性且无招标结果；第十六期PDF虽由双Luna人工核出单页完整业务字段、Lead接受为P3人工样本事实，严格parser仍为`pdf_page_no_text`，机器body/source状态未改。福建现金管理PDF 23行人工转录双核匹配，但机器正文仍unconfirmed且未找到可确认官方可读替代。人工接受不代表自动来源稳定、Gate2通过或P4许可。预算司当前首页最新可见日2026-03-26，隔日首页批次不证明更长周期；会计司日期冲突已更正（均为9/22）；厦门证监API与可见日期同9/15，9/23生成元数据业务语义仍未知。Linux真实PDF集成最迟P7/Gate4前补验；NAS硬RSS/隔离在P8/P9/Gate5，不是当前Gate2硬前置。
 
 COMPLETED=P0接管；财政金融静态改造和Gate 1；12源disabled配置与preview；P3三源30篇列表两轮和正文验证（29 ok/1 unconfirmed）；AD-009/AD-010单篇隔离提取；OMO第191/192号样本和一次跨日首页变化；区域相邻历史页、双来源完整首页两轮和18篇正文；会计司/预算司完整首页两轮、12篇正文尝试并得6 ok/6 unconfirmed，8篇pending；会计司/厦门证监日期口径审计；福建现金管理四页23行、厦门债券单页字段双Luna人工图像复核，Lead接受为有限P3人工样本事实。以上不改变机器失败状态、来源验收或Gate结论。通用Linux CI未解析真实官方PDF，两个新批次hop预算均未证。
 IN_PROGRESS=Gate 2未通过。12个配置源仍未证明完整栏目覆盖/长期稳定；会计司、预算司、中央区域、厦门区域有完整首页隔离样本，但都不是长周期覆盖；其他来源仍保留单篇/单日证据边界。厦门机器正文假阳性、福建扫描件机器正文未确认、会计领证噪声、深页及首页滑窗仍待处理。区域批次正文全ok但有5篇短文和跨源dedupe unknown；核心批次6 unconfirmed及8 pending。日期审计纠正会计司UTC切日误读；CSRC列表/正文日期同9/15，详情生成时间语义未知。OMO仅有一次跨日。预览服务经本轮核对/恢复：API `127.0.0.1:3001`、Web `127.0.0.1:3000`、PostgreSQL `127.0.0.1:5432`均loopback；既有DB `fiscalhot_preview_test`有35 migrations、3篇人工样本和3 publications，sources均disabled/fulltext false，文章body_status=none/revision=1、selected=0、score/reason为空、analysis/receipts/job_runs=0。pool API返回3条，首页、`/all`及详情页返回200且人工标记与noindex可见；`node scripts/smoke.ts --base http://127.0.0.1:3000` 30/30通过。API/Web无应用worker；隔离P3库jobs仍未消费。限域S1尝试因训练数据下载中止而`BLOCKED_BEFORE_OCR`；OCR/gold均`NOT_RUN`且执行锁关闭，详见扫描PoC结果。P3仍进行中。
-NEXT=新S1已批准固定commit两文件的唯一准备批次，但需OCR owner先完成本机fake-response/路径限额核验并由Lead核销后才可发请求；随后需独立fake-child监控/kill-wait证据和Lead核销，方可评估执行一次固定五图基线。OCR/gold当前仍NOT_RUN、OCR_RUN_ENABLED默认关闭。HTTP本机helper通过localhost cap/redirect测试；不将离线验证追认为历史批次预算通过。继续补核心正文、跨周期覆盖和首页窗口证据，完整后再安排正式Gate 2 Review，Gate 2仍未通过。获准进入P4后仅用全新独立库与固定ID/revision/hash，禁止消费带P3遗留jobs的数据库。
+NEXT=10/3 S1 的离线实现与平台CI已通过；是否执行一次新的训练文件准备和一次固定会计司详情验证仍待Lead分别核销，本轮均未执行。OCR_RUN_ENABLED=false，来源仍disabled。随后继续补核心正文、跨周期覆盖和首页窗口证据，完整后再安排正式Gate 2 Review；Gate 2仍未通过。获准进入P4后仅用全新独立库与固定ID/revision/hash，禁止消费带P3遗留jobs的数据库。
 
 `CURRENT_SHA=d9b2433b9f032cdab7cccd07b549df7fb07ebb18` 是本轮文档更新前经 `git rev-parse HEAD` 实测的分支HEAD；本轮文档改动未提交，最终文档提交HEAD未知，不推测。此前的 `21cd590...` 是旧审计基线，不是当前HEAD。`SOURCE_CONFIG_SHA=0ec0704c0e60a88d84bc99d558eb569c56731c79` 是来源配置代码提交。`CI_TESTED_SHA=8e845812b6ce1db45821ade7b2162a90f589e1de` 对应成功的 Check run 36647432023；较早 run 36589569943 的 `PREVIOUS_CI_TESTED_SHA=dafe9386838f6423dba8e08c51cd9114066992f` 也通过。CI tested SHA 早于本轮HEAD，仅覆盖通用Linux测试/构建，未验证真实官方PDF解析；此轮 docs-only 未重跑typecheck/npm test/web build。S1阶段依赖裁决 `ARCHITECTURE_PHASE_DEPENDENCIES.md` 仅批准范围，Gate 2仍未通过。阶段交接记录见 [HANDOFFS](HANDOFFS/README.md) 及 [P3检查点](HANDOFFS/P3_CHECKPOINT_2026-09-30.md)。
 
-**历史时点说明**：上段 `d9b2433...` 和 `21cd590...` 是2026-09-30及更早审计时引用的Git快照，并非当前工作区的损坏或当前SHA。文首 `CURRENT_SHA` 为2026-10-02实测HEAD；文首 `CI_TESTED_SHA=aaea...` 是此前工具代码的成功CI SHA，仍早于当前HEAD。
+**历史时点说明**：上段 `d9b2433...` 和 `21cd590...` 是2026-09-30及更早审计时引用的Git快照，并非当前工作区的损坏或当前SHA。此处历史上下文的 `CI_TESTED_SHA=aaea...` 是更早工具代码成功的CI；当前tested code SHA与CI状态见文首及下方2026-10-03新S1增量。
 
 ## 2026-10-02 新证据与预览质量复核
 
@@ -56,3 +57,17 @@ Sol正式裁定记于 [S1_P3_OCT02_SCOPE_REVIEW.md](S1_P3_OCT02_SCOPE_REVIEW.md)
 A、B代码分别提交：`08492e0443b68dbffbe036f6b64ea9b6426655f8` 与 `26ca72f2b94d37383072c0e54be6f94682b0e9bd`，已推送到明确remote `https://github.com/revercgy-hub/MYHOT.git` 的 `feat/fiscal-finance-hot`。GitHub workflow `check.yml` 的push自动触发仅限main，故对feature分支手动dispatch Check run [37077418870](https://github.com/revercgy-hub/MYHOT/actions/runs/37077418870)，tested SHA `26ca72f2b94d37383072c0e54be6f94682b0e9bd`，最终失败：Docker job通过；check job的install、typecheck、Web build/tests、migrate/seed和smoke通过，backend tests为183/184。单一失败是Windows-only真实PowerShell monitor test在Ubuntu找不到 `powershell.exe`（ENOENT），属测试的平台可移植性缺陷；Windows本地全量tests为184/184。该跨平台修复由OCR代码owner后续处理。Gate 2仍`NOT_PASSED`，12源保持关闭。
 
 完整恢复记录见[10/3 P3检查点](HANDOFFS/P3_RECOVERY_CHECKPOINT_2026-10-03.md)。本状态文档提交晚于上述测试代码SHA；最终文档HEAD以Git日志为准，不把未来提交SHA写成事实。
+
+## 2026-10-03 新S1实现、实测与远端CI
+
+10/3 S1范围裁定见 [S1_P3_OCT03_IMPLEMENTATION_REVIEW.md](S1_P3_OCT03_IMPLEMENTATION_REVIEW.md)。正文策略与离线GitHub API准备实现按批准范围落地；会计司精确 `bodyPolicies` 已由Lead核销，`mof-accounting-notices` 仍为 `enabled=false`、全文开关关闭。代码拆为两个小提交：正文策略/入口/配置/行业值与fixture `9719580`，OCR准备工具及其测试 `9bfa0d1`；tested code SHA为 `9bfa0d1a91dcc765b9870ecf5cb25b9958c9f651`，推送到明确remote `origin=https://github.com/revercgy-hub/MYHOT.git` 的 `feat/fiscal-finance-hot`，push前后remote SHA一致。
+
+本地fresh质量回归：新隔离库 `fiscalhot_oct03_quality_test` 从空库执行35项migration；`npm run typecheck`退出0；`npm test`为211/211；`npm run build -w @aihot/web`成功；`node --test apps/web/tests/*.test.ts`为15/15；loopback smoke为30/30。离线focused结果为OCR 34/34（Windows真实PowerShell短fake-child与故障测试）、新正文策略9/9 + 旧selector characterization 6/6、source-rules 7/7、sources 14/14。GitHub Check run [37078956435](https://github.com/revercgy-hub/MYHOT/actions/runs/37078956435) 的tested SHA同为 `9bfa0d1a91dcc765b9870ecf5cb25b9958c9f651`，Docker与check两个job均success；check包含install、typecheck、Web build/tests、migration/seed、smoke、backend tests。旧SHA run [37077418870](https://github.com/revercgy-hub/MYHOT/actions/runs/37077418870) 的平台失败是修复前历史记录，不与新绿CI混淆。
+
+preview只读复核：`fiscalhot_preview_test`有35 migrations、3条source均disabled、3条固定人工article均 `body_status=none/revision=1` 且 `body_text/body_html`为空；3条publication均 `score=NULL/selected=false/eligible=true`；analyses/receipts/job_runs均0。PostgreSQL/API/Web只监听 `127.0.0.1:5432/3001/3000`；health、`/`、`/all`、pool API为200且返回 `X-Robots-Tag: noindex, nofollow`；无应用worker、`.env`不存在。测试provider只指向localhost stubs；测试时COLLECT/JINA/IndexNow/Feishu/private-network flags关闭；OCR执行锁仍false。smoke本次30项通过；10/2记录29项通过，差异原因unknown，两次输出均保留。
+
+两项另行授权的单次操作均有独立证据。OCR新目录 `.data/fiscal-qa/scan-ocr-poc-20261003/` 已取得固定commit `87416418657359cb625c412a48b6e1d6d41c29bd` 的模型与LICENSE；manifest记录恰好3次GitHub API请求、均200、总耗时2,911ms，模型2,469,156字节、许可证11,358字节，EOF、Git blob SHA-1、SHA-256及Apache-2.0身份校验通过。QA重新调用本地 `assertPreparedManifest()` 并读取两文件验证一致；9/30、10/2旧失败目录保留。`run.json`/run lock不存在，`OCR_RUN_ENABLED=false`，没有运行Tesseract或图片/gold比较。详见 [P3 OCR API准备结果](P3_OCR_API_PREPARE_2026-10-03.md)。
+
+会计司单篇验证见 [P3正文策略结果](P3_ACCOUNTING_BODY_POLICY_2026-10-03.md)。新隔离库 `fiscalhot_oct03_accounting_live_test` 有35 migrations；source disabled、仅一条固定article。对固定短表名单URL的direct `extractArticleBody()`仅执行一次，Undici `maxRequests=1`实际`attempted/dispatched/rejected=1/1/0`，HTTP 200，无redirect/retry/第二请求；最终 `body_status=unconfirmed/revision=1`，无正文和内容hash。原始响应未保存，runner漏记helper decline reason，故拒绝原因unknown。此为正文未确认，不是source通过；不重复请求、不猜测原因，9/9离线结果不能覆盖此失败。
+
+本日没有重跑collector、批量source抓取或修改preview DB；单篇live验证只触及独立新 `_test`库。Gate 2继续 `NOT_PASSED`，12个生产source均保持disabled/fulltext关闭。下一步先离线审查一次请求内持久化structured helper reason所需的最小诊断方案；再次访问官方详情前须由Lead单独核销新请求边界。训练文件准备完成不自动授权OCR，保持执行锁及 `OCR_RUN_ENABLED`关闭。以上工具和有限正文证据不代表长期来源质量、完整栏目覆盖或Gate通过。

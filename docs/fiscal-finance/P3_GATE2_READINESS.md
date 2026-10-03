@@ -115,3 +115,11 @@ S1后续 [会计司正文selector报告](P3_ACCOUNTING_BODY_FIX_2026-10-02.md)�
 预览只读核实三条人工样本和publication状态未变，12源仍禁用，未启动worker。10/2既有smoke记录29项全过；本次10/3当前脚本输出30项全过，差异原因unknown，不把本次计数覆盖为旧批次结果。GitHub Check run [37077418870](https://github.com/revercgy-hub/MYHOT/actions/runs/37077418870) 经 `workflow_dispatch` 对指定repository `revercgy-hub/MYHOT` 和feature branch运行；其tested SHA为 `26ca72f2b94d37383072c0e54be6f94682b0e9bd`。最终run结论为failure：Docker job成功，check job其余install/typecheck/Web build/tests/migration/seed/smoke步骤成功，backend tests 183/184。唯一失败是Windows-only真实monitor测试在Ubuntu找不到`powershell.exe`（ENOENT）；本地Windows `npm test`仍为184/184。该SHA不能标成CI通过，修复由OCR代码owner接手。
 
 这些回归只说明原10/2代码范围和测试库，不增加来源周期/页面覆盖，不变更source/body状态，也不满足Gate 2退出条件。Gate 2继续 `NOT_PASSED`。
+
+## 2026-10-03 新S1增量（不改变Gate结论）
+
+10/3 S1离线实现、review与有限实测见 [新P3检查点](HANDOFFS/P3_CHECKPOINT_2026-10-03.md)、[S1裁定](S1_P3_OCT03_IMPLEMENTATION_REVIEW.md)、[正文policy结果](P3_ACCOUNTING_BODY_POLICY_2026-10-03.md)和[OCR准备结果](P3_OCR_API_PREPARE_2026-10-03.md)。新代码SHA `9bfa0d1a91dcc765b9870ecf5cb25b9958c9f651` 的fresh Windows全套回归通过（35 migrations、typecheck、211/211 backend、Web build、15/15 Web tests、30/30 smoke）；指定仓库CI run [37078956435](https://github.com/revercgy-hub/MYHOT/actions/runs/37078956435) 对同一SHA的Docker/check jobs均success。CI成功仅验证软件构建与测试，不增加P3来源覆盖样本。
+
+正文policy离线短表/长段负例和调用门控测试通过，精确会计司配置已核销，但本轮获准的唯一详情抽取结果为HTTP 200、单dispatch，最终`unconfirmed`且无正文/hash。helper decline reason因runner未留存为unknown；未重试，不能将离线9/9当成真实来源通过。OCR固定commit三请求准备成功并验证模型/LICENSE身份；`OCR_RUN_ENABLED=false`、无run.json、没有OCR/gold输出。准备成功不改变Gate2正文要求或执行授权。
+
+因此Gate 2继续 `NOT_PASSED`。12个生产source均保持disabled/fulltext关闭；旧批次hop预算unknown、长周期/首页滑窗/噪声缺口和机器正文失败均保留。下一步先通过localhost fixture验证runner能安全持久化structured helper failure reason；不重跑本次URL。若后来要补一次真实详情诊断，需单独核销请求范围。不得用feature CI成功或训练文件完整状态绕过来源退出条件。

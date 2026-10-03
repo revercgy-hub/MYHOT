@@ -245,3 +245,13 @@ S1还核实 `source.enabled=false` 不能隔离已排队处理任务：`unconfir
 ## P3 扫描附件本机 PoC 结果（2026-09-30）
 
 固定五页实验见 [执行结果](P3_SCAN_OCR_POC_RESULT.md) 和 [独立 gold 审阅](P3_SCAN_OCR_GOLD_REVIEW.md)：第一项官方 commit 查询成功，固定 commit 的 `chi_sim.traineddata`请求返回HTTP 200但响应流超出30秒限制未完整接收；按S1禁止重试边界停止，没有请求许可证、运行OCR或字段比较。输入PNG哈希/尺寸核对通过，但机器候选为0，人工 gold不改写为机器成功。CLI保持`OCR_RUN_ENABLED=false`直到资源monitor/kill-wait路径有fake-child证据。福建附件机器正文仍`unconfirmed`、厦门附件仍`pdf_page_no_text`；此实验不改变正文状态、来源结论或Gate 2。
+
+## 2026-10-03 新S1实现与两项有限实测
+
+范围及离线实现证据见 [S1裁定](S1_P3_OCT03_IMPLEMENTATION_REVIEW.md)、[会计司正文policy报告](P3_ACCOUNTING_BODY_POLICY_2026-10-03.md)和[OCR API准备报告](P3_OCR_API_PREPARE_2026-10-03.md)。正文policy配置只适用于 `mof-accounting-notices` 已缓存结构，selector与header值已由Lead精确核销；代码通过failure-closed fixtures及统一helper入口测试。生产source仍`enabled=false`、全文关闭，未运行collector。
+
+经单独核销后，对 `https://kjs.mof.gov.cn/gongzuotongzhi/202609/t20260904_3996714.htm` 仅做一次direct extraction。fresh隔离库 `fiscalhot_oct03_accounting_live_test` 有35 migrations；来源disabled，固定身份文章最终 `body_status=unconfirmed`、revision=1、无body/hash。Undici cap=1，实际dispatch 1/1、拒绝0，HTTP200，create/sendHeaders/headers各一，无redirect或retry。ignored结果未保存HTML，且runner没有保存helper warning的拒绝reason；该原因unknown。此失败不被离线fixture正例覆盖，也不授权retry。后续如需诊断，先以offline fixture检查如何在同一次调用中持久化结构化拒绝reason，并由Lead另批任何新网络请求。
+
+固定 GitHub commit `87416418657359cb625c412a48b6e1d6d41c29bd` 的官方Git Blob准备另获一次有限核销并成功：新ignored批次精确3 API requests、均HTTP200，manifest complete/runnable，模型与LICENSE EOF/byte lengths/Git blob SHA-1/SHA-256与Apache-2.0验证通过。QA独立本地读取文件并调用 `assertPreparedManifest()`确认一致。数据准备不等于OCR执行；run.json不存在、run lock关闭、`OCR_RUN_ENABLED=false`，固定页/gold未运行。9/30、10/2失败目录保留且不重试。
+
+本轮fresh 35 migrations、npm test 211/211、typecheck、Web build、Web tests 15/15与preview smoke 30/30通过；GitHub Check run [37078956435](https://github.com/revercgy-hub/MYHOT/actions/runs/37078956435) 对代码SHA `9bfa0d1a91dcc765b9870ecf5cb25b9958c9f651` 全绿。所有production source仍disabled，历史栏目/跨周期/hop预算缺口不变；Gate 2继续`NOT_PASSED`。以上有限测试和两个单篇操作都不等于来源验收。
