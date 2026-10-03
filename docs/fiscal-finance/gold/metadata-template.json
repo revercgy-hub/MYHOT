@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "p5.gold-metadata-draft/v1",
+  "datasetStatus": "DRAFT",
+  "formatNote": "Metadata-only preparation manifest. It is not .data/gold.jsonl and must never be passed to scripts/eval-selection.ts. Body text is referenced, not copied. proposal is not gold; only a user-confirmed humanAnnotation may later be mapped to gold.decision after a separate authorized dataset assembly step.",
+  "candidates": [
+    {
+      "caseId": "fiscal-budget-qa-20260326",
+      "eventGroupId": "event-budget-disclosure-2026",
+      "eventGroupStatus": "needs_review",
+      "material": { "title": "财政部有关负责人就2026年中央预算公开答记者问", "originalTitle": null, "publishedAt": "2026-03-26T00:00:00+08:00", "sourceName": "财政部预算司·工作动态", "bodyZh": null, "bodyOriginal": null },
+      "sourceFacts": { "sourceKind": "web_list", "sourceTier": "T1", "firstParty": true, "language": "zh" },
+      "samplingContext": { "benchmarkSplit": "development", "samplingStratum": "central-budget-policy", "splitStatus": "needs_review" },
+      "evidence": { "sourceArticleId": "h7rei2mhmazonk5k4gzc8v0sg", "sourceId": "mof-budget-work", "url": "https://yss.mof.gov.cn/gongzuodongtai/202603/t20260326_3986132.htm", "sourceArtifact": ".data/fiscal-qa/core-batch-20260930/result.json#bodies[articleId=h7rei2mhmazonk5k4gzc8v0sg]", "contentHash": "1bf1511ecdd7eea448e229e85eaa0991506b0f656f305a3f3a8cf6491439af10", "bodySha256": "b1d0a0f03f12897e30bac5faf4c65900495e1f9d259ec53cebde10969933fe08", "bodyReference": "fiscalhot_core_batch_test.articles:h7rei2mhmazonk5k4gzc8v0sg/body_text", "bodyStatus": "ok" },
+      "proposal": { "decision": "select", "proposedBy": "Luna High", "rationale": "中央预算公开的财政部负责人答记者问；仅为待审提案，不作为人工真值。" },
+      "humanAnnotation": { "status": "needs_review", "decision": null, "confirmedBy": null, "confirmedAt": null }
+    },
+    {
+      "caseId": "fiscal-fujian-tax-refund-review-20260922",
+      "eventGroupId": "event-fujian-tax-refund-review-2026",
+      "eventGroupStatus": "needs_review",
+      "material": { "title": "财政部福建监管局：“三强化”提升资源综合利用增值税即征即退政策复查工作质量", "originalTitle": null, "publishedAt": "2026-09-22T00:00:00+08:00", "sourceName": "财政部·各地监管局动态（官网选登汇总）", "bodyZh": null, "bodyOriginal": null },
+      "sourceFacts": { "sourceKind": "web_list", "sourceTier": "T1", "firstParty": true, "language": "zh" },
+      "samplingContext": { "benchmarkSplit": "development", "samplingStratum": "regional-tax-supervision", "splitStatus": "needs_review" },
+      "evidence": { "sourceArticleId": "ezr1be73mfw81fptbt5ht1zom", "sourceId": "mof-regional-supervision-dynamics", "url": "http://fj.mof.gov.cn/gzdt/caizhengjiancha/202608/t20260828_3996275.htm", "sourceArtifact": ".data/fiscal-regional-batch-20260930/result.json#bodies[id=ezr1be73mfw81fptbt5ht1zom]", "contentHash": "f3a9a462156ecbdf334ede65e2880bbf10283aeaf9e0952ca68163e5f1ccae0c", "bodySha256": "8293e165f849d4f7882ff519cbab2397ae269d59a14e8ccc2dbc0f37cceb6e09", "bodyReference": "fiscalhot_regional_batch_test.articles:ezr1be73mfw81fptbt5ht1zom/body_text", "bodyStatus": "ok" },
+      "proposal": { "decision": "select", "proposedBy": "Luna High", "rationale": "资源综合利用增值税即征即退复查及风险整改；为模型建议，仍需人工判断新闻价值。" },
+      "humanAnnotation": { "status": "needs_review", "decision": null, "confirmedBy": null, "confirmedAt": null }
+    },
+    {
+      "caseId": "fiscal-xiamen-performance-review-20260911",
+      "eventGroupId": "event-xiamen-tradein-performance-review-2026",
+      "eventGroupStatus": "needs_review",
+      "material": { "title": "财政部厦门监管局：监管一处开展财政重点绩效评价工作调研", "originalTitle": null, "publishedAt": "2026-09-11T00:00:00+08:00", "sourceName": "财政部厦门监管局·工作动态", "bodyZh": null, "bodyOriginal": null },
+      "sourceFacts": { "sourceKind": "web_list", "sourceTier": "T1", "firstParty": true, "language": "zh" },
+      "samplingContext": { "benchmarkSplit": "development", "samplingStratum": "regional-supervision-business", "splitStatus": "needs_review" },
+      "evidence": { "sourceArticleId": "g508u1u2h9se3q8s24jnc5e5j", "sourceId": "mof-xiamen-supervision-dynamics", "url": "https://xm.mof.gov.cn/caizhengjiancha/202609/t20260911_3997284.htm", "sourceArtifact": ".data/fiscal-regional-batch-20260930/result.json#bodies[id=g508u1u2h9se3q8s24jnc5e5j]", "contentHash": "d8ce161aa77d944825ff8845fdc1bc8946ea239edb7a12b347eb96069b0f6a0b", "bodySha256": "d9fc3af991cea2eb9afb5c5d880c340422a963edc31cec674b5bb9e7d3ab68e2", "bodyReference": "fiscalhot_regional_batch_test.articles:g508u1u2h9se3q8s24jnc5e5j/body_text", "bodyStatus": "ok" },
+      "proposal": { "decision": "select", "proposedBy": "Luna High", "rationale": "具体消费品以旧换新绩效评价调研对象及资金/项目核查范围；提案不代表用户确认。" },
+      "humanAnnotation": { "status": "needs_review", "decision": null, "confirmedBy": null, "confirmedAt": null }
+    },
+    {
+      "caseId": "fiscal-xiamen-internal-lecture-20260901",
+      "eventGroupId": "event-xiamen-green-lecture-2026",
+      "eventGroupStatus": "needs_review",
+      "material": { "title": "财政部厦门监管局：组织干部职工收看公共机构绿色低碳讲堂", "originalTitle": null, "publishedAt": "2026-09-01T00:00:00+08:00", "sourceName": "财政部厦门监管局·工作动态", "bodyZh": null, "bodyOriginal": null },
+      "sourceFacts": { "sourceKind": "web_list", "sourceTier": "T1", "firstParty": true, "language": "zh" },
+      "samplingContext": { "benchmarkSplit": "holdout", "samplingStratum": "internal-activity-noise", "splitStatus": "needs_review" },
+      "evidence": { "sourceArticleId": "hno9ui8zm9zpkrul3dk06xpab", "sourceId": "mof-xiamen-supervision-dynamics", "url": "https://xm.mof.gov.cn/caizhengjiancha/202609/t20260901_3996429.htm", "sourceArtifact": ".data/fiscal-regional-batch-20260930/result.json#bodies[id=hno9ui8zm9zpkrul3dk06xpab]", "contentHash": "508bc99255e086d0b5aab24ce8b9413e3fd8790e314c539ad5b05b19cc9980e4", "bodySha256": "5cedb03ddd230164f260480d1a837348f4aba3fab306b72cd784a134745031e5", "bodyReference": "fiscalhot_regional_batch_test.articles:hno9ui8zm9zpkrul3dk06xpab/body_text", "bodyStatus": "ok" },
+      "proposal": { "decision": "reject", "proposedBy": "Luna High", "rationale": "既有短正文人工复核认定为内部讲堂/节能倡议，缺少财政监管事实；此处仍仅作待审提案。" },
+      "humanAnnotation": { "status": "needs_review", "decision": null, "confirmedBy": null, "confirmedAt": null }
+    },
+    {
+      "caseId": "fiscal-xiamen-elderly-budget-supervision-20260918",
+      "eventGroupId": "event-xiamen-rural-elderly-supervision-2026",
+      "eventGroupStatus": "needs_review",
+      "material": { "title": "财政部厦门监管局：深入推进人口老龄化背景下农村养老服务体系建设情况调研", "originalTitle": null, "publishedAt": "2026-09-18T00:00:00+08:00", "sourceName": "财政部厦门监管局·工作动态", "bodyZh": null, "bodyOriginal": null },
+      "sourceFacts": { "sourceKind": "web_list", "sourceTier": "T1", "firstParty": true, "language": "zh" },
+      "samplingContext": { "benchmarkSplit": "holdout", "samplingStratum": "regional-supervision-business", "splitStatus": "needs_review" },
+      "evidence": { "sourceArticleId": "zb3fipqqz448d9np18nmtbb5m", "sourceId": "mof-xiamen-supervision-dynamics", "url": "https://xm.mof.gov.cn/caizhengjiancha/202609/t20260918_3997727.htm", "sourceArtifact": ".data/fiscal-regional-batch-20260930/result.json#bodies[id=zb3fipqqz448d9np18nmtbb5m]", "contentHash": "12c24f121fa4032a814fe2051e16a5e550fd895b62010bd4d789db0e8e7825b2", "bodySha256": "7a8a5fd98f155ab3b38094114a4a0625f20ad1effa3838d1833f940b52769bd8", "bodyReference": "fiscalhot_regional_batch_test.articles:zb3fipqqz448d9np18nmtbb5m/body_text", "bodyStatus": "ok" },
+      "proposal": { "decision": "select", "proposedBy": "Luna High", "rationale": "保存正文描述农村养老财政保障调研与补助资金绩效跟踪；这是候选判断，不是gold。" },
+      "humanAnnotation": { "status": "needs_review", "decision": null, "confirmedBy": null, "confirmedAt": null }
+    },
+    {
+      "caseId": "fiscal-accounting-consultation-attachment-failure-20260715",
+      "eventGroupId": "event-accounting-fifteen-five-plan-consultation-2026",
+      "eventGroupStatus": "needs_review",
+      "material": { "title": "关于征求《会计改革与发展“十五五”规划（征求意见稿）》意见的函", "originalTitle": null, "publishedAt": "2026-07-15T16:51:00+08:00", "sourceName": "财政部会计司·工作通知", "bodyZh": null, "bodyOriginal": null },
+      "sourceFacts": { "sourceKind": "web_list", "sourceTier": "T1", "firstParty": true, "language": "zh" },
+      "samplingContext": { "benchmarkSplit": "development", "samplingStratum": "attachment-protection-failure", "splitStatus": "needs_review" },
+      "evidence": { "sourceArticleId": null, "diagnosticId": "mof-accounting-jul15-projection-diagnostic", "sourceId": "mof-accounting-diagnostic-live-20261003", "url": "https://kjs.mof.gov.cn/gongzuotongzhi/202607/t20260714_3993483.htm", "sourceArtifact": ".data/fiscal-qa/attachment-scope-dom-20261003/manifest.json", "contentHash": null, "bodySha256": null, "bodyReference": null, "bodyStatus": "unconfirmed", "bodyUnavailableReason": "attachments_unprocessed; response body was not persisted in the earlier direct-extract diagnostic", "observationSha256": "eeb3c8185980d92f87832fbc99d2bf50ba7469e2a0c1108f085dcc5c1868e313" },
+      "proposal": { "decision": null, "proposedBy": "Luna High", "rationale": "详情正文缺失；附件拒绝发生在正文身份/内容校验前，无法评价正文价值，保持未提案。" },
+      "humanAnnotation": { "status": "needs_review", "decision": null, "confirmedBy": null, "confirmedAt": null }
+    },
+    {
+      "caseId": "fiscal-xiamen-research-fund-theme-day-20260911",
+      "eventGroupId": "event-xiamen-research-fund-theme-day-2026",
+      "eventGroupStatus": "needs_review",
+      "material": { "title": "财政部厦门监管局：临时党支部加强联创联建，开展“管好用好科研经费 促进科技自主创新”主题党日活动", "originalTitle": null, "publishedAt": "2026-09-11T00:00:00+08:00", "sourceName": "财政部厦门监管局·工作动态", "bodyZh": null, "bodyOriginal": null },
+      "sourceFacts": { "sourceKind": "web_list", "sourceTier": "T1", "firstParty": true, "language": "zh" },
+      "samplingContext": { "benchmarkSplit": "holdout", "samplingStratum": "internal-activity-supervision-language", "splitStatus": "needs_review" },
+      "evidence": { "sourceArticleId": "kgfp0wwi0qdicori1i54da9ev", "sourceId": "mof-xiamen-supervision-dynamics", "url": "https://xm.mof.gov.cn/caizhengjiancha/202609/t20260911_3997281.htm", "sourceArtifact": ".data/fiscal-regional-batch-20260930/result.json#bodies[id=kgfp0wwi0qdicori1i54da9ev]", "contentHash": "54a9743c9d8a14fdfbc2dc8f8f3b985f36bd9a29ace191ee8632d570d61d2bfc", "bodySha256": "ec94e02b4efd00c77a0ba857961a530effa2926269f829dd9ab2a2eead08f51f", "bodyReference": "fiscalhot_regional_batch_test.articles:kgfp0wwi0qdicori1i54da9ev/body_text", "bodyStatus": "ok" },
+      "proposal": { "decision": "reject", "proposedBy": "Luna High", "rationale": "短文人工复核指出主题党日参观/动员，没有报告科研经费监管结果；仅为建议，需人工确认。" },
+      "humanAnnotation": { "status": "needs_review", "decision": null, "confirmedBy": null, "confirmedAt": null }
+    },
+    {
+      "caseId": "fiscal-xiamen-party-study-20260918",
+      "eventGroupId": "event-xiamen-party-study-2026",
+      "eventGroupStatus": "needs_review",
+      "material": { "title": "财政部厦门监管局：监管二处党支部组织《习近平党建文选》专题学习研讨", "originalTitle": null, "publishedAt": "2026-09-18T00:00:00+08:00", "sourceName": "财政部厦门监管局·工作动态", "bodyZh": null, "bodyOriginal": null },
+      "sourceFacts": { "sourceKind": "web_list", "sourceTier": "T1", "firstParty": true, "language": "zh" },
+      "samplingContext": { "benchmarkSplit": "development", "samplingStratum": "internal-party-study-noise", "splitStatus": "needs_review" },
+      "evidence": { "sourceArticleId": "oqa76t33ohjnh062u79g3jb9f", "sourceId": "mof-xiamen-supervision-dynamics", "url": "https://xm.mof.gov.cn/caizhengjiancha/202609/t20260918_3997726.htm", "sourceArtifact": ".data/fiscal-regional-batch-20260930/result.json#bodies[id=oqa76t33ohjnh062u79g3jb9f]", "contentHash": "d39f1a734fc3ca596944b0013ecb2572651985510ab3d197bdf2947ce4d1756f", "bodySha256": "db480d9d480833cd2b6229d48b107e91f6e17ae1b0acdfca42f520123d843b87", "bodyReference": "fiscalhot_regional_batch_test.articles:oqa76t33ohjnh062u79g3jb9f/body_text", "bodyStatus": "ok" },
+      "proposal": { "decision": "reject", "proposedBy": "Luna High", "rationale": "短文人工复核认定为理论学习会议，无独立财政政策执行/监管行动；模型建议不是人工真值。" },
+      "humanAnnotation": { "status": "needs_review", "decision": null, "confirmedBy": null, "confirmedAt": null }
+    }
+  ]
+}
