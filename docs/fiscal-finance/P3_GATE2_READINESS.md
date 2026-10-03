@@ -123,3 +123,11 @@ S1后续 [会计司正文selector报告](P3_ACCOUNTING_BODY_FIX_2026-10-02.md)�
 正文policy离线短表/长段负例和调用门控测试通过，精确会计司配置已核销，但本轮获准的唯一详情抽取结果为HTTP 200、单dispatch，最终`unconfirmed`且无正文/hash。helper decline reason因runner未留存为unknown；未重试，不能将离线9/9当成真实来源通过。OCR固定commit三请求准备成功并验证模型/LICENSE身份；`OCR_RUN_ENABLED=false`、无run.json、没有OCR/gold输出。准备成功不改变Gate2正文要求或执行授权。
 
 因此Gate 2继续 `NOT_PASSED`。12个生产source均保持disabled/fulltext关闭；旧批次hop预算unknown、长周期/首页滑窗/噪声缺口和机器正文失败均保留。下一步先通过localhost fixture验证runner能安全持久化structured helper failure reason；不重跑本次URL。若后来要补一次真实详情诊断，需单独核销请求范围。不得用feature CI成功或训练文件完整状态绕过来源退出条件。
+
+## 2026-10-03 本机诊断与单篇受限观察
+
+抽取拒绝reason observer与其2/2 focused fixture结果见 [P3_EXTRACT_DIAGNOSTICS_2026-10-03.md](P3_EXTRACT_DIAGNOSTICS_2026-10-03.md)。Root随后另行核销并完成会计司保存列表中2026-07-14候选的一次direct extract；精确URL、列表身份与逐源12项优先级见 [P3_GATE2_NEXT_BATCH_2026-10-03.md](P3_GATE2_NEXT_BATCH_2026-10-03.md)。新隔离库35 migrations、source disabled/fulltext关闭；Undici 8.11.2 hard cap=1，attempted/dispatched/rejected=1/1/0，HTTP 200，create/sendHeaders/headers各一次，最终body `unconfirmed`、revision=1、正文/hash为空、analysis/publication/receipt/job_runs均0。结构化helper reason为`attachments_unprocessed`，只表明该响应被helper的PDF样式链接保护检查拒绝；原始HTML未留存，实际文件类型及其与业务正文的关联unknown，且此拒绝先于身份、表格与长度核验。无附件请求、重试、collector、worker、模型或OCR。历史9/4详情的reason仍unknown，不重跑；不声称本URL是首次访问或新增来源覆盖。
+
+新代码SHA `e7fac2b23b3e0baa375f273a97edbdf8c1c37584` 的GitHub Check run [37088146532](https://github.com/revercgy-hub/MYHOT/actions/runs/37088146532) 全绿（backend tests 213项、212通过、0失败、1个Windows-only monitor跳过）。本机fresh回归通过35 migrations、typecheck、npm test、Web build、15/15 Web tests及30项smoke；preview DB在恢复服务前后只读状态一致，worker未运行。证据/服务/安全开关细节见 [P3_DIAGNOSTIC_CHECKPOINT_2026-10-03.md](HANDOFFS/P3_DIAGNOSTIC_CHECKPOINT_2026-10-03.md)。
+
+Gate 2继续`NOT_PASSED`。single-URL拒绝reason不证明该页面正文可接受，也不概括其他文章；测试和CI不增加来源覆盖。下一步可在localhost fixture定性无关PDF样式链接的保守误拒风险，若需修改通用guard须另经S1；其余工作优先补可读正文、核心负例、首页窗口及跨周期证据。下一批源级排序与最小验收见上述报告，不重复整张12源矩阵；所有生产source保持disabled/fulltext关闭。

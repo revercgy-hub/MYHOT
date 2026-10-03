@@ -255,3 +255,11 @@ S1还核实 `source.enabled=false` 不能隔离已排队处理任务：`unconfir
 固定 GitHub commit `87416418657359cb625c412a48b6e1d6d41c29bd` 的官方Git Blob准备另获一次有限核销并成功：新ignored批次精确3 API requests、均HTTP200，manifest complete/runnable，模型与LICENSE EOF/byte lengths/Git blob SHA-1/SHA-256与Apache-2.0验证通过。QA独立本地读取文件并调用 `assertPreparedManifest()`确认一致。数据准备不等于OCR执行；run.json不存在、run lock关闭、`OCR_RUN_ENABLED=false`，固定页/gold未运行。9/30、10/2失败目录保留且不重试。
 
 本轮fresh 35 migrations、npm test 211/211、typecheck、Web build、Web tests 15/15与preview smoke 30/30通过；GitHub Check run [37078956435](https://github.com/revercgy-hub/MYHOT/actions/runs/37078956435) 对代码SHA `9bfa0d1a91dcc765b9870ecf5cb25b9958c9f651` 全绿。所有production source仍disabled，历史栏目/跨周期/hop预算缺口不变；Gate 2继续`NOT_PASSED`。以上有限测试和两个单篇操作都不等于来源验收。
+
+## 2026-10-03 抽取拒绝原因的单篇诊断增量
+
+本机结构化日志观察器及fixture结果见 [P3_EXTRACT_DIAGNOSTICS_2026-10-03.md](P3_EXTRACT_DIAGNOSTICS_2026-10-03.md)。经Root核销后，在独立 `fiscalhot_oct03_diagnostic_live_test` 以disabled `mof-accounting`测试source对保存列表中的会计司候选 `https://kjs.mof.gov.cn/gongzuotongzhi/202607/t20260714_3993483.htm` 只做一次direct extract。列表标题为《关于征求〈会计改革与发展“十五五”规划（征求意见稿）〉意见的函》，列表日2026-07-15；历史访问状态unknown，不称首次访问或新覆盖。
+
+请求事件日志显示Undici 8.11.2 hard cap=1、attempted/dispatched/rejected=1/1/0；`request:create`、`sendHeaders`、`headers`各一次，HTTP 200、无request error。机器结果`unconfirmed`、`revision=1`、正文与hash为空；source disabled、全文开关false，publication/analysis/receipt/job_runs均0。structured reason为`attachments_unprocessed`：该安全检查说明所选响应中至少有一个被helper识别为PDF样式的链接，因此在身份、表格和正文长度核验前拒绝；本次未保留响应HTML，链接的实际文件类型及其与页面业务内容的关系均unknown。没有下载附件、重试、collector、worker、模型或OCR。该结果只描述该URL此次请求，9/4固定详情旧请求的reason仍unknown；不改变来源验收或Gate 2结论。后续若需判断无关PDF样式链接是否触发保守拒绝，先用localhost fixture核验；修改通用拒绝逻辑需要另行S1审查。
+
+本机fresh QA全套和CI证据汇总见 [P3诊断检查点](HANDOFFS/P3_DIAGNOSTIC_CHECKPOINT_2026-10-03.md)。所有12个生产source继续`enabled=false`、站内及转发全文关闭。
