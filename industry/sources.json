@@ -12,13 +12,14 @@
         "titleSelector": "a",
         "publishedAtSelector": "span",
         "allowUrlPrefixes": ["https://yss.mof.gov.cn/gongzuodongtai/"],
-        "publishedAtUtcOffset": "+08:00"
+        "publishedAtUtcOffset": "+08:00",
+        "_aihot": { "initialBackfillMonths": 3 }
       },
       "tier": "T1",
       "first_party": true,
       "owner_entity_id": "mof-budget",
       "participation_mode": "editorial",
-      "interval_minutes": 120,
+      "interval_minutes": 1440,
       "tags": ["官方", "预算"],
       "site_fulltext": false,
       "syndicate_fulltext": false,
@@ -35,13 +36,14 @@
         "titleSelector": "a",
         "publishedAtSelector": "span.bf-pass",
         "allowUrlPrefixes": ["https://czt.fujian.gov.cn/zwgk/tzgg/"],
-        "publishedAtUtcOffset": "+08:00"
+        "publishedAtUtcOffset": "+08:00",
+        "_aihot": { "initialBackfillMonths": 3 }
       },
       "tier": "T1",
       "first_party": true,
       "owner_entity_id": "fujian-finance",
       "participation_mode": "editorial",
-      "interval_minutes": 120,
+      "interval_minutes": 1440,
       "tags": ["官方", "福建", "通知公告"],
       "site_fulltext": false,
       "syndicate_fulltext": false,
@@ -59,13 +61,14 @@
         "publishedAtSelector": "span",
         "allowUrlPrefixes": ["https://cz.xm.gov.cn/zwxx/czsj/dfzxx/"],
         "publishedAtUtcOffset": "+08:00",
-        "detail": { "bodySelector": ".Custom_UnionStyle" }
+        "detail": { "bodySelector": ".Custom_UnionStyle" },
+        "_aihot": { "initialBackfillMonths": 3 }
       },
       "tier": "T1",
       "first_party": true,
       "owner_entity_id": "xiamen-finance",
       "participation_mode": "editorial",
-      "interval_minutes": 120,
+      "interval_minutes": 1440,
       "tags": ["官方", "厦门", "地方政府债务"],
       "site_fulltext": false,
       "syndicate_fulltext": false,
@@ -83,13 +86,14 @@
         "publishedAtSelector": "span.hui12",
         "allowUrlPrefixes": ["https://xiamen.pbc.gov.cn/xiamen/127699/"],
         "publishedAtUtcOffset": "+08:00",
-        "titleAttribute": "title"
+        "titleAttribute": "title",
+        "_aihot": { "initialBackfillMonths": 3 }
       },
       "tier": "T1",
       "first_party": true,
       "owner_entity_id": "pboc-xiamen",
       "participation_mode": "editorial",
-      "interval_minutes": 120,
+      "interval_minutes": 1440,
       "tags": ["官方", "厦门", "货币金融"],
       "site_fulltext": false,
       "syndicate_fulltext": false,
@@ -106,13 +110,14 @@
         "titleSelector": "a",
         "publishedAtSelector": "span",
         "publishedAtUtcOffset": "+08:00",
-        "allowUrlPrefixes": ["https://zhs.mof.gov.cn/zhengcefabu/"]
+        "allowUrlPrefixes": ["https://zhs.mof.gov.cn/zhengcefabu/"],
+        "_aihot": { "initialBackfillMonths": 3 }
       },
       "tier": "T1",
       "first_party": true,
       "owner_entity_id": "mof",
       "participation_mode": "editorial",
-      "interval_minutes": 120,
+      "interval_minutes": 1440,
       "tags": ["官方", "政策发布", "财政金融"],
       "site_fulltext": false,
       "syndicate_fulltext": false,
@@ -135,13 +140,14 @@
           "bodySelector": ".my_doccontent",
           "attachmentSelector": "div.gu-download:has(> p#down-tit1):has(> ul#down1)",
           "attachmentMode": "optional"
-        }
+        },
+        "_aihot": { "initialBackfillMonths": 3 }
       },
       "tier": "T1",
       "first_party": true,
       "owner_entity_id": "mof-finance",
       "participation_mode": "editorial",
-      "interval_minutes": 120,
+      "interval_minutes": 1440,
       "tags": ["官方", "财政金融", "政府性融资担保"],
       "site_fulltext": false,
       "syndicate_fulltext": false,
@@ -175,13 +181,14 @@
               "minTextChars": 200
             }
           ]
-        }
+        },
+        "_aihot": { "initialBackfillMonths": 3 }
       },
       "tier": "T1",
       "first_party": true,
       "owner_entity_id": "mof-accounting",
       "participation_mode": "editorial",
-      "interval_minutes": 120,
+      "interval_minutes": 1440,
       "tags": ["官方", "财会监督", "会计准则"],
       "site_fulltext": false,
       "syndicate_fulltext": false,
@@ -204,13 +211,14 @@
           "maxFetches": 3,
           "bodySelector": "#zoom",
           "allowShortBody": true
-        }
+        },
+        "_aihot": { "initialBackfillMonths": 3 }
       },
       "tier": "T1",
       "first_party": true,
       "owner_entity_id": "pboc",
       "participation_mode": "editorial",
-      "interval_minutes": 120,
+      "interval_minutes": 1440,
       "tags": ["官方", "货币金融", "公开市场"],
       "site_fulltext": false,
       "syndicate_fulltext": false,
@@ -227,13 +235,14 @@
         "titleSelector": "a",
         "publishedAtSelector": "span",
         "publishedAtUtcOffset": "+08:00",
-        "allowUrlPrefixes": ["https://zwgls.mof.gov.cn/tjsj/"]
+        "allowUrlPrefixes": ["https://zwgls.mof.gov.cn/tjsj/"],
+        "_aihot": { "initialBackfillMonths": 3 }
       },
       "tier": "T1",
       "first_party": true,
       "owner_entity_id": "mof",
       "participation_mode": "editorial",
-      "interval_minutes": 120,
+      "interval_minutes": 1440,
       "tags": ["官方", "政府债务", "财政数据"],
       "site_fulltext": false,
       "syndicate_fulltext": false,
@@ -251,13 +260,14 @@
         "publishedAtPath": "publishedTimeStr",
         "publishedAtUtcOffset": "+08:00",
         "urlTemplate": "https:{raw:url}",
-        "allowUrlPrefixes": ["https://www.csrc.gov.cn/xiamen/c101757/"]
+        "allowUrlPrefixes": ["https://www.csrc.gov.cn/xiamen/c101757/"],
+        "_aihot": { "initialBackfillMonths": 3 }
       },
       "tier": "T1",
       "first_party": true,
       "owner_entity_id": "csrc-xiamen",
       "participation_mode": "editorial",
-      "interval_minutes": 120,
+      "interval_minutes": 1440,
       "tags": ["官方", "厦门", "资本市场监管"],
       "site_fulltext": false,
       "syndicate_fulltext": false,
@@ -283,12 +293,13 @@
           "http://hb.mof.gov.cn/", "http://hn.mof.gov.cn/", "http://gd.mof.gov.cn/", "http://sz.mof.gov.cn/", "http://gx.mof.gov.cn/",
           "http://hq.mof.gov.cn/", "http://cq.mof.gov.cn/", "http://sc.mof.gov.cn/", "http://gz.mof.gov.cn/", "http://yn.mof.gov.cn/",
           "http://sx.mof.gov.cn/", "http://gs.mof.gov.cn/", "http://qh.mof.gov.cn/", "http://nx.mof.gov.cn/", "http://xj.mof.gov.cn/"
-        ]
+        ],
+        "_aihot": { "initialBackfillMonths": 3 }
       },
       "tier": "T1",
       "first_party": true,
       "participation_mode": "editorial",
-      "interval_minutes": 360,
+      "interval_minutes": 1440,
       "tags": ["官方", "财政监管", "监管局动态"],
       "site_fulltext": false,
       "syndicate_fulltext": false,
@@ -306,12 +317,13 @@
         "titleAttribute": "title",
         "publishedAtSelector": "span",
         "publishedAtUtcOffset": "+08:00",
-        "allowUrlPrefixes": ["https://xm.mof.gov.cn/caizhengjiancha/"]
+        "allowUrlPrefixes": ["https://xm.mof.gov.cn/caizhengjiancha/"],
+        "_aihot": { "initialBackfillMonths": 3 }
       },
       "tier": "T1",
       "first_party": true,
       "participation_mode": "editorial",
-      "interval_minutes": 360,
+      "interval_minutes": 1440,
       "tags": ["官方", "厦门", "财政监管"],
       "site_fulltext": false,
       "syndicate_fulltext": false,
