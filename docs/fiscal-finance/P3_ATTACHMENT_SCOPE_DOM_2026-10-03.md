@@ -37,7 +37,7 @@ GATE_2=NOT_PASSED。
 
 实际“附件下载”容器是 `div.mainboxerji > div.box_content > div.my_conboxzw > div.gu-download`，包含两个anchor，位于正文之外、正文的同一个 `.my_conboxzw` 内。另一个 `.gu-download` 区域标签为“相关文章”，anchor数0。`.box_content`候选唯一、不是html/body/nav/footer等blocked元素、严格包含唯一selected body和完整附件区；还包含两个不属于文件的javascript utility链接“打印此页”“关闭窗口”。`.my_conboxzw`也唯一且包含正文与两条附件，并不含utility链接。所有scope外页面链接按真实DOM路径均是站点chrome：主站logo、`div.nav`搜索/返回主站、`div.dangqian`首页/工作通知面包屑、`div#footer`纠错/网站标识/网站地图/联系我们/备案信息；scope外PDF外观anchor数均为0。故这页的历史 `attachments_unprocessed` 与当前raw DOM一致，是正文外业务附件的fail-closed保护，不是导航/页脚误拒。没有读取PDF字节，实际MIME和文件内容未知；锚点“附件下载”上下文、名称与正文附件清单支持它们的页面业务关联。
 
-**候选scope结论**：真实目标DOM为 `.box_content` 提供了足够的单页结构证据：唯一、合法祖先，同时涵盖selected body和两项真实页面标识为业务附件的PDF下载链接；scope外可见链接均由DOM证实是无关站点chrome。`.my_conboxzw`在此页也满足同样的覆盖条件。是否将其中一个具体selector写入行业配置由Root另作范围裁决；本报告不改来源配置，也不因此改变抽取结果。无论scope取这两个候选中的哪一个，两个PDF链接仍在scope内，正文仍须因未处理附件而拒绝；不能缩到正文selector求`ok`。这一次响应不证明所有会计司页面都共享同一层级或附件布局。
+**候选scope结论**：真实目标DOM为 `.box_content` 提供了足够的单页结构证据：唯一、合法祖先，同时涵盖selected body和两项真实页面标识为业务附件的PDF下载链接；scope外可见链接均由DOM证实是无关站点chrome。`.my_conboxzw`在此页也满足同样的覆盖条件。Root已裁决本轮不添加source-config scope：它对这个URL没有修复价值，因为两个业务PDF都在候选范围内，无论选哪一个，正确结果仍是附件保护拒绝。报告不改来源配置；不能缩到正文selector求`ok`。这一次响应不证明所有会计司页面都共享同一层级或附件布局。
 
 ## 现有完整会计司缓存的实际DOM
 
@@ -85,6 +85,6 @@ GATE_2=NOT_PASSED。
 
 **RISKS**：没有请求附件，所以两个PDF href的MIME/bytes和PDF内容未知；“附件下载”标签、链接标题及正文清单提供页面业务关系，不证明文件完整。一个页面不能证明会计司所有模板或所有时段都共享此scope布局；这次raw不改写旧direct-extract证据。
 
-**BLOCKERS**：目标页DOM证据已具备；具体行业 `attachmentScopeSelector` 是否写入由Root另行决定，本文未改配置。Gate 2仍为NOT_PASSED。
+**BLOCKERS**：本URL没有阻止DOM判断的证据缺口；Root已决定不新增source scope，因为它不改变该页结果。Gate 2仍为NOT_PASSED。
 
-**NEXT**：QA只读复核ignored raw/hash及逐anchor摘要；Root另行决定是否采用`.box_content`或`.my_conboxzw`作为该source scope。任何候选都必须继续令两项PDF附件触发保护；后续正文extract/附件GET各自另需核销。9/4旧reason继续UNKNOWN且不重试。
+**NEXT**：QA只读复核ignored raw/hash及逐anchor摘要；本URL保持当前guard与`attachments_unprocessed`，不增source scope配置。其他URL若出现范围误拒，需新的目标DOM证据与单独范围核销。后续正文extract/附件GET各自另需核销。9/4旧reason继续UNKNOWN且不重试。

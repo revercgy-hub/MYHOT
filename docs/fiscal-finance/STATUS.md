@@ -1,10 +1,10 @@
 # 项目状态
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=8b1c4446a1c3131034a4d9b7c5ed482a92b80166（2026-10-03附件scope代码SHA；CI已对同一SHA验证。docs-only提交另记在最新检查点，不将文档提交冒充tested code SHA）
+CURRENT_SHA=1a15e3449e281ab4ce2137926f753a3f8a188f4a（2026-10-03 P4/P5离线准备代码SHA；GitHub run 37111577268对同SHA成功。最新docs-only HEAD由检查点与Git记录区分）
 SOURCE_CONFIG_SHA=0ec0704c0e60a88d84bc99d558eb569c56731c79
-CI_TESTED_SHA=8b1c4446a1c3131034a4d9b7c5ed482a92b80166（GitHub Check run 37093486152，success）
-CI_TESTED_RUN=37093486152
+CI_TESTED_SHA=1a15e3449e281ab4ce2137926f753a3f8a188f4a（GitHub Check run 37111577268，success）
+CI_TESTED_RUN=37111577268
 CI_PREVIOUS_FAILED_SHA=26ca72f2b94d37383072c0e54be6f94682b0e9bd（run 37077418870；平台修复前的历史失败仍保留）
 CI_PREVIOUS_FAILED_RUN=37077418870
 PREVIOUS_CI_TESTED_SHA=8e845812b6ce1db45821ade7b2162a90f589e1de
@@ -14,13 +14,13 @@ WORKSPACE=D:\AI-work\MYHOT\AIHOT
 STAGE=P3仍进行中：新增监管局两源完成完整首页各两轮collector、18篇正文与相邻历史页核验；会计司/预算司两个核心源完成完整首页各两轮、正文最多12篇核验；OMO新增一次9/29→9/30首页跨日更新。两批HTTP计数hook失效、hop预算未证；仍缺更长周期、深页/栏目覆盖、区域短正文与正文失败原因处置。本地3样本人工预览已恢复；Gate 2尚未通过。
 GATE=Gate 1 PASSED；Gate 2 尚未通过，不能开始大规模采集。S1范围裁决`ARCHITECTURE_PHASE_DEPENDENCIES.md`的`DECISION=APPROVED`仅适用依赖范围，不等于Gate 2通过。
 REVIEW=Sol Gate 1 Review已由Lead核销修复并通过；AD-008日期/titleAttribute、AD-009短正文与PDF PoC、AD-010附件envelope、AD-011 route文案及AD-012本地人工样本预览均按批准范围实施。fresh fiscalhot_content_preview_test 35 migrations后 npm test 156/156；AD-012 focused guard 4/4、typecheck、web build、web tests 15/15、smoke 30/30通过。Ubuntu Check run [36589569943](https://github.com/revercgy-hub/MYHOT/actions/runs/36589569943) 对 tested SHA `dafe9386838f6423dba8e080c51cd9114066992f` 全绿；验证通用 Linux 测试/构建，不含真实官方PDF解析。厦门第十六期PDF完成一次受限 GET，解析状态 `pdf_page_no_text`；未得到页数/字段，也未保存原始 bytes。Gate 2未通过。
-LATEST_CI=最新 GitHub Check run [37093486152](https://github.com/revercgy-hub/MYHOT/actions/runs/37093486152) 对 `CI_TESTED_SHA=8b1c4446a1c3131034a4d9b7c5ed482a92b80166` 成功，Docker与check job均全绿；backend tests 222项、221 pass、0 fail、1 skipped（Windows-only monitor），Web tests 15/15。覆盖install/typecheck/Web build/migrations/seed/smoke/backend tests。不包含真实OCR或真实来源正文验收，也不表示Gate 2通过。
+LATEST_CI=GitHub Check run [37111577268](https://github.com/revercgy-hub/MYHOT/actions/runs/37111577268) 对 `CI_TESTED_SHA=1a15e3449e281ab4ce2137926f753a3f8a188f4a` 成功，Docker与check jobs均success；CI backend tests 234项、233通过、0失败、1跳过（Windows-only monitor），Web tests 15/15。CI仅是代码software checks，不代表Gate 2/3/4、真实provider或来源覆盖验收。
 CURRENT_TURN=12源仍全部disabled、全文关闭。核心会计司/预算司全首页隔离批次：accounting两轮 `10/10/10/0 → 10/10/0/0`，预算司 `10/1/1/0 → 10/10/9/0`，第二轮实际新增9篇旧文。20篇中尝试正文12篇，6 `ok`、6 `unconfirmed`，8 `pending`；失败原因unknown，20个extract jobs未消费。区域完整首页隔离批次：中央/厦门两源 `8/8/8/0→8/8/0/0`、`10/10/10/0→10/10/0/0`，18篇全`ok/rev2`、第二轮0新增。两个批次Undici dispatch计数hook均未命中；核心批次真实hop数unknown，区域至少25次guardedFetch调用且总hop unknown，预算上限均不能判通过。后续新增离线 `scripts/fiscal/p3-http-budget.ts`，以backend Undici Agent/ProxyAgent dispatch admission计数、阻止第N+1次 dispatch；5项localhost测试通过。它仅覆盖该后端Undici实例，不含OS全局请求、其他Undici副本、worker、私网旁路和proxy CONNECT内部；这不追认历史批次预算。本段旧批次总结未含后续单独核销；唯一新增的July14会计司单篇详情诊断已执行，见本文件2026-10-03增量。区域跨源identity overlap为0、运行时dedupe unknown；短正文、长期窗口、深页和更多来源仍未验。OMO有9/29至9/30第191→192号首页变化，20项窗口一入一出；仅一次跨日证据。会计司列表/详情/正文日均9/22，旧9/21说法为UTC切日/URL误读；厦门证监API列表/可见日均9/15，9/23生成元数据语义未知。Lead已接受福建现金管理PDF23行、厦门债PDF单页的双Luna人工核对，仅为`manual_sample_evidence=ACCEPTED`，不表示机器正文`ok`、来源验收、Gate2、P4或publication。扫描路线提案见 [P3_SCAN_BODY_PROPOSAL.md](P3_SCAN_BODY_PROPOSAL.md)，限域PoC已按S1尝试一次固定五页路线，但`chi_sim.traineddata`请求在30秒时限中断；因无重试授权，OCR/gold对照均`NOT_RUN`，详见 [P3_SCAN_OCR_POC_RESULT.md](P3_SCAN_OCR_POC_RESULT.md) 和独立gold审阅。OCR不是Gate2通用前置。
-BLOCKERS=12源覆盖和长周期稳定性未证；核心/区域旧批次dispatch证据缺口保持unknown。核心批次仍有8 pending、6 unconfirmed，预算司旧候选同步语义待裁定。区域既有五篇短正文已人工复核（2项具备最小业务证据、3项拒绝；其中2项详情日期unknown），同批另有224/259/296字三篇未纳入这五篇审查，需按候选定义另行处理。遗留jobs不可交给泛worker。厦门债务正文质量假阳性和机器PDF解析、福建现金管理扫描件正文仍未解决。July14会计司DOM观察确认两个正文外PDF样式链接位于业务附件区，因此该页`attachments_unprocessed`保护有效；不支持将该页拒绝归因于无关导航/页脚。通用scope未配置到生产source。Linux真实PDF集成最迟P7/Gate4前补验；NAS硬RSS/隔离在P8/P9/Gate5，不是当前Gate2硬前置。
+BLOCKERS=Gate 2尚未满足：首页滑窗/跨周期、核心正文缺口及各源实际覆盖的证据仍不齐；历史hop unknown仅不可追认，可由未来经审计的新范围证据替代。P4真实provider配置/凭据当前缺失；Gold只有8条草稿且全未人工确认；P6的25–35候选调查与P7验收尚未开始。
 
 COMPLETED=P0接管；财政金融静态改造和Gate 1；12源disabled配置与preview；P3三源30篇列表两轮和正文验证（29 ok/1 unconfirmed）；AD-009/AD-010单篇隔离提取；OMO第191/192号样本和一次跨日首页变化；区域相邻历史页、双来源完整首页两轮和18篇正文；会计司/预算司完整首页两轮、12篇正文尝试并得6 ok/6 unconfirmed，8篇pending；会计司/厦门证监日期口径审计；福建现金管理四页23行、厦门债券单页字段双Luna人工图像复核，Lead接受为有限P3人工样本事实。以上不改变机器失败状态、来源验收或Gate结论。通用Linux CI未解析真实官方PDF，两个新批次hop预算均未证。
-IN_PROGRESS=Gate 2未通过。12个配置源仍未证明完整栏目覆盖/长期稳定；会计司、预算司、中央区域、厦门区域有完整首页隔离样本，但都不是长周期覆盖。此次S1增加通用可选HTML附件scope及identity-first拒绝顺序，未修改`industry/sources.json`；July14页面实际DOM显示两个PDF样式链接属于正文外业务附件区，因此该页仍应拒绝，source scope未核销。区域五篇短正文已审阅，跨源dedupe仍unknown；核心批次6 unconfirmed及8 pending。日期口径与环境证据详见历史增量和最新检查点。P3仍进行中。
-NEXT=继续补齐源级栏目/首页滑窗/跨周期证据，并按既有12源优先级处理机器正文负例；对同批其余短候选是否纳入审查先按候选定义划界。附件scope实现已通过fresh回归与GitHub CI，但未配置任何生产source；不对July14页面发起第二次请求，不取附件、不运行OCR/worker/model。任何新URL或行业配置值都需Root单独核销。所有生产source维持disabled/fulltext关闭，Gate 2仍NOT_PASSED。优先级见[P3_GATE2_NEXT_BATCH_2026-10-03.md](P3_GATE2_NEXT_BATCH_2026-10-03.md)。
+IN_PROGRESS=P3/Gate 2继续进行。P4只完成只读pilot planner准备、P5只完成Gold元数据validator/模板；两者focused和fresh软件回归通过，不构成正式P4模型验证或P5人工Gold评测。P4模型执行需Gate 2正式通过、用户/负责人提供真实provider配置及单独授权。当前只有12个disabled配置source，P6尚未调查25–35 feeds，P7和Gate 4未进行。详见最新P4-P7检查点。
+NEXT=继续完成P3 Gate 2既定覆盖、首页窗口/跨周期与正文质量证据，再由Root决定正式Sol审查。Gate 2正式通过前仅做P4/P5离线准备，不运行实际模型/worker；Gold标签须由读者人工确认。P6逐源调查并配置25–35目标仍未开始；P7须针对最终完整交付状态重新验证，不能用当前软件绿色代替Gate 4。详细准入边界见[P4-P7执行计划](P4_P7_EXECUTION_PLAN.md)。
 
 ## 2026-10-03 本机诊断与fresh质量回归增量
 
@@ -79,3 +79,7 @@ preview只读复核：`fiscalhot_preview_test`有35 migrations、3条source均di
 会计司单篇验证见 [P3正文策略结果](P3_ACCOUNTING_BODY_POLICY_2026-10-03.md)。新隔离库 `fiscalhot_oct03_accounting_live_test` 有35 migrations；source disabled、仅一条固定article。对固定短表名单URL的direct `extractArticleBody()`仅执行一次，Undici `maxRequests=1`实际`attempted/dispatched/rejected=1/1/0`，HTTP 200，无redirect/retry/第二请求；最终 `body_status=unconfirmed/revision=1`，无正文和内容hash。原始响应未保存，runner漏记helper decline reason，故拒绝原因unknown。此为正文未确认，不是source通过；不重复请求、不猜测原因，9/9离线结果不能覆盖此失败。
 
 本日没有重跑collector、批量source抓取或修改preview DB；单篇live验证只触及独立新 `_test`库。Gate 2继续 `NOT_PASSED`，12个生产source均保持disabled/fulltext关闭。下一步先离线审查一次请求内持久化structured helper reason所需的最小诊断方案；再次访问官方详情前须由Lead单独核销新请求边界。训练文件准备完成不自动授权OCR，保持执行锁及 `OCR_RUN_ENABLED`关闭。以上工具和有限正文证据不代表长期来源质量、完整栏目覆盖或Gate通过。
+
+## 2026-10-03 P4/P5离线准备与P6/P7准入增量
+
+新P4只读样本准备器和P5 Gold schema validator通过本机fresh回归；实际模型调用/分析写入为0。P4 planner的`ready`仅描述read-only快照候选状态；P5模板8条人工决策均为null/needs_review，校验结果`DRAFT_INCOMPLETE`，并非Gold。真实P4 provider缺失：无`.env`且provider环境变量不存在。详细测试、数据库/服务边界和阶段条件见[执行计划](P4_P7_EXECUTION_PLAN.md)、[最新准备检查点](HANDOFFS/P4_P7_PREPARATION_2026-10-03.md)、[P4报告](P4_PILOT_READINESS.md)与[P5报告](P5_GOLD_DATASET_READINESS.md)。Gate 2仍NOT_PASSED；P4/P5正式阶段、P6扩源、P7/Gate4均未完成。
