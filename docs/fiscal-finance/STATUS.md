@@ -1,7 +1,8 @@
 # 项目状态
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=dd3835460d4f6d180209acbe0a48e4b142ea7ac0（2026-10-04 S1实现代码；origin feat/fiscal-finance-hot；本地fresh全套与CI run 37163791233均已通过）
+CURRENT_SHA=以 `git rev-parse HEAD` 实时读取的当前分支HEAD为准（docs提交不自引用）
+CHECKPOINT_CODE_SHA=dd3835460d4f6d180209acbe0a48e4b142ea7ac0（2026-10-04 S1实现及CI测试代码；本地fresh全套与CI run 37163791233均已通过）
 SOURCE_CONFIG_SHA=dd3835460d4f6d180209acbe0a48e4b142ea7ac0（12个disabled source JSON随S1代码提交；未导入数据库或启用）
 CI_TESTED_SHA=dd3835460d4f6d180209acbe0a48e4b142ea7ac0
 CI_TESTED_RUN=37163791233（success；[GitHub Actions](https://github.com/revercgy-hub/MYHOT/actions/runs/37163791233)）
@@ -10,7 +11,7 @@ CI_PREVIOUS_FAILED_RUN=37077418870
 PREVIOUS_CI_TESTED_SHA=8e845812b6ce1db45821ade7b2162a90f589e1de
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 ROUND_BASE_SHA=ea5d3af0d8241772ea6fac0abcc26386d81c6d36（本轮worktree恢复基线，不替代项目BASE_SHA）
-DOC_HEAD=本轮独立docs-only提交，确切SHA见当前分支HEAD/最终交接；与CI测试代码SHA分开记录
+DOC_HEAD=以恢复时 `git rev-parse HEAD` 为准（docs-only HEAD；CI code SHA已单独记录）
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
 
 STAGE=P3 / Gate 2 remediation；S1实现已提交，fresh local software checks及当前code SHA的CI均通过。Gate 2尚未正式通过。
@@ -22,7 +23,7 @@ BLOCKERS=Gate 2尚未满足：35局逐局栏目、正文日期/业务质量、�
 
 COMPLETED=P0接管；财政金融行业静态改造和Gate 1；12源disabled配置；截至本轮的P3样本及人工证据；S1日期门禁、附件诊断及出版读取防漏实现/测试（代码dd38354，本地fresh checks 250/250，CI run 37163791233 success）；2026-10-04区域batch1三局详情与batch2/3八局首页/栏目只读调查。上述均不改变来源验收或Gate结论。
 IN_PROGRESS=Gate 2证据与全35局覆盖继续；当前有厦门一条已有disabled逐局source配置，11局新增有限页面观察（其中只有3局有单篇详情，8局没有详情），其余23局仍缺本批栏目证据。P4只完成只读pilot规划，真实模型provider配置尚缺；P5仅有metadata validator/8条未确认模板，不构成人工Gold评测；P6 25–35候选调查和P7/Gate4未完成。
-NEXT=完成本轮docs-only检查点并单独提交/推送；随后按[Gate 2行动清单](GATE2_ACTION_CHECKLIST.md)和[逐局矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)核验详情日期、正文、窗口/分页与跨周期稳定性。下一项候选工程任务是为福建、北京、上海增加disabled配置与fixture集成测试，特别验证北京详情元数据更新后的二阶段抽取；本次尚未实施或验收。未来联网操作另行核销。禁止因软件测试绿而启用source、collector、worker或真实模型。P4 provider问题保持既有pending，不重复询问；阶段入口见[P4-P7计划](P4_P7_EXECUTION_PLAN.md)。
+NEXT=按[Gate 2行动清单](GATE2_ACTION_CHECKLIST.md)和[逐局矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)继续补齐逐局证据；下一项工程任务是为福建、北京、上海增加disabled配置与fixture集成测试，特别验证北京详情元数据更新后的二阶段抽取。该任务未实施或验收；任何新页面请求仍需单独核销。禁止因软件测试绿而启用source、collector、worker或真实模型。P4 provider问题保持既有pending，不重复询问；阶段入口见[P4-P7计划](P4_P7_EXECUTION_PLAN.md)。
 
 ## 2026-10-03 本机诊断与fresh质量回归增量
 

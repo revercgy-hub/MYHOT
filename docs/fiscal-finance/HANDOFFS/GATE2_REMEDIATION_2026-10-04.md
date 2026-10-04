@@ -11,8 +11,8 @@ PROJECT_BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 ROUND_BASE_SHA=ea5d3af0d8241772ea6fac0abcc26386d81c6d36 (this round's recovered worktree base; not the project base)
 SOURCE_CONFIG_SHA=dd3835460d4f6d180209acbe0a48e4b142ea7ac0 (12 disabled industry source objects changed in this code commit)
 CI_TESTED_SHA=dd3835460d4f6d180209acbe0a48e4b142ea7ac0; run [37163791233](https://github.com/revercgy-hub/MYHOT/actions/runs/37163791233) completed with success.
-DOC_HEAD=separate docs-only checkpoint commit; exact current HEAD is reported in the final handoff, distinct from the tested code SHA.  
-WORKTREE=code/tests and documentation checkpoint committed and pushed; no code changes after the tested code commit.
+DOC_HEAD=read `git rev-parse HEAD` when restoring (docs-only HEAD; CI-tested code SHA is recorded separately).  
+WORKTREE=code and stage documentation committed/pushed; recheck `git status` on restore. No code changes after the tested code commit.
 
 ## Approved scope and implementation result
 
@@ -64,7 +64,7 @@ Gate 2 remains `NOT_PASSED`; source details and cross-period evidence remain inc
 
 ## NEXT
 
-With run 37163791233 confirmed successful, commit/push this docs-only checkpoint separately. Continue with the authorized three-source disabled configuration and saved-fixture integration tests, including Beijing's detail-metadata/queued-extraction sequence. Any new page fetch still requires a separately approved bounded budget. Do not enable sources, run a collector/worker, send data to a model, or declare Gate 2 passed without the required evidence and review.
+Continue with the authorized three-source disabled configuration and saved-fixture integration tests, including Beijing's detail-metadata/queued-extraction sequence. Any new page fetch still requires a separately approved bounded budget. Do not enable sources, run a collector/worker, send data to a model, or declare Gate 2 passed without the required evidence and review.
 
 **TASK**: QA and document the S1 Gate 2 remediation plus three batches of bounded regional evidence, preserving the unpassed Gate 2 boundary.
 
@@ -78,4 +78,4 @@ With run 37163791233 confirmed successful, commit/push this docs-only checkpoint
 
 **BLOCKERS**: Regional per-source evidence and disabled-config integration remain incomplete; P4 provider config and P5 human Gold labels are missing.
 
-**NEXT**: Commit docs separately, then implement the three disabled regional source fixtures and Beijing two-stage integration tests. Keep source enablement, model calls, workers, and Gate 2 completion outside this handoff.
+**NEXT**: Implement the three disabled regional source fixtures and Beijing two-stage integration tests. Keep source enablement, model calls, workers, and Gate 2 completion outside this handoff.
