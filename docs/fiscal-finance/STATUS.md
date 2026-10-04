@@ -10,7 +10,7 @@ CI_PREVIOUS_FAILED_RUN=37077418870
 PREVIOUS_CI_TESTED_SHA=8e845812b6ce1db45821ade7b2162a90f589e1de
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 ROUND_BASE_SHA=ea5d3af0d8241772ea6fac0abcc26386d81c6d36（本轮worktree恢复基线，不替代项目BASE_SHA）
-DOC_HEAD=PENDING（docs-only提交SHA将在最终报告中记录；不等于CI测试的代码SHA）
+DOC_HEAD=本轮独立docs-only提交，确切SHA见当前分支HEAD/最终交接；与CI测试代码SHA分开记录
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
 
 STAGE=P3 / Gate 2 remediation；S1实现已提交，fresh local software checks及当前code SHA的CI均通过。Gate 2尚未正式通过。

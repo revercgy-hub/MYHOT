@@ -11,8 +11,8 @@ PROJECT_BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 ROUND_BASE_SHA=ea5d3af0d8241772ea6fac0abcc26386d81c6d36 (this round's recovered worktree base; not the project base)
 SOURCE_CONFIG_SHA=dd3835460d4f6d180209acbe0a48e4b142ea7ac0 (12 disabled industry source objects changed in this code commit)
 CI_TESTED_SHA=dd3835460d4f6d180209acbe0a48e4b142ea7ac0; run [37163791233](https://github.com/revercgy-hub/MYHOT/actions/runs/37163791233) completed with success.
-DOC_HEAD=PENDING; the separate docs-only commit SHA will be recorded in the final handoff, distinct from the tested code SHA.
-WORKTREE=code/tests committed and pushed; documentation updates remain uncommitted. No code changes after the tested code commit.
+DOC_HEAD=separate docs-only checkpoint commit; exact current HEAD is reported in the final handoff, distinct from the tested code SHA.  
+WORKTREE=code/tests and documentation checkpoint committed and pushed; no code changes after the tested code commit.
 
 ## Approved scope and implementation result
 
@@ -70,7 +70,7 @@ With run 37163791233 confirmed successful, commit/push this docs-only checkpoint
 
 **MODEL**: Luna High QA; no project model calls. Full-suite model gates used only per-test localhost fakes with real credentials/config cleared.
 
-**FILES_CHANGED**: Code/test commit `dd3835460d4f6d180209acbe0a48e4b142ea7ac0` as listed above. Docs-only worktree changes: `STATUS.md`, `SOURCE_MATRIX.md`, `REGIONAL_BUREAU_COVERAGE_MATRIX.md`, `PROJECT_PLAN.md`, `P4_P7_EXECUTION_PLAN.md`, `GATE2_ACTION_CHECKLIST.md`, `HANDOFFS/README.md`, this checkpoint, plus owned regional/S1 reports. Final docs commit SHA is not known yet.
+**FILES_CHANGED**: Code/test commit `dd3835460d4f6d180209acbe0a48e4b142ea7ac0` as listed above. Documentation-only commit contains `STATUS.md`, `SOURCE_MATRIX.md`, `REGIONAL_BUREAU_COVERAGE_MATRIX.md`, `PROJECT_PLAN.md`, `P4_P7_EXECUTION_PLAN.md`, `GATE2_ACTION_CHECKLIST.md`, `HANDOFFS/README.md`, this checkpoint, and owned regional/S1 reports. The exact latest docs HEAD is reported separately from the CI-tested code SHA.
 
 **RESULT**: S1 implementation passed final local fresh software regression and CI run 37163791233. Gate 2 remains not passed. Preview sample content/revision remained unchanged through read-only checks and GET smoke; production source rows were not changed by QA.
 
