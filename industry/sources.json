@@ -13,7 +13,7 @@
         "publishedAtSelector": "span",
         "allowUrlPrefixes": ["https://yss.mof.gov.cn/gongzuodongtai/"],
         "publishedAtUtcOffset": "+08:00",
-        "_aihot": { "initialBackfillMonths": 3 }
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
       },
       "tier": "T1",
       "first_party": true,
@@ -37,7 +37,7 @@
         "publishedAtSelector": "span.bf-pass",
         "allowUrlPrefixes": ["https://czt.fujian.gov.cn/zwgk/tzgg/"],
         "publishedAtUtcOffset": "+08:00",
-        "_aihot": { "initialBackfillMonths": 3 }
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
       },
       "tier": "T1",
       "first_party": true,
@@ -62,7 +62,7 @@
         "allowUrlPrefixes": ["https://cz.xm.gov.cn/zwxx/czsj/dfzxx/"],
         "publishedAtUtcOffset": "+08:00",
         "detail": { "bodySelector": ".Custom_UnionStyle" },
-        "_aihot": { "initialBackfillMonths": 3 }
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
       },
       "tier": "T1",
       "first_party": true,
@@ -87,7 +87,7 @@
         "allowUrlPrefixes": ["https://xiamen.pbc.gov.cn/xiamen/127699/"],
         "publishedAtUtcOffset": "+08:00",
         "titleAttribute": "title",
-        "_aihot": { "initialBackfillMonths": 3 }
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
       },
       "tier": "T1",
       "first_party": true,
@@ -111,7 +111,7 @@
         "publishedAtSelector": "span",
         "publishedAtUtcOffset": "+08:00",
         "allowUrlPrefixes": ["https://zhs.mof.gov.cn/zhengcefabu/"],
-        "_aihot": { "initialBackfillMonths": 3 }
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
       },
       "tier": "T1",
       "first_party": true,
@@ -141,7 +141,7 @@
           "attachmentSelector": "div.gu-download:has(> p#down-tit1):has(> ul#down1)",
           "attachmentMode": "optional"
         },
-        "_aihot": { "initialBackfillMonths": 3 }
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
       },
       "tier": "T1",
       "first_party": true,
@@ -182,7 +182,7 @@
             }
           ]
         },
-        "_aihot": { "initialBackfillMonths": 3 }
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
       },
       "tier": "T1",
       "first_party": true,
@@ -212,7 +212,7 @@
           "bodySelector": "#zoom",
           "allowShortBody": true
         },
-        "_aihot": { "initialBackfillMonths": 3 }
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
       },
       "tier": "T1",
       "first_party": true,
@@ -236,7 +236,7 @@
         "publishedAtSelector": "span",
         "publishedAtUtcOffset": "+08:00",
         "allowUrlPrefixes": ["https://zwgls.mof.gov.cn/tjsj/"],
-        "_aihot": { "initialBackfillMonths": 3 }
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
       },
       "tier": "T1",
       "first_party": true,
@@ -261,7 +261,7 @@
         "publishedAtUtcOffset": "+08:00",
         "urlTemplate": "https:{raw:url}",
         "allowUrlPrefixes": ["https://www.csrc.gov.cn/xiamen/c101757/"],
-        "_aihot": { "initialBackfillMonths": 3 }
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
       },
       "tier": "T1",
       "first_party": true,
@@ -294,7 +294,7 @@
           "http://hq.mof.gov.cn/", "http://cq.mof.gov.cn/", "http://sc.mof.gov.cn/", "http://gz.mof.gov.cn/", "http://yn.mof.gov.cn/",
           "http://sx.mof.gov.cn/", "http://gs.mof.gov.cn/", "http://qh.mof.gov.cn/", "http://nx.mof.gov.cn/", "http://xj.mof.gov.cn/"
         ],
-        "_aihot": { "initialBackfillMonths": 3 }
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
       },
       "tier": "T1",
       "first_party": true,
@@ -318,7 +318,7 @@
         "publishedAtSelector": "span",
         "publishedAtUtcOffset": "+08:00",
         "allowUrlPrefixes": ["https://xm.mof.gov.cn/caizhengjiancha/"],
-        "_aihot": { "initialBackfillMonths": 3 }
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
       },
       "tier": "T1",
       "first_party": true,

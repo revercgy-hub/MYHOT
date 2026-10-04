@@ -118,7 +118,11 @@ function composePdfSegments(notice: ExtractedBody | null, pdf: Extract<FetchedPd
   return { html, text, images: notice?.images ?? [], via: "selector" };
 }
 
-export interface PdfBodyResult { body: ExtractedBody | null; reason: string | null }
+export interface PdfBodyResult {
+  body: ExtractedBody | null;
+  reason: string | null;
+  attachments?: Array<{ url: string; title: string }>;
+}
 
 /** Shared strict HTML-envelope path for detail prefetch and the article-body job. */
 export async function extractHtmlEnvelopeWithPdf(
@@ -141,17 +145,17 @@ export async function extractHtmlEnvelopeWithPdf(
     publishedAtUtcOffset: config.publishedAtUtcOffset,
   };
   const selected = extractSelectedArticleEnvelope(html, url, envelopeConfig, expected);
-  if (!selected.body) return { body: null, reason: selected.reason ?? "body_unconfirmed" };
+  if (!selected.body) return { body: null, reason: selected.reason ?? "body_unconfirmed", ...(selected.attachments ? { attachments: selected.attachments } : {}) };
   if (!selected.attachment) {
-    if (config.attachmentMode !== "optional") return { body: null, reason: "attachment_required" };
+    if (config.attachmentMode !== "optional") return { body: null, reason: "attachment_required", attachments: [] };
     // extractSelectedArticleEnvelope enforces the existing 200-character threshold in this branch;
     // allowShortBody is intentionally not carried into the no-attachment case.
     return { body: selected.body, reason: null };
   }
   const pdf = await fetchAndParseOfficialPdf(selected.attachment.url, allowUrlPrefixes, fetcher);
-  if (!pdf.ok) return { body: null, reason: pdf.reason };
+  if (!pdf.ok) return { body: null, reason: pdf.reason, attachments: [selected.attachment] };
   const body = composeHtmlAndPdfBody(selected.body, pdf, selected.attachment.title);
-  return body ? { body, reason: null } : { body: null, reason: "pdf_layout_invalid" };
+  return body ? { body, reason: null } : { body: null, reason: "pdf_layout_invalid", attachments: [selected.attachment] };
 }
 
 /** Shared entry for an already fetched detail HTML response. Unconfigured sources retain selector semantics. */
@@ -181,7 +185,7 @@ export async function extractConfiguredHtmlBody(
     return extractHtmlEnvelopeWithPdf(html, url, config as PdfSourceBodyConfig, expected, allowUrlPrefixes, fetcher);
   }
   const result = extractSelectedBody(html, url, config, expected);
-  return { body: result.body, reason: result.reason };
+  return { body: result.body, reason: result.reason, attachments: result.attachments };
 }
 
 /** Shared direct-PDF opt-in path; never used unless detail.pdfDirect is explicitly true. */
@@ -192,9 +196,9 @@ export async function extractDirectPdfBody(
   fetcher: PdfFetcher = guardedFetch,
 ): Promise<PdfBodyResult> {
   const pdf = await fetchAndParseOfficialPdf(url, allowUrlPrefixes, fetcher);
-  if (!pdf.ok) return { body: null, reason: pdf.reason };
+  if (!pdf.ok) return { body: null, reason: pdf.reason, attachments: [{ url, title }] };
   const body = composePdfSegments(null, pdf, title);
-  return body ? { body, reason: null } : { body: null, reason: "pdf_layout_invalid" };
+  return body ? { body, reason: null } : { body: null, reason: "pdf_layout_invalid", attachments: [{ url, title }] };
 }
 
 /** Validate one parser result before it can be persisted as a complete body. */

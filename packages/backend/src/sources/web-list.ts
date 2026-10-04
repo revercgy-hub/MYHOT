@@ -4,6 +4,7 @@ import { guardedFetch } from "../lib/http-fetch.ts";
 import { collapseWhitespace, stripTags } from "../lib/text.ts";
 import { readable, type ExtractedBody } from "../content/extract.ts";
 import { extractConfiguredHtmlBody, extractDirectPdfBody, type PdfFetcher, type PdfSourceBodyConfig } from "../content/pdf-body.ts";
+import { attachmentDiagnosticForFailure, type AttachmentDiagnostic } from "../content/attachment-diagnostics.ts";
 import { sanitizeBody } from "../content/sanitize.ts";
 import { jinaRead } from "../providers/jina.ts";
 import { parseLooseDate } from "./date.ts";
@@ -300,7 +301,7 @@ export interface DetailNeed {
  * text ("Published Time: …", "# Heading"), so that paid rendering is bought only when such a rule is
  * needed; selectors and page metadata read the page's own HTML.
  */
-export async function fetchDetail(url: string, source: SourceRow, need: DetailNeed, options: { fetcher?: PdfFetcher } = {}): Promise<{ publishedAt: Date | null; title: string | null; summary: string | null; body: ExtractedBody | null }> {
+export async function fetchDetail(url: string, source: SourceRow, need: DetailNeed, options: { fetcher?: PdfFetcher } = {}): Promise<{ publishedAt: Date | null; title: string | null; summary: string | null; body: ExtractedBody | null; attachmentDiagnostic?: AttachmentDiagnostic }> {
   const d = source.config.detail ?? {};
   const fetcher = options.fetcher ?? guardedFetch;
   const pdfConfigured = d.pdfDirect === true || typeof d.attachmentSelector === "string";
@@ -310,12 +311,16 @@ export async function fetchDetail(url: string, source: SourceRow, need: DetailNe
   const jina = dateInJina || titleInJina ? (await jinaRead(url, { purpose: "source_detail", subject: `source:${source.id}` })).raw : null;
   let html: string | null = null;
   let body: ExtractedBody | null = null;
+  let attachmentDiagnostic: AttachmentDiagnostic | null = null;
   if (need.body && d.pdfDirect === true) {
     const result = await extractDirectPdfBody(url, need.expectedTitle ?? "", source.config.allowUrlPrefixes ?? [], fetcher);
     body = result.body;
+    if (!body && result.reason) attachmentDiagnostic = attachmentDiagnosticForFailure(d, {
+      articleUrl: url, reason: result.reason, attachments: result.attachments ?? [],
+    });
     if (!body && result.reason) console.warn(JSON.stringify({ level: "warn", msg: "source body selector declined", source: source.id, reason: result.reason }));
   }
-  const hasSelectedBodyConfig = !!d.bodySelector || !!d.attachmentSelector || Array.isArray(d.bodyPolicies);
+  const hasSelectedBodyConfig = !!d.bodySelector || !!d.attachmentSelector || Array.isArray(d.bodyPolicies) || d.attachmentScopeSelector !== undefined;
   if (!d.pdfDirect && ((need.date && !dateInJina) || (need.title && !titleInJina) || need.summary || (need.body && hasSelectedBodyConfig))) {
     const res = await fetcher(url, { timeoutMs: 20_000, ...(need.body && hasSelectedBodyConfig ? { maxBytes: 6 * 1024 * 1024 } : {}) });
     if (res.status === 200) {
@@ -336,6 +341,9 @@ export async function fetchDetail(url: string, source: SourceRow, need: DetailNe
             const selected = await extractConfiguredHtmlBody(html, res.url, bodyConfig,
               { title: need.expectedTitle ?? "", publishedAt: need.expectedPublishedAt ?? null }, source.config.allowUrlPrefixes ?? [], fetcher);
             body = selected.body;
+            if (!body && selected.reason) attachmentDiagnostic = attachmentDiagnosticForFailure(d, {
+              articleUrl: url, reason: selected.reason, attachments: selected.attachments ?? [],
+            });
             if (!body && selected.reason) console.warn(JSON.stringify({ level: "warn", msg: "source body selector declined", source: source.id, reason: selected.reason }));
           } else body = readable(html, res.url);
         }
@@ -381,5 +389,5 @@ export async function fetchDetail(url: string, source: SourceRow, need: DetailNe
     const el = $(d.summarySelector).first();
     summary = collapseWhitespace(el.attr("content") ?? el.text()) || null;
   }
-  return { publishedAt, title, summary, body };
+  return { publishedAt, title, summary, body, ...(attachmentDiagnostic ? { attachmentDiagnostic } : {}) };
 }

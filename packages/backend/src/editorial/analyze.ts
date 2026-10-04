@@ -407,6 +407,8 @@ export interface AnalyzeResult {
   stale: boolean;
   /** The article page is to be fetched first; nothing was committed. */
   needsBody?: boolean;
+  /** A configured attachment remains unprocessed; automatic model work waits for real parsing. */
+  skippedReason?: string;
   output: ReturnType<typeof normalizeAnalysis> | null;
   receiptIds: number[];
   reused: boolean;
@@ -419,6 +421,7 @@ export interface AnalyzeResult {
 export async function analyzeArticle(articleId: string, opts: StepOpts = {}): Promise<AnalyzeResult | null> {
   const input = await loadAnalyzeInput(articleId);
   if (!input) return null;
+  if (input.attachmentPendingReason) return { analysisId: null, stale: false, skippedReason: input.attachmentPendingReason, output: null, receiptIds: [], reused: true };
   // Its page first; extraction queues the analysis again (normally the queue already routed it there).
   if (waitsForPage(input)) return { analysisId: null, stale: false, needsBody: true, output: null, receiptIds: [], reused: true };
   const run = await runAnalysis(input, opts);

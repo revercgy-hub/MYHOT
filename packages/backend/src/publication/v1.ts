@@ -3,7 +3,7 @@ import type { PublicApiCategoryKey } from "@aihot/contracts/taxonomy";
 import { sql, type Db } from "../db.ts";
 import { decodeCursor, encodeCursor, InvalidCursorError, queryBinding } from "../lib/cursor.ts";
 import { newShortId } from "../lib/ids.ts";
-import { categoryCondition, API_ITEM_COLUMNS, API_ITEM_FROM, listedCondition, selectedCondition, type ApiItemRow } from "./items.ts";
+import { categoryCondition, API_ITEM_COLUMNS, API_ITEM_FROM, listedCondition, pendingAttachment, selectedCondition, type ApiItemRow } from "./items.ts";
 import { publicMatchCondition, searchTerms, withSearchCapacity } from "./pool.ts";
 import { v1Payload, type V1ItemPayload } from "./publish.ts";
 
@@ -153,7 +153,13 @@ export async function selectedSnapshot(q: SnapshotQuery, now = new Date()) {
       ORDER BY article_id, seq DESC
     ) latest
     JOIN selected_state st ON st.article_id = latest.article_id AND st.in_set
+    JOIN articles current_article ON current_article.id = latest.article_id
+    LEFT JOIN editorial_overrides current_override ON current_override.article_id = latest.article_id
     WHERE latest.op = 'upsert'
+      AND NOT (coalesce((
+        ${pendingAttachment(sql`current_article.raw`)}
+        AND current_override.fields -> 'selected' IS DISTINCT FROM 'true'::jsonb
+      ), false))
     ORDER BY latest.article_id
     LIMIT ${q.limit + 1}`;
   const page = rows.slice(0, q.limit);
@@ -188,9 +194,28 @@ export async function selectedChanges(q: { cursor: string; limit: number }, now 
     if (c.w > Number(max?.m ?? 0)) throw new SnapshotRequiredError("watermark is ahead of this ledger");
   }
   const rows = await sql<{ seq: number; article_id: string; op: "upsert" | "remove"; changed_at: Date; payload: V1ItemPayload | null }[]>`
-    SELECT seq, article_id, op, changed_at, ${ledgerPayload(c.f === "minimal")} AS payload FROM selected_ledger
-    WHERE seq > ${c.w} AND seq <= ${w}
-    ORDER BY seq LIMIT ${q.limit + 1}`;
+    SELECT l.seq, l.article_id,
+      CASE WHEN l.op = 'upsert' AND (
+        coalesce(current_state.in_set, false) = false
+        OR (
+          ${pendingAttachment(sql`current_article.raw`)}
+          AND (current_override.fields -> 'selected' IS DISTINCT FROM 'true'::jsonb OR l.seq < current_state.last_seq)
+        )
+      ) THEN 'remove' ELSE l.op END AS op,
+      l.changed_at,
+      CASE WHEN l.op = 'upsert' AND (
+        coalesce(current_state.in_set, false) = false
+        OR (
+          ${pendingAttachment(sql`current_article.raw`)}
+          AND (current_override.fields -> 'selected' IS DISTINCT FROM 'true'::jsonb OR l.seq < current_state.last_seq)
+        )
+      ) THEN NULL ELSE ${ledgerPayload(c.f === "minimal", sql`l.payload`)} END AS payload
+    FROM selected_ledger l
+    LEFT JOIN selected_state current_state ON current_state.article_id = l.article_id
+    LEFT JOIN articles current_article ON current_article.id = l.article_id
+    LEFT JOIN editorial_overrides current_override ON current_override.article_id = l.article_id
+    WHERE l.seq > ${c.w} AND l.seq <= ${w}
+    ORDER BY l.seq LIMIT ${q.limit + 1}`;
   const page = rows.slice(0, q.limit);
   const hasMore = rows.length > q.limit;
   const nextW = page.length ? page[page.length - 1]!.seq : Math.max(c.w, 0);

@@ -5,13 +5,14 @@ import { tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import http from "node:http";
-import { after, before, test } from "node:test";
+import { after, before, mock, test } from "node:test";
 import { config } from "@aihot/backend/config";
 import { closeDb, sql } from "@aihot/backend/db";
 import { stopBoss } from "@aihot/backend/jobs/queue";
 import { extractArticleBody, readable } from "@aihot/backend/content/extract";
 import { collectSource } from "@aihot/backend/sources/collect";
 import { updateSource } from "@aihot/backend/admin/sources";
+import { unsupportedConfig } from "@aihot/backend/sources/config-keys";
 
 const T = tag();
 const LONG = `${"A card label that swallowed the summary of the article it links to, ".repeat(2)}${T}`;
@@ -35,6 +36,30 @@ const pages: Record<string, (base: string) => string> = {
     `<div id="notice"><p>Short but complete verified notice ${T}</p><table><tr><th>Term</th><th>Rate</th><th>Amount</th></tr><tr><td>7 days</td><td>1.40%</td><td>905 yuan</td></tr></table></div>`),
   [`/accounting-policy-list-${T}`]: () => html("", `<ul><li><a href="${base}/accounting-policy-item-${T}">从事证券服务业务会计师事务所注销备案名单</a><time datetime="2026-09-04T00:00:00+08:00">2026-09-04</time></li></ul>`),
   [`/accounting-policy-item-${T}`]: () => ACCOUNTING_POLICY_FIXTURE,
+  [`/strict-window-list-${T}`]: () => html("", `<ul>
+    <li><a href="${base}/strict-window/boundary-${T}">Boundary ${T}</a><time datetime="2026-07-06T12:00:00.000Z"></time></li>
+    <li><a href="${base}/strict-window/one-ms-old-${T}">One millisecond old ${T}</a><time datetime="2026-07-06T11:59:59.999Z"></time></li>
+    <li><a href="${base}/strict-window/future-${T}">Future ${T}</a><time datetime="2026-10-05T12:00:00.000Z"></time></li>
+    <li><a href="${base}/strict-window/invalid-${T}">Invalid date ${T}</a><time datetime="not-a-date"></time></li>
+  </ul>`),
+  [`/strict-detail-list-${T}`]: () => html("", `<ul>
+    <li><a href="${base}/strict-detail/supplement-${T}">Detail supplements date ${T}</a></li>
+    <li><a href="${base}/strict-detail/no-date-${T}">Detail has no date ${T}</a></li>
+    <li><a href="${base}/strict-detail/exhausted-${T}">Detail budget exhausted ${T}</a></li>
+  </ul>`),
+  [`/strict-detail/supplement-${T}`]: () => html("", `<p class="byline"><time datetime="2026-09-20T00:00:00.000Z"></time></p>`),
+  [`/strict-detail/no-date-${T}`]: () => html("", `<p>Deliberately has no date.</p>`),
+  [`/strict-authoritative-list-${T}`]: () => html("", `<ul>
+    <li><a href="${base}/strict-authoritative/stale-list-${T}">Old listing date, fresh detail ${T}</a><time datetime="2026-06-01T00:00:00.000Z"></time></li>
+    <li><a href="${base}/strict-authoritative/cleared-${T}">Authoritative detail clears listing date ${T}</a><time datetime="2026-09-20T00:00:00.000Z"></time></li>
+  </ul>`),
+  [`/strict-authoritative/stale-list-${T}`]: () => html("", `<h1>Fresh detail date ${T}</h1><p class="byline"><time datetime="2026-09-20T12:00:00.000Z"></time></p>`),
+  [`/strict-authoritative/cleared-${T}`]: () => html("", `<h1>No authoritative date ${T}</h1><p>There is deliberately no time element.</p>`),
+  [`/legacy-window-list-${T}`]: () => html("", `<ul>
+    <li><a href="${base}/legacy/missing-${T}">Missing date legacy ${T}</a></li>
+    <li><a href="${base}/legacy/future-${T}">Future date legacy ${T}</a><time datetime="2026-10-05T12:00:00.000Z"></time></li>
+  </ul>`),
+  [`/incremental-window-list-${T}`]: () => html("", `<ul><li><a href="${base}/incremental/missing-${T}">Incremental missing date ${T}</a></li></ul>`),
   [`/j/1-${T}`]: () => html(`<meta property="article:published_time" content="2026-09-27T01:00:00Z">`, "<p>one</p>"),
   [`/j/2-${T}`]: () => html(`<meta property="article:published_time" content="2026-09-27T02:00:00Z">`, "<p>two</p>"),
 };
@@ -92,6 +117,26 @@ const SOURCES = {
       },
     },
   },
+  strictWindow: {
+    kind: "web_list",
+    config: { url: `${base}/strict-window-list-${T}`, parseMode: "html", itemSelector: "li", linkSelector: "a", titleSelector: "a", publishedAtSelector: "time", _aihot: { initialBackfillMonths: 3, initialBackfillRequirePublishedAt: true } },
+  },
+  strictDetail: {
+    kind: "web_list",
+    config: { url: `${base}/strict-detail-list-${T}`, parseMode: "html", itemSelector: "li", linkSelector: "a", titleSelector: "a", allowUrlPrefixes: [`${base}/strict-detail/`], _aihot: { initialBackfillMonths: 3, initialBackfillRequirePublishedAt: true }, detail: { maxFetches: 2, publishedAtSelector: ".byline time" } },
+  },
+  strictAuthoritative: {
+    kind: "web_list",
+    config: { url: `${base}/strict-authoritative-list-${T}`, parseMode: "html", itemSelector: "li", linkSelector: "a", titleSelector: "a", publishedAtSelector: "time", allowUrlPrefixes: [`${base}/strict-authoritative/`], _aihot: { initialBackfillMonths: 3, initialBackfillRequirePublishedAt: true }, detail: { maxFetches: 2, publishedAtSelector: ".byline time", publishedAtAuthoritative: true } },
+  },
+  legacyWindow: {
+    kind: "web_list",
+    config: { url: `${base}/legacy-window-list-${T}`, parseMode: "html", itemSelector: "li", linkSelector: "a", titleSelector: "a", publishedAtSelector: "time", allowUrlPrefixes: [`${base}/legacy/`], _aihot: { initialBackfillMonths: 3, initialBackfillRequirePublishedAt: false } },
+  },
+  incrementalWindow: {
+    kind: "web_list",
+    config: { url: `${base}/incremental-window-list-${T}`, parseMode: "html", itemSelector: "li", linkSelector: "a", titleSelector: "a", allowUrlPrefixes: [`${base}/incremental/`], _aihot: { initialBackfillMonths: 3, initialBackfillRequirePublishedAt: true } },
+  },
   jina: { kind: "web_list", config: { url: `https://r.jina.ai/${base}/jlist-${T}`, parseMode: "markdown", allowUrlPrefixes: [`${base}/j/`], detail: { maxFetches: 5, titleRegex: "^# (.+)$" } } },
 };
 const id = (name: keyof typeof SOURCES) => `test-rules-${name}-${T}`;
@@ -99,10 +144,11 @@ let savedJina: Array<{ per_minute: number; per_hour: number; per_day: number }> 
 before(async () => {
   savedJina = await sql`SELECT per_minute, per_hour, per_day FROM budgets WHERE service = 'jina'`;
   await sql`UPDATE budgets SET per_minute = 1000, per_hour = 10000, per_day = 100000 WHERE service = 'jina'`;
-  const cursor = sql.json({ initializedAt: new Date().toISOString() });
   for (const [name, s] of Object.entries(SOURCES)) {
+    const firstImport = ["strictWindow", "strictDetail", "strictAuthoritative", "legacyWindow"].includes(name);
+    const sourceCursor = firstImport ? {} : { initializedAt: new Date().toISOString() };
     await sql`INSERT INTO sources (id, name, kind, config, tier, participation_mode, cursor, next_fetch_at)
-              VALUES (${id(name as keyof typeof SOURCES)}, ${name}, ${s.kind}, ${sql.json(s.config)}, 'T1', 'editorial', ${cursor}, '2100-01-01')`;
+              VALUES (${id(name as keyof typeof SOURCES)}, ${name}, ${s.kind}, ${sql.json(s.config)}, 'T1', 'editorial', ${sql.json(sourceCursor)}, '2100-01-01')`;
   }
 });
 after(async () => {
@@ -186,6 +232,96 @@ test("a Jina listing is read on every fetch, and buys a detail rendering only wh
   assert.equal(jinaDetailReads, 1, "one paid detail rendering: only the long title needed one");
   assert.equal((await collectSource(id("jina"), { force: true })).status, "ok");
   assert.deepEqual([jinaListingReads, jinaDetailReads], [2, 1], "every fetch reads the listing afresh; known articles buy no detail");
+});
+
+test("strict first-import window uses a fixed clock and admits the exact cutoff but not old or future dates", async () => {
+  mock.timers.enable({ apis: ["Date"], now: Date.parse("2026-10-04T12:00:00.000Z") });
+  try {
+    const result = await collectSource(id("strictWindow"), { force: true });
+    assert.equal(result.status, "ok");
+    const rows = await sql<{ url: string; published_at: Date | null; backfill: boolean }[]>`
+      SELECT url, published_at, backfill FROM articles WHERE source_id = ${id("strictWindow")} ORDER BY url`;
+    assert.deepEqual(rows.map((r) => [r.url.split("/").at(-1), r.published_at?.toISOString(), r.backfill]), [
+      [`boundary-${T}`, "2026-07-06T12:00:00.000Z", true],
+    ], "exactly 90 days is included; one millisecond older and any future date are not stored");
+    assert.equal(result.found, 4, "found remains the raw listing count, independent of first-import filtering");
+  } finally {
+    mock.timers.reset();
+  }
+});
+
+test("strict first import supplements a missing listing date, then fails closed at detail-budget exhaustion", async () => {
+  mock.timers.enable({ apis: ["Date"], now: Date.parse("2026-10-04T12:00:00.000Z") });
+  try {
+    const result = await collectSource(id("strictDetail"), { force: true });
+    assert.equal(result.status, "ok");
+    const rows = await sql<{ url: string; published_at: Date | null }[]>`
+      SELECT url, published_at FROM articles WHERE source_id = ${id("strictDetail")} ORDER BY url`;
+    assert.deepEqual(rows.map((r) => [r.url.split("/").at(-1), r.published_at?.toISOString()]), [
+      [`supplement-${T}`, "2026-09-20T00:00:00.000Z"],
+    ], "detail supplies a trusted in-window date; undated and budget-unfetched candidates are not stored");
+    assert.equal(pageReads.get(`/strict-detail/supplement-${T}`), 1);
+    assert.equal(pageReads.get(`/strict-detail/no-date-${T}`), 1, "the second allowed detail is consumed even when it contains no date");
+    assert.equal(pageReads.has(`/strict-detail/exhausted-${T}`), false, "the third candidate cannot exceed maxFetches");
+    assert.equal(result.created, 1, "final store contains only candidates that passed the post-detail date gate");
+  } finally {
+    mock.timers.reset();
+  }
+});
+
+test("authoritative detail date replaces listing dates and an authoritative missing date clears them", async () => {
+  mock.timers.enable({ apis: ["Date"], now: Date.parse("2026-10-04T12:00:00.000Z") });
+  try {
+    const result = await collectSource(id("strictAuthoritative"), { force: true });
+    assert.equal(result.status, "ok");
+    const rows = await sql<{ url: string; published_at: Date | null }[]>`
+      SELECT url, published_at FROM articles WHERE source_id = ${id("strictAuthoritative")} ORDER BY url`;
+    assert.deepEqual(rows.map((r) => [r.url.split("/").at(-1), r.published_at?.toISOString()]), [
+      [`stale-list-${T}`, "2026-09-20T12:00:00.000Z"],
+    ], "the non-authoritative stale listing date reaches detail and is replaced; authoritative absence clears a fresh list date");
+    assert.equal(pageReads.get(`/strict-authoritative/stale-list-${T}`), 1);
+    assert.equal(pageReads.get(`/strict-authoritative/cleared-${T}`), 1);
+    assert.equal(result.created, 1);
+  } finally {
+    mock.timers.reset();
+  }
+});
+
+test("explicit false preserves legacy first-import handling; the strict rule applies only to the first import", async () => {
+  mock.timers.enable({ apis: ["Date"], now: Date.parse("2026-10-04T12:00:00.000Z") });
+  try {
+    assert.equal((await collectSource(id("legacyWindow"), { force: true })).status, "ok");
+    const legacyRows = await sql<{ url: string; published_at: Date | null }[]>`
+      SELECT url, published_at FROM articles WHERE source_id = ${id("legacyWindow")} ORDER BY url`;
+    assert.deepEqual(legacyRows.map((r) => [r.url.split("/").at(-1), r.published_at?.toISOString() ?? null]), [
+      [`future-${T}`, null], [`missing-${T}`, null],
+    ], "legacy first-import behavior keeps undated and future candidates while timeline validation clears an untrusted future date");
+
+    assert.equal((await collectSource(id("incrementalWindow"), { force: true })).status, "ok");
+    const incrementalRows = await sql<{ published_at: Date | null }[]>`
+      SELECT published_at FROM articles WHERE source_id = ${id("incrementalWindow")}`;
+    assert.deepEqual(incrementalRows.map((r) => r.published_at), [null], "strict first-import behavior does not reject undated items after initialization");
+  } finally {
+    mock.timers.reset();
+  }
+});
+
+test("initialBackfillRequirePublishedAt accepts only boolean values and the industry config remains disabled", async () => {
+  assert.deepEqual(unsupportedConfig("web_list", { url: "https://example.org/", _aihot: { initialBackfillRequirePublishedAt: true } }), []);
+  assert.deepEqual(unsupportedConfig("web_list", { url: "https://example.org/", _aihot: { initialBackfillRequirePublishedAt: false } }), []);
+  for (const invalid of ["true", 1, null, {}]) {
+    assert.ok(unsupportedConfig("web_list", { url: "https://example.org/", _aihot: { initialBackfillRequirePublishedAt: invalid } }).length > 0,
+      `${JSON.stringify(invalid)} must not be coerced to a boolean`);
+  }
+  const sources = JSON.parse(readFileSync(new URL("../industry/sources.json", import.meta.url), "utf8")) as { sources: { enabled: boolean; interval_minutes: number; site_fulltext: boolean; syndicate_fulltext: boolean; config: { _aihot?: { initialBackfillMonths?: number; initialBackfillRequirePublishedAt?: boolean } } }[] };
+  assert.equal(sources.sources.length, 12);
+  for (const source of sources.sources) {
+    assert.equal(source.interval_minutes, 1440);
+    assert.deepEqual(source.config._aihot, { initialBackfillMonths: 3, initialBackfillRequirePublishedAt: true });
+    assert.equal(source.enabled, false);
+    assert.equal(source.site_fulltext, false);
+    assert.equal(source.syndicate_fulltext, false);
+  }
 });
 
 

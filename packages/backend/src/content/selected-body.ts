@@ -38,11 +38,29 @@ export interface SelectedBodyResult {
 export interface SelectedArticleEnvelopeResult {
   body: ExtractedBody | null;
   attachment: { url: string; title: string } | null;
+  attachments?: Array<{ url: string; title: string }>;
   reason: "article_missing" | "article_not_unique" | "body_missing" | "body_not_unique" | "attachment_region_not_unique" | "attachment_required" | "attachment_ambiguous" | "attachment_unsupported" | "attachment_unclassified" | "attachment_url_invalid" | SelectedBodyResult["reason"];
 }
 
 const BLOCKED_CONTAINERS = "nav,header,footer,aside,form,template,[role='navigation']";
 const STRUCTURED_CONTENT = "p,table,ul,ol,pre,blockquote,figure";
+const FILE_LINK = /\.(?:pdf|rar|7z|zip|xls?x?|docx?|pptx?)(?:$|[?#])/i;
+
+function fileReferences($: cheerio.CheerioAPI, article: cheerio.Cheerio<any>, pageUrl: string): Array<{ url: string; title: string }> {
+  const found: Array<{ url: string; title: string }> = [];
+  article.find("a[href]").each((_i: number, node: any) => {
+    const anchor = $(node);
+    const href = String(node.attribs?.href ?? "").trim();
+    const type = String(node.attribs?.type ?? "").toLowerCase();
+    let url: URL;
+    try { url = new URL(href, pageUrl); } catch { return; }
+    if (!(type === "application/pdf" || FILE_LINK.test(url.pathname))) return;
+    if (!(url.protocol === "http:" || url.protocol === "https:") || url.username || url.password) return;
+    const title = collapseWhitespace(anchor.text() || anchor.attr("title") || "").slice(0, 300);
+    found.push({ url: url.href, title });
+  });
+  return found;
+}
 
 function localDateKey(date: Date, offset: string): string | null {
   if (!Number.isFinite(date.getTime())) return null;
@@ -313,7 +331,8 @@ export function extractSelectedArticleEnvelope(
   } catch { return { body: null, attachment: null, reason: "body_missing" }; }
   if (!bodies.length) return { body: null, attachment: null, reason: "body_missing" };
   if (bodies.length !== 1) return { body: null, attachment: null, reason: "body_not_unique" };
-  if (regions.length > 1) return { body: null, attachment: null, reason: "attachment_region_not_unique" };
+  const detectedFiles = fileReferences($, article, url);
+  if (regions.length > 1) return { body: null, attachment: null, attachments: detectedFiles, reason: "attachment_region_not_unique" };
 
   let attachment: { url: string; title: string } | null = null;
   const selectedAnchors = new Set<object>();
@@ -326,24 +345,23 @@ export function extractSelectedArticleEnvelope(
       const href = anchor.attr("href")?.trim();
       const type = (anchor.attr("type") ?? "").toLowerCase();
       try {
-        if (!href) return { body: null, attachment: null, reason: "attachment_url_invalid" };
+        if (!href) return { body: null, attachment: null, attachments: detectedFiles, reason: "attachment_url_invalid" };
         const candidate = new URL(href, url);
-        if (candidate.protocol !== "https:") return { body: null, attachment: null, reason: "attachment_url_invalid" };
-        if (!/\.pdf$/i.test(candidate.pathname) && type !== "application/pdf") return { body: null, attachment: null, reason: "attachment_unsupported" };
+        if (candidate.protocol !== "https:" || candidate.username || candidate.password) return { body: null, attachment: null, attachments: detectedFiles, reason: "attachment_url_invalid" };
+        if (!/\.pdf$/i.test(candidate.pathname) && type !== "application/pdf") return { body: null, attachment: null, attachments: detectedFiles, reason: "attachment_unsupported" };
         attachment = { url: candidate.toString(), title: collapseWhitespace(anchor.text() || anchor.attr("title") || "") };
-      } catch { return { body: null, attachment: null, reason: "attachment_url_invalid" }; }
+      } catch { return { body: null, attachment: null, attachments: detectedFiles, reason: "attachment_url_invalid" }; }
     }
   }
-  const fileLink = /\.(?:pdf|rar|7z|zip|xls?x?|docx?|pptx?)(?:$|[?#])/i;
   for (const node of article.find("a[href]").toArray()) {
     const anchor = $(node);
     const href = anchor.attr("href") ?? "";
     const type = (anchor.attr("type") ?? "").toLowerCase();
     let isFile = type === "application/pdf";
-    try { isFile ||= fileLink.test(new URL(href, url).pathname); } catch { /* invalid href is not a trusted download */ }
-    if (isFile && !selectedAnchors.has(node)) return { body: null, attachment: null, reason: "attachment_unclassified" };
+    try { isFile ||= FILE_LINK.test(new URL(href, url).pathname); } catch { /* invalid href is not a trusted download */ }
+    if (isFile && !selectedAnchors.has(node)) return { body: null, attachment: null, attachments: detectedFiles, reason: "attachment_unclassified" };
   }
-  if (!attachment && (config.attachmentMode ?? "required") === "required") return { body: null, attachment: null, reason: "attachment_required" };
+  if (!attachment && (config.attachmentMode ?? "required") === "required") return { body: null, attachment: null, attachments: detectedFiles, reason: "attachment_required" };
 
   // A short notice is only provisional when a PDF is present. It can reach storage only after the
   // companion PDF has passed the complete bounded parser; the zero-attachment branch uses 200 chars.
@@ -352,7 +370,7 @@ export function extractSelectedArticleEnvelope(
     allowShortBody: attachment ? true : false,
     publishedAtUtcOffset: config.publishedAtUtcOffset,
   }, expected, { pdfAttachmentsPrevalidated: true });
-  if (!bodyResult.body) return { body: null, attachment, reason: bodyResult.reason ?? "empty_body" };
+  if (!bodyResult.body) return { body: null, attachment, ...(attachment ? { attachments: [attachment] } : {}), reason: bodyResult.reason ?? "empty_body" };
   if (!attachment && bodyResult.body.text.length < 200) return { body: null, attachment: null, reason: "short_body_not_allowed" };
   return { body: bodyResult.body, attachment, reason: null };
 }

@@ -1,9 +1,17 @@
 // The single entrance for new material from every channel (collectors, external reports, imports).
 // It owns identity, revisions and the timeline rule, so no entrance can bypass them.
-import { sql, type Db } from "../db.ts";
+import { sql, type Db, type Tx } from "../db.ts";
 import { newArticleId, sha256 } from "../lib/ids.ts";
 import { identityKeyForUrl } from "../lib/url.ts";
 import { collapseWhitespace } from "../lib/text.ts";
+import {
+  clearAttachmentDiagnostic as clearRawAttachmentDiagnostic,
+  mergeIncomingRawWithStoredDiagnostic,
+  preserveIncomingRaw,
+  readAttachmentDiagnostic,
+  setAttachmentDiagnostic,
+  type AttachmentDiagnostic,
+} from "./attachment-diagnostics.ts";
 
 export interface MediaItem {
   kind: "image" | "video";
@@ -42,6 +50,10 @@ export interface MaterialInput {
   media?: MediaItem[];
   xPost?: XPostData | null;
   raw?: unknown;
+  /** Internal parser evidence; callers must not copy this from an upstream raw payload. */
+  attachmentDiagnostic?: AttachmentDiagnostic;
+  /** Trusted signal that a complete, configured body extraction succeeded. */
+  clearAttachmentDiagnostic?: boolean;
   via: "fetch" | "ingest" | "import";
   discoveredAt?: Date;
   /** Explicit backfill: first import of a new source, or a report flagged as backfill. */
@@ -62,6 +74,12 @@ export interface MaterialResult {
 export const STALE_ON_DISCOVERY_MS = 48 * 3600 * 1000;
 // Source times more than an hour in the future are not trusted.
 export const FUTURE_TOLERANCE_MS = 3600 * 1000;
+
+/** Publish projection changes in the same transaction that adds/removes the trusted marker. */
+export async function syncAttachmentDiagnosticPublication(tx: Tx, articleId: string): Promise<void> {
+  const { publishArticleTx } = await import("../publication/publish.ts");
+  await publishArticleTx(tx, articleId);
+}
 
 export interface TimelineDecision {
   publishedAt: Date | null;
@@ -137,6 +155,8 @@ async function upsertIn(db: Db, m: MaterialInput): Promise<MaterialResult> {
   const t = decideTimeline(m.publishedAt, discoveredAt, m.backfill);
   const newId = m.id ?? newArticleId();
   const hash = contentHash({ title, bodyText: m.bodyText, excerpt: m.excerpt });
+  let insertRaw: unknown = m.raw === undefined ? null : preserveIncomingRaw(m.raw);
+  if (m.attachmentDiagnostic) insertRaw = setAttachmentDiagnostic(insertRaw, m.attachmentDiagnostic);
   const [inserted] = await db<{ id: string }[]>`
     INSERT INTO articles (id, source_id, identity_key, url, title, author, language, published_at, published_at_claim,
       discovered_at, source_updated_at, timeline_at, backfill, backfill_reason, revision, content_hash, excerpt,
@@ -144,8 +164,8 @@ async function upsertIn(db: Db, m: MaterialInput): Promise<MaterialResult> {
     VALUES (${newId}, ${m.sourceId}, ${identityKey}, ${m.url}, ${title}, ${m.author ?? null}, ${m.language ?? null},
       ${t.publishedAt}, ${m.publishedAt ?? null}, ${discoveredAt}, ${m.sourceUpdatedAt ?? null}, ${t.timelineAt},
       ${t.backfill}, ${t.backfillReason}, 1, ${hash}, ${m.excerpt ?? null}, ${m.bodyText ?? null}, ${m.bodyHtml ?? null},
-      ${m.bodyStatus ?? (m.bodyText ? "ok" : "pending")}, ${db.json((m.media ?? []) as never)},
-      ${m.xPost ? db.json(m.xPost as never) : null}, ${m.raw === undefined ? null : db.json(m.raw as never)})
+      ${m.attachmentDiagnostic ? "unconfirmed" : (m.bodyStatus ?? (m.bodyText ? "ok" : "pending"))}, ${db.json((m.media ?? []) as never)},
+      ${m.xPost ? db.json(m.xPost as never) : null}, ${insertRaw === null ? null : db.json(insertRaw as never)})
     ON CONFLICT (identity_key) DO NOTHING RETURNING id`;
   if (inserted) {
     await db`INSERT INTO article_revisions (article_id, revision, content_hash, title, body_text)
@@ -155,8 +175,8 @@ async function upsertIn(db: Db, m: MaterialInput): Promise<MaterialResult> {
     return { articleId: newId, created: true, revised: false, backfill: t.backfill };
   }
 
-  const [existing] = await db<{ id: string; source_id: string; revision: number; content_hash: string | null; backfill: boolean; title: string; body_text: string | null; excerpt: string | null }[]>`
-    SELECT id, source_id, revision, content_hash, backfill, title, body_text, excerpt FROM articles WHERE identity_key = ${identityKey} FOR UPDATE`;
+  const [existing] = await db<{ id: string; source_id: string; revision: number; content_hash: string | null; backfill: boolean; title: string; body_text: string | null; excerpt: string | null; raw: unknown }[]>`
+    SELECT id, source_id, revision, content_hash, backfill, title, body_text, excerpt, raw FROM articles WHERE identity_key = ${identityKey} FOR UPDATE`;
   await db`INSERT INTO article_discoveries (article_id, source_id, via, discovered_at)
            VALUES (${existing!.id}, ${m.sourceId}, ${m.via}, ${discoveredAt}) ON CONFLICT DO NOTHING`;
   const unchanged: MaterialResult = { articleId: existing!.id, created: false, revised: false, backfill: existing!.backfill };
@@ -164,19 +184,51 @@ async function upsertIn(db: Db, m: MaterialInput): Promise<MaterialResult> {
   // discovery only: its title and summary are its own rendering, and taking them made the article flip
   // between the two sources' versions on every fetch. Only the article's own source revises it.
   if (existing!.source_id !== m.sourceId) return unchanged;
+  const previousDiagnostic = readAttachmentDiagnostic(existing!.raw);
+  const mayClearDiagnostic = m.clearAttachmentDiagnostic === true && !!m.bodyText?.trim() && (m.bodyStatus ?? "ok") === "ok";
+  let nextRaw = m.raw === undefined ? existing!.raw : mergeIncomingRawWithStoredDiagnostic(existing!.raw, m.raw);
+  if (m.attachmentDiagnostic) nextRaw = setAttachmentDiagnostic(nextRaw, m.attachmentDiagnostic);
+  if (mayClearDiagnostic) nextRaw = clearRawAttachmentDiagnostic(nextRaw);
+  const nextDiagnostic = readAttachmentDiagnostic(nextRaw);
+  const diagnosticStateChanged = (!!previousDiagnostic !== !!nextDiagnostic);
+  const diagnosticRawChanged = JSON.stringify(existing!.raw) !== JSON.stringify(nextRaw);
+  const clearTransition = !!previousDiagnostic && !nextDiagnostic && mayClearDiagnostic;
+  const markTransition = !previousDiagnostic && !!nextDiagnostic;
+
+  const persistDiagnosticOnly = async () => {
+    if (!diagnosticRawChanged && !diagnosticStateChanged) return;
+    await db`UPDATE articles SET raw = ${nextRaw === null || nextRaw === undefined ? null : db.json(nextRaw as never)},
+      body_status = CASE WHEN ${!!nextDiagnostic} THEN 'unconfirmed' ELSE body_status END,
+      processing_state = CASE WHEN ${markTransition} THEN 'new' ELSE processing_state END,
+      processing_queued_at = CASE WHEN ${markTransition} THEN NULL ELSE processing_queued_at END,
+      processing_retry_at = CASE WHEN ${markTransition} THEN NULL ELSE processing_retry_at END,
+      updated_at = now() WHERE id = ${existing!.id}`;
+    if (diagnosticStateChanged) await syncAttachmentDiagnosticPublication(db as Tx, existing!.id);
+  };
   // What the row will hold after this report: a listing without body keeps the stored (extracted) body.
   const bodyText = m.bodyText ?? existing!.body_text;
   const excerpt = m.excerpt ?? existing!.excerpt;
   const next = contentHash({ title, bodyText, excerpt });
-  if (existing!.content_hash === next) return unchanged;
-  if (existing!.content_hash === null) {
+  const clearForcesRevision = clearTransition;
+  if (existing!.content_hash === next && !clearForcesRevision) {
+    await persistDiagnosticOnly();
+    return unchanged;
+  }
+  if (existing!.content_hash === null && !clearForcesRevision) {
     // Imported history carries no hash of this form (its collectors normalised differently): the
     // first report here records the baseline instead of a revision, so an import does not send
     // every article a source still lists back to paid analysis. The baseline joins the history, so
     // a later return to it is recognised as a version seen before.
-    await db`UPDATE articles SET content_hash = ${next}, excerpt = coalesce(excerpt, ${m.excerpt ?? null}) WHERE id = ${existing!.id}`;
+    await db`UPDATE articles SET content_hash = ${next}, excerpt = coalesce(excerpt, ${m.excerpt ?? null}),
+      raw = CASE WHEN ${diagnosticRawChanged || diagnosticStateChanged} THEN ${nextRaw === null || nextRaw === undefined ? null : db.json(nextRaw as never)}::jsonb ELSE raw END,
+      body_status = CASE WHEN ${!!nextDiagnostic} THEN 'unconfirmed' ELSE body_status END,
+      processing_state = CASE WHEN ${markTransition} THEN 'new' ELSE processing_state END,
+      processing_queued_at = CASE WHEN ${markTransition} THEN NULL ELSE processing_queued_at END,
+      processing_retry_at = CASE WHEN ${markTransition} THEN NULL ELSE processing_retry_at END,
+      updated_at = now() WHERE id = ${existing!.id}`;
     await db`INSERT INTO article_revisions (article_id, revision, content_hash, title, body_text)
              VALUES (${existing!.id}, ${existing!.revision}, ${next}, ${title}, ${bodyText}) ON CONFLICT DO NOTHING`;
+    if (diagnosticStateChanged) await syncAttachmentDiagnosticPublication(db as Tx, existing!.id);
     return unchanged;
   }
   // A version this article already had is no new material (listings that alternate between two
@@ -184,22 +236,31 @@ async function upsertIn(db: Db, m: MaterialInput): Promise<MaterialResult> {
   // already. Any earlier version counts, however long ago: a rotation with many variants would
   // otherwise start over, and a real edit reverted later is rare and loses nothing.
   const [seen] = await db`SELECT 1 FROM article_revisions WHERE article_id = ${existing!.id} AND content_hash = ${next} LIMIT 1`;
-  if (seen) return unchanged;
+  if (seen && !clearForcesRevision) {
+    await persistDiagnosticOnly();
+    return unchanged;
+  }
   // Nor is the stored version with other characters lost in transit, or with them restored.
-  if (sameBarringLoss(existing!.title, title) && sameBarringLoss(existing!.body_text, bodyText) && sameBarringLoss(existing!.excerpt, excerpt)) return unchanged;
+  if (sameBarringLoss(existing!.title, title) && sameBarringLoss(existing!.body_text, bodyText) && sameBarringLoss(existing!.excerpt, excerpt) && !clearForcesRevision) {
+    await persistDiagnosticOnly();
+    return unchanged;
+  }
 
   const [row] = await db<{ revision: number }[]>`
     UPDATE articles SET
       title = ${title}, author = coalesce(${m.author ?? null}, author), language = coalesce(${m.language ?? null}, language),
       source_updated_at = ${m.sourceUpdatedAt ?? null}, excerpt = coalesce(${m.excerpt ?? null}, excerpt),
       body_text = coalesce(${m.bodyText ?? null}, body_text), body_html = coalesce(${m.bodyHtml ?? null}, body_html),
-      body_status = CASE WHEN ${m.bodyText ?? null}::text IS NULL THEN body_status ELSE ${m.bodyStatus ?? "ok"} END,
+      body_status = CASE WHEN ${!!nextDiagnostic} THEN 'unconfirmed' WHEN ${clearTransition} THEN 'ok'
+        WHEN ${m.bodyText ?? null}::text IS NULL THEN body_status ELSE ${m.bodyStatus ?? "ok"} END,
       media = CASE WHEN ${m.media ? db.json(m.media as never) : null}::jsonb IS NULL THEN media ELSE ${m.media ? db.json(m.media as never) : null}::jsonb END,
       x_post = coalesce(${m.xPost ? db.json(m.xPost as never) : null}, x_post),
+      raw = CASE WHEN ${diagnosticRawChanged || diagnosticStateChanged} THEN ${nextRaw === null || nextRaw === undefined ? null : db.json(nextRaw as never)}::jsonb ELSE raw END,
       revision = revision + 1, content_hash = ${next}, processing_state = 'new', updated_at = now()
     WHERE id = ${existing!.id}
     RETURNING revision`;
   await db`INSERT INTO article_revisions (article_id, revision, content_hash, title, body_text)
            VALUES (${existing!.id}, ${row!.revision}, ${next}, ${title}, ${bodyText})`;
+  if (diagnosticStateChanged) await syncAttachmentDiagnosticPublication(db as Tx, existing!.id);
   return { articleId: existing!.id, created: false, revised: true, backfill: existing!.backfill };
 }

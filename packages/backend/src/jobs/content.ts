@@ -6,6 +6,7 @@
 import type { PgBoss } from "pg-boss";
 import { sql, type Db } from "../db.ts";
 import { extractArticleBody, pageFetchable } from "../content/extract.ts";
+import { hasPendingAttachmentParse, readAttachmentDiagnostic } from "../content/attachment-diagnostics.ts";
 import { analyzeArticle, AnalysisInterruptedError } from "../editorial/analyze.ts";
 import { isHistorical } from "../content/materials.ts";
 import { publishArticle } from "../publication/publish.ts";
@@ -29,6 +30,7 @@ interface Route {
   /** Not an editorial source: no analysis; the post goes straight to event grouping as discussion evidence. */
   signal: boolean;
   historical: boolean;
+  attachmentReason?: string;
 }
 
 /**
@@ -38,12 +40,14 @@ interface Route {
  * history adds no heat).
  */
 async function route(articleId: string, db: Db): Promise<Route | null> {
-  const [row] = await db<{ body_status: string; participation_mode: string; kind: string; config: Record<string, unknown>; url: string; bare: boolean; backfill: boolean; published_at: Date | null; discovered_at: Date }[]>`
-    SELECT a.body_status, s.participation_mode, s.kind, s.config, a.url, (coalesce(a.body_text, '') = '' AND a.x_post IS NULL) AS bare,
+  const [row] = await db<{ body_status: string; participation_mode: string; kind: string; config: Record<string, unknown>; url: string; bare: boolean; backfill: boolean; published_at: Date | null; discovered_at: Date; raw: unknown }[]>`
+    SELECT a.body_status, s.participation_mode, s.kind, s.config, a.url, a.raw, (coalesce(a.body_text, '') = '' AND a.x_post IS NULL) AS bare,
            a.backfill, a.published_at, a.discovered_at
     FROM articles a JOIN sources s ON s.id = a.source_id WHERE a.id = ${articleId}`;
   if (!row) return null;
   const historical = isHistorical(row);
+  const attachmentReason = readAttachmentDiagnostic(row.raw)?.reason;
+  if (hasPendingAttachmentParse(row.raw)) return { step: "analyze", signal: false, historical, attachmentReason };
   const signal = row.participation_mode !== "editorial";
   const pending = row.body_status === "pending";
   const wantsBody = row.config.fetchPublicContent === true || !!row.config.detail || row.kind === "web_list";
@@ -68,6 +72,7 @@ export async function queueProcessing(articleId: string, opts: { step?: Step; at
   const db = opts.db ?? sql;
   const r = await route(articleId, db);
   if (!r) return null;
+  if (r.attachmentReason) return null;
   const step = opts.step ?? r.step;
   await db`UPDATE articles SET processing_queued_at = now() WHERE id = ${articleId}`;
   if (step === "extract") return enqueue(QUEUES.extractBody, { articleId }, { singletonKey: articleId, priority: r.historical ? PRIORITY.history : PRIORITY.live }, opts.db);
@@ -94,10 +99,12 @@ export async function settleNonEditorial(articleId: string): Promise<{ group: bo
 }
 
 /** attemptTag makes an explicit re-evaluation a new (paid) request; the same tag reuses its receipt. */
-export async function processArticle(articleId: string, opts: { attemptTag?: string } = {}): Promise<{ state: string }> {
-  const [found] = await sql<{ participation_mode: string; processing_state: string; revision: number; backfill: boolean; published_at: Date | null; discovered_at: Date }[]>`
-    SELECT s.participation_mode, a.processing_state, a.revision, a.backfill, a.published_at, a.discovered_at FROM articles a JOIN sources s ON s.id = a.source_id WHERE a.id = ${articleId}`;
+export async function processArticle(articleId: string, opts: { attemptTag?: string } = {}): Promise<{ state: string; reason?: string }> {
+  const [found] = await sql<{ participation_mode: string; processing_state: string; revision: number; backfill: boolean; published_at: Date | null; discovered_at: Date; raw: unknown }[]>`
+    SELECT s.participation_mode, a.processing_state, a.revision, a.backfill, a.published_at, a.discovered_at, a.raw FROM articles a JOIN sources s ON s.id = a.source_id WHERE a.id = ${articleId}`;
   if (!found) return { state: "missing" };
+  const attachmentDiagnostic = readAttachmentDiagnostic(found.raw);
+  if (attachmentDiagnostic) return { state: "waiting-attachment", reason: attachmentDiagnostic.reason };
   const row = { ...found, historical: isHistorical(found) };
   if (row.participation_mode !== "editorial") {
     // Normally queued straight for grouping (queueProcessing); an explicit re-evaluation lands here.
@@ -208,7 +215,12 @@ export async function registerExtractionJobs(boss: PgBoss) {
 export async function sweepUnprocessed(): Promise<{ enqueued: number }> {
   const rows = await sql<{ id: string }[]>`
     SELECT id FROM articles
-    WHERE processing_state = 'new' AND created_at < now() - interval '3 minutes'
+    WHERE processing_state = 'new' AND NOT COALESCE((
+        raw->'_aihotBodyExtractionPipelineMarker' = 'true'::jsonb
+        AND raw->'_aihotBodyExtraction'->>'version' = '1'
+        AND raw->'_aihotBodyExtraction'->>'state' = 'pending_parse'
+        AND raw->'_aihotBodyExtraction'->>'kind' = 'attachment'), false)
+      AND created_at < now() - interval '3 minutes'
       AND (processing_retry_at IS NULL OR processing_retry_at <= now())
       AND (processing_queued_at IS NULL OR processing_queued_at < now() - ${QUEUED_STALE}::interval)
     ORDER BY discovered_at DESC LIMIT 500`;
@@ -227,7 +239,12 @@ export const failureGroupSql = (column = "processing_error") =>
 export async function requeueFailed(group: string | null): Promise<{ requeued: number }> {
   const rows = await sql<{ id: string }[]>`
     UPDATE articles SET processing_state = 'new', processing_attempts = 0, processing_retry_at = NULL, processing_error = NULL
-    WHERE processing_state = 'failed' AND discovered_at > now() - interval '30 days'
+    WHERE processing_state = 'failed' AND NOT COALESCE((
+        raw->'_aihotBodyExtractionPipelineMarker' = 'true'::jsonb
+        AND raw->'_aihotBodyExtraction'->>'version' = '1'
+        AND raw->'_aihotBodyExtraction'->>'state' = 'pending_parse'
+        AND raw->'_aihotBodyExtraction'->>'kind' = 'attachment'), false)
+      AND discovered_at > now() - interval '30 days'
       AND (${group}::text IS NULL OR ${failureGroupSql()} = ${group})
     RETURNING id`;
   for (const r of rows.slice(0, 500)) await queueProcessing(r.id);

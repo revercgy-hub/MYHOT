@@ -4,12 +4,13 @@ import TurndownService from "turndown";
 import { sql } from "../db.ts";
 import { proxyBodyImages } from "../media/imgproxy.ts";
 import { textToHtml } from "../content/sanitize.ts";
-import { ITEM_COLUMNS, ITEM_FROM, selectedCondition, toItemSummary, xView, type ItemRow } from "./items.ts";
+import { ITEM_COLUMNS, ITEM_FROM, listedCondition, pendingAttachment, selectedCondition, toItemSummary, xView, type ItemRow } from "./items.ts";
 import { itemUrl } from "./links.ts";
 import { hasItemPage } from "./rules.ts";
 import { SITE } from "@aihot/industry/site";
 
 interface DetailRow extends ItemRow {
+  pending_attachment: boolean;
   body_html: string | null;
   body_text: string | null;
   body_status: string;
@@ -37,7 +38,9 @@ function withOutline(html: string): { html: string; outline: OutlineEntry[] } {
 
 async function loadRow(id: string): Promise<DetailRow | null> {
   const [row] = await sql<DetailRow[]>`
-    SELECT ${ITEM_COLUMNS}, a.body_html, a.body_text, a.body_status, tr.body_html AS tr_html, tr.complete AS tr_complete
+    SELECT ${ITEM_COLUMNS},
+      ${pendingAttachment(sql`a.raw`)} AS pending_attachment,
+      a.body_html, a.body_text, a.body_status, tr.body_html AS tr_html, tr.complete AS tr_complete
     ${ITEM_FROM}
     WHERE p.article_id = ${id}`;
   return row ?? null;
@@ -80,7 +83,11 @@ export async function loadItemDetail(id: string, now = new Date()): Promise<Deta
 
   let body: ItemDetail["body"] = null;
   let outline: OutlineEntry[] = [];
-  if (row.channel === "x") {
+  if (row.pending_attachment) {
+    // Existing detail body fields can carry a short status without exposing the internal marker or
+    // pretending the attachment is parsed article text.
+    body = { zh: "<p>正文待解析，请访问原文查看。</p>", original: null, zhKind: null, complete: false };
+  } else if (row.channel === "x") {
     const text = String(row.x_post?.text ?? row.body_text ?? "");
     body = {
       zh: summary.x?.translation ? textToHtml(summary.x.translation) : null,
@@ -107,7 +114,7 @@ export async function loadItemDetail(id: string, now = new Date()): Promise<Deta
     const [g] = await sql<{ public_id: string; reports: number; sources: number }[]>`
       SELECT f.public_id, count(p.article_id) AS reports, count(DISTINCT p.source_id) AS sources
       FROM facts f JOIN publications p ON p.fact_id = f.id
-      WHERE f.id = ${row.fact_id} AND p.visibility = 'public' AND p.eligible AND (NOT p.selected OR p.visible_after <= ${now})
+      WHERE f.id = ${row.fact_id} AND p.eligible AND ${listedCondition(now)}
       GROUP BY f.public_id`;
     const [dev] = await sql<{ n: number }[]>`
       SELECT count(DISTINCT other.id) AS n FROM facts f

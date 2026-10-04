@@ -10,7 +10,7 @@ import { after, before, test } from "node:test";
 import { closeDb, sql } from "@aihot/backend/db";
 import { upsertMaterial } from "@aihot/backend/content/materials";
 import { analyzeArticle, SCORE_SYSTEM, tierThreshold } from "@aihot/backend/editorial/analyze";
-import { queueProcessing } from "@aihot/backend/jobs/content";
+import { processArticle, queueProcessing } from "@aihot/backend/jobs/content";
 import { QUEUES, stopBoss } from "@aihot/backend/jobs/queue";
 import { compactAnswerFirstSummary, enforceIdentity, parseTranslateOutput, PREFILTER_SYSTEM } from "@aihot/backend/editorial/writing";
 import { promptText } from "@aihot/backend/editorial/prompts";
@@ -157,6 +157,23 @@ test("a feed summary alone: the article page is fetched first, then the whole ar
   await sql`UPDATE articles SET body_text = ${`THIN: ${LONG} (${T}) full page`}, body_status = 'ok', revision = revision + 1 WHERE id = ${id}`;
   const second = await analyzeArticle(id);
   assert.deepEqual([second!.needsBody ?? false, second!.output!.selected], [false, true]);
+});
+
+test("a pending attachment diagnostic blocks direct analysis, attemptTag and job enqueues", async () => {
+  const id = await article("ATTACHMENT_HOLD", {
+    attachmentDiagnostic: {
+      version: 1, state: "pending_parse", kind: "attachment", reason: "pdf_fetch_failed",
+      articleUrl: `https://example.com/ATTACHMENT_HOLD-${T}`,
+      attachments: [{ url: `https://example.com/ATTACHMENT_HOLD-${T}.pdf`, title: "Official attachment" }],
+    },
+  });
+  const beforeCalls = requests.length;
+  const direct = await analyzeArticle(id, { attemptTag: "manual-re-evaluation" });
+  assert.deepEqual([direct!.output, direct!.skippedReason, direct!.receiptIds], [null, "pdf_fetch_failed", []]);
+  assert.deepEqual(await processArticle(id, { attemptTag: "manual-re-evaluation" }), { state: "waiting-attachment", reason: "pdf_fetch_failed" });
+  assert.equal(await queueProcessing(id, { step: "analyze", attemptTag: "manual-re-evaluation" }), null);
+  assert.equal(requests.length, beforeCalls, "no model/provider call was made");
+  assert.equal((await sql`SELECT 1 FROM analyses WHERE article_id = ${id}`).length, 0);
 });
 
 test("a short post in Chinese is its own copy; a content-filter refusal is translated instead", async () => {

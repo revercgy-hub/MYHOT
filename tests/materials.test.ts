@@ -8,6 +8,7 @@ import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { closeDb, sql } from "@aihot/backend/db";
 import { upsertMaterial } from "@aihot/backend/content/materials";
+import { hasPendingAttachmentParse, readAttachmentDiagnostic } from "@aihot/backend/content/attachment-diagnostics";
 import { identityKeyForUrl } from "@aihot/backend/lib/url";
 
 const SOURCE = `test-materials-${tag()}`;
@@ -41,6 +42,37 @@ test("concurrent changes to one article each get a revision", async () => {
   const history = await sql<{ revision: number }[]>`SELECT revision FROM article_revisions WHERE article_id = ${first.articleId} ORDER BY revision`;
   assert.equal(article!.revision, 7);
   assert.deepEqual(history.map((h) => h.revision), [1, 2, 3, 4, 5, 6, 7]);
+});
+
+test("same-hash attachment marker persists, ordinary reports retain it, and trusted success clears with a new revision", async () => {
+  const url = `https://example.com/attachment-state-${tag()}`;
+  const bodyText = "A complete, verified article body with enough material to analyze.";
+  const base = { sourceId: SOURCE, url, title: "Attachment state", excerpt: "summary", bodyText, bodyStatus: "ok" as const, via: "fetch" as const };
+  const first = await upsertMaterial(base);
+  const diagnostic = {
+    version: 1 as const, state: "pending_parse" as const, kind: "attachment" as const,
+    reason: "pdf_fetch_failed" as const, articleUrl: url,
+    attachments: [{ url: `${url}.pdf`, title: "Official attachment" }],
+  };
+  const marked = await upsertMaterial({ ...base, attachmentDiagnostic: diagnostic });
+  assert.equal(marked.revised, false, "marker alone does not pretend the body content changed");
+  const [markedRow] = await sql<{ revision: number; body_status: string; raw: unknown }[]>`SELECT revision, body_status, raw FROM articles WHERE id = ${first.articleId}`;
+  assert.equal(markedRow!.revision, 1);
+  assert.equal(markedRow!.body_status, "unconfirmed");
+  assert.equal(readAttachmentDiagnostic(markedRow!.raw)?.reason, "pdf_fetch_failed");
+  assert.equal(hasPendingAttachmentParse(markedRow!.raw), true);
+
+  await upsertMaterial(base);
+  const [retained] = await sql<{ body_status: string; raw: unknown }[]>`SELECT body_status, raw FROM articles WHERE id = ${first.articleId}`;
+  assert.equal(retained!.body_status, "unconfirmed");
+  assert.equal(hasPendingAttachmentParse(retained!.raw), true, "ordinary metadata does not clear the marker");
+
+  const cleared = await upsertMaterial({ ...base, clearAttachmentDiagnostic: true });
+  assert.equal(cleared.revised, true, "marker removal invalidates the old analysis revision even for the same hash");
+  const [resolved] = await sql<{ revision: number; body_status: string; raw: unknown }[]>`SELECT revision, body_status, raw FROM articles WHERE id = ${first.articleId}`;
+  assert.equal(resolved!.revision, 2);
+  assert.equal(resolved!.body_status, "ok");
+  assert.equal(readAttachmentDiagnostic(resolved!.raw), null);
 });
 
 test("an unchanged report does not add a revision", async () => {

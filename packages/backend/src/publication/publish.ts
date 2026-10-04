@@ -9,6 +9,7 @@ import { sha256, stableJson } from "../lib/ids.ts";
 import { collapseWhitespace } from "../lib/text.ts";
 import { itemUrl } from "./links.ts";
 import { enqueue, QUEUES, shutdownSignal } from "../jobs/queue.ts";
+import { hasPendingAttachmentParse } from "../content/attachment-diagnostics.ts";
 import {
   bodyModeOf, channelOf, displayTags, isIndexable, isPoolEligible, isSelectable, mayRedistribute, type SourceFacts,
 } from "./rules.ts";
@@ -23,14 +24,17 @@ interface ArticleRow {
   discovered_at: Date;
   timeline_at: Date;
   backfill: boolean;
+  revision: number;
   body_status: string;
   body_text: string | null;
+  raw: unknown;
   x_post: unknown;
   grouped_at: Date | null;
 }
 
 interface AnalysisRow {
   id: number;
+  input_revision: number;
   relevance: string | null;
   category: string | null;
   tags: string[];
@@ -148,15 +152,15 @@ export async function publishArticle(articleId: string, options: PublishOptions 
 export async function publishArticleTx(tx: Tx, articleId: string, options: PublishOptions = {}): Promise<PublishResult | null> {
   const now = options.now ?? new Date();
   const [article] = await tx<ArticleRow[]>`
-    SELECT id, source_id, url, title, language, published_at, discovered_at, timeline_at, backfill, body_status,
-           body_text, x_post, grouped_at
+    SELECT id, source_id, url, title, language, published_at, discovered_at, timeline_at, backfill, revision, body_status,
+           body_text, raw, x_post, grouped_at
     FROM articles WHERE id = ${articleId} FOR UPDATE`;
   if (!article) return null;
   const [source] = await tx<SourceFacts[]>`
     SELECT id, name, kind, tier, participation_mode, first_party, site_fulltext, syndicate_fulltext FROM sources WHERE id = ${article.source_id}`;
   if (!source) return null;
   const [analysis] = await tx<AnalysisRow[]>`
-    SELECT id, relevance, category, tags, subjects, title_zh, summary_zh, reason_zh, score, selected
+    SELECT id, input_revision, relevance, category, tags, subjects, title_zh, summary_zh, reason_zh, score, selected
     FROM analyses WHERE article_id = ${articleId} ORDER BY input_revision DESC, id DESC LIMIT 1`;
   const [override] = await tx<OverrideRow[]>`SELECT fields, visibility FROM editorial_overrides WHERE article_id = ${articleId}`;
   const [membership] = await tx<{ fact_id: number; story_id: number | null }[]>`
@@ -167,26 +171,33 @@ export async function publishArticleTx(tx: Tx, articleId: string, options: Publi
   const [previous] = await tx<PublicationRow[]>`SELECT * FROM publications WHERE article_id = ${articleId}`;
 
   const f = override?.fields ?? {};
+  const pendingAttachment = hasPendingAttachmentParse(article.raw);
+  // A revision can invalidate an old judgement (notably when a pending attachment parse succeeds
+  // without changing the extracted body hash). Never reuse it to re-select the new revision.
+  const currentAnalysis = analysis?.input_revision === article.revision ? analysis : undefined;
   const isChineseTitle = article.language === "zh" || /[一-鿿]/.test(article.title);
   // An X post carries its Chinese in the summary and translation; without a Chinese title its own
   // text is the title, where an article would still be a half-finished card.
-  const zhTitle = analysis?.title_zh?.trim() ? analysis.title_zh : null;
+  const zhTitle = currentAnalysis?.title_zh?.trim() ? currentAnalysis.title_zh : null;
   const title = pickString(f.title, zhTitle ?? (isChineseTitle || article.x_post ? collapseWhitespace(article.title) : null));
-  const summary = pickString(f.summary, analysis?.summary_zh ?? null);
-  const category = pickString(f.category, analysis?.category ?? null);
-  const tags = Array.isArray(f.tags) ? (f.tags as string[]) : [...new Set([...(analysis?.tags ?? []), ...(analysis?.subjects ?? []).map((s) => `entity:${s}`)])];
-  const score = typeof f.score === "number" ? f.score : analysis?.score ?? null;
-  const relevance = typeof f.relevance === "string" ? (f.relevance as string) : analysis?.relevance ?? null;
-  const judgedSelected = typeof f.selected === "boolean" ? (f.selected as boolean) : analysis?.selected ?? null;
+  const summary = pickString(f.summary, currentAnalysis?.summary_zh ?? null);
+  const category = pickString(f.category, currentAnalysis?.category ?? null);
+  const tags = Array.isArray(f.tags) ? (f.tags as string[]) : [...new Set([...(currentAnalysis?.tags ?? []), ...(currentAnalysis?.subjects ?? []).map((s) => `entity:${s}`)])];
+  const score = typeof f.score === "number" ? f.score : currentAnalysis?.score ?? null;
+  const relevance = typeof f.relevance === "string" ? (f.relevance as string) : currentAnalysis?.relevance ?? null;
+  // Pending attachment parsing blocks automatic judgements. Only the exact JSON boolean override
+  // is an editorial release; a title/summary/relevance override or old analysis is not.
+  const explicitManualSelection = f.selected === true;
+  const judgedSelected = pendingAttachment ? explicitManualSelection : typeof f.selected === "boolean" ? (f.selected as boolean) : currentAnalysis?.selected ?? null;
   // Material from an isolated source reaches no public surface at all: not even a detail page.
   const visibility = source.participation_mode === "isolated" ? "withdrawn" : (override?.visibility ?? "public");
 
   const eligible = isPoolEligible({ participationMode: source.participation_mode, relevance, title, summary });
   const selected = isSelectable(eligible, judgedSelected, source.tier);
-  const reason = selected ? pickString(f.reason, analysis?.reason_zh ?? null) : null;
+  const reason = !pendingAttachment && selected ? pickString(f.reason, currentAnalysis?.reason_zh ?? null) : null;
   const hasXPost = !!article.x_post;
   const channel = channelOf(source.kind, hasXPost);
-  const bodyMode = bodyModeOf(source, article.body_status, !!article.body_text && article.body_text.length > 0);
+  const bodyMode = pendingAttachment ? "summary" : bodyModeOf(source, article.body_status, !!article.body_text && article.body_text.length > 0);
   const syndicate = mayRedistribute(source, bodyMode);
   const originalTitle = isChineseTitle && title === collapseWhitespace(article.title) ? null : collapseWhitespace(article.title);
 
@@ -215,7 +226,7 @@ export async function publishArticleTx(tx: Tx, articleId: string, options: Publi
     visibility, hasSummary: !!summary, selected, seoIndexedAt: previous?.seo_indexed_at ?? null, seoExcludedAt: previous?.seo_excluded_at ?? null,
   });
   const searchText = collapseWhitespace(
-    [title, originalTitle, summary, source.name, ...displayTags(tags), ...(analysis?.subjects ?? [])].filter(Boolean).join(" "),
+    [title, originalTitle, summary, source.name, ...displayTags(tags), ...(currentAnalysis?.subjects ?? [])].filter(Boolean).join(" "),
   ).toLowerCase();
 
   // A selected item sits at its reading group's anchor: the earliest public pool member of its fact.
@@ -247,7 +258,7 @@ export async function publishArticleTx(tx: Tx, articleId: string, options: Publi
     INSERT INTO publications (article_id, analysis_id, revision, visibility, eligible, selected, title, original_title, summary,
       reason, category, tags, score, source_id, channel, first_party, url, published_at, discovered_at, timeline_at, backfill,
       selected_ready_at, visible_after, body_mode, syndicate, indexable, story_id, fact_id, search_text, sort_at, updated_at)
-    VALUES (${articleId}, ${analysis?.id ?? null}, ${revision}, ${visibility}, ${eligible}, ${selected}, ${next.title},
+    VALUES (${articleId}, ${currentAnalysis?.id ?? null}, ${revision}, ${visibility}, ${eligible}, ${selected}, ${next.title},
       ${originalTitle}, ${summary}, ${reason}, ${category}, ${tags}, ${next.score}, ${source.id}, ${channel}, ${source.first_party},
       ${article.url}, ${article.published_at}, ${article.discovered_at}, ${article.timeline_at}, ${article.backfill},
       ${selectedReadyAt}, ${visibleAfter}, ${bodyMode}, ${syndicate}, ${indexable}, ${next.story_id}, ${next.fact_id}, ${searchText}, ${sortAt}, now())
@@ -290,7 +301,7 @@ export async function publishArticleTx(tx: Tx, articleId: string, options: Publi
 
   // Content-group push: once, for an item that arrives live and becomes selected (never for imports,
   // backfill or stale-on-discovery material); it runs after the release gate opens.
-  if (selected && !previous?.selected_ready_at && !options.releasedAt && !article.backfill && visibility === "public") {
+  if (selected && !pendingAttachment && !previous?.selected_ready_at && !options.releasedAt && !article.backfill && visibility === "public") {
     const at = visibleAfter && visibleAfter > now ? visibleAfter : now;
     await enqueue(QUEUES.notifySelected, { articleId }, { singletonKey: `selected:${articleId}`, startAfter: new Date(at.getTime() + 5_000) }, tx);
     // Its images are fetched and resized now, before the release gate lets readers in.

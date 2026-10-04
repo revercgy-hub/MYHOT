@@ -12,7 +12,8 @@ import { onlyXArticleLink, xArticleText } from "../sources/x.ts";
 import { sanitizeBody, trimTrailingChrome } from "./sanitize.ts";
 import type { BodyIdentity } from "./selected-body.ts";
 import { extractConfiguredHtmlBody, extractDirectPdfBody, type PdfFetcher, type PdfSourceBodyConfig } from "./pdf-body.ts";
-import { contentHash } from "./materials.ts";
+import { contentHash, syncAttachmentDiagnosticPublication } from "./materials.ts";
+import { attachmentDiagnosticForFailure, clearAttachmentDiagnostic, readAttachmentDiagnostic, setAttachmentDiagnostic } from "./attachment-diagnostics.ts";
 
 export interface ExtractedBody {
   html: string;
@@ -70,7 +71,7 @@ function markdownToHtml(md: string): string {
     .join("");
 }
 
-export async function extractFromUrl(url: string, opts: { allowJina: boolean; subject: string; selectedBody?: { config: PdfSourceBodyConfig; expected: BodyIdentity; allowUrlPrefixes: string[] }; onSelectedBodyFailure?: (reason: string) => void; fetcher?: PdfFetcher }): Promise<ExtractedBody | null> {
+export async function extractFromUrl(url: string, opts: { allowJina: boolean; subject: string; selectedBody?: { config: PdfSourceBodyConfig; expected: BodyIdentity; allowUrlPrefixes: string[] }; onSelectedBodyFailure?: (reason: string, attachments?: Array<{ url: string; title: string }>) => void; fetcher?: PdfFetcher }): Promise<ExtractedBody | null> {
   const fetcher = opts.fetcher ?? guardedFetch;
   if (opts.selectedBody?.config.attachmentScopeSelector !== undefined &&
     (typeof opts.selectedBody.config.attachmentScopeSelector !== "string" || !opts.selectedBody.config.attachmentScopeSelector.trim() ||
@@ -82,7 +83,7 @@ export async function extractFromUrl(url: string, opts: { allowJina: boolean; su
   }
   if (opts.selectedBody?.config.pdfDirect === true) {
     const result = await extractDirectPdfBody(url, opts.selectedBody.expected.title, opts.selectedBody.allowUrlPrefixes, fetcher);
-    if (!result.body) opts.onSelectedBodyFailure?.(result.reason ?? "pdf_body_unconfirmed");
+    if (!result.body) opts.onSelectedBodyFailure?.(result.reason ?? "pdf_body_unconfirmed", result.attachments);
     return result.body;
   }
   try {
@@ -94,7 +95,7 @@ export async function extractFromUrl(url: string, opts: { allowJina: boolean; su
         // downgrades to the HTML notice and never falls through to Readability or Jina.
         const result = await extractConfiguredHtmlBody(res.text(), res.url, opts.selectedBody.config, opts.selectedBody.expected,
           opts.selectedBody.allowUrlPrefixes, fetcher);
-        if (!result.body && result.reason) opts.onSelectedBodyFailure?.(result.reason);
+        if (!result.body && result.reason) opts.onSelectedBodyFailure?.(result.reason, result.attachments);
         return result.body;
       }
       const got = readable(res.text(), res.url);
@@ -137,8 +138,8 @@ export function pageFetchable(url: string, sourceKind: string): boolean {
 
 /** Fetches and stores the body of one article. Unconfirmed bodies are recorded as such. */
 export async function extractArticleBody(articleId: string, allowJina = process.env.JINA_BODY_FALLBACK !== "false"): Promise<"ok" | "unconfirmed" | "skipped"> {
-  const [a] = await sql<{ id: string; source_id: string; url: string; title: string; published_at: Date | null; body_status: string; revision: number; x_post: { tweetId?: string } | null; source_config: Record<string, any> }[]>`
-    SELECT a.id, a.source_id, a.url, a.title, a.published_at, a.body_status, a.revision, a.x_post, s.config AS source_config
+  const [a] = await sql<{ id: string; source_id: string; url: string; title: string; published_at: Date | null; body_status: string; revision: number; x_post: { tweetId?: string } | null; source_config: Record<string, any>; raw: unknown }[]>`
+    SELECT a.id, a.source_id, a.url, a.title, a.published_at, a.body_status, a.revision, a.x_post, a.raw, s.config AS source_config
     FROM articles a JOIN sources s ON s.id = a.source_id WHERE a.id = ${articleId}`;
   if (!a || a.body_status === "ok") return "skipped";
   if (a.x_post?.tweetId) return extractXArticle(a.id, a.x_post.tweetId);
@@ -147,6 +148,9 @@ export async function extractArticleBody(articleId: string, allowJina = process.
   const bodyPolicies = Array.isArray(detail.bodyPolicies) ? detail.bodyPolicies : undefined;
   const attachmentScopeSelector = detail.attachmentScopeSelector;
   const pdfBodyConfigured = detail.pdfDirect === true || typeof detail.attachmentSelector === "string";
+  const hasAttachmentDriver = detail.pdfDirect === true || typeof detail.attachmentSelector === "string" ||
+    (typeof attachmentScopeSelector === "string" && !!attachmentScopeSelector.trim());
+  const hadPendingAttachment = !!readAttachmentDiagnostic(a.raw);
   const selectedBody = bodySelector || bodyPolicies || pdfBodyConfigured || attachmentScopeSelector !== undefined
     ? { config: {
         bodySelector,
@@ -161,28 +165,51 @@ export async function extractArticleBody(articleId: string, allowJina = process.
       }, expected: { title: a.title, publishedAt: a.published_at }, allowUrlPrefixes: a.source_config.allowUrlPrefixes ?? [] }
     : undefined;
   let selectedFailure: string | null = null;
+  let selectedAttachments: Array<{ url: string; title: string }> = [];
   const got = await extractFromUrl(a.url, {
     allowJina: selectedBody ? false : allowJina,
     subject: `article:${a.id}`,
-    ...(selectedBody ? { selectedBody, onSelectedBodyFailure: (reason: string) => { selectedFailure = reason; } } : {}),
+    ...(selectedBody ? { selectedBody, onSelectedBodyFailure: (reason: string, attachments?: Array<{ url: string; title: string }>) => { selectedFailure = reason; selectedAttachments = attachments ?? []; } } : {}),
   });
   if (selectedFailure) console.warn(JSON.stringify({ level: "warn", msg: "source body selector declined", article: a.id, source: a.source_id, reason: selectedFailure }));
   if (!got) {
-    await sql`UPDATE articles SET body_status = 'unconfirmed', updated_at = now() WHERE id = ${articleId} AND body_status <> 'ok'`;
+    const diagnostic = selectedFailure && selectedBody
+      ? attachmentDiagnosticForFailure(selectedBody.config, { reason: selectedFailure, articleUrl: a.url, attachments: selectedAttachments })
+      : null;
+    if (diagnostic) {
+      await sql.begin(async (tx) => {
+        const [row] = await tx<{ raw: unknown }[]>`SELECT raw FROM articles WHERE id = ${articleId} FOR UPDATE`;
+        if (!row) return;
+        const hadPending = !!readAttachmentDiagnostic(row.raw);
+        const raw = setAttachmentDiagnostic(row.raw, diagnostic);
+        const [updated] = await tx<{ id: string }[]>`UPDATE articles SET raw = ${tx.json(raw as never)}, body_status = 'unconfirmed',
+          processing_state = 'new', processing_queued_at = NULL, processing_retry_at = NULL, updated_at = now()
+          WHERE id = ${articleId} AND body_status <> 'ok' RETURNING id`;
+        if (updated && !hadPending) await syncAttachmentDiagnosticPublication(tx, articleId);
+      });
+    } else {
+      await sql`UPDATE articles SET body_status = 'unconfirmed', updated_at = now() WHERE id = ${articleId} AND body_status <> 'ok'`;
+    }
     return "unconfirmed";
   }
+  // A generic Readability/Jina result or a configuration that no longer names its attachment
+  // driver cannot resolve a persisted attachment hold.
+  if (hadPendingAttachment && !hasAttachmentDriver) return "unconfirmed";
   // The body is new content: a new revision, so an analysis of the body-less input counts as stale.
   await sql.begin(async (tx) => {
-    const [row] = await tx<{ title: string; excerpt: string | null }[]>`SELECT title, excerpt FROM articles WHERE id = ${articleId} FOR UPDATE`;
+    const [row] = await tx<{ title: string; excerpt: string | null; raw: unknown }[]>`SELECT title, excerpt, raw FROM articles WHERE id = ${articleId} FOR UPDATE`;
     if (!row) return;
+    const clearMarker = hasAttachmentDriver && !!readAttachmentDiagnostic(row.raw);
     const hash = contentHash({ title: row.title, bodyText: got.text, excerpt: row.excerpt });
     const [r] = await tx<{ revision: number }[]>`
       UPDATE articles SET body_html = ${got.html}, body_text = ${got.text}, body_status = 'ok',
+        raw = CASE WHEN ${clearMarker} THEN ${tx.json(clearAttachmentDiagnostic(row.raw) as never)}::jsonb ELSE raw END,
         media = CASE WHEN jsonb_array_length(media) = 0 THEN ${tx.json(got.images as never)}::jsonb ELSE media END,
         revision = revision + 1, content_hash = ${hash}, processing_state = 'new', updated_at = now()
       WHERE id = ${articleId} RETURNING revision`;
     await tx`INSERT INTO article_revisions (article_id, revision, content_hash, title, body_text)
              VALUES (${articleId}, ${r!.revision}, ${hash}, ${row.title}, ${got.text})`;
+    if (clearMarker) await syncAttachmentDiagnosticPublication(tx, articleId);
   });
   return "ok";
 }

@@ -114,6 +114,26 @@ test("a report joins the fact the model names, and a revision keeps that members
   assert.deepEqual({ fact_id: Number(publication!.fact_id), story_id: Number(publication!.story_id) }, { fact_id: factId, story_id: storyId });
 });
 
+test("a pending attachment marker stops an already queued/direct group decision before provider calls", async () => {
+  hold = gate();
+  hold.open();
+  const suffix = "attachment-pending";
+  const id = await report(suffix);
+  const beforeHits = provider.hits();
+  await upsertMaterial({
+    sourceId: SOURCE, url: `https://example.com/events-${T}-${suffix}`, title: `Model launch ${T} ${suffix}`,
+    bodyText: "A new model.", bodyStatus: "ok", via: "fetch",
+    attachmentDiagnostic: {
+      version: 1, state: "pending_parse", kind: "attachment", reason: "pdf_fetch_failed",
+      articleUrl: `https://example.com/events-${T}-${suffix}`,
+      attachments: [{ url: `https://example.com/events-${T}-${suffix}.pdf`, title: "Official attachment" }],
+    },
+  });
+  const result = await groupArticle(id, { force: true });
+  assert.deepEqual([result.verdict, result.reason], ["skipped", "pdf_fetch_failed"]);
+  assert.equal(provider.hits(), beforeHits, "a stale queued group job cannot make a paid call");
+});
+
 test("an explicit regroup drops the automatic membership and decides again", async () => {
   hold = gate();
   hold.open();

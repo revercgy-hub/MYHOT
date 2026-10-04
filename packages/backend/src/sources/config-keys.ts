@@ -26,7 +26,7 @@ const KEYS: Record<SourceRow["kind"], string[]> = {
 
 // Objects with fixed keys (headers and bodyJson are request data, free-form).
 const NESTED: Record<string, string[]> = {
-  _aihot: ["initialBackfillLimit", "initialBackfillMonths"],
+  _aihot: ["initialBackfillLimit", "initialBackfillMonths", "initialBackfillRequirePublishedAt"],
   ingestNoiseFilter: ["dropMarkers", "dropMarkersTitleOnly", "keepIfMatches"],
   itemUrlPrefixRewrite: ["from", "to"],
   requireBoolean: ["path", "equals"],
@@ -50,9 +50,13 @@ export function unsupportedConfig(kind: SourceRow["kind"], config: Record<string
   for (const [key, value] of Object.entries(config ?? {})) {
     if (!allowed.has(key)) out.push(key);
     else if (VALUES[key] && !VALUES[key]!.includes(String(value))) out.push(`${key}=${String(value)}`);
+    else if (key === "_aihot" && (!value || typeof value !== "object" || Array.isArray(value))) out.push("_aihot must be an object");
     else if (NESTED[key] && value && typeof value === "object") {
       const nested = value as Record<string, unknown>;
       for (const sub of Object.keys(nested)) if (!NESTED[key]!.includes(sub)) out.push(`${key}.${sub}`);
+      if (key === "_aihot" && nested.initialBackfillRequirePublishedAt !== undefined && typeof nested.initialBackfillRequirePublishedAt !== "boolean") {
+        out.push("_aihot.initialBackfillRequirePublishedAt must be boolean");
+      }
       if (key === "detail") {
         if (nested.bodyPolicies !== undefined) {
           for (const error of validateBodyPolicies(nested.bodyPolicies)) out.push(`detail.${error}`);

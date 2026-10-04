@@ -1,7 +1,7 @@
 // Collection run for one source: fetch listing → filter → store material → enqueue processing.
 // A failed fetch never advances the success cursor; the source's health reflects consecutive failures.
 import { sql } from "../db.ts";
-import { identityKeyFor, upsertMaterial } from "../content/materials.ts";
+import { decideTimeline, identityKeyFor, upsertMaterial } from "../content/materials.ts";
 import { enqueue, QUEUES } from "../jobs/queue.ts";
 import { queueProcessing } from "../jobs/content.ts";
 import { BudgetExceededError } from "../providers/receipts.ts";
@@ -129,9 +129,23 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
     // First import of a new source: bounded, and archived by source time (never "today", never pushed).
     const backfillLimit = Number(source.config._aihot?.initialBackfillLimit ?? 30);
     const backfillMonths = Number(source.config._aihot?.initialBackfillMonths ?? 12);
+    const initialBackfillRequirePublishedAt = source.config._aihot?.initialBackfillRequirePublishedAt === true;
+    const runAt = new Date();
+    const backfillCutoff = runAt.getTime() - backfillMonths * 30 * 86400000;
     if (firstImport) {
-      const cutoff = Date.now() - backfillMonths * 30 * 86400000;
-      candidates = candidates.filter((c) => !c.publishedAt || c.publishedAt.getTime() >= cutoff).slice(0, backfillLimit);
+      if (initialBackfillRequirePublishedAt) {
+        // Keep missing/untrustworthy dates in this bounded candidate window so existing detail
+        // budget can resolve them. The final gate below is after detail and timeline validation.
+        const detailCanReplacePublishedAt = source.config.detail?.publishedAtAuthoritative === true;
+        candidates = candidates.filter((c) => {
+          if (detailCanReplacePublishedAt) return true;
+          if (!c.publishedAt || !Number.isFinite(c.publishedAt.getTime())) return true;
+          const trusted = decideTimeline(c.publishedAt, runAt, "first-import").publishedAt;
+          return !trusted || trusted.getTime() >= backfillCutoff;
+        }).slice(0, backfillLimit);
+      } else {
+        candidates = candidates.filter((c) => !c.publishedAt || c.publishedAt.getTime() >= backfillCutoff).slice(0, backfillLimit);
+      }
     } else if (source.kind !== "x_search") {
       // X keeps every post it read: its watermark already covers them, so a cut here would lose them.
       candidates = candidates.slice(0, MAX_ITEMS_PER_RUN);
@@ -172,13 +186,26 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
           c.bodyHtml = got.body.html;
           c.bodyText = got.body.text;
           c.bodyStatus = "ok";
+          if (d?.bodySelector || d?.bodyPolicies || d?.attachmentScopeSelector !== undefined || d?.attachmentSelector || d?.pdfDirect === true) {
+            c.clearAttachmentDiagnostic = true;
+          }
           if (!c.media?.length) c.media = got.body.images;
         }
+        if (got.attachmentDiagnostic) c.attachmentDiagnostic = got.attachmentDiagnostic;
         // A date-only listing value gives way to the detail page's time on the same day.
         if (got.publishedAt && (!c.publishedAt || Math.abs(got.publishedAt.getTime() - c.publishedAt.getTime()) < DAY_MS)) c.publishedAt = got.publishedAt;
       } catch {
         // detail is best effort
       }
+    }
+
+    if (firstImport && initialBackfillRequirePublishedAt) {
+      // A detail rule may have supplied or replaced the listing date, so only this final, trusted
+      // source date can decide whether the candidate enters the first-import window.
+      candidates = candidates.filter((c) => {
+        const trusted = decideTimeline(c.publishedAt, runAt, "first-import").publishedAt;
+        return !!trusted && trusted.getTime() >= backfillCutoff;
+      });
     }
 
     ({ created, revised } = await store(sourceId, candidates, firstImport ? "first-import" : null));
@@ -241,7 +268,7 @@ export async function collectXShard(key: string, sourceIds: string[]): Promise<{
   const members = (
     await sql<SourceRow[]>`
       SELECT id, name, kind, config, tier, participation_mode, first_party, interval_minutes, enabled, cursor, fail_count
-      FROM sources WHERE id IN ${sql(sourceIds)}`
+      FROM sources WHERE id IN ${sql(sourceIds)} ORDER BY id`
   ).filter((m) => m.enabled && shardHandle(m));
   if (members.length === 0) return { key, status: "skipped", accounts: 0, found: 0, created: 0 };
   const minutes = shardMinutes(members[0]!.participation_mode);

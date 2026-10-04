@@ -20,6 +20,8 @@ import { publishArticle, republishSource } from "@aihot/backend/publication/publ
 import { computeHotRanking } from "@aihot/backend/events/hot";
 import { latestHotRanking } from "@aihot/backend/events/hot-read";
 import { effectiveWatermark } from "@aihot/backend/publication/v1";
+import { publishArticleTx } from "@aihot/backend/publication/publish";
+import { createAttachmentDiagnostic, setAttachmentDiagnostic, clearAttachmentDiagnostic } from "@aihot/backend/content/attachment-diagnostics";
 import { buildApp } from "../apps/api/src/app.ts";
 
 const T = tag();
@@ -267,6 +269,128 @@ test("a withdrawal waiting behind an unreleased item leaves new snapshots at onc
   };
   const ours = changes.changes.map((c) => `${c.op}:${c.id ?? c.item?.id}`).filter((c) => c.endsWith(x) || c.endsWith(y));
   assert.deepEqual(ours, [`upsert:${y}`, `remove:${x}`]);
+});
+
+test("pending attachment marker withdraws automatic selection, guards every read and survives clear until re-analysis", async () => {
+  const snapshotBefore = JSON.parse((await get("/api/v1/selected/snapshot?fields=minimal&limit=1000")).body) as { cursor: string };
+  const defaultSnapshotBefore = JSON.parse((await get("/api/v1/selected/snapshot?fields=default&limit=1000")).body) as { cursor: string };
+  const id = await article();
+  await publishArticle(id, released());
+  const [stored] = await sql<{ raw: unknown; revision: number }[]>`SELECT raw, revision FROM articles WHERE id = ${id}`;
+  const diagnostic = createAttachmentDiagnostic({ reason: "attachments_unprocessed", articleUrl: `https://example.com/${T}-pending`, attachments: [] });
+  assert.ok(diagnostic);
+  await sql.begin(async (tx) => {
+    await tx`UPDATE articles SET raw = ${tx.json(setAttachmentDiagnostic(stored!.raw, diagnostic!) as never)}, body_status = 'unconfirmed' WHERE id = ${id}`;
+    await publishArticleTx(tx, id);
+  });
+
+  const publication = (await sql<{ selected: boolean; reason: string | null; body_mode: string }[]>`
+    SELECT selected, reason, body_mode FROM publications WHERE article_id = ${id}`)[0]!;
+  assert.deepEqual(publication, { selected: false, reason: null, body_mode: "summary" });
+  const detail = JSON.parse((await get(`/api/site/items/${id}`)).body);
+  assert.equal(detail.selected, false);
+  assert.equal(detail.reason, null);
+  assert.equal(detail.score, null);
+  assert.match(detail.summary, /^正文待解析/);
+  assert.match(detail.body.zh, /正文待解析/);
+  assert.ok(!detail.body.zh.includes("FULLTEXT-"), "the status notice never exposes the stored full body");
+  const selectedItems = JSON.parse((await get("/api/v1/items?mode=selected&window=7d&by=timeline&limit=100")).body);
+  assert.ok(!selectedItems.items.some((item: { id: string }) => item.id === id));
+  for (const fields of ["default", "minimal"]) {
+    const snap = JSON.parse((await get(`/api/v1/selected/snapshot?fields=${fields}&limit=1000`)).body);
+    assert.ok(!snap.items.some((item: { id: string }) => item.id === id), `${fields} snapshot excludes the blocked item`);
+  }
+  const changes = JSON.parse((await get(`/api/v1/selected/changes?cursor=${encodeURIComponent(snapshotBefore.cursor)}&limit=100`)).body) as {
+    cursor: string; changes: Array<{ op: string; id?: string; item?: { id: string } }>;
+  };
+  const ownChanges = changes.changes.filter((change) => change.id === id || change.item?.id === id);
+  assert.ok(ownChanges.length >= 2, "the immutable upsert row and real publisher remove row are both consumed");
+  assert.ok(ownChanges.every((change) => change.op === "remove" && change.id === id), "no old payload is replayed as an upsert");
+  assert.notEqual(changes.cursor, snapshotBefore.cursor, "the sync cursor advances across the blocked rows");
+  const defaultChanges = JSON.parse((await get(`/api/v1/selected/changes?cursor=${encodeURIComponent(defaultSnapshotBefore.cursor)}&limit=100`)).body);
+  assert.ok(defaultChanges.changes.filter((change: any) => change.id === id || change.item?.id === id).every((change: any) => change.op === "remove"));
+  const firstChangePage = JSON.parse((await get(`/api/v1/selected/changes?cursor=${encodeURIComponent(snapshotBefore.cursor)}&limit=1`)).body);
+  assert.equal(firstChangePage.changes[0]?.op, "remove");
+  assert.equal(firstChangePage.changes[0]?.id, id);
+  assert.equal(firstChangePage.hasMore, true, "limit=1 exposes the later immutable remove row on a following page");
+  const secondChangePage = JSON.parse((await get(`/api/v1/selected/changes?cursor=${encodeURIComponent(firstChangePage.cursor)}&limit=1`)).body);
+  assert.equal(secondChangePage.changes[0]?.op, "remove");
+  assert.equal(secondChangePage.changes[0]?.id, id);
+
+  // Clearing the marker creates a new article revision. The old selected analysis is not current,
+  // so publisher keeps it out of selected_state until a fresh analysis exists.
+  const [pending] = await sql<{ raw: unknown }[]>`SELECT raw FROM articles WHERE id = ${id}`;
+  await sql.begin(async (tx) => {
+    await tx`UPDATE articles SET raw = ${tx.json(clearAttachmentDiagnostic(pending!.raw) as never)}, revision = revision + 1, body_status = 'ok' WHERE id = ${id}`;
+    await publishArticleTx(tx, id);
+  });
+  const cleared = (await sql<{ selected: boolean; analysis_id: number | null }[]>`
+    SELECT selected, analysis_id FROM publications WHERE article_id = ${id}`)[0]!;
+  assert.deepEqual(cleared, { selected: false, analysis_id: null }, "old analysis cannot select a freshly parsed revision");
+  const [state] = await sql<{ in_set: boolean }[]>`SELECT in_set FROM selected_state WHERE article_id = ${id}`;
+  assert.equal(state!.in_set, false);
+  const afterClear = JSON.parse((await get(`/api/v1/selected/changes?cursor=${encodeURIComponent(snapshotBefore.cursor)}&limit=100`)).body);
+  assert.ok(afterClear.changes.filter((change: any) => change.id === id || change.item?.id === id).every((change: any) => change.op === "remove"));
+  assert.ok(stored!.revision < (await sql<{ revision: number }[]>`SELECT revision FROM articles WHERE id = ${id}`)[0]!.revision);
+});
+
+test("pending attachment selection requires exact manual boolean true and does not leak automatic reason", async () => {
+  const id = await article();
+  await publishArticle(id, released());
+  const [stored] = await sql<{ raw: unknown }[]>`SELECT raw FROM articles WHERE id = ${id}`;
+  const diagnostic = createAttachmentDiagnostic({ reason: "attachment_required", articleUrl: `https://example.com/${T}-manual`, attachments: [] });
+  assert.ok(diagnostic);
+  await sql.begin(async (tx) => {
+    await tx`UPDATE articles SET raw = ${tx.json(setAttachmentDiagnostic(stored!.raw, diagnostic!) as never)}, body_status = 'unconfirmed' WHERE id = ${id}`;
+    await publishArticleTx(tx, id);
+  });
+  const writeOverride = async (fields: unknown) => {
+    await sql`INSERT INTO editorial_overrides (article_id, fields, reason, version, updated_by)
+      VALUES (${id}, ${sql.json(fields as never)}, 'test', 1, 'test')
+      ON CONFLICT (article_id) DO UPDATE SET fields = EXCLUDED.fields, version = editorial_overrides.version + 1, updated_at = now()`;
+    return publishArticle(id, released());
+  };
+  await writeOverride({ title: `手工标题-${T}`, summary: `手工摘要-${T}` });
+  assert.equal((await sql`SELECT selected FROM publications WHERE article_id = ${id}`)[0]!.selected, false, "title and summary alone do not release selection");
+  await writeOverride({ selected: "true" });
+  assert.equal((await sql`SELECT selected FROM publications WHERE article_id = ${id}`)[0]!.selected, false, "a string is not the explicit boolean override");
+  await writeOverride({ selected: false });
+  assert.equal((await sql`SELECT selected FROM publications WHERE article_id = ${id}`)[0]!.selected, false, "manual false stays false");
+  await writeOverride({ selected: true });
+  const manual = (await sql<{ selected: boolean; reason: string | null; body_mode: string }[]>`
+    SELECT selected, reason, body_mode FROM publications WHERE article_id = ${id}`)[0]!;
+  assert.deepEqual(manual, { selected: true, reason: null, body_mode: "summary" });
+  const detail = JSON.parse((await get(`/api/site/items/${id}`)).body);
+  assert.equal(detail.selected, true);
+  assert.equal(detail.reason, null);
+  assert.match(detail.summary, /^正文待解析/);
+});
+
+test("selected sync keeps current upserts but masks withdrawn history without changing ledger rows", async () => {
+  const start = JSON.parse((await get("/api/v1/selected/snapshot?fields=minimal&limit=1000")).body) as { cursor: string };
+  const id = await article();
+  await publishArticle(id, released());
+  const current = JSON.parse((await get(`/api/v1/selected/changes?cursor=${encodeURIComponent(start.cursor)}&limit=100`)).body);
+  assert.ok(current.changes.some((change: any) => change.op === "upsert" && change.item?.id === id), "a currently-selected historical row remains an upsert");
+  const before = await sql<{ seq: number; op: string; payload: unknown }[]>`
+    SELECT seq, op, payload FROM selected_ledger WHERE article_id = ${id} ORDER BY seq`;
+
+  await setVisibility(id, { visibility: "withdrawn", reason: "test", version: 0 }, "test");
+  const withdrawn = JSON.parse((await get(`/api/v1/selected/changes?cursor=${encodeURIComponent(start.cursor)}&limit=100`)).body);
+  const changes = withdrawn.changes.filter((change: any) => change.id === id || change.item?.id === id);
+  assert.deepEqual(changes.map((change: any) => change.op), ["remove", "remove"], "the old upsert is masked and the real immutable remove still follows");
+  const after = await sql<{ seq: number; op: string; payload: unknown }[]>`
+    SELECT seq, op, payload FROM selected_ledger WHERE article_id = ${id} ORDER BY seq`;
+  assert.deepEqual(after[0], before[0], "publication reads do not rewrite the original ledger upsert");
+  assert.equal(after.length, before.length + 1, "publisher appends one remove instead of mutating history");
+  assert.deepEqual(after.map((entry) => entry.op), ["upsert", "remove"]);
+
+  const first = JSON.parse((await get(`/api/v1/selected/changes?cursor=${encodeURIComponent(start.cursor)}&limit=1`)).body);
+  assert.deepEqual(first.changes.map((change: any) => [change.op, change.id]), [["remove", id]]);
+  assert.equal(first.hasMore, true);
+  const second = JSON.parse((await get(`/api/v1/selected/changes?cursor=${encodeURIComponent(first.cursor)}&limit=1`)).body);
+  assert.deepEqual(second.changes.map((change: any) => [change.op, change.id]), [["remove", id]]);
+  assert.equal(second.hasMore, false);
 });
 
 test("snapshots answer 304 to their own ETag", async () => {

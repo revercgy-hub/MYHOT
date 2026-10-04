@@ -21,6 +21,7 @@ import { chatJson } from "../providers/llm.ts";
 import { BudgetExceededError, ReceiptBusyError, completeReceipt } from "../providers/receipts.ts";
 import { embeddingsAvailable, ensureEmbeddings } from "../providers/embeddings.ts";
 import { isHistorical, STALE_ON_DISCOVERY_MS } from "../content/materials.ts";
+import { readAttachmentDiagnostic } from "../content/attachment-diagnostics.ts";
 import { enqueue, QUEUES } from "../jobs/queue.ts";
 import { publishArticle } from "../publication/publish.ts";
 import { mergeStoryInto } from "./merge.ts";
@@ -572,6 +573,7 @@ export interface GroupResult {
   verdict:
     | "same-fact" | "same-url" | "new-fact-in-story" | "new-story" | "roundup" | "kept" | "standalone" | "manual" | "skipped"
     | "signal" | "signal-native" | "signal-unmatched" | "historical";
+  reason?: string;
   factId?: number;
   storyId?: number;
   /** Stories compared because this report tied them together (see consolidate). */
@@ -595,6 +597,9 @@ export interface GroupOptions {
 }
 
 export async function groupArticle(articleId: string, opts: GroupOptions = {}): Promise<GroupResult> {
+  const [article] = await sql<{ raw: unknown }[]>`SELECT raw FROM articles WHERE id = ${articleId}`;
+  const attachmentDiagnostic = readAttachmentDiagnostic(article?.raw);
+  if (attachmentDiagnostic) return { verdict: "skipped", reason: attachmentDiagnostic.reason };
   const result = await decide(articleId, opts);
   // Decided under the current rules: the report is evidence for others again. A failed decision
   // throws before this, so the report keeps waiting and the retry decides it again.

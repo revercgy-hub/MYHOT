@@ -99,7 +99,10 @@ test("PDF request is bounded, forbids redirects, and requires status, MIME, and 
 test("PDF attachment failure cannot fall back to the short HTML intro; valid output retains source segments and coordinates", async () => {
   const invalid = await extractHtmlEnvelopeWithPdf(pageHtml(), articleUrl, htmlConfig, expected, prefixes,
     async (url) => response(url, pdfFixture(["row"]), 200, "text/html"));
-  assert.deepEqual(invalid, { body: null, reason: "pdf_mime_rejected" });
+  assert.deepEqual(invalid, {
+    body: null, reason: "pdf_mime_rejected",
+    attachments: [{ url: pdfUrl, title: "考核结果表.pdf" }],
+  });
 
   const completed = await extractHtmlEnvelopeWithPdf(pageHtml(), articleUrl, htmlConfig, expected, prefixes,
     async (url) => response(url, pdfFixture(["TIER TABLE", "EAST  FUJIAN", "CITY  XIAMEN"]))) as { body: ExtractedBody | null; reason: string | null };

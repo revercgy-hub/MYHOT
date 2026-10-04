@@ -2,7 +2,8 @@
 // items through these functions; visibility, release gate and body licences are applied here.
 import type { CategoryKey, ChannelKey } from "@aihot/contracts/taxonomy";
 import type { FeedItemSummary, ItemSummary, MediaView, SourceKind, XPostView } from "@aihot/contracts/site";
-import { sql, type Db } from "../db.ts";
+import { sql, type Db, type Sql } from "../db.ts";
+import { ATTACHMENT_DIAGNOSTIC_PIPELINE_MARKER_KEY, ATTACHMENT_DIAGNOSTIC_RAW_KEY } from "../content/attachment-diagnostics.ts";
 import { proxiedImage, proxiedImageSet } from "../media/imgproxy.ts";
 import { displayTags } from "./rules.ts";
 
@@ -50,11 +51,32 @@ export interface ItemRow {
   quoted_zh: string | null;
 }
 
+export function pendingAttachment(raw: ReturnType<Sql>) {
+  const marker = sql`${raw} -> ${ATTACHMENT_DIAGNOSTIC_RAW_KEY}`;
+  return sql`(${raw} -> ${ATTACHMENT_DIAGNOSTIC_PIPELINE_MARKER_KEY} = 'true'::jsonb
+    AND ${marker} ->> 'version' = '1' AND ${marker} ->> 'state' = 'pending_parse' AND ${marker} ->> 'kind' = 'attachment')`;
+}
+
+const blockedCurrentSelection = sql`NOT EXISTS (
+  SELECT 1 FROM articles gate_article
+  LEFT JOIN editorial_overrides gate_override ON gate_override.article_id = gate_article.id
+  WHERE gate_article.id = p.article_id
+    AND ${pendingAttachment(sql`gate_article.raw`)}
+    AND gate_override.fields -> 'selected' IS DISTINCT FROM 'true'::jsonb
+)`;
+const currentSelected = sql`(p.selected AND ${blockedCurrentSelection})`;
+
 /** Columns every item listing selects. Internal judgement details never leave this layer. */
 export const ITEM_COLUMNS = sql`
-  p.article_id AS id, p.revision, p.title, p.original_title, p.summary, p.reason, p.category, p.tags, p.score,
-  p.selected, p.eligible, p.channel, p.url, p.published_at, p.discovered_at, p.timeline_at, p.sort_at, p.first_party, p.visibility,
-  p.body_mode, p.syndicate, p.indexable, p.visible_after, p.backfill, p.fact_id, p.story_id,
+  p.article_id AS id, p.revision, p.title, p.original_title,
+  CASE WHEN ${pendingAttachment(sql`a.raw`)} THEN coalesce('正文待解析 · ' || p.summary, '正文待解析') ELSE p.summary END AS summary,
+  CASE WHEN ${pendingAttachment(sql`a.raw`)} THEN NULL ELSE p.reason END AS reason,
+  p.category, p.tags,
+  CASE WHEN ${pendingAttachment(sql`a.raw`)} AND NOT coalesce(eo.fields -> 'selected' = 'true'::jsonb, false) THEN NULL ELSE p.score END AS score,
+  CASE WHEN ${pendingAttachment(sql`a.raw`)} THEN (p.selected AND coalesce(eo.fields -> 'selected' = 'true'::jsonb, false)) ELSE p.selected END AS selected,
+  p.eligible, p.channel, p.url, p.published_at, p.discovered_at, p.timeline_at, p.sort_at, p.first_party, p.visibility,
+  CASE WHEN ${pendingAttachment(sql`a.raw`)} THEN 'summary' ELSE p.body_mode END AS body_mode,
+  p.syndicate, p.indexable, p.visible_after, p.backfill, p.fact_id, p.story_id,
   s.id AS source_id, s.name AS source_name, s.kind AS source_kind, s.participation_mode AS source_mode, s.icon_url AS source_icon,
   a.x_post, a.author, a.language,
   st.public_id::text AS story_public_id, st.title AS story_title,
@@ -63,27 +85,35 @@ export const ITEM_COLUMNS = sql`
 /** Public API listings never render article bodies, X media or story metadata. */
 export type ApiItemRow = Pick<ItemRow, "id" | "title" | "original_title" | "summary" | "source_name" | "url" | "published_at" | "discovered_at" | "category" | "score" | "selected" | "reason">;
 export const API_ITEM_COLUMNS = sql`
-  p.article_id AS id, p.title, p.original_title, p.summary, s.name AS source_name, p.url,
-  p.published_at, p.discovered_at, p.category, p.score, p.selected, p.reason`;
-export const API_ITEM_FROM = sql`FROM publications p JOIN sources s ON s.id = p.source_id`;
+  p.article_id AS id, p.title, p.original_title,
+  CASE WHEN ${pendingAttachment(sql`a.raw`)} THEN coalesce('正文待解析 · ' || p.summary, '正文待解析') ELSE p.summary END AS summary,
+  s.name AS source_name, p.url,
+  p.published_at, p.discovered_at, p.category,
+  CASE WHEN ${pendingAttachment(sql`a.raw`)} AND NOT coalesce(eo.fields -> 'selected' = 'true'::jsonb, false) THEN NULL ELSE p.score END AS score,
+  CASE WHEN ${pendingAttachment(sql`a.raw`)} THEN (p.selected AND coalesce(eo.fields -> 'selected' = 'true'::jsonb, false)) ELSE p.selected END AS selected,
+  CASE WHEN ${pendingAttachment(sql`a.raw`)} THEN NULL ELSE p.reason END AS reason`;
+export const API_ITEM_FROM = sql`FROM publications p JOIN sources s ON s.id = p.source_id
+  JOIN articles a ON a.id = p.article_id
+  LEFT JOIN editorial_overrides eo ON eo.article_id = p.article_id`;
 
 /** A translation of an older revision is left out: the original changed after it (the worker translates it again). */
 export const ITEM_FROM = sql`
   FROM publications p
   JOIN sources s ON s.id = p.source_id
   JOIN articles a ON a.id = p.article_id
+  LEFT JOIN editorial_overrides eo ON eo.article_id = p.article_id
   LEFT JOIN stories st ON st.id = p.story_id AND st.merged_into IS NULL
   LEFT JOIN translations tr ON tr.article_id = p.article_id AND tr.lang = 'zh' AND tr.revision >= a.revision
   LEFT JOIN quote_translations qt ON p.channel = 'x' AND qt.tweet_id = substring(a.x_post->'quoted'->>'url' from '/status/([0-9]+)')`;
 
 /** Listed items: public, and a selected item only after its release gate. */
 export function listedCondition(now: Date) {
-  return sql`p.visibility = 'public' AND (NOT p.selected OR p.visible_after <= ${now})`;
+  return sql`p.visibility = 'public' AND (NOT ${currentSelected} OR p.visible_after <= ${now})`;
 }
 
 /** Selected set as shown on the home timeline, v1 selected mode and RSS. */
 export function selectedCondition(now: Date) {
-  return sql`p.visibility = 'public' AND p.selected AND p.visible_after <= ${now}`;
+  return sql`p.visibility = 'public' AND ${currentSelected} AND p.visible_after <= ${now}`;
 }
 
 export function channelCondition(channel: ChannelKey | null | undefined) {
