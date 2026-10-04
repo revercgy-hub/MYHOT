@@ -1,26 +1,28 @@
 # 项目状态
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=1a15e3449e281ab4ce2137926f753a3f8a188f4a（2026-10-03 P4/P5离线准备代码SHA；GitHub run 37111577268对同SHA成功。最新docs-only HEAD由检查点与Git记录区分）
-SOURCE_CONFIG_SHA=0ec0704c0e60a88d84bc99d558eb569c56731c79
-CI_TESTED_SHA=1a15e3449e281ab4ce2137926f753a3f8a188f4a（GitHub Check run 37111577268，success）
-CI_TESTED_RUN=37111577268
+CURRENT_SHA=dd3835460d4f6d180209acbe0a48e4b142ea7ac0（2026-10-04 S1实现代码；origin feat/fiscal-finance-hot；本地fresh全套与CI run 37163791233均已通过）
+SOURCE_CONFIG_SHA=dd3835460d4f6d180209acbe0a48e4b142ea7ac0（12个disabled source JSON随S1代码提交；未导入数据库或启用）
+CI_TESTED_SHA=dd3835460d4f6d180209acbe0a48e4b142ea7ac0
+CI_TESTED_RUN=37163791233（success；[GitHub Actions](https://github.com/revercgy-hub/MYHOT/actions/runs/37163791233)）
 CI_PREVIOUS_FAILED_SHA=26ca72f2b94d37383072c0e54be6f94682b0e9bd（run 37077418870；平台修复前的历史失败仍保留）
 CI_PREVIOUS_FAILED_RUN=37077418870
 PREVIOUS_CI_TESTED_SHA=8e845812b6ce1db45821ade7b2162a90f589e1de
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+ROUND_BASE_SHA=ea5d3af0d8241772ea6fac0abcc26386d81c6d36（本轮worktree恢复基线，不替代项目BASE_SHA）
+DOC_HEAD=PENDING（docs-only提交SHA将在最终报告中记录；不等于CI测试的代码SHA）
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
 
-STAGE=P3仍进行中：新增监管局两源完成完整首页各两轮collector、18篇正文与相邻历史页核验；会计司/预算司两个核心源完成完整首页各两轮、正文最多12篇核验；OMO新增一次9/29→9/30首页跨日更新。两批HTTP计数hook失效、hop预算未证；仍缺更长周期、深页/栏目覆盖、区域短正文与正文失败原因处置。本地3样本人工预览已恢复；Gate 2尚未通过。
-GATE=Gate 1 PASSED；Gate 2 尚未通过，不能开始大规模采集。S1范围裁决`ARCHITECTURE_PHASE_DEPENDENCIES.md`的`DECISION=APPROVED`仅适用依赖范围，不等于Gate 2通过。
-REVIEW=Sol Gate 1 Review已由Lead核销修复并通过；AD-008日期/titleAttribute、AD-009短正文与PDF PoC、AD-010附件envelope、AD-011 route文案及AD-012本地人工样本预览均按批准范围实施。fresh fiscalhot_content_preview_test 35 migrations后 npm test 156/156；AD-012 focused guard 4/4、typecheck、web build、web tests 15/15、smoke 30/30通过。Ubuntu Check run [36589569943](https://github.com/revercgy-hub/MYHOT/actions/runs/36589569943) 对 tested SHA `dafe9386838f6423dba8e080c51cd9114066992f` 全绿；验证通用 Linux 测试/构建，不含真实官方PDF解析。厦门第十六期PDF完成一次受限 GET，解析状态 `pdf_page_no_text`；未得到页数/字段，也未保存原始 bytes。Gate 2未通过。
-LATEST_CI=GitHub Check run [37111577268](https://github.com/revercgy-hub/MYHOT/actions/runs/37111577268) 对 `CI_TESTED_SHA=1a15e3449e281ab4ce2137926f753a3f8a188f4a` 成功，Docker与check jobs均success；CI backend tests 234项、233通过、0失败、1跳过（Windows-only monitor），Web tests 15/15。CI仅是代码software checks，不代表Gate 2/3/4、真实provider或来源覆盖验收。
-CURRENT_TURN=12源仍全部disabled、全文关闭。核心会计司/预算司全首页隔离批次：accounting两轮 `10/10/10/0 → 10/10/0/0`，预算司 `10/1/1/0 → 10/10/9/0`，第二轮实际新增9篇旧文。20篇中尝试正文12篇，6 `ok`、6 `unconfirmed`，8 `pending`；失败原因unknown，20个extract jobs未消费。区域完整首页隔离批次：中央/厦门两源 `8/8/8/0→8/8/0/0`、`10/10/10/0→10/10/0/0`，18篇全`ok/rev2`、第二轮0新增。两个批次Undici dispatch计数hook均未命中；核心批次真实hop数unknown，区域至少25次guardedFetch调用且总hop unknown，预算上限均不能判通过。后续新增离线 `scripts/fiscal/p3-http-budget.ts`，以backend Undici Agent/ProxyAgent dispatch admission计数、阻止第N+1次 dispatch；5项localhost测试通过。它仅覆盖该后端Undici实例，不含OS全局请求、其他Undici副本、worker、私网旁路和proxy CONNECT内部；这不追认历史批次预算。本段旧批次总结未含后续单独核销；唯一新增的July14会计司单篇详情诊断已执行，见本文件2026-10-03增量。区域跨源identity overlap为0、运行时dedupe unknown；短正文、长期窗口、深页和更多来源仍未验。OMO有9/29至9/30第191→192号首页变化，20项窗口一入一出；仅一次跨日证据。会计司列表/详情/正文日均9/22，旧9/21说法为UTC切日/URL误读；厦门证监API列表/可见日均9/15，9/23生成元数据语义未知。Lead已接受福建现金管理PDF23行、厦门债PDF单页的双Luna人工核对，仅为`manual_sample_evidence=ACCEPTED`，不表示机器正文`ok`、来源验收、Gate2、P4或publication。扫描路线提案见 [P3_SCAN_BODY_PROPOSAL.md](P3_SCAN_BODY_PROPOSAL.md)，限域PoC已按S1尝试一次固定五页路线，但`chi_sim.traineddata`请求在30秒时限中断；因无重试授权，OCR/gold对照均`NOT_RUN`，详见 [P3_SCAN_OCR_POC_RESULT.md](P3_SCAN_OCR_POC_RESULT.md) 和独立gold审阅。OCR不是Gate2通用前置。
-BLOCKERS=Gate 2尚未满足：首页滑窗/跨周期、核心正文缺口及各源实际覆盖证据仍不齐；用户已确认首阶段逐一覆盖全国财政部地方监管局新闻动态栏目，但35局实际栏目、入口与质量尚未逐项映射/验证，中央选登仅作补充。历史hop unknown仅不可追认，可由未来经审计的新范围证据替代。P4真实provider配置/凭据当前缺失；Gold只有8条草稿且全未人工确认；P6的25–35候选调查与P7验收尚未开始。
+STAGE=P3 / Gate 2 remediation；S1实现已提交，fresh local software checks及当前code SHA的CI均通过。Gate 2尚未正式通过。
+GATE=Gate 1 PASSED；Gate 2 NOT_PASSED。S1的`APPROVED_SCOPE`只批准实现范围，不是Gate 2审查/通过，也不启用source、collector或模型worker。
+REVIEW=本地fresh `_test`数据库 `fiscalhot_oct04_final_full_test` 完成35 migrations；`npm test` 250/250，最终typecheck、Web build、Web tests 15/15、重启到当前代码的loopback smoke 28/28通过。全套测试进程用MODEL=true仅供既有localhost stub cases，provider keys/base URLs已清空且credentials目录不存在；COLLECT/JINA/Feishu/IndexNow/private-network/OCR均false。preview API/Web也以副作用开关false重启，smoke后只读复核固定3篇正文状态/revision不变，analyses/receipts/job_runs均0。代码S1范围由Root完成架构核对；没有apps/schema/migration改动。当前SHA的CI已成功。
+LATEST_CI=run [37163791233](https://github.com/revercgy-hub/MYHOT/actions/runs/37163791233) 对 `dd3835460d4f6d180209acbe0a48e4b142ea7ac0` 已完成且success。CI仅证明代码software checks，不代表Gate 2/3/4、真实provider或来源覆盖验收。
+CURRENT_TURN=12个行业source配置的每日检查/首次近90天目标和S1严格日期门禁已提交；全部12源仍disabled、全文关闭，配置未导入正式DB或启用。附件诊断marker能保留原始URL/待解析状态，未支持附件不会当成正文ok或自动精选；完整抽取后清marker并令旧analysis失效。发布读取通过marker/当前状态防漏，精确手工true可覆盖。区域矩阵有35局：福建、北京、上海各有一条detail观察；天津、河北、山西、内蒙古、辽宁、吉林、黑龙江、山东只有首页/栏目与当前列表观察；厦门为既有有限配置，其余23局没有这几批独立栏目观察。详情窗口、分页、周期、正文审核及selector/source验收仍未齐。preview三样本只读核对仍为3条且未改变；API/Web/Postgres loopback，无worker。
+BLOCKERS=Gate 2尚未满足：35局逐局栏目、正文日期/业务质量、分页/窗口和跨周期证据不足；中央选登仅补充。历史hop unknown不追认。P4真实provider配置/凭据仍缺失；Gold有8条草稿且无人工作为人工标签确认；P6的25–35一般候选信源未调查，P7与Gate 4尚未完成。
 
-COMPLETED=P0接管；财政金融静态改造和Gate 1；12源disabled配置与preview；P3三源30篇列表两轮和正文验证（29 ok/1 unconfirmed）；AD-009/AD-010单篇隔离提取；OMO第191/192号样本和一次跨日首页变化；区域相邻历史页、双来源完整首页两轮和18篇正文；会计司/预算司完整首页两轮、12篇正文尝试并得6 ok/6 unconfirmed，8篇pending；会计司/厦门证监日期口径审计；福建现金管理四页23行、厦门债券单页字段双Luna人工图像复核，Lead接受为有限P3人工样本事实。以上不改变机器失败状态、来源验收或Gate结论。通用Linux CI未解析真实官方PDF，两个新批次hop预算均未证。
-IN_PROGRESS=P3/Gate 2继续进行；用户已确认首阶段逐一覆盖全国财政部地方监管局新闻动态栏目，35个目录/域名仍待离线映射实际栏目、入口和质量，未映射/验证项不计覆盖，中央选登只作补充。当前仍只有12个disabled配置source。P4只完成只读pilot planner准备、P5只完成Gold元数据validator/模板；两者focused和fresh软件回归通过，不构成正式P4模型验证或P5人工Gold评测。P4模型执行需Gate 2正式通过、用户/负责人提供真实provider配置及单独授权。P6一般25–35 feeds尚未调查，P7和Gate 4未进行。详见逐局覆盖矩阵和最新P4-P7检查点。
-NEXT=继续完成P3 Gate 2证据：按[逐局覆盖矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)核实35个财政部地方监管局新闻动态栏目，并补首页窗口/跨周期与正文质量证据；中央选登只作补充，未映射/核验项不计覆盖。12条disabled行业source JSON现目标为每日1440分钟检查、首次`initialBackfillMonths=3`；尚未导入数据库或启用，且首次过滤仍会保留无发布日期候选，严格90天待S1。已确认的内容边界已写入`prefilter`/`selection-score`提示词，尚无Gold模型效果评估。附件失败的原URL/待解析状态与自动精选阻断仍未实现，最小S1裁定未取得；不能把通用`unconfirmed`一概当附件失败。Gate 2仍未通过；按[Gate 2行动清单](GATE2_ACTION_CHECKLIST.md)继续逐局小批验证，待S1后再限定实现附件和严格日期边界，之后由Root决定正式Sol审查。Gate 2正式通过前仅做P4/P5离线准备，不运行真实模型/worker；P4真实provider配置仍缺失，P6一般信源扩容与P7验收均未开始。详细阶段准入见[P4-P7执行计划](P4_P7_EXECUTION_PLAN.md)及[本轮交接检查点](HANDOFFS/CONFIRMED_RULES_2026-10-04.md)。
+COMPLETED=P0接管；财政金融行业静态改造和Gate 1；12源disabled配置；截至本轮的P3样本及人工证据；S1日期门禁、附件诊断及出版读取防漏实现/测试（代码dd38354，本地fresh checks 250/250，CI run 37163791233 success）；2026-10-04区域batch1三局详情与batch2/3八局首页/栏目只读调查。上述均不改变来源验收或Gate结论。
+IN_PROGRESS=Gate 2证据与全35局覆盖继续；当前有厦门一条已有disabled逐局source配置，11局新增有限页面观察（其中只有3局有单篇详情，8局没有详情），其余23局仍缺本批栏目证据。P4只完成只读pilot规划，真实模型provider配置尚缺；P5仅有metadata validator/8条未确认模板，不构成人工Gold评测；P6 25–35候选调查和P7/Gate4未完成。
+NEXT=完成本轮docs-only检查点并单独提交/推送；随后按[Gate 2行动清单](GATE2_ACTION_CHECKLIST.md)和[逐局矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)核验详情日期、正文、窗口/分页与跨周期稳定性。下一项候选工程任务是为福建、北京、上海增加disabled配置与fixture集成测试，特别验证北京详情元数据更新后的二阶段抽取；本次尚未实施或验收。未来联网操作另行核销。禁止因软件测试绿而启用source、collector、worker或真实模型。P4 provider问题保持既有pending，不重复询问；阶段入口见[P4-P7计划](P4_P7_EXECUTION_PLAN.md)。
 
 ## 2026-10-03 本机诊断与fresh质量回归增量
 

@@ -1,8 +1,15 @@
 # P4–P7 执行与准入计划（2026-10-03）
 
-STATUS=P3 进行中；Gate 2 NOT_PASSED；本文件是准备计划，不是阶段验收。
+STATUS=P3 进行中；Gate 2 NOT_PASSED；本文件是准备/准入计划，不是阶段验收。
 BASE_HEAD=c335c71031becab5d9e7ec1c4dab90d223decd78（计划编写时恢复的代码/文档HEAD）
+PROJECT_BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c；本轮实现worktree基线 `ROUND_BASE_SHA=ea5d3af0d8241772ea6fac0abcc26386d81c6d36`。
 SCOPE=与P4、P5 Agent的只读dry-run、校验器及文档准备并行；不启模型、worker、采集或新来源请求。
+
+## 2026-10-04 当前补充
+
+Sol对P3 Gate 2的严格首次90天发布日期窗口及附件诊断/自动精选防护给出`APPROVED_SCOPE`，只批准最小实现范围，不是Gate 2正式审查或通过。A负责日期规则、附件诊断持久化及自动分析入口；B负责出版/list/detail/v1 selected旧投影防漏。S1已提交为代码SHA `dd3835460d4f6d180209acbe0a48e4b142ea7ac0`；fresh本地全套250/250、typecheck、Web build、Web tests 15/15、重启当前构建后的loopback smoke 28/28及GitHub run 37163791233均通过。本地软件检查不代表Gate2/source通过，production source仍disabled，无新schema/migration。
+
+福建、北京、上海首批各有一次首页/真实工作动态栏目/单篇详情的有限静态观察；北京列表日9/24与详情`PubDate` 9/30不一致，detail title另省略列表题名“财政部”前缀。详情DOM QA见[报告](REGIONAL_BUREAU_BATCH1_DETAIL_QA_2026-10-04.md)。batch2对天津、河北、山西、内蒙古及batch3对辽宁、吉林、黑龙江、山东分别各有一次首页/栏目列表结构观察、没有详情；两批预算各8/8/0且原始HTML hash经离线复核，详见[第二批](REGIONAL_BUREAU_BATCH2_2026-10-04.md)和[第三批](REGIONAL_BUREAU_BATCH3_2026-10-04.md)。厦门是既有有限配置；35局总表目前11局新增有限页面证据，另23局没有这几批的独立栏目观察；这些不构成跨周期、内容准确性或source验收。
 
 ## 当前准入判断
 
@@ -12,8 +19,8 @@ SCOPE=与P4、P5 Agent的只读dry-run、校验器及文档准备并行；不启
 
 - 核心和区域历史完整首页批次的实际HTTP dispatch/hop预算分别为unknown；这段历史不能追认通过。预算未知本身不是永久阻塞，后续新批次可用经验证的Undici硬上限、事件和独立快照证明来替代，但不得改写历史结果。
 - 还没有覆盖真实轮询间隔、首页滑窗、正常与突发发布、失败退避/恢复的时间分散证据。重复同一URL或一天内重跑不构成跨周期稳定性证明。
-- 正文质量还有真实缺口：预算司候选中8篇`pending`、1篇`unconfirmed`；会计司已有5篇`unconfirmed`，失败样本仍未整体结清；厦门债205字假阳性需作为拒收负例保留；福建扫描附件机器正文未确认；已确认无实质业务事实的内部活动排除；新政策、问题发现、监管措施、调研成果纳入关注，地方一手内容不因传播范围有限而降优先。该内容规则尚未实现成自动过滤器；会议/培训/领证等具体边界须在人工样本标注和评估中验证。此次区域五篇短正文（2项接受最小业务证据、3项拒绝）只关闭该五条的人工判断，其中两条详情日期unknown，同批另有224/259/296字三条未审。
-- 用户已确认第一阶段必须逐一覆盖全国财政部各地方监管局的新闻动态栏目，中央选登仅作补充；它与厦门独立栏目都不能替代其余地方局。当前35个目录/域名只是待逐一识别新闻栏目、入口和质量的调查候选，并非35个feed、配置源或已验证覆盖。当前矩阵仍只有12个配置源，全部`enabled=false`且站内/转发全文关闭；逐局清单与证据待补，见[区域监管局覆盖矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)。
+- 正文质量还有真实缺口：会计司5篇`unconfirmed`、预算司1篇`unconfirmed`及8篇`pending`；失败样本仍未整体结清；厦门债205字假阳性需作为拒收负例保留；福建扫描附件机器正文未确认；已确认无实质业务事实的内部活动排除，新政策、问题发现、监管措施和调研成果纳入，地方一手内容不因传播范围有限而降优先。内容prompt已作文字更新，无真实模型评估或硬过滤器；会议/培训/领证等边界须用人工标注评估。区域五篇短文（2项接受最小业务证据、3项拒绝）只关闭这五条人工判断，其中两条详情日期unknown，同批另有224/259/296字三条未审。
+- 用户已确认第一阶段必须逐一覆盖全国财政部各地方监管局的新闻动态栏目，中央选登仅作补充。35个目录/域名仍只是调查候选，并非35个feed或已验证覆盖。现有35行矩阵中，福建/北京/上海有各一篇detail观察；第二/三批8局有一次首页与栏目列表观察但无详情；厦门有既有有限独立来源配置；另23局仍无这些批次的新栏目观察。当前12个行业配置source全部`enabled=false`且站内/转发全文关闭；见[区域监管局覆盖矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)。
 
 ### 用户确认的首阶段覆盖范围
 
@@ -24,7 +31,7 @@ SCOPE=与P4、P5 Agent的只读dry-run、校验器及文档准备并行；不启
 1. `mof-accounting-notices`：优先结清固定身份正文与附件型失败的可重复处理结论；不重试9/4旧URL，也不重访已观察的July14页面。July14的两个PDF样式链接已证实处于业务附件区，因此该次`attachments_unprocessed`应保留。
 2. `mof-budget-work`：针对8篇`pending`与1篇`unconfirmed`先做离线队列/正文状态核账；选择少量已有页面和列表快照说明cursor/backfill及日期/候选窗口，任何新取样另行核销。
 3. `xiamen-finance-debt`、`fujian-finance-notices`：保存厦门205字假阳性及福建扫描附件为明确不支持/拒收记录，不把人工PDF复核写成机器正文成功；优先离线评估是否有已缓存可读HTML业务正文。
-4. `mof-regional-supervision-dynamics` 与 `mof-xiamen-supervision-dynamics`：既有五条短文结论与未审三条按候选边界处理；配合未来时距足够的首页观察，检验窗口变化。中央汇总继续称“选登”，跨源去重unknown。
+4. `mof-regional-supervision-dynamics` 与 `mof-xiamen-supervision-dynamics`：既有五条短文结论与未审三条按候选边界处理；福建、北京、上海2026-10-04首批页面/详情证据见[逐局矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)与[详情QA](REGIONAL_BUREAU_BATCH1_DETAIL_QA_2026-10-04.md)，仍需跨周期和其余32局栏目证据。中央汇总继续称“选登”，跨源去重unknown。
 5. 如上述之外仍需代表性窗口，再由Root从其余六源矩阵中指定，不自动扩为12源全量复抓；每源都须绑定清晰问题、已有snapshot/精确URL、硬预算和停止条件。
 
 ## 阶段顺序与进入条件

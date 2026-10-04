@@ -269,3 +269,17 @@ S1还核实 `source.enabled=false` 不能隔离已排队处理任务：`unconfir
 通用可选HTML附件scope经S1范围批准、实现与QA回归后已合入代码SHA `8b1c4446a1c3131034a4d9b7c5ed482a92b80166`；GitHub run [37093486152](https://github.com/revercgy-hub/MYHOT/actions/runs/37093486152) 对同SHA全绿。它未在本轮配置到任何行业source，12源仍disabled/fulltext关闭。July14会计司一次经核销的单独DOM GET发现两个正文外PDF样式链接均在业务附件下载区；scope外导航/面包屑/页脚PDF计数为0，因此此前该页`attachments_unprocessed`是附件保护的有效拒绝。未下载附件，实际MIME/内容unknown。详见[DOM报告](P3_ATTACHMENT_SCOPE_DOM_2026-10-03.md)。
 
 既有五篇区域短正文人工质量复核结果为2项接受最小业务证据、3项拒绝；两条详情日期unknown。同批另有224、259、296字三项不在该五篇审查范围。该结论是固定样本人工内容判断，不是模型/机器打分，也不证明全部短正文已审。见[短正文复核](P3_REGIONAL_SHORT_BODY_REVIEW_2026-10-03.md)。完整QA边界及测试数见[检查点](HANDOFFS/P3_BODY_QUALITY_CHECKPOINT_2026-10-03.md)。Gate 2继续`NOT_PASSED`。
+
+## 2026-10-04 Gate 2范围裁定、首批详情与S1实现QA
+
+Sol对最小严格初次日期窗口与附件诊断/自动精选保护范围给出`APPROVED_SCOPE`；这是实现授权范围，不是Gate 2 review或通过。A/B已完成该范围内实现；最终本地fresh测试结果、代码路径及CI状态以本轮检查点为准。范围与边界见[S1 Gate 2 blocker review](S1_GATE2_BLOCKERS_REVIEW_2026-10-04.md)。实现未新增schema/migration，也没有核准source配置或运行采集；行业12个source仍全部disabled/fulltext关闭。
+
+首批逐局观察报告见[首页与栏目批次](REGIONAL_BUREAU_BATCH1_2026-10-04.md)、[详情QA](REGIONAL_BUREAU_BATCH1_DETAIL_QA_2026-10-04.md)及[配置准备审阅](REGIONAL_BUREAU_BATCH1_CONFIG_READINESS_2026-10-04.md)。福建、北京、上海各有一次首页、真实展示的“工作动态”栏目与一篇列表observed HTTPS详情的有限静态证据。6次首页/栏目GET和3次详情GET分别受独立undici dispatch caps控制，均记录HTTP200；详情三次共`attempted/dispatched/rejected=3/3/0`，未下载附件、未运行collector/extractor、未写DB、无worker/模型/OCR。离线DOM发现列表日期在福建与上海分别与详情`PubDate`日匹配；北京列表日2026-09-24但详情`PubDate=2026-09-30`，且detail title省略列表标题的“财政部”前缀。该差异保留为G2-A1风险，不按列表日推断真实发布日期。三篇详情有可见静态body容器；此抽样不证明正文业务完整、selector生产稳定、分页或周期稳定。
+
+三局结果只推进各自矩阵行的有限页面证据状态，未改变35局逐一覆盖要求或Gate 2完结标准；第二、三批的8局补充见下段。旧历史预算unknown继续保留；本次新批次证据不追认历史批次，也不等于全来源运行验收。
+
+三条拟议的地方局配置尚未写入`industry/sources.json`；配置准备报告用保存HTML、`fromHtml`、fake-fetcher `fetchDetail` 和 `extractSelectedBody` 做离线兼容检查，列表三页各解析10项。北京详情权威标题/日期会更新候选metadata，但首次detail body identity会是`identity_missing`；详情身份已保存后纯helper可提取正文。该两阶段collector/DB/queued-extraction连接尚未用集成测试验证，不能据此声明配置/来源ready或通过Gate 2。
+
+### 2026-10-04 第二、三批八局首页与栏目观察
+
+[第二批](REGIONAL_BUREAU_BATCH2_2026-10-04.md)调查天津、河北、山西、内蒙古；[第三批](REGIONAL_BUREAU_BATCH3_2026-10-04.md)调查辽宁、吉林、黑龙江、山东。每批4个官方首页与4个由保存首页DOM实际展示的“工作动态”同域链接，总budget均为`attempted/dispatched/rejected=8/8/0`，8/8响应HTTP200、无重试/重定向。QA离线复核16份HTML字节数与SHA-256均匹配manifest，8个首页栏目锚点均可回溯到保存首页，8个栏目页各见10条当前可见同域`.htm`候选。没有详情请求、DB/source配置、collector/extractor、附件、worker、模型或OCR。此观察不覆盖文章详情正文/日期、分页、历史窗口、跨周期稳定性、稳定selector或来源验收；列表日与URL路径日期差异样本仍应按下一步详情分别留证。35局中福建/北京/上海有各自一篇详情观察，另本两批8局只有首页/列表观察；厦门为既有有限配置，尚余23局无这些新批次的独立栏目观察。Gate 2仍为`NOT_PASSED`。

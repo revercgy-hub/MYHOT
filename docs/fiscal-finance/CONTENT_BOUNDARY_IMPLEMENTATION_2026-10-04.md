@@ -21,7 +21,7 @@
 
 **FILES_CHANGED**：修改`industry/prompts/prefilter.md`、`industry/prompts/selection-score.md`；新增本文；未改应用代码、source配置、shared status或Git index。
 
-**TESTS_RUN**：prompt loader/render focused核验8项通过（预筛和评分提示词展开、边界文本与哈希版本格式）；`npm run typecheck`通过；`git diff --check`通过。未运行`tests/analyze.test.ts`，因为当时该focused工作未使用数据库；未调用模型。后续整树QA见本轮检查点。
+**TESTS_RUN**：prompt loader/render focused核验8项通过（预筛和评分提示词展开、边界文本与哈希版本格式）；`npm run typecheck`通过；`git diff --check`通过。未运行`tests/analyze.test.ts`，该测试需使用隔离数据库，而本任务明确不触碰数据库；未调用模型。后续整树QA见本轮检查点。
 
 **RESULT**：提示词强调业务事实而非活动标题形式；地方一手信息按直接工作影响判断。评分权重、五维结构、分数阈值及安全边界未改。
 
