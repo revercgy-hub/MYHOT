@@ -11,7 +11,7 @@ PROJECT_BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 ROUND_BASE_SHA=ea5d3af0d8241772ea6fac0abcc26386d81c6d36 (this round's recovered worktree base; not the project base)
 SOURCE_CONFIG_SHA=dd3835460d4f6d180209acbe0a48e4b142ea7ac0 (12 disabled industry source objects changed in this code commit)
 CI_TESTED_SHA=dd3835460d4f6d180209acbe0a48e4b142ea7ac0; run [37163791233](https://github.com/revercgy-hub/MYHOT/actions/runs/37163791233) completed with success.
-DOC_HEAD=read `git rev-parse HEAD` when restoring (docs-only HEAD; CI-tested code SHA is recorded separately).  
+DOC_HEAD=read `git rev-parse HEAD` when restoring (docs-only HEAD; CI-tested code SHA is recorded separately).
 WORKTREE=code and stage documentation committed/pushed; recheck `git status` on restore. No code changes after the tested code commit.
 
 ## Approved scope and implementation result
