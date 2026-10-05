@@ -5,12 +5,6 @@
 import { stub, tag } from "./setup.ts";
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
-import { closeDb, sql } from "@aihot/backend/db";
-import { upsertMaterial } from "@aihot/backend/content/materials";
-import { groupArticle } from "@aihot/backend/events/group";
-import { queueProcessing, settleNonEditorial } from "@aihot/backend/jobs/content";
-import { stopBoss } from "@aihot/backend/jobs/queue";
-import { publishArticle } from "@aihot/backend/publication/publish";
 
 const T = tag();
 const EDITORIAL = `test-sig-ed-${T}`;
@@ -33,6 +27,19 @@ const provider = await stub((_hit, req) => {
 });
 for (const name of ["DASHSCOPE_BASE_URL", "DEEPSEEK_BASE_URL"]) process.env[name] = `${provider.url}/v1`;
 for (const name of ["DASHSCOPE_API_KEY", "DEEPSEEK_API_KEY"]) process.env[name] = "test-key";
+// The signal fixture covers embedding recall through the same localhost fake provider.
+process.env.EMBEDDINGS_ENABLED = "true";
+// Keep the review step on this file's localhost fake provider; setup.ts defaults that profile to MiMo.
+process.env.GROUP_REVIEW_MODEL = "deepseek-flash";
+
+const [{ closeDb, sql }, { upsertMaterial }, { groupArticle }, { queueProcessing, settleNonEditorial }, { stopBoss }, { publishArticle }] = await Promise.all([
+  import("@aihot/backend/db"),
+  import("@aihot/backend/content/materials"),
+  import("@aihot/backend/events/group"),
+  import("@aihot/backend/jobs/content"),
+  import("@aihot/backend/jobs/queue"),
+  import("@aihot/backend/publication/publish"),
+]);
 
 async function job(articleId: string) {
   const [j] = await sql<{ name: string; priority: number; data: { signalOnly?: boolean } }[]>`
