@@ -1,8 +1,8 @@
 # Gate 2 action checklist
 
-**基线与最近代码检查点**：项目BASE `589f79eff09470b31ba8a7f1d9eb62d36ff2be6c`；本轮文档基线 `c73473b386c9724ab9d14aded97df3bf2f8e7cd7`；S1代码SHA `dd3835460d4f6d180209acbe0a48e4b142ea7ac0` 的CI run 37163791233历史结果success。已提交source代码SHA `a00795ea5911afaa2bdf4ac31580b29a9c84a33c` 的Check run [37281829324](https://github.com/revercgy-hub/MYHOT/actions/runs/37281829324) 已success，含15项配置。当前未提交工作树19项disabled source及正在实施的S4 backend修复；修复后最终fresh回归/CI待完成。Gate 1已通过，Gate 2=`NOT_PASSED`。本清单不增加或重定义Gate条件，不宣称任一source已整体通过；正式结论仍由授权的Gate 2审查作出。
+**基线与最近代码检查点**：项目BASE `589f79eff09470b31ba8a7f1d9eb62d36ff2be6c`；本轮恢复基线 `437c63e61f1e5b1b7a2053a600c787bff259ab4a`；最终combined代码SHA `b3546ab9c803b6872eb6b82d68fab8ca87da8520` 的Check run [37346160222](https://github.com/revercgy-hub/MYHOT/actions/runs/37346160222) success。当前配置19项（18 HTML、1 JSON），全部disabled、全文关闭；FJ strict-body flag只是处理保护且来源disabled。Gate 1已通过，Gate 2=`NOT_PASSED`。本清单不增加或重定义Gate条件，不宣称任一source已整体通过；正式结论仍由授权的Gate 2审查作出。
 
-**2026-10-06恢复核验状态**：已提交代码/CI仍指向上述 `a00795e` / run 37281829324；当前未提交source工作树19项（15旧项+4新disabled项）。19源full green是S4修复前baseline。S4审查发现无marker的unconfirmed正文可进入自动分析/精选，Sol批准最小source-specific strict-body-ready保护，B正在实现；最终修复回归和CI待完成。真实请求时间按manifest UTC；逐局证据见[矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)。
+**2026-10-06恢复核验状态**：两项代码提交及最终CI已完成；本机fresh backend full 257/257，CI Linux backend 257/256/0/1（1项Windows-only skip）、Web15/15。S4针对性回归5/5；source-specific正文保护已实现。所有真实请求的时点按manifest UTC；逐局证据见[矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)。
 
 ## 六项核对
 
@@ -10,11 +10,11 @@
 
 | 维度 | 现有证据 | 缺口 | 下一具体动作 | 完结标准 | 责任 |
 |---|---|---|---|---|---|
-| G2-A1 来源与候选身份 | **现状：部分。** 已提交配置15项；未提交工作树19项（新增河南、湖北、湖南、广东四项disabled）。北京/FJ/SH隔离collector与四局详情此前证据仍有效。新增Batch6–9/Zhejiang首篇详情15次GET，14 HTTP200并核raw hash，青岛单次timeout。FJ诊断与S4报告见[矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)。 | 单篇和单页不能证明全栏目质量；北京首轮response hash仍unknown；上海repeat timeout partial；云南、新疆日期冲突未裁定。 | 完成S4最小修复/回归；按矩阵继续填补source范围、历史和跨周期证据。 | 官方入口、列表/详情身份、日期语义与正文边界均有逐source证据且配置allowlist正确。 | QA/Lead；本轮仅有限样本。 |
-| G2-A2 首页窗口与栏目/历史候选 | **现状：未结。** Batch1–9中32局有目标列表首屏；厦门有既有限定记录，浙江监管工作列表与首篇详情已见，甘肃主页超时无列表。 | 单页不证明完整分页/90日历史/失败恢复。北京、福建、上海collector各观察单列表；上海repeat partial。 | 按矩阵续查目标栏目、保存页面历史/分页及跨周期；失败保留partial不重试。 | 多时点证据可说明daily目标、历史窗口及失败恢复，不把配置值当运行证据。 | QA/Lead；仍缺跨度与范围。 |
+| G2-A1 来源与候选身份 | **现状：部分。** 已提交19项配置（新增河南、湖北、湖南、广东四项disabled）。北京/FJ/SH隔离collector与各地详情有限样本仍有效；新增详情15次GET中14份raw/hash核实、青岛单次timeout。FJ诊断触发S4正文就绪保护，已完成测试和CI。 | 单篇和单页不能证明全栏目质量；北京首轮response hash仍unknown；上海repeat timeout partial；云南、新疆日期冲突未裁定。 | 按矩阵继续填补source范围、历史和跨周期证据。 | 官方入口、列表/详情身份、日期语义与正文边界均有逐source证据且配置allowlist正确。 | QA/Lead；本轮仅有限样本。 |
+| G2-A2 首页窗口与栏目/历史候选 | **现状：未结。** 32局目标工作动态首屏；厦门有既有限定记录，浙江监管工作列表与首篇详情已见，甘肃主页超时无列表。Batch6四个第二页样本各10项、无首页重叠；显示日范围最早到2026-07-29，未覆盖10月6日往前90天。 | 单页与单个page2样本不证明完整分页/90日历史/失败恢复；北京、福建、上海无可复用分页脚本证据。 | 按矩阵续查已保存页面历史/分页及跨周期；S1阶段A仅批准离线/loopback实现，不是source接入批准。失败保留partial不重试。 | 多时点证据可说明daily目标、历史窗口及失败恢复，不把配置值或少数分页样本当运行覆盖。 | QA/Lead；仍缺跨度与范围。 |
 | G2-A3 新鲜度、失败恢复与轮询稳定性 | **现状：未结。** 19项工作树配置目标为每日检查且disabled、未导入DB，scheduler未验证；短间隔同页不变只代表两个手工时点。 | 尚无多轮间隔、失败退避恢复、滑窗进入/退出完整证据。 | 仅在获批应用数据库/启用后观察daily轮询与失败恢复；不得据JSON声明运行通过。 | 可复核实际轮询、失败恢复及窗口更新行为。 | 工程与Lead；时效容忍仍需用户决定。 |
 | G2-A4 日期、一致性、去重与幂等 | **现状：部分。** 既有精确URL双轮证明若干固定文章幂等；会计司9/22 UTC切日误读已纠正；厦门证监API发布时间字符串和正文可见日均9/15；监管汇总与厦门当前候选无exact URL交集。 | 精确URL双轮不证明跨源相同事件去重；没有交集也不能证明去重；区域批次identity overlap为0、runtime dedupe unknown；日期元数据未知须保持unknown。 | 复用保存候选离线比较canonical URL/identity；在新快照出现重合时才检查真实入库dedupe；对固定样本核列表日、详情可见日和业务字段，不借URL路径推断日期。 | 重复/修订同一来源的行为有可审ID与revision证据；日期采用明确语义；跨源去重只在实际重叠样本测试后作结论，零重叠写unknown。 | 工程。 |
-| G2-A5 正文可用性、领域事实与边界噪声 | **现状：未结。** 北京一篇body ok；福建9 body ok、1篇诊断后unconfirmed；上海10 body ok。新增detail样本中既有财政监管业务，也有内部活动/学习。Sol确认FJ无marker unconfirmed行存在自动分析/精选可达路径，approved S4 strict-body-ready保护正在实现。 | 单篇样本不能测全源质量；无marker正文门槛修复后测试尚未完成；PDF未请求，selector配置未验证。 | 完成S4实现/行为测试；积累正负正文边界样本，不将短度直接作噪声判定。 | 来源正文异常安全保留；自动精选/公开行为可审；机器、人工、模型判断分开。软件通过不等于来源验收。 | 工程/QA；内容质量未闭环。 |
+| G2-A5 正文可用性、领域事实与边界噪声 | **现状：未结。** 北京一篇body ok；福建9 body ok、1篇诊断后unconfirmed；上海10 body ok。新增detail样本中既有财政监管业务，也有内部活动/学习。S4严格正文就绪保护已按来源opt-in实现并通过focused/full/CI。 | 单篇样本不能测全源质量；附近PDF未请求，selector配置未覆盖所有内容类型；全栏业务质量与噪声率未知。 | 积累正负正文边界样本，不将短度直接作噪声判定；任何附件能力另行核销。 | 来源正文异常安全保留；自动精选/公开行为可审；机器、人工、模型判断分开。软件通过不等于来源验收。 | 工程/QA；内容质量未闭环。 |
 | G2-A6 有界执行与可复核账目 | **现状：部分。** P3 dispatch cap已用于三次真实collector阶段、详情批次和repeat；北京/FJ/SH均有隔离库、事件与只读SQL。 | 北京首轮11个response body hash仍unknown；上海repeat dispatch 1次后超时、无headers/body/hash并以partial停止；福建pending warning无article ID；9/30历史hop仍unknown。hook边界不覆盖其它Undici实例、worker/旁路或代理CONNECT内部。 | 保持分阶段cap、exact host/path和no retry；对已观测超时保留partial。证据报告明确分开“响应hash已捕获”与“response body未收到”；不得靠后续GET补旧hash。 | 新批次有可审计上限、dispatch事件、响应/失败和DB前后状态；旧unknown保留，不追认或静默改写。 | 工程/QA；Lead核销预算。 |
 
 ## 原12个核心配置source的处理顺序
@@ -48,18 +48,18 @@
 
 ## TASK / MODEL / FILES_CHANGED / TESTS_RUN / RESULT / RISKS / BLOCKERS / NEXT
 
-**TASK**：将已有Gate 2/P3要求按六个验收维度拆为缺口、动作、完结标准与责任，并列出逐项待用户决定的问题。
+**TASK**：维护Gate 2/P3六维可审清单并同步本轮S4与来源/分页证据，不改变Gate条件。
 
-**MODEL**：Luna High；只读文档/配置，没有项目模型调用。
+**MODEL**：Luna High；本轮项目provider调用0。完整软件测试仅连接localhost fake providers。
 
-**FILES_CHANGED**：仅新增本文与`GATE2_USER_DECISIONS.md`；未改shared docs、代码、sources、数据库或Git index。
+**FILES_CHANGED**：本次文档检查点更新STATUS、PROJECT_PLAN、SOURCE_MATRIX、区域矩阵、此清单、北京阶段交接、S4 operator notes，并纳入owned QA/范围报告；代码与数据库未改。
 
-**TESTS_RUN**：只读查看`AGENTS.md`、`PROJECT_PLAN.md`、`STATUS.md`、`P3_GATE2_READINESS.md`、`P3_GATE2_NEXT_BATCH_2026-10-03.md`、`SOURCE_MATRIX.md`和`industry/sources.json`；离线字段核对文档当前source列表。无软件测试、联网或数据库操作。
+**TESTS_RUN**：文档工作只做离线报告/manifest/raw hash、候选与SQL结果核验；无新增软件测试、网络请求或数据库写入。代码检查事实为本轮已完成：fresh 35 migration local backend 257/257，typecheck/Web build/Web tests15/15，preview smoke29/29；combined SHA CI run37346160222 Linux backend257/256/0/1。
 
-**RESULT**：Gate 2仍`NOT_PASSED`。当前source工作树19项全部disabled。Batch6–9与浙江首篇详情新增15次direct GET：15/15/0 attempted/dispatched/rejected、14个HTTP200 raw/hash独立核对、青岛一次timeout partial。北京/FJ/SH隔离库结果和FJ无marker unconfirmed诊断按范围记录；后者的自动分析/精选路径已触发S4最小修复工作。S4修复后回归和最终CI未完成，上海repeat timeout继续partial。
+**RESULT**：代码SHA `b3546ab9c803b6872eb6b82d68fab8ca87da8520` 已push并通过唯一最终CI。19项来源全disabled（18 HTML、1 JSON），FJ唯一strict-body opt-in也仍disabled。Batch6 page2四局各10唯一候选、无page1重叠；最老显示日期2026-07-29，未证明90日覆盖。Gate 2仍`NOT_PASSED`。
 
-**RISKS**：状态文档为历史累积记录，不同时点的样本批次必须带日期和source边界；汇总选登不等同35局全量；“正文ok”不等同业务价值或无噪声。
+**RISKS**：35局的目标栏目、历史/分页、可信日期、正文业务质量、噪声与跨周期证据仍有缺口。北京首轮response hash unknown；青岛详情和上海repeat各有一项timeout partial；甘肃栏目未知；云南/新疆日期冲突未裁定。
 
-**BLOCKERS**：部分来源仍缺足够时间跨度、栏目范围、分页/历史或跨周期证据；云南、新疆样本日期字段冲突未裁定，青岛详情一次timeout。source工作树19项disabled、未导入正式库；北京首轮11响应hash unknown、上海repeat超时partial。FJ无marker的unconfirmed自动分析/精选可达，approved S4保护待实现和完整回归；无人工Gold/真实模型质量验证。Gate 2仍`NOT_PASSED`。
+**BLOCKERS**：Gate 2来源验收证据未闭环；S1阶段A尚未实现，且当前裁定不允许把现有19个含详情规则的来源迁入阶段A或声称90天回填完成。P4真实provider、Gold标注、P6/P7与Gate4仍未完成。
 
-**NEXT**：Luna High B完成Sol批准的最小S4保护与针对性验证；然后对最终combined code SHA执行一次必要Node24 fresh完整回归和CI。修复前19源252/252不得当作最终combined pass；不为docs-only commit重复CI。随后按矩阵补来源范围、分页/历史/跨周期证据。保持source disabled、worker关闭；不得将approved implementation范围或一次有限collector提升为Gate通过。
+**NEXT**：Lead已接受S1 Phase A限定为离线/loopback能力验证；按[scope review](S1_WEB_LIST_PAGINATION_SCOPE_REVIEW_2026-10-06.md)完成代码与契约测试后独立评估，保持production source config关闭、无真实请求、无migration/apps。之后继续来源级历史和跨周期验证，并单独安排Gate 2审查。此次docs-only提交不重复CI。

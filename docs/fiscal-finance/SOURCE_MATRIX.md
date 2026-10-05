@@ -1,6 +1,6 @@
 # 官方信源验证矩阵
 
-本矩阵区分页面结构、只读 preview 与隔离数据库验证。原九个 HTML 来源的 `previewSource` 和一个 JSON 来源的 `fetchJsonList` 是早期 dry-run 阶段，并不代表采集器写库。随后三源在隔离 `_test` 数据库做30篇backfill两轮验证，最新正文汇总29 `ok`、1 `unconfirmed`、0 `pending`，30个 `content.extract-body` jobs未消费，详见 `P3_INGEST_VALIDATION.md`。另对 `pboc-open-market` 第191号和第192号分别完成单篇受控两轮验证；9/30又以第192号提供一次跨日首页变化证据，分别见 [P3_OMO_VALIDATION.md](P3_OMO_VALIDATION.md) 与 [P3_OMO_FRESHNESS_2026-09-30.md](P3_OMO_FRESHNESS_2026-09-30.md)。区域两源已完成固定URL隔离写入/正文核验，以及两页相邻历史页只读验证，详见 [P3_REGIONAL_COLLECTOR_VALIDATION.md](P3_REGIONAL_COLLECTOR_VALIDATION.md)、[P3_REGIONAL_BODY_VALIDATION.md](P3_REGIONAL_BODY_VALIDATION.md) 与 [P3_REGIONAL_PAGING_VALIDATION.md](P3_REGIONAL_PAGING_VALIDATION.md)。这些证据均有明确单篇/单日/分页边界，不自动构成来源整体稳定或 Gate 2。当前 `industry/sources.json` 有15个已配置来源（14个HTML、1个JSON），全部 `enabled=false`，两项全文许可均关闭；福建、北京、上海新增配置与fixture/数据库集成证据见下方2026-10-05增量及[配置报告](OCT05_BUREAU_CONFIG_IMPLEMENTATION.md)、[集成QA](OCT05_BUREAU_INTEGRATION_QA.md)。旧 Ubuntu `Check` workflow [36589569943](https://github.com/revercgy-hub/MYHOT/actions/runs/36589569943) 测试SHA `dafe938` 验证通用Linux测试/构建，不代表真实官方PDF已在Linux解析。Gate 2仍未通过。
+本矩阵区分页面结构、只读 preview 与隔离数据库验证。原九个 HTML 来源的 `previewSource` 和一个 JSON 来源的 `fetchJsonList` 是早期 dry-run 阶段，并不代表采集器写库。随后三源在隔离 `_test` 数据库做30篇backfill两轮验证，最新正文汇总29 `ok`、1 `unconfirmed`、0 `pending`，30个 `content.extract-body` jobs未消费，详见 `P3_INGEST_VALIDATION.md`。另对 `pboc-open-market` 第191号和第192号分别完成单篇受控两轮验证；9/30又以第192号提供一次跨日首页变化证据，分别见 [P3_OMO_VALIDATION.md](P3_OMO_VALIDATION.md) 与 [P3_OMO_FRESHNESS_2026-09-30.md](P3_OMO_FRESHNESS_2026-09-30.md)。区域两源已完成固定URL隔离写入/正文核验，以及两页相邻历史页只读验证，详见 [P3_REGIONAL_COLLECTOR_VALIDATION.md](P3_REGIONAL_COLLECTOR_VALIDATION.md)、[P3_REGIONAL_BODY_VALIDATION.md](P3_REGIONAL_BODY_VALIDATION.md) 与 [P3_REGIONAL_PAGING_VALIDATION.md](P3_REGIONAL_PAGING_VALIDATION.md)。这些证据均有明确单篇/单日/分页边界，不自动构成来源整体稳定或 Gate 2。当前 `industry/sources.json` 有19个已配置来源（18个HTML、1个JSON），全部 `enabled=false`，两项全文许可均关闭；福建来源另启用严格正文就绪处理保护，但source仍disabled。配置/测试详见本节2026-10-05至10-06增量。Gate 2仍未通过。
 
 ## P3 新增：财政部各地监管局动态（2026-09-29）
 
@@ -302,7 +302,7 @@ Sol对最小严格初次日期窗口与附件诊断/自动精选保护范围给�
 
 ## 2026-10-06恢复核验：batch5–9、详情与真实collector分段结果
 
-文档恢复日为2026-10-06；下述网页调用实际时点取自各manifest，主要发生于10月5日UTC，不能由恢复日期推导为跨日周期或新增采样。已提交代码仍15项；当前未提交`industry/sources.json`工作树为19项，新增河南/湖北/湖南/广东4项均disabled/fulltext=false。它们不是正式source导入或Gate验收。
+文档恢复日为2026-10-06；网页调用实际时点取自各manifest，不能由报告文件名或恢复日期推导跨日周期或新采样。当前已提交`industry/sources.json`共19项（18 HTML、1 JSON），所有来源disabled且全文许可关闭；FJ strict-body opt-in是自动处理保护，并未启用来源或导入正式数据库。
 
 batch5–9尝试19局，其中18局取得“工作动态”首屏列表，甘肃主页GET超时、无栏目请求且不补请求。预算/目录链接/锚点和成功raw SHA经离线QA核验。新增栏目列表与详情结果见[逐局矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)及各batch报告。河南、湖北、湖南、广东各访问列表第一条详情一次，cap4、4/4/0，raw hash与字节数独立匹配manifest；详情标题及显示日期与所选列表项匹配。样本正文分别为河南1383字符、广东1790字符的财政监管业务内容，湖北235字符的青年组织宣传，湖南313字符的公文保密/内控培训。四篇只是一篇/局的有限内容边界观察，不能推断各局噪声率。
 
@@ -316,4 +316,10 @@ batch5–9尝试19局，其中18局取得“工作动态”首屏列表，甘肃
 
 样本只推进各行对应的一篇文章证据。广西、云南、宁夏、新疆样本含明确财政监管业务；海南、重庆、四川、大连、宁波、深圳、贵州、陕西、青海等样本主要为内部活动/组织学习，不能推断全栏目噪声率。云南列表显示日/URL日为9月18、PubDate和可见日期为9月24；新疆列表显示日/PubDate/可见日为9月24，URL路径日为7月17；两处冲突均保留，不猜权威字段。青岛详情仍unknown。上述不是历史分页、长期selector稳定或source pass。
 
-同期香港FJ fresh库唯一pending行获批一次cap1诊断，观察为`unconfirmed/non_article_container`，正文空、revision1、marker false；保存raw离线解析后，配置body selector内只有16字标题文本，无结构化段落，selector外邻接PDF未请求。独立只读审计发现无marker的unconfirmed行有自动分析/精选可达路径。Sol审查标记`CHANGES_REQUIRED / APPROVED_SCOPE`，Root分派source-specific正文就绪保护实现；该修复尚未完成或回归，所有sources disabled，Gate 2保持`NOT_PASSED`。见[FJ诊断](FUJIAN_PENDING_BODY_DIAGNOSTIC_2026-10-06.md)、[下游边界审计](FUJIAN_UNCONFIRMED_SELECTION_GUARD_AUDIT_2026-10-06.md)、[Sol范围审查](S4_ATTACHMENT_GUARD_SCOPE_REVIEW_2026-10-06.md)。
+同期FJ fresh库唯一pending行获批一次cap1诊断，观察为`unconfirmed/non_article_container`，body空、revision1、marker false；保存raw离线解析后，配置body selector内只有16字标题文本，无结构化段落，selector外邻接PDF未请求。独立只读审计发现无marker的unconfirmed行有自动分析/精选可达路径。Sol审查标记`CHANGES_REQUIRED / APPROVED_SCOPE`；已实施source-specific严格正文就绪保护并完成focused/full回归和最终CI。FJ源保持disabled，Gate 2仍`NOT_PASSED`。见[FJ诊断](FUJIAN_PENDING_BODY_DIAGNOSTIC_2026-10-06.md)、[下游边界审计](FUJIAN_UNCONFIRMED_SELECTION_GUARD_AUDIT_2026-10-06.md)、[Sol范围审查](S4_ATTACHMENT_GUARD_SCOPE_REVIEW_2026-10-06.md)、[operator notes](STRICT_BODY_POLICY_OPERATOR_NOTES_2026-10-06.md)。
+
+### 2026-10-06 页面2有限观察与分页范围
+
+Batch6四局保存的page1脚本推导出精确`index_1.htm`目标；四个direct GET均HTTP200且最终URL精确，Undici 8.11.2预算`4/4/0`，events为create/sendHeaders/headers/error=`4/4/4/0`。QA独立复核四份page1/page2 raw bytes与SHA、manifest事件及离线候选。广西、海南、重庆、四川每个page2各10个唯一候选，0个与page1 URL重叠；显示日期范围分别为08-11—09-07、08-17—09-08、09-02—09-21、07-29—09-01；共6项显示日与URL日不一致（1/1/0/4）。最早显示日2026-07-29，未到10月6日前90日界限2026-07-08，且没有遍历之后的页面。详见[page2 probe](BATCH6_PAGINATION_PROBE_2026-10-06.md)及[离线方案](PAGINATION_PROBE_PLAN_2026-10-06.md)。
+
+独立S1裁定仅批准`mof_index_v1`阶段A的离线/loopback有界遍历能力与测试，不批准现有19个带详情规则来源接入、不批准真实collector/page请求或90日完成声明。默认单页行为保持；source opt-in、详情阶段/完成状态需另行决策。见[scope review](S1_WEB_LIST_PAGINATION_SCOPE_REVIEW_2026-10-06.md)和[web-list gap audit](WEB_LIST_BACKFILL_GAP_AUDIT_2026-10-06.md)。后续配置准备度报告针对下一批广西/海南/重庆/四川，仅离线评估；B报告的“no model”指项目provider调用0，本轮分析代理为Luna High。所有来源仍disabled；Gate 2 NOT_PASSED。

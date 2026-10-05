@@ -2,29 +2,27 @@
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
 CURRENT_SHA=以 `git rev-parse HEAD` 实时读取的当前分支HEAD为准（文档不自引用）
-CHECKPOINT_CODE_SHA=a00795ea5911afaa2bdf4ac31580b29a9c84a33c（两个Oct05代码commit组合；本机fresh full 252/252）
-SOURCE_CONFIG_SHA=a00795ea5911afaa2bdf4ac31580b29a9c84a33c（15项source随代码commit提交；全部disabled，未导入数据库或启用）
-WORKTREE_SOURCE_COUNT=19（未提交候选；新增河南/湖北/湖南/广东4项disabled source，full-text关闭）
-CI_TESTED_SHA=a00795ea5911afaa2bdf4ac31580b29a9c84a33c
-CI_TESTED_RUN=37281829324（success；Linux backend 252 tests/251 pass/1 Windows-only skip；[GitHub Actions](https://github.com/revercgy-hub/MYHOT/actions/runs/37281829324)）
+CHECKPOINT_CODE_SHA=b3546ab9c803b6872eb6b82d68fab8ca87da8520（本轮最终组合代码；本机fresh full 257/257）
+SOURCE_CONFIG_SHA=aaeab85（19项source配置代码；全部disabled，未导入数据库或启用；S4 strict opt-in仅FJ配置true）
+CI_TESTED_SHA=b3546ab9c803b6872eb6b82d68fab8ca87da8520
+CI_TESTED_RUN=37346160222（success；Linux backend 257 tests/256 pass/0 fail/1 Windows-only skip；[GitHub Actions](https://github.com/revercgy-hub/MYHOT/actions/runs/37346160222)）
 CI_PREVIOUS_FAILED_SHA=26ca72f2b94d37383072c0e54be6f94682b0e9bd（run 37077418870；平台修复前的历史失败仍保留）
 CI_PREVIOUS_FAILED_RUN=37077418870
 PREVIOUS_CI_TESTED_SHA=8e845812b6ce1db45821ade7b2162a90f589e1de
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
-ROUND_BASE_SHA=c73473b386c9724ab9d14aded97df3bf2f8e7cd7（本轮交接基线，不替代项目BASE_SHA）
+ROUND_BASE_SHA=437c63e61f1e5b1b7a2053a600c787bff259ab4a（本轮恢复开始时的branch HEAD；不替代项目BASE_SHA）
 DOC_HEAD=文档提交不自引用；文档提交后由 `git rev-parse HEAD` 实时读取，CI code SHA单独记录
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
 
-STAGE=P3 / Gate 2 remediation；Oct05三局配置与fixture测试及signals本地provider fixture隔离改动已提交，fresh local software checks和最终代码SHA CI通过。Gate 2尚未正式通过。
-GATE=Gate 1 PASSED；Gate 2 NOT_PASSED。S1的`APPROVED_SCOPE`只批准实现范围，不是Gate 2审查/通过，也不启用source、collector或模型worker。
-REVIEW=新本地fresh `_test`库 `fiscalhot_oct05_bureau_final_rerun_test` 完成35 migrations；Node24 `npm run typecheck`通过，`npm test` 252/252且0 skip。最终代码SHA的Linux CI backend为252 tests/251 pass/0 fail/1 Windows-only monitor skip；CI另通过typecheck、Web build/tests、migration/seed、built-site smoke和Docker smoke。Vite Web build本机成功（有>500KB chunk warning）；Web tests 15/15，loopback smoke 28/28。全套测试进程MODEL_CALLS_ENABLED=true仅供localhost fake providers；signals测试局部启用现有localhost embedding stub，并选用本文件现有localhost Deepseek review stub；全局EMBEDDINGS_ENABLED=false。真实provider keys/baseURLs清空、credentials目录不存在、无`.env`；COLLECT/JINA/Feishu/IndexNow/private-network/OCR均false。preview固定3条source均disabled、三篇article `body_status=none/revision=1`且正文长度0，analyses/receipts/job_runs均0；API/Web/Postgres只绑127.0.0.1，无worker。没有新增apps/packages/backend/schema/migration实现改动。
-LATEST_CI=run [37281829324](https://github.com/revercgy-hub/MYHOT/actions/runs/37281829324) 对 `a00795ea5911afaa2bdf4ac31580b29a9c84a33c` 已完成且success。CI仅证明其tested SHA软件检查通过，不代表Gate 2/3/4、真实provider或来源覆盖验收。
-CURRENT_TURN=恢复日期2026-10-06；本轮网页请求真实UTC时间取各manifest，主要观察发生于10月5日，不推导额外跨日/跨周期证据。提交代码基线a00795e有15项disabled source；当前未提交工作树配置为19项（14 HTML、1 JSON），新增河南/湖北/湖南/广东4项均disabled、全文关闭。19源代码修复前Node24 fresh 35-migration回归252/252、typecheck、Web build、Web tests15/15、smoke28/28通过；它不是S4修复后的最终回归。批次5–9共19局、18局观察到工作动态首屏，甘肃主页超时；浙江监管工作页有9项列表和首篇详情（标题/日期一致、666字符/4段财政监管业务样本）。batch5–9详情共18次尝试、17个HTTP200/raw已核hash匹配manifest，青岛1次20秒timeout；新增获批15条中14次HTTP200/raw核验通过、青岛timeout。云南列表日/URL日为9月18、详情PubDate/可见日为9月24；新疆显示/PubDate为9月24、URL日为7月17，均保留差异不推断。北京/FJ/SH单源隔离collector结果已核验；FJ唯一pending文章cap1诊断为unconfirmed/non_article_container、正文只有重复标题16字，邻近PDF链接未请求；首轮无ID warning不追认给该行。Sol只读审查结论`CHANGES_REQUIRED / APPROVED_SCOPE`：无marker的unconfirmed正文存在自动分析/精选可达路径；B已开始最小source-specific严格正文就绪保护实现，未测试/提交。上海repeat list超时partial，无重试。所有来源仍disabled、未导入正式source表；无worker/model；Gate 2仍NOT_PASSED。
-BLOCKERS=Gate 2仍NOT_PASSED：35局目标栏目范围、逐源分页/历史窗口、日期/正文业务质量、噪声和跨周期证据尚未闭环；旧预算或hash unknown不追认。上海重复列表与青岛详情各有一次timeout，均保留partial且不重试；云南、新疆日期字段冲突未决。S4发现无marker的unconfirmed正文有自动分析/精选可达路径，批准的最小source-specific保护正在实现，修复后回归和最终CI未完成。P4真实provider配置/凭据仍缺；Gold有8条草稿未完成人工标注；P6/P7与Gate4未完成。
-
-COMPLETED=本轮之前的代码/CI基线 `a00795e` 与run 37281829324；当前工作树19项disabled source候选；四局region config parser focused test与source-rules新增断言；fresh 35-migration `fiscalhot_oct06_sources_final_test` 上Node24 npm test252/252、typecheck、Web build、Web tests15/15及loopback smoke28/28；regional batch5–9和浙江栏目raw/hash/锚点QA；四局详情raw/hash/正文结构QA；北京/FJ/SH各自隔离库结果SQL QA。有效测试进程MODEL_CALLS_ENABLED=true仅为现有localhost fake providers，EMBEDDINGS_ENABLED全局false且signals测试局部启用本地fake；其他安全阀关闭且凭据目录不存在。前两次npm test尝试由于PowerShell环境筛选误删/未传DATABASE_URL，在setup guard处拒绝、未连测试库，不是测试失败；仅最后显式传入`*_test`库的252/252计入回归结果。CI still为已提交a00795e/run37281829324，19项候选新代码CI待后续提交/dispatch。
-IN_PROGRESS=Root已采纳Sol S4只读审查结论；B按批准范围正在实现最小backend source-specific保护（无migration/app公开合同/PDF下载，保留legacy RSS summary-only）。A授权的15条详情追加核验已完成并独立核hash/manifest，浙江首篇详情纳入；所有owned结果与matrix可复核。当前19源配置及测试为修复前候选，原252/252套件仅作为该基线记录；等待S4实现冻结后做必要fresh回归和最终combined SHA一次CI。所有来源仍disabled，未导入正式source表；source验收与Gate 2未完成。
-NEXT=完成并审核S4最小修复及针对性行为验证；按AGENTS对最终combined code执行一次必要fresh全套与CI，再明确路径分组提交代码并docs-only收尾。此前已验证S4前的19源full绿结果不可表述为修复后最终验收；不重复dispatch中间CI。保持来源disabled、无worker/模型。Gate 2仍NOT_PASSED。
+STAGE=P3 / Gate 2 remediation；本轮19项source配置与S4严格正文就绪保护已提交，最终本机回归、preview smoke及combined code SHA CI通过。Gate 2尚未正式通过。
+GATE=Gate 1 PASSED；Gate 2 NOT_PASSED。S1分页审查只批准受限阶段A离线/loopback实现范围，未批准实际source opt-in或90日覆盖声明，也不构成Gate 2通过。
+REVIEW=最终本机fresh `fiscalhot_oct06_final_retry_test` 完成35 migrations；Node24 full `npm test` 257/257，typecheck、Web build、Web tests 15/15通过。最终combined code SHA的Linux CI backend为257 tests/256 pass/0 fail/1 Windows-only skip；CI还通过typecheck、Web build/tests、migration/seed、built-site smoke和Docker smoke。preview loopback smoke 29/29；preview DB前后均为固定3 sources/articles/publications，来源disabled、body none/正文空，analyses/receipts/fetch_runs/selected_ledger/job_runs为0。测试进程MODEL_CALLS_ENABLED=true仅供localhost fake providers，signals测试对localhost fixture局部启用embedding；global EMBEDDINGS_ENABLED=false；真实provider key/baseURL清空、credentials目录不存在，其他COLLECT/JINA/Feishu/IndexNow/private/OCR均false。API/Web/Postgres仅绑定127.0.0.1，无worker。未新增schema/migration/apps。
+LATEST_CI=run [37346160222](https://github.com/revercgy-hub/MYHOT/actions/runs/37346160222) 对 `b3546ab9c803b6872eb6b82d68fab8ca87da8520` 已完成且success。CI仅证明tested SHA软件检查通过，不代表Gate 2/3/4、真实provider或来源覆盖验收。
+CURRENT_TURN=本轮恢复起点`ROUND_BASE_SHA=437c63e61f1e5b1b7a2053a600c787bff259ab4a`；当前19项来源（18 HTML、1 JSON）全部`enabled=false`、两种全文均false，未导入正式数据库。FJ是唯一`requireBodyReadyForAutomaticSelection=true`来源，且仍disabled。S4最小保护实现和真实业务库状态未更改已由fresh合成测试验证，不是来源验收。北京/FJ/SH受限collector阶段、四局详情与各区域raw/hash证据按矩阵记录；青岛详情与上海repeat各一次timeout partial，保留unknown。Batch6分页probe四局各观察一页：每页10唯一候选、无首页重叠，但日期不覆盖90天；不构成完整性或来源通过。新增web-list分页S1 review仅批准受限阶段A离线/loopback实现范围，等待后续独立决定/实现；source仍未opt-in。所有实际网络观察均以各manifest UTC为准，不依据恢复日期推导时间跨度。
+BLOCKERS=Gate 2仍NOT_PASSED：35局目标栏目覆盖、逐源历史/分页、可信日期与正文业务质量、噪声、重复更新及跨周期仍未闭环；甘肃栏目未知、青岛详情timeout、上海repeat timeout、云南/新疆日期冲突均保留。S1分页阶段A尚未实现；四个Batch6 page2样本不是90日覆盖。P4真实provider验证、Gold人工标注、P6/P7及Gate 4未完成。
+COMPLETED=本轮两代码提交：`aaeab85` disabled four-bureau configs/fixtures/tests；`b3546ab9` S4 strict body-ready hold及回归测试。fresh 35-migration backend full本机257/257；typecheck、Web build、Web tests15/15、preview loopback smoke29/29通过；combined SHA CI run37346160222 success（Linux257/256/0/1）。区域入口、详情及Batch6 page2 probe离线核manifest/raw/hash；北京/FJ/SH隔离库阶段按各报告核SQL。运行模型仅指Luna High，本轮项目provider调用0；软件测试只通过localhost fake服务，无真实密钥/端点。预览仍3条固定样本、业务计数0。
+IN_PROGRESS=当前进行本阶段文档同步/交接。新web-list分页S1 scope review批准阶段A仅用于离线/loopback；Root已分派实现，代码将在文档checkpoint push后启动。该任务不适用现有19源，不授权官方请求、source启用或90日完成声明。
+NEXT=完成docs-only checkpoint并核对origin后，按[scope review](S1_WEB_LIST_PAGINATION_SCOPE_REVIEW_2026-10-06.md)实施阶段A的有界分页能力和loopback契约测试；保持production source disabled及无真实请求。继续按六维清单补来源级历史、日期/正文、失败恢复与跨周期证据；条件齐备后另行安排Gate 2正式审查。文档提交后重新读取`git rev-parse HEAD`作为DOC_HEAD，不改写CHECKPOINT_CODE_SHA。
 
 ## 2026-10-03 本机诊断与fresh质量回归增量
 
