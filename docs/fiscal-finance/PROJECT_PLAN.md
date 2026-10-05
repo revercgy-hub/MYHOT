@@ -26,6 +26,8 @@
 
 此前P3有限验证与中央选登及少量代表性地方局站点不能视为逐局覆盖。35个官方目录/域名是映射候选，不等于来源/feed。2026-10-04首批福建、北京、上海有各自首页、可见“工作动态”栏目与单篇详情静态观察；北京标题前缀与日期不匹配风险继续保留。第二批天津、河北、山西、内蒙古及第三批辽宁、吉林、黑龙江、山东各有一次首页/栏目页观察和当前10条候选列表，但未请求详情。原始HTML/hash及请求预算经离线核对；页面只证明本次栏目入口与列表可见结构，不证明正文、分页、日期语义、selector稳定性、跨周期覆盖或来源通过。详见[逐局矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)和三批报告。厦门为既有有限配置；35局范围内仍有23局没有这些新批次的独立栏目观察。所有新增信源仍`enabled=false`、全文开关关闭，不运行大规模collector或模型任务；该范围变更不改变Gate 2条件或结论。
 
+2026-10-05工程增量：行业配置总数由12增至15，新增福建、北京、上海三条来源，均为disabled且站内/RSS全文关闭；saved fixture配置测试与新隔离数据库两阶段集成测试通过。新集成测试使用loopback fixtures及合成正文，证明测试数据库中collector、元数据持久化、队列和显式抽取的衔接，不代表真实来源运行或验收。第四批江苏、浙江、安徽、江西观察由独立QA核验预算/raw hash：江苏、安徽、江西各有一次10项列表样本，浙江页面只得到无列表的JS跳转包装；这些单时点页面仍不构成source pass。福建、北京、上海三页在相隔32小时22分的两次手工观测间无候选变化；此证据不是scheduler运行、稳定性或Gate通过。三局配置/测试和signals本地provider fixture隔离测试在fresh数据库完整回归252/252、typecheck通过；Web build、Web tests 15/15及loopback smoke 28/28通过。所有来源继续disabled，未导入正式数据库，无worker、模型或采集任务；Gate 2仍`NOT_PASSED`。测试代码SHA、docs HEAD与本轮分支状态见[阶段检查点](HANDOFFS/BUREAU_CONFIG_INTEGRATION_2026-10-05.md)及[状态页](STATUS.md)。
+
 ## 不可越过的约束
 
 - 开发期间 `COLLECT_ENABLED=false`、`MODEL_CALLS_ENABLED=false`、`INDEXNOW_SUBMIT_ENABLED=false`，全部 `FEISHU_*_ENABLED=false`；未通过 Gate 1 不开启真实模型，未通过 Gate 2 不做大规模采集，未通过 Gate 4 不进入 NAS Production。

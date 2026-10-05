@@ -1,29 +1,29 @@
 # 项目状态
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=以 `git rev-parse HEAD` 实时读取的当前分支HEAD为准（docs提交不自引用）
-CHECKPOINT_CODE_SHA=dd3835460d4f6d180209acbe0a48e4b142ea7ac0（2026-10-04 S1实现及CI测试代码；本地fresh全套与CI run 37163791233均已通过）
-SOURCE_CONFIG_SHA=dd3835460d4f6d180209acbe0a48e4b142ea7ac0（12个disabled source JSON随S1代码提交；未导入数据库或启用）
-CI_TESTED_SHA=dd3835460d4f6d180209acbe0a48e4b142ea7ac0
-CI_TESTED_RUN=37163791233（success；[GitHub Actions](https://github.com/revercgy-hub/MYHOT/actions/runs/37163791233)）
+CURRENT_SHA=以 `git rev-parse HEAD` 实时读取的当前分支HEAD为准（文档不自引用）
+CHECKPOINT_CODE_SHA=a00795ea5911afaa2bdf4ac31580b29a9c84a33c（两个Oct05代码commit组合；本机fresh full 252/252）
+SOURCE_CONFIG_SHA=a00795ea5911afaa2bdf4ac31580b29a9c84a33c（15项source随代码commit提交；全部disabled，未导入数据库或启用）
+CI_TESTED_SHA=a00795ea5911afaa2bdf4ac31580b29a9c84a33c
+CI_TESTED_RUN=37281829324（success；Linux backend 252 tests/251 pass/1 Windows-only skip；[GitHub Actions](https://github.com/revercgy-hub/MYHOT/actions/runs/37281829324)）
 CI_PREVIOUS_FAILED_SHA=26ca72f2b94d37383072c0e54be6f94682b0e9bd（run 37077418870；平台修复前的历史失败仍保留）
 CI_PREVIOUS_FAILED_RUN=37077418870
 PREVIOUS_CI_TESTED_SHA=8e845812b6ce1db45821ade7b2162a90f589e1de
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
-ROUND_BASE_SHA=ea5d3af0d8241772ea6fac0abcc26386d81c6d36（本轮worktree恢复基线，不替代项目BASE_SHA）
-DOC_HEAD=以恢复时 `git rev-parse HEAD` 为准（docs-only HEAD；CI code SHA已单独记录）
+ROUND_BASE_SHA=c73473b386c9724ab9d14aded97df3bf2f8e7cd7（本轮交接基线，不替代项目BASE_SHA）
+DOC_HEAD=文档提交不自引用；文档提交后由 `git rev-parse HEAD` 实时读取，CI code SHA单独记录
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
 
-STAGE=P3 / Gate 2 remediation；S1实现已提交，fresh local software checks及当前code SHA的CI均通过。Gate 2尚未正式通过。
+STAGE=P3 / Gate 2 remediation；Oct05三局配置与fixture测试及signals本地provider fixture隔离改动已提交，fresh local software checks和最终代码SHA CI通过。Gate 2尚未正式通过。
 GATE=Gate 1 PASSED；Gate 2 NOT_PASSED。S1的`APPROVED_SCOPE`只批准实现范围，不是Gate 2审查/通过，也不启用source、collector或模型worker。
-REVIEW=本地fresh `_test`数据库 `fiscalhot_oct04_final_full_test` 完成35 migrations；`npm test` 250/250，最终typecheck、Web build、Web tests 15/15、重启到当前代码的loopback smoke 28/28通过。全套测试进程用MODEL=true仅供既有localhost stub cases，provider keys/base URLs已清空且credentials目录不存在；COLLECT/JINA/Feishu/IndexNow/private-network/OCR均false。preview API/Web也以副作用开关false重启，smoke后只读复核固定3篇正文状态/revision不变，analyses/receipts/job_runs均0。代码S1范围由Root完成架构核对；没有apps/schema/migration改动。当前SHA的CI已成功。
-LATEST_CI=run [37163791233](https://github.com/revercgy-hub/MYHOT/actions/runs/37163791233) 对 `dd3835460d4f6d180209acbe0a48e4b142ea7ac0` 已完成且success。CI仅证明代码software checks，不代表Gate 2/3/4、真实provider或来源覆盖验收。
-CURRENT_TURN=12个行业source配置的每日检查/首次近90天目标和S1严格日期门禁已提交；全部12源仍disabled、全文关闭，配置未导入正式DB或启用。附件诊断marker能保留原始URL/待解析状态，未支持附件不会当成正文ok或自动精选；完整抽取后清marker并令旧analysis失效。发布读取通过marker/当前状态防漏，精确手工true可覆盖。区域矩阵有35局：福建、北京、上海各有一条detail观察；天津、河北、山西、内蒙古、辽宁、吉林、黑龙江、山东只有首页/栏目与当前列表观察；厦门为既有有限配置，其余23局没有这几批独立栏目观察。详情窗口、分页、周期、正文审核及selector/source验收仍未齐。preview三样本只读核对仍为3条且未改变；API/Web/Postgres loopback，无worker。
-BLOCKERS=Gate 2尚未满足：35局逐局栏目、正文日期/业务质量、分页/窗口和跨周期证据不足；中央选登仅补充。历史hop unknown不追认。P4真实provider配置/凭据仍缺失；Gold有8条草稿且无人工作为人工标签确认；P6的25–35一般候选信源未调查，P7与Gate 4尚未完成。
+REVIEW=新本地fresh `_test`库 `fiscalhot_oct05_bureau_final_rerun_test` 完成35 migrations；Node24 `npm run typecheck`通过，`npm test` 252/252且0 skip。最终代码SHA的Linux CI backend为252 tests/251 pass/0 fail/1 Windows-only monitor skip；CI另通过typecheck、Web build/tests、migration/seed、built-site smoke和Docker smoke。Vite Web build本机成功（有>500KB chunk warning）；Web tests 15/15，loopback smoke 28/28。全套测试进程MODEL_CALLS_ENABLED=true仅供localhost fake providers；signals测试局部启用现有localhost embedding stub，并选用本文件现有localhost Deepseek review stub；全局EMBEDDINGS_ENABLED=false。真实provider keys/baseURLs清空、credentials目录不存在、无`.env`；COLLECT/JINA/Feishu/IndexNow/private-network/OCR均false。preview固定3条source均disabled、三篇article `body_status=none/revision=1`且正文长度0，analyses/receipts/job_runs均0；API/Web/Postgres只绑127.0.0.1，无worker。没有新增apps/packages/backend/schema/migration实现改动。
+LATEST_CI=run [37281829324](https://github.com/revercgy-hub/MYHOT/actions/runs/37281829324) 对 `a00795ea5911afaa2bdf4ac31580b29a9c84a33c` 已完成且success。CI仅证明其tested SHA软件检查通过，不代表Gate 2/3/4、真实provider或来源覆盖验收。
+CURRENT_TURN=industry source数从12变15（14 HTML、1 JSON）；新配置为福建、北京、上海三条disabled source，全文关闭且未导入正式DB。配置fixture与collector/DB/queue/extract集成测试通过；正文、过载行和冲突identity为合成fixture，不是真实来源运行。signals测试局部provider wiring隔离已修复，运行器全局MODEL true但全局embeddings false，无真实凭据。区域矩阵：福建/北京/上海各有单篇details；batch2/3八局有列表快照；batch4江苏/安徽/江西各见10项工作动态列表，浙江获准图片新闻列表见9项，但目标动态栏目范围仍未确认；其余19局缺本批独立页面观察。福建/北京/上海两个时间点相隔32小时22分10.133秒，3页10/10候选hash与内容无变化；这是一次手工双时点观察，不代表daily scheduler、稳定性或Gate通过。来源日期/正文、分页、周期和验收仍未齐。preview三样本只读核对不变；服务仅loopback，无worker。
+BLOCKERS=Gate 2尚未满足：35局逐局栏目、详情日期/正文业务质量、分页/历史窗口、噪声和跨周期证据不足；历史hop unknown不追认。P4真实provider配置/凭据仍缺；Gold有8条草稿且未完成人工标注；P6的25–35一般候选来源和P7/Gate4未完成。Oct05三局真实collector方案只作离线审阅，尚未获批或执行。
 
-COMPLETED=P0接管；财政金融行业静态改造和Gate 1；12源disabled配置；截至本轮的P3样本及人工证据；S1日期门禁、附件诊断及出版读取防漏实现/测试（代码dd38354，本地fresh checks 250/250，CI run 37163791233 success）；2026-10-04区域batch1三局详情与batch2/3八局首页/栏目只读调查。上述均不改变来源验收或Gate结论。
-IN_PROGRESS=Gate 2证据与全35局覆盖继续；当前有厦门一条已有disabled逐局source配置，11局新增有限页面观察（其中只有3局有单篇详情，8局没有详情），其余23局仍缺本批栏目证据。P4只完成只读pilot规划，真实模型provider配置尚缺；P5仅有metadata validator/8条未确认模板，不构成人工Gold评测；P6 25–35候选调查和P7/Gate4未完成。
-NEXT=按[Gate 2行动清单](GATE2_ACTION_CHECKLIST.md)和[逐局矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)继续补齐逐局证据；下一项工程任务是为福建、北京、上海增加disabled配置与fixture集成测试，特别验证北京详情元数据更新后的二阶段抽取。该任务未实施或验收；任何新页面请求仍需单独核销。禁止因软件测试绿而启用source、collector、worker或真实模型。P4 provider问题保持既有pending，不重复询问；阶段入口见[P4-P7计划](P4_P7_EXECUTION_PLAN.md)。
+COMPLETED=P0接管；财政金融行业静态改造和Gate 1；15个disabled source配置；三局saved-fixture与新35-migration collector/DB/queue/extract集成测试；signals本地provider fixture隔离；Oct05本机fresh regression（35 migrations，252/252，typecheck，Web build，Web tests 15/15，smoke 28/28）；当前代码SHA `a00795e`的Check run 37281829324（Linux backend 251 pass/1 Windows-only skip）成功；Oct05三局复查、regional batch4及浙江目标页有限观察。以上均不改变source验收或Gate结论。
+IN_PROGRESS=Gate 2证据与全35局覆盖继续：4局有逐局disabled配置（含既有厦门）；14局有目标新闻列表快照，浙江另有一次图片新闻列表但目标栏目范围尚未确认；厦门有既有有限配置/历史页验证；福建/北京/上海各有一条单篇详情。江苏/安徽/江西详情未验，其他19局缺独立页面观察。来源日期/正文、分页/窗口、噪声及跨周期质量仍缺。P4只完成只读pilot规划，真实模型provider配置未提供；P5模板未成为人工Gold；P6/P7与Gate4未完成.
+NEXT=按[Gate 2行动清单](GATE2_ACTION_CHECKLIST.md)和[逐局矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)继续补真实来源证据。福建/北京/上海真实来源方案见[BUREAU_REAL_VALIDATION_PLAN_2026-10-05.md](BUREAU_REAL_VALIDATION_PLAN_2026-10-05.md)：目前仅计划优先单独审阅北京collector cap=11，显式body阶段另行cap=1；尚未获批或执行。保持source disabled，后续网络、DB、collector/worker或真实模型操作必须按阶段核准；P4 provider问题保持既有pending，不重复询问。
 
 ## 2026-10-03 本机诊断与fresh质量回归增量
 

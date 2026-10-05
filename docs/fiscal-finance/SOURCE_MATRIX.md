@@ -1,6 +1,6 @@
 # 官方信源验证矩阵
 
-本矩阵区分页面结构、只读 preview 与隔离数据库验证。原九个 HTML 来源的 `previewSource` 和一个 JSON 来源的 `fetchJsonList` 是早期 dry-run 阶段，并不代表采集器写库。随后三源在隔离 `_test` 数据库做30篇backfill两轮验证，最新正文汇总29 `ok`、1 `unconfirmed`、0 `pending`，30个 `content.extract-body` jobs未消费，详见 `P3_INGEST_VALIDATION.md`。另对 `pboc-open-market` 第191号和第192号分别完成单篇受控两轮验证；9/30又以第192号提供一次跨日首页变化证据，分别见 [P3_OMO_VALIDATION.md](P3_OMO_VALIDATION.md) 与 [P3_OMO_FRESHNESS_2026-09-30.md](P3_OMO_FRESHNESS_2026-09-30.md)。区域两源已完成固定URL隔离写入/正文核验，以及两页相邻历史页只读验证，详见 [P3_REGIONAL_COLLECTOR_VALIDATION.md](P3_REGIONAL_COLLECTOR_VALIDATION.md)、[P3_REGIONAL_BODY_VALIDATION.md](P3_REGIONAL_BODY_VALIDATION.md) 与 [P3_REGIONAL_PAGING_VALIDATION.md](P3_REGIONAL_PAGING_VALIDATION.md)。这些证据均有明确单篇/单日/分页边界，不自动构成来源整体稳定或 Gate 2。当前12个已配置来源（十一个HTML、一个JSON）全部 `enabled=false`，两项全文许可均关闭。旧 Ubuntu `Check` workflow [36589569943](https://github.com/revercgy-hub/MYHOT/actions/runs/36589569943) 测试SHA `dafe938` 验证通用Linux测试/构建，不代表真实官方PDF已在Linux解析。Gate 2仍未通过。
+本矩阵区分页面结构、只读 preview 与隔离数据库验证。原九个 HTML 来源的 `previewSource` 和一个 JSON 来源的 `fetchJsonList` 是早期 dry-run 阶段，并不代表采集器写库。随后三源在隔离 `_test` 数据库做30篇backfill两轮验证，最新正文汇总29 `ok`、1 `unconfirmed`、0 `pending`，30个 `content.extract-body` jobs未消费，详见 `P3_INGEST_VALIDATION.md`。另对 `pboc-open-market` 第191号和第192号分别完成单篇受控两轮验证；9/30又以第192号提供一次跨日首页变化证据，分别见 [P3_OMO_VALIDATION.md](P3_OMO_VALIDATION.md) 与 [P3_OMO_FRESHNESS_2026-09-30.md](P3_OMO_FRESHNESS_2026-09-30.md)。区域两源已完成固定URL隔离写入/正文核验，以及两页相邻历史页只读验证，详见 [P3_REGIONAL_COLLECTOR_VALIDATION.md](P3_REGIONAL_COLLECTOR_VALIDATION.md)、[P3_REGIONAL_BODY_VALIDATION.md](P3_REGIONAL_BODY_VALIDATION.md) 与 [P3_REGIONAL_PAGING_VALIDATION.md](P3_REGIONAL_PAGING_VALIDATION.md)。这些证据均有明确单篇/单日/分页边界，不自动构成来源整体稳定或 Gate 2。当前 `industry/sources.json` 有15个已配置来源（14个HTML、1个JSON），全部 `enabled=false`，两项全文许可均关闭；福建、北京、上海新增配置与fixture/数据库集成证据见下方2026-10-05增量及[配置报告](OCT05_BUREAU_CONFIG_IMPLEMENTATION.md)、[集成QA](OCT05_BUREAU_INTEGRATION_QA.md)。旧 Ubuntu `Check` workflow [36589569943](https://github.com/revercgy-hub/MYHOT/actions/runs/36589569943) 测试SHA `dafe938` 验证通用Linux测试/构建，不代表真实官方PDF已在Linux解析。Gate 2仍未通过。
 
 ## P3 新增：财政部各地监管局动态（2026-09-29）
 
@@ -283,3 +283,19 @@ Sol对最小严格初次日期窗口与附件诊断/自动精选保护范围给�
 ### 2026-10-04 第二、三批八局首页与栏目观察
 
 [第二批](REGIONAL_BUREAU_BATCH2_2026-10-04.md)调查天津、河北、山西、内蒙古；[第三批](REGIONAL_BUREAU_BATCH3_2026-10-04.md)调查辽宁、吉林、黑龙江、山东。每批4个官方首页与4个由保存首页DOM实际展示的“工作动态”同域链接，总budget均为`attempted/dispatched/rejected=8/8/0`，8/8响应HTTP200、无重试/重定向。QA离线复核16份HTML字节数与SHA-256均匹配manifest，8个首页栏目锚点均可回溯到保存首页，8个栏目页各见10条当前可见同域`.htm`候选。没有详情请求、DB/source配置、collector/extractor、附件、worker、模型或OCR。此观察不覆盖文章详情正文/日期、分页、历史窗口、跨周期稳定性、稳定selector或来源验收；列表日与URL路径日期差异样本仍应按下一步详情分别留证。35局中福建/北京/上海有各自一篇详情观察，另本两批8局只有首页/列表观察；厦门为既有有限配置，尚余23局无这些新批次的独立栏目观察。Gate 2仍为`NOT_PASSED`。
+
+## 2026-10-05 新增三局disabled配置与合成集成测试
+
+`industry/sources.json`从12项增至15项（14 HTML、1 JSON），新增`mof-fujian-supervision-dynamics`、`mof-beijing-supervision-dynamics`、`mof-shanghai-supervision-dynamics`；均为T1、第一方`web_list`、目标间隔1440分钟、首次严格90天日期范围、`enabled=false`且站内/RSS全文许可关闭。配置值来自10/04保存页面；详情正文fixture内容为明显标记的合成文字，不含真实新闻正文。列表与详情静态配置/解析检查、测试报告见[配置实现](OCT05_BUREAU_CONFIG_IMPLEMENTATION.md)；`source-rules` count 15及原有每源约束保持覆盖。
+
+隔离loopback fixture数据库测试见[集成QA](OCT05_BUREAU_INTEGRATION_QA.md)：新库`fiscalhot_oct05_bureau_integration_test`执行35个既有migration；Node 24固定业务Date到2026-10-05并在finally恢复，仅验证本地保存DOM与真实collector/DB/队列/显式抽取衔接，没有真实来源请求或worker。福建/上海通过合成额外列表行验证每源最多抓10详情以及重跑不变；北京验证权威详情元数据持久化、首轮identity拒绝后保留pending并排队，冲突metadata失败保护，以及后续同fixture显式抽取成功。正文、压力列表和矛盾metadata均为合成输入；分析/receipt/selected结果为0。该验证证明观察fixture下软件路径，不验证当前真实站点、来源长期稳定性或Gate 2。
+
+后续三局真实collector/body候选方案见[真实验证计划](BUREAU_REAL_VALIDATION_PLAN_2026-10-05.md)。它建议只先审核北京单局collector阶段（请求前硬cap 11），显式body阶段另行核销cap 1；福建和上海后续分别分批。计划只做离线审查，本轮没有启动collector或新数据库操作；理论多轮三局69个guarded fetch/414个dispatch仅解释累计风险，不是已批准请求额度或已执行结果。执行前仍需Lead逐阶段核销。
+
+## 2026-10-05 福建、北京、上海受限短间隔复查
+
+见[短间隔复查报告](REGIONAL_BUREAU_FOLLOWUP_2026-10-05.md)。三条精确旧列表URL各一次直接GET；Undici 8.11.2 hard cap=3，`attempted/dispatched/rejected=3/3/0`，9事件（3 create、3 sendHeaders、3 headers），HTTP200，无重定向/重试。10/04旧manifest `2026-10-03T23:13:00.189Z`到本轮`2026-10-05T07:35:10.322Z`起点为116,530,133毫秒（32小时22分10.133秒），Shanghai日期从10月4日跨至10月5日。三页响应bytes/hash分别与旧快照完全相同；离线同一`fromHtml`每局10/10留存、0进/0出，共同URL标题/列表日期均无变化。该结果是两个时间点的一次短间隔无变化观察；它不是daily scheduler运行、连续稳定、24小时覆盖验收或Gate通过。
+
+## 2026-10-05 第四批江苏、浙江、安徽、江西栏目观察
+
+独立离线预算/hash核验及状态见[batch 4报告](REGIONAL_BUREAU_BATCH4_2026-10-05.md)和[逐局矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)。主页4次、栏目3次、浙江获批补充1次，共`attempted/dispatched/rejected=8/8/0`；Undici日志8 create/8 sendHeaders/8 headers，零错误，8份raw bytes/SHA均与manifest一致。江苏、安徽、江西从首页实际主内容锚点发现“工作动态”，其单页各有10项当前唯一同域`.htm`候选；没有访问详情或分页。浙江首页没有“工作动态/新闻动态”主内容标题，获准的`动态简讯`入口响应为379字节JS redirect wrapper，0列表锚点。其脚本精确目标后经单独授权读取，见[浙江target页报告](REGIONAL_BUREAU_ZHEJIANG_TARGET_2026-10-05.md)：页面标题“图片新闻”，9条唯一同域`.htm`候选、可见日2023-12-28—2026-09-11、0 PDF、1次HTTP200 direct dispatch；未请求详情。该观察只说明一个图片新闻列表页，不表示浙江目标监管动态总体栏目覆盖。四局均未配置，batch4观察不涉及collector或DB测试；页面观察不等于来源验收。
