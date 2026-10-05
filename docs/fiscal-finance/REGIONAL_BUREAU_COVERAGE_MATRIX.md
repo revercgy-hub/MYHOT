@@ -1,51 +1,51 @@
 # 财政部地方监管局新闻栏目覆盖矩阵
 
-状态基准：2026-10-05。范围按用户已确认的首阶段口径：逐局覆盖全国财政部各地方监管局的新闻动态栏目；财政部中央选登仅作补充。这里的35行来自财政部官网机构目录两页（本地保存HTML：`.data/fiscal-regional-audit/www.mof.gov.cn_znjg_jgsz_czbzdfzyb.html` 与 `..._index_1_htm.html`，解析为18+17个目录锚点），只证明机构名和官网域名。它们不是35个已发现栏目、feed、已配置来源或已完成覆盖。NFRA地方监管局不属于本矩阵。
+状态基准：2026-10-06恢复核验。范围按用户已确认的首阶段口径：逐局覆盖全国财政部各地方监管局的新闻动态栏目；财政部中央选登仅作补充。这里的35行来自财政部官网机构目录两页（本地保存HTML：`.data/fiscal-regional-audit/www.mof.gov.cn_znjg_jgsz_czbzdfzyb.html` 与 `..._index_1_htm.html`，解析为18+17个目录锚点），只证明机构名和官网域名。它们不是35个已发现栏目、feed、已配置来源或已完成覆盖。NFRA地方监管局不属于本矩阵。执行日期依据各manifest内真实UTC时间戳；10月6日是恢复文档时点，不改变已记录的10月5日观察时间。
 
 “栏目证据”仅记录现存资料里能证明的地方栏目或中央汇总样本；中央选登中的一篇稿件不能证明其发布局独立栏目已找到。`未知`代表本地证据不足，不猜栏目、URL或selector。各局后续均需按真实页面核验栏目入口、列表身份/日期、详情正文、窗口/分页和重复；单项通过后才更新状态。
 
 | # | 财政部官网目录机构名 | 目录域名 | 官方目录证据 | 现存新闻栏目证据 | 独立局源配置 | 独立栏目验证 | 缺口 / 最小下一步 |
 |---:|---|---|---|---|---|---|---|
-| 1 | 财政部北京监管局 | `bj.mof.gov.cn` | 目录页1锚点 | 2026-10-04 batch 1 实见首页“工作动态”链接、栏目列表10条；其中一条详情HTTP 200，标题核心匹配但详情省略列表标题“财政部”前缀，列表日9/24与详情`PubDate` 9/30相差6天。旧中央选登证据仅作补充 | 有，`mof-beijing-supervision-dynamics`（disabled） | 有限：单时点首页/栏目/单篇详情观察及fixture collector集成测试；未验周期、分页、selector稳定性及真实正文业务完整性 | 日期差异须保留并制定来源级语义；另补时间窗口和正文质量，不能将列表日当权威详情日 |
+| 1 | 财政部北京监管局 | `bj.mof.gov.cn` | 目录页1锚点 | 2026-10-04 batch 1 实见首页“工作动态”链接、栏目列表10条；详情日期相差6天。2026-10-05 fresh隔离库真实collector抓10条（1列表+10详情），再显式抽取1篇和重复列表1次；样本详情日期为9/30，列表日9/24 | 有，`mof-beijing-supervision-dynamics`（disabled） | 有限：首次列表/详情正文raw hash缺失；单篇body转ok；重复列表幂等；其余9篇pending。未验分页、90日历史、周期稳定性 | 保留列表/详情日期差异和首轮11个响应hash未知；不把一次collector/正文样本当来源通过。详见[北京验证报告](BEIJING_REAL_COLLECTOR_2026-10-05.md) |
 | 2 | 财政部天津监管局 | `tj.mof.gov.cn` | 目录页1锚点 | 2026-10-04 batch 2 实见首页主内容“工作动态”锚点及同域栏目页；栏目页当前可见10条 `.htm` 候选，未请求详情 | 否 | 有限：一次首页与一页列表结构；未验详情、周期、分页或selector稳定性 | 详情题名/正文/权威日期和窗口仍未知；只可从已保存列表候选中另行核销详情 |
 | 3 | 财政部河北监管局 | `he.mof.gov.cn` | 目录页1锚点 | 2026-10-04 batch 2 实见首页主内容“工作动态”锚点及同域栏目页；当前列表10条 `.htm` 候选，未请求详情 | 否 | 有限：一次首页与一页列表结构；未验详情、周期、分页或selector稳定性 | 列表日期与URL路径日期可见不一致样例；正文和真实发布时间未知，详情需另行核验 |
 | 4 | 财政部山西监管局 | `sn.mof.gov.cn` | 目录页1锚点 | 2026-10-04 batch 2 实见首页主内容“工作动态”锚点及同域栏目页；当前列表10条 `.htm` 候选，未请求详情 | 否 | 有限：一次首页与一页列表结构；未验详情、周期、分页或selector稳定性 | 列表日期与URL路径日期有差异样例；正文和真实发布时间未知，详情需另行核验 |
 | 5 | 财政部内蒙古监管局 | `nmg.mof.gov.cn` | 目录页1锚点 | 2026-10-04 batch 2 实见首页主内容“工作动态”锚点及同域栏目页；当前列表10条 `.htm` 候选，未请求详情。中央选登稿仍只作补充 | 否 | 有限：一次首页与一页列表结构；未验详情、周期、分页或selector稳定性 | 列表日期与URL路径日期有差异样例；正文和真实发布时间未知，详情需另行核验 |
 | 6 | 财政部辽宁监管局 | `ln.mof.gov.cn` | 目录页1锚点 | 2026-10-04 batch 3 实见首页主内容“工作动态”锚点及同域栏目页；当前列表10条 `.htm` 候选，未请求详情 | 否 | 有限：一次首页与一页列表结构；未验详情、周期、分页或selector稳定性 | 日期路径差异、详情正文与更新窗口仍未知；需另行核验 |
-| 7 | 财政部大连监管局 | `dl.mof.gov.cn` | 目录页1锚点 | 未知 | 否 | 否 | 同上 |
+| 7 | 财政部大连监管局 | `dl.mof.gov.cn` | 目录页1锚点 | 2026-10-05 batch 7实见“工作动态”列表10项；首条详情HTTP200，题名/日期相符 | 否 | 有限：296字符/3段节前廉洁教育样本；未验分页历史/跨周期 | 内容偏内部活动、不推断全栏；[batch7详情](REGIONAL_BUREAU_BATCH7_DETAILS_2026-10-06.md) |
 | 8 | 财政部吉林监管局 | `jl.mof.gov.cn` | 目录页1锚点 | 2026-10-04 batch 3 实见首页主内容“工作动态”锚点及同域栏目页；当前列表10条 `.htm` 候选，未请求详情。旧中央选登稿仍只作补充 | 否 | 有限：一次首页与一页列表结构；未验详情、周期、分页或selector稳定性 | 多项列表日与URL路径日期不同；正文和真实发布时间未知，详情需另行核验 |
 | 9 | 财政部黑龙江监管局 | `hlj.mof.gov.cn` | 目录页1锚点 | 2026-10-04 batch 3 实见首页主内容“工作动态”锚点及同域栏目页；当前列表10条 `.htm` 候选，未请求详情 | 否 | 有限：一次首页与一页列表结构；未验详情、周期、分页或selector稳定性 | 多项列表日与URL路径日期不同；正文和真实发布时间未知，详情需另行核验 |
-| 10 | 财政部上海监管局 | `sh.mof.gov.cn` | 目录页1锚点 | 2026-10-04 batch 1 实见首页“工作动态”链接、栏目列表10条；一条详情HTTP 200、标题及列表/详情日匹配、静态正文容器可见 | 有，`mof-shanghai-supervision-dynamics`（disabled） | 有限：单时点首页/栏目/单篇详情观察及fixture collector集成测试；未验周期、分页、selector稳定性及真实正文业务完整性 | 时间分散观察、详情业务事实与窗口/分页仍待核 |
+| 10 | 财政部上海监管局 | `sh.mof.gov.cn` | 目录页1锚点 | 2026-10-04 batch 1实见栏目/详情；2026-10-05真实collector一次保存10条，均`body_status=ok`；target正文样本另有抽取调用但0请求（已ok），幂等列表GET一次超时 | 有，`mof-shanghai-supervision-dynamics`（disabled） | 有限：10条单时点候选、一次列表GET超时partial；未验分页、历史窗口和跨周期 | 记录repeat超时并停止，不重试；内容质量、时间范围和周期仍待核，见[上海真实验证报告](SHANGHAI_REAL_COLLECTOR_2026-10-05.md) |
 | 11 | 财政部江苏监管局 | `jsz.mof.gov.cn` | 目录页1锚点 | 2026-10-05 batch 4 实见首页“工作动态”主内容锚点；栏目页10条唯一同域`.htm`链接，当前可见日期2026-08-14—2026-09-30，未请求详情 | 否 | 有限：一次首页、一页列表结构；未验详情、分页/历史、周期、selector稳定性或业务质量 | 另取一条列表详情核题名/权威日期/正文，并核查分页和窗口 |
-| 12 | 财政部浙江监管局 | `zj.mof.gov.cn` | 目录页1锚点 | 2026-10-05 batch 4 首页未见字面“工作动态”/“新闻动态”主内容标题；见“动态简讯”同域锚点，其栏目URL返回379字节HTTP 200 JavaScript `location.replace("./tupianbaodao_1/")`包装页。另获准的一次精确目标GET返回“图片新闻”栏目页，9条唯一同域`.htm`候选、可见日期2023-12-28—2026-09-11、0 PDF；无详情。该栏目的报道样例含党建/培训等，不能代表目标监管新闻动态栏目整体 | 否 | 一次首页及图片新闻列表结构有限观察；“动态简讯”目标和新闻动态栏目范围仍未确认 | 见[浙江target页报告](REGIONAL_BUREAU_ZHEJIANG_TARGET_2026-10-05.md)；不把图片新闻页等同目标栏目全覆盖，后续详情/其他栏目请求须单独核销 |
-| 13 | 财政部宁波监管局 | `nb.mof.gov.cn` | 目录页1锚点 | 未知 | 否 | 否 | 同上 |
+| 12 | 财政部浙江监管局 | `zj.mof.gov.cn` | 目录页1锚点 | 2026-10-05 batch 4首页未见“工作动态”/“新闻动态”；“动态简讯”先返回379字节JS包装，图片新闻目标页9项。保存首页实见“监管工作”锚点；列表9条候选、JS声明16页、1个PDF未请求；首条详情HTTP200，题名/日期一致，666字符/4段财政监管正文 | 否 | 有限：监管工作列表与单篇详情；无后续页/历史/周期验证，图片新闻范围较窄 | 见[监管工作页](REGIONAL_BUREAU_ZHEJIANG_REGULATORY_COLUMN_2026-10-05.md)、[图片新闻target](REGIONAL_BUREAU_ZHEJIANG_TARGET_2026-10-05.md)、[首篇详情](ZHEJIANG_REGULATORY_FIRST_DETAIL_2026-10-06.md)；不代表全栏目通过 |
+| 13 | 财政部宁波监管局 | `nb.mof.gov.cn` | 目录页1锚点 | 2026-10-05 batch 7实见“工作动态”列表10项；首条详情HTTP200，题名/日期相符 | 否 | 有限：386字符/3段机关理论宣讲与青年活动样本 | 内容偏内部组织活动，不推断全栏；[batch7详情](REGIONAL_BUREAU_BATCH7_DETAILS_2026-10-06.md) |
 | 14 | 财政部安徽监管局 | `ah.mof.gov.cn` | 目录页1锚点 | 2026-10-05 batch 4 实见首页“工作动态”主内容锚点；栏目页10条唯一同域`.htm`链接，当前可见日期2026-09-15—2026-09-30，未请求详情；中央选登仍仅作补充 | 否 | 有限：一次首页、一页列表结构；未验详情、分页/历史、周期、selector稳定性或业务质量 | 另取一条列表详情核题名/权威日期/正文，并核查分页和窗口 |
-| 15 | 财政部福建监管局 | `fj.mof.gov.cn` | 目录页1锚点 | 2026-10-04 batch 1 实见首页“工作动态”链接、栏目列表10条；一条详情HTTP 200、标题与列表匹配，列表日与详情`PubDate`同为9/22。早期502记录保留为较早时点事实；中央选登只作补充 | 有，`mof-fujian-supervision-dynamics`（disabled） | 有限：单时点首页/栏目/单篇详情观察及fixture collector集成测试；未验周期、分页、selector稳定性及真实正文业务完整性 | 补时间窗口与正文质量；旧502不覆盖或抹去，新观察也不证明全量可用 |
+| 15 | 财政部福建监管局 | `fj.mof.gov.cn` | 目录页1锚点 | 2026-10-04 batch 1实见栏目/详情；2026-10-05 collector新增10条，9篇body ok、1篇pending；repeat list无变化；唯一pending行后获准cap1诊断为unconfirmed/non_article_container，body空/revision1/marker false | 有，`mof-fujian-supervision-dynamics`（disabled） | 有限：邻接PDF链接在body selector外且未请求 | 无marker的unconfirmed自动分析/精选可达路径已触发S4修复；source仍disabled；见[FJ诊断](FUJIAN_PENDING_BODY_DIAGNOSTIC_2026-10-06.md)及[Sol范围](S4_ATTACHMENT_GUARD_SCOPE_REVIEW_2026-10-06.md) |
 | 16 | 财政部厦门监管局 | `xm.mof.gov.cn` | 目录页1锚点 | 独立“工作动态”首页 `https://xm.mof.gov.cn/caizhengjiancha/index.htm` | 是，`mof-xiamen-supervision-dynamics`（disabled） | 部分：配置首页、相邻历史页及有限正文样本有记录 | 只覆盖厦门已测窗口；补跨周期/正文与去重证据，不外推其余34局 |
 | 17 | 财政部江西监管局 | `jx.mof.gov.cn` | 目录页1锚点 | 2026-10-05 batch 4 实见首页“工作动态”主内容锚点；栏目页10条唯一同域`.htm`链接，当前可见日期2026-09-04—2026-09-30，未请求详情 | 否 | 有限：一次首页、一页列表结构；未验详情、分页/历史、周期、selector稳定性或业务质量 | 另取一条列表详情核题名/权威日期/正文，并核查分页和窗口 |
 | 18 | 财政部山东监管局 | `sd.mof.gov.cn` | 目录页1锚点 | 2026-10-04 batch 3 实见首页主内容“工作动态”锚点及同域栏目页；当前列表10条 `.htm` 候选，未请求详情。旧中央选登稿仍只作补充 | 否 | 有限：一次首页与一页列表结构；未验详情、周期、分页或selector稳定性 | 多项列表日与URL路径日期不同；正文和真实发布时间未知，详情需另行核验 |
-| 19 | 财政部青岛监管局 | `qd.mof.gov.cn` | 目录页2锚点 | 未知 | 否 | 否 | 同上 |
-| 20 | 财政部河南监管局 | `ha.mof.gov.cn` | 目录页2锚点 | 未知 | 否 | 否 | 同上 |
-| 21 | 财政部湖北监管局 | `hb.mof.gov.cn` | 目录页2锚点 | 未知 | 否 | 否 | 同上 |
-| 22 | 财政部湖南监管局 | `hn.mof.gov.cn` | 目录页2锚点 | 未知 | 否 | 否 | 同上 |
-| 23 | 财政部广东监管局 | `gd.mof.gov.cn` | 目录页2锚点 | 未知 | 否 | 否 | 同上 |
-| 24 | 财政部深圳监管局 | `sz.mof.gov.cn` | 目录页2锚点 | 未知 | 否 | 否 | 同上 |
-| 25 | 财政部广西监管局 | `gx.mof.gov.cn` | 目录页2锚点 | 中央选登有一篇候选稿；非本局栏目证据 | 否 | 否 | 同上 |
-| 26 | 财政部海南监管局 | `hq.mof.gov.cn` | 目录页2锚点 | 未知 | 否 | 否 | 同上 |
-| 27 | 财政部重庆监管局 | `cq.mof.gov.cn` | 目录页2锚点 | 中央选登有一篇候选稿；非本局栏目证据 | 否 | 否 | 同上 |
-| 28 | 财政部四川监管局 | `sc.mof.gov.cn` | 目录页2锚点 | 未知 | 否 | 否 | 同上 |
-| 29 | 财政部贵州监管局 | `gz.mof.gov.cn` | 目录页2锚点 | 未知 | 否 | 否 | 同上 |
-| 30 | 财政部云南监管局 | `yn.mof.gov.cn` | 目录页2锚点 | 中央选登有一篇候选稿；非本局栏目证据 | 否 | 否 | 同上 |
-| 31 | 财政部陕西监管局 | `sx.mof.gov.cn` | 目录页2锚点 | 中央选登出现过候选稿；非本局栏目证据 | 否 | 否 | 同上 |
-| 32 | 财政部甘肃监管局 | `gs.mof.gov.cn` | 目录页2锚点 | 未知 | 否 | 否 | 同上 |
-| 33 | 财政部青海监管局 | `qh.mof.gov.cn` | 目录页2锚点 | 未知 | 否 | 否 | 同上 |
-| 34 | 财政部宁夏监管局 | `nx.mof.gov.cn` | 目录页2锚点 | 未知 | 否 | 否 | 同上 |
-| 35 | 财政部新疆监管局 | `xj.mof.gov.cn` | 目录页2锚点 | 中央选登出现过候选稿；非本局栏目证据 | 否 | 否 | 同上 |
+| 19 | 财政部青岛监管局 | `qd.mof.gov.cn` | 目录页2锚点 | 2026-10-05 batch 7实见“工作动态”列表10项；首条详情精确GET一次超时 | 否 | 有限：列表证据，详情内容unknown | 单次20秒预算已用，不重试/不换候选；[batch7详情](REGIONAL_BUREAU_BATCH7_DETAILS_2026-10-06.md) |
+| 20 | 财政部河南监管局 | `ha.mof.gov.cn` | 目录页2锚点 | 2026-10-05 batch 5 首页/“工作动态”栏目各一次；首条详情HTTP200，列表/ArticleTitle/日期一致 | 工作树候选`mof-henan-supervision-dynamics`（disabled、未提交） | 有限：单篇1383可见字符、7段财政绩效监管正文、0附件；未验其他详情、分页历史或跨周期 | 本样本含实质财政监管事实，不代表全源质量；[四局详情报告](REGIONAL_BUREAU_BATCH5_DETAILS_2026-10-05.md) |
+| 21 | 财政部湖北监管局 | `hb.mof.gov.cn` | 目录页2锚点 | 2026-10-05 batch 5 首页/“工作动态”栏目各一次；首条详情HTTP200，列表/ArticleTitle/日期一致 | 工作树候选`mof-hubei-supervision-dynamics`（disabled、未提交） | 有限：单篇235可见字符、2段青年获奖/队伍宣传、0附件；未验其他详情、分页历史或跨周期 | 此样本以内部组织宣传为主，不见具体财政监管结果；勿泛化为全源噪声率；[四局详情报告](REGIONAL_BUREAU_BATCH5_DETAILS_2026-10-05.md) |
+| 22 | 财政部湖南监管局 | `hn.mof.gov.cn` | 目录页2锚点 | 2026-10-05 batch 5 首页/“工作动态”栏目各一次；首条详情HTTP200，列表/ArticleTitle/日期一致 | 工作树候选`mof-hunan-supervision-dynamics`（disabled、未提交） | 有限：单篇313可见字符、3段公文/保密/内控培训、0附件；未验其他详情、分页历史或跨周期 | 此样本偏机关内部培训，不代表全源噪声率；[四局详情报告](REGIONAL_BUREAU_BATCH5_DETAILS_2026-10-05.md) |
+| 23 | 财政部广东监管局 | `gd.mof.gov.cn` | 目录页2锚点 | 2026-10-05 batch 5 首页/“工作动态”栏目各一次；首条详情HTTP200，列表/ArticleTitle/日期一致 | 工作树候选`mof-guangdong-supervision-dynamics`（disabled、未提交） | 有限：单篇1790可见字符、10段中央转移支付监管正文、0附件；未验其他详情、分页历史或跨周期 | 本样本含具体财政监管事实，不代表全源质量；[四局详情报告](REGIONAL_BUREAU_BATCH5_DETAILS_2026-10-05.md) |
+| 24 | 财政部深圳监管局 | `sz.mof.gov.cn` | 目录页2锚点 | 2026-10-05 batch 7实见“工作动态”列表10项；首条详情HTTP200，301字符/2段 | 否 | 有限：注册会计师法专题学习样本 | 偏内部法律学习，不推断全栏；[batch7详情](REGIONAL_BUREAU_BATCH7_DETAILS_2026-10-06.md) |
+| 25 | 财政部广西监管局 | `gx.mof.gov.cn` | 目录页2锚点 | 2026-10-05 batch 6实见“工作动态”列表10项；首条详情HTTP200，1759字符/7段 | 否 | 有限：会计监督检查、数字风险筛查与整改跟进业务样本 | 未验分页/历史/跨周期；[batch6详情](REGIONAL_BUREAU_BATCH6_DETAILS_2026-10-06.md) |
+| 26 | 财政部海南监管局 | `hq.mof.gov.cn` | 目录页2锚点 | 2026-10-05 batch 6实见“工作动态”列表10项；首条详情HTTP200，370字符/6段 | 否 | 有限：红色家风展览与职工活动样本 | 偏内部活动、不推断全栏；[batch6详情](REGIONAL_BUREAU_BATCH6_DETAILS_2026-10-06.md) |
+| 27 | 财政部重庆监管局 | `cq.mof.gov.cn` | 目录页2锚点 | 2026-10-05 batch 6实见“工作动态”列表10项；首条详情HTTP200，859字符/5段 | 否 | 有限：党支部网络安全学习样本 | 偏内部学习、不推断全栏；[batch6详情](REGIONAL_BUREAU_BATCH6_DETAILS_2026-10-06.md) |
+| 28 | 财政部四川监管局 | `sc.mof.gov.cn` | 目录页2锚点 | 2026-10-05 batch 6实见“工作动态”列表10项；首条详情HTTP200，330字符/3段 | 否 | 有限：服务代表委员工作样本 | 未验分页/历史/跨周期；[batch6详情](REGIONAL_BUREAU_BATCH6_DETAILS_2026-10-06.md) |
+| 29 | 财政部贵州监管局 | `gz.mof.gov.cn` | 目录页2锚点 | 2026-10-05 batch 8实见“工作动态”列表10项；首条详情HTTP200，2086字符/8段 | 否 | 有限：机关文化、内部制度与学习活动样本 | 偏组织文化，不推断全栏；[batch8详情](REGIONAL_BUREAU_BATCH8_DETAILS_2026-10-06.md) |
+| 30 | 财政部云南监管局 | `yn.mof.gov.cn` | 目录页2锚点 | 2026-10-05 batch 8实见“工作动态”列表9项；首条详情HTTP200，1686字符/9段，标题空格与列表略有差异 | 否 | 有限：财政收入监管、数据分析与异常核查业务样本；列表/URL日9/18，PubDate/可见日9/24 | 日期差异未裁定；[batch8详情](REGIONAL_BUREAU_BATCH8_DETAILS_2026-10-06.md) |
+| 31 | 财政部陕西监管局 | `sx.mof.gov.cn` | 目录页2锚点 | 2026-10-05 batch 8实见“工作动态”列表10项；首条详情HTTP200，899字符/8段 | 否 | 有限：节前廉洁和安全提醒样本 | 偏内部提示，不推断全栏；[batch8详情](REGIONAL_BUREAU_BATCH8_DETAILS_2026-10-06.md) |
+| 32 | 财政部甘肃监管局 | `gs.mof.gov.cn` | 目录页2锚点 | 2026-10-05 batch 8 官方目录映射已核；唯一首页GET超时（Undici request error code 23），未收到HTTP响应、无raw body；无栏目请求。获批预算未转移或重试 | 否 | 仅确认官方域名映射并记录一次失败的首页探测；栏目仍未知 | 不以timeout计为列表观察；后续需另行核销新的首页/栏目小预算 |
+| 33 | 财政部青海监管局 | `qh.mof.gov.cn` | 目录页2锚点 | 2026-10-05 batch 9实见“工作动态”列表10项；首条详情HTTP200，837字符/6段 | 否 | 有限：民族法规与民族团结内部学习样本 | 偏内部学习，不推断全栏；[batch9详情](REGIONAL_BUREAU_BATCH9_DETAILS_2026-10-06.md) |
+| 34 | 财政部宁夏监管局 | `nx.mof.gov.cn` | 目录页2锚点 | 2026-10-05 batch 9实见“工作动态”列表10项；首条详情HTTP200，847字符/5段 | 否 | 有限：中央转移支付监管座谈与管理风险协同业务样本 | 未验分页/历史/跨周期；[batch9详情](REGIONAL_BUREAU_BATCH9_DETAILS_2026-10-06.md) |
+| 35 | 财政部新疆监管局 | `xj.mof.gov.cn` | 目录页2锚点 | 2026-10-05 batch 9实见“工作动态”列表10项；首条详情HTTP200，1881字符/5段 | 否 | 有限：兵团转移支付监管与整改业务样本；列表/PubDate/可见日9/24，URL日7/17 | 日期差异未裁定；[batch9详情](REGIONAL_BUREAU_BATCH9_DETAILS_2026-10-06.md) |
 
 ## 配置与状态边界
 
 - `industry/sources.json` 当前有35个域名用于 `mof-regional-supervision-dynamics` 的中央选登 allowlist。这是一个汇总来源，不是35个地方栏目来源。
-- 逐局栏目配置包括既有厦门源，以及2026-10-05新增的福建、北京、上海三条disabled配置；它们与中央选登source均为`enabled=false`、站内/RSS全文关闭。已有不同程度页面观察的共16局：首批三局有单篇详情；batch 2/3八局只有首页和栏目列表；batch 4中江苏、安徽、江西各有首页和10项“工作动态”列表，浙江只确认一次9项“图片新闻”列表（另有动态简讯JS包装页），目标监管新闻栏目范围仍未确认；另有厦门既有有限配置/验证。其余19局缺这些独立页面观察。任何一项均不表示source验收、跨周期覆盖或Gate 2通过。
+- 已提交代码SHA `a00795e...` 有15项source；当前本地工作树候选19项，其中河南、湖北、湖南、广东4项为未提交disabled配置。Batch 1–4有14个目标列表观察（不含厦门既有有限记录）；batch 5–9尝试19局，其中18局取得目标栏目列表、甘肃主页超时无列表。新增15条详情尝试已核销，14份raw hash匹配、青岛超时；连同batch5四局详情共19条尝试、18份成功raw、1次timeout。另有厦门既有有限配置/历史列表；浙江监管工作页和单篇业务详情不等于覆盖通过。北京、福建、上海隔离库collector及FJ S4诊断证据已核。分页/历史、日期差异与跨周期仍未完整验证；S4最小保护待实现，19源full green是修复前baseline。证据只推进样本，不代表source pass或Gate 2通过。
 - “中央候选稿”列只说明既有中央选登材料中曾有对应局名稿件，不补齐该局的栏目入口、未出现局的覆盖或栏目稳定性。样本命中与否均不用于判定某局是否有动态。
 - 目录数量35按两页实际18+17计数；未把NFRA地方机构混入，也未按“25–35个来源”计划目标凑数。逐局确认范围不代表栏目已发现、source已验收或collector可批量启用；Gate 2仍未通过。
 
@@ -64,6 +64,28 @@
 ### 2026-10-05 第四批四局只读观察
 
 [第四批报告](REGIONAL_BUREAU_BATCH4_2026-10-05.md)记录江苏、浙江、安徽、江西。独立QA离线核对三份manifest及全部raw：主页4/4与列表3/3加浙江补充1次，共8/8 dispatch、rejected 0；Undici 8.11.2事件24个（8 create、8 sendHeaders、8 headers），无error/callback error；8份raw大小及SHA-256均与manifest一致。江苏、安徽、江西首页都展示主内容“工作动态”锚点，各自栏目页各见10条唯一同域`.htm`链接，日期可见范围分别为8/14—9/30、9/15—9/30、9/04—9/30；未请求详情或分页。浙江首页无“工作动态”/“新闻动态”主内容标题，但“动态简讯”地址返回379字节HTTP 200 JS跳转包装，0个列表候选。Lead另核销的精确目标GET经独立报告与manifest/hash离线核验后返回“图片新闻”列表：9条唯一同域`.htm`，日期2023-12-28—2026-09-11，无PDF；没有详情，也没有目标栏目的全量覆盖证据。没有详情、配置、collector、数据库、worker、模型或OCR。上述只是有限首页/列表结构观察，不表示时间语义、正文、噪声、周期或来源验收；该批全部仍未配置，Gate 2仍`NOT_PASSED`。
+
+### 2026-10-05 第五至九批及浙江监管工作栏目只读观察
+
+[第五至九批报告](REGIONAL_BUREAU_BATCH5_2026-10-05.md)、[batch 6](REGIONAL_BUREAU_BATCH6_2026-10-05.md)、[batch 7](REGIONAL_BUREAU_BATCH7_2026-10-05.md)、[batch 8](REGIONAL_BUREAU_BATCH8_2026-10-05.md)、[batch 9](REGIONAL_BUREAU_BATCH9_2026-10-05.md)新增尝试河南、湖北、湖南、广东、广西、海南、重庆、四川、大连、宁波、青岛、深圳、贵州、云南、陕西、甘肃、青海、宁夏、新疆19局。QA独立核对五批目录名/href、HTTPS同host升级映射、事件预算、全部成功raw hash及主页栏目锚点链。总上限8/8/8/8/6；实际dispatch依次8、8、8、7、6，无拒绝。前四批共16页全部200；第八批3局首页与栏目成功200、甘肃首页超时且无栏目请求。19局中18局取得工作动态首屏列表，每页可见候选9–10条；没有请求详情、分页或附件。甘肃剩余额度未转移、不补请求。详见各owned报告；这只是一次时点入口/列表证据。
+
+浙江另获批对保存首页直接观察的“监管工作”目标URL单GET：[QA报告](REGIONAL_BUREAU_ZHEJIANG_REGULATORY_COLUMN_2026-10-05.md)。cap=1，HTTP200、raw 12,644 bytes/hash独立核验；标题“监管工作”，9条唯一同域`.htm`候选，JS显示16页，1个PDF链接只见未请求。结合之前“图片新闻”窄页与JS包装页，当前可见目标栏目线索较清楚，但没有详情、后续页/历史和周期证据，仍不构成浙江来源通过。
+
+### 2026-10-05 受限真实collector和四局详情样本（10月6日恢复QA）
+
+北京真实collector/正文/幂等阶段见[北京验证报告](BEIJING_REAL_COLLECTOR_2026-10-05.md)。北京首轮11个response body SHA未捕获、继续标UNKNOWN；stage2一篇文章body pending→ok/revision1→2；repeat列表found10/created0/revised0。北京fresh库35 migrations，10个待处理extract jobs仍created、无worker，9篇pending，分析/receipt/publication/selection/job_runs均0。
+
+福建与上海在各自fresh `_test`库、source disabled/fulltext false状态下各执行一次cap11真实collector。福建11/11/0、found/created/revised=10/10/0，显式extract样本原已body ok故0请求跳过，repeat list 1/1/0；最终9篇body ok、1篇pending、9 analyze+1 extract jobs created、业务记录0。上海11/11/0，found/created/revised=10/10/0，10篇body ok；样本extract同样0请求跳过。上海重复列表1次GET超时、fetch_run失败；partial停止、不重试，最终原10篇及revision/body/jobs不变。见[福建报告](FUJIAN_REAL_COLLECTOR_2026-10-05.md)、[上海报告](SHANGHAI_REAL_COLLECTOR_2026-10-05.md)与各自ignored SQL/JSON；两库均35 migrations、仅一条disabled source、无worker/模型/业务处理。以上是一次单页十候选受限观察，不证明分页/90日历史或跨周期。
+
+Batch5四局首条详情见[四局详情报告](REGIONAL_BUREAU_BATCH5_DETAILS_2026-10-05.md)。QA独立核对4个saved raw hash/bytes、HTTP200 exact URL、cap4事件与列表标题/日期；河南和广东样本含财政监管业务内容，湖北与湖南样本是内部宣传/培训内容。该差异是逐篇内容边界样本，不是四局整体噪声率。
+
+福建pending文章另获批一次cap1显式诊断：目标由SQL确认，精确GET HTTP200，runner记录wire bytes 4391及hash `9ef4fad6dfe3e82b130222e41ededf5917a0adcbe9e655d0ccd9c9c5dd14a9c2`；本次helper结果为`unconfirmed/non_article_container`，body仍空、revision1、title/date不变、无marker。离线响应中`.my_doccontent`只有16字符重复标题；附近一个PDF样式链接未请求。该结果只描述本次观察，不追认首轮无article ID的warning。automatic analyze/select/publish下游及attachment-selector对页面外PDF链接的处理仍待只读核对与Root裁定，不预判为代码缺陷。
+
+A另获批的batch6–9及浙江监管工作保存候选详情最多15条direct GET正在分批执行/QA；在每个owned报告、manifest、raw/hash都核验前，不提前改变各局矩阵状态。
+
+当前source配置的代码树候选数为19（已提交SHA `a00795e...` 的15项+新增4个未提交disabled项）；fresh `fiscalhot_oct06_sources_final_test`完成35 migrations，Node24 `npm test` 252/252、typecheck、Web build、Web tests15/15和smoke28/28通过。前两次npm test shell尝试因`DATABASE_URL`在setup guard处被遗漏/误删而未连库，不是代码失败；只正确fresh `_test` URL的第三次运行计入252/252。CI仍仅覆盖已提交15源SHA/run；19源工作树未提交、未触发CI。preview仍3 disabled source/3篇body空样本、analyses/receipts/job_runs=0；API/Web监听127.0.0.1:3001/3000并沿用既有运行代码，本轮未改backend/apps且未重启服务。
+
+北京真实collector/正文/幂等阶段见[北京验证报告](BEIJING_REAL_COLLECTOR_2026-10-05.md)：专用fresh `_test`库35 migrations、单个source保持disabled/fulltext关闭；首轮cap11抓1个列表+10个详情、found/created/revised=10/10/0。首轮response body SHA未捕获、保留UNKNOWN且未重请求。对一篇既有article ID获批显式extract cap1，HTTP200，runner记录7108 bytes与response hash；title/pubdate不变、body pending→ok、revision1→2/1696字符。再获批repeat list cap1，found/created/revised=10/0/0；所有10个extract job仍created，未运行worker，9篇保持pending/rev1，分析/receipt/publication/selected/ledger/job_runs为0。三个阶段只验证一次列表和一个正文，不证明90日全页覆盖、持续性或source pass。
 
 ## 2026-10-04 矩阵更新记录（前三批调查时点）
 
@@ -87,6 +109,17 @@
 
 **RISKS**：目录官方域名不证明新闻栏目可抓取；一次列表观察不能证明栏目稳定、全量覆盖、正文业务质量或适用日期；中央选登是有限选取窗口。用户确认覆盖范围，不等于接受栏目质量或覆盖完成。
 
-**BLOCKERS**：35局逐局来源验收仍未完成；仅厦门单独配置，另11局有不同程度有限页面观察，23局仍无本轮独立栏目观察；详情正文、刷新窗口、分页与跨周期稳定性仍待核。Gate 2仍为`NOT_PASSED`。
+**BLOCKERS**：35局逐局来源验收仍未完成；批次入口与单篇真实collector不足以证明栏目完整性、分页/历史窗口和跨周期行为。上海重复列表遇超时而partial停止；北京首轮响应hash仍unknown。正文业务性样本显示同栏含内部消息，筛选质量仍需更广样本。Gate 2仍为`NOT_PASSED`。
 
 **NEXT**：后续经Lead逐项核销小批官方栏目观察；先取真实DOM与一篇配对详情，证据审阅后再更新矩阵，配置与采集授权另行审查。
+
+
+### 2026-10-06 首篇详情补充及S4边界
+
+获批的新增15次详情GET（Batch6 4、Batch7 4、Batch8 3、Batch9 3、浙江1）经独立离线核验：attempted/dispatched/rejected=15/15/0；Undici create/sendHeaders/headers/error=15/15/14/1；14份成功HTML raw的byte length与SHA-256逐份匹配manifest。唯一失败是青岛单次20秒timeout，无raw、不重试、不换候选。报告链接：[Batch6](REGIONAL_BUREAU_BATCH6_DETAILS_2026-10-06.md)、[Batch7](REGIONAL_BUREAU_BATCH7_DETAILS_2026-10-06.md)、[Batch8](REGIONAL_BUREAU_BATCH8_DETAILS_2026-10-06.md)、[Batch9](REGIONAL_BUREAU_BATCH9_DETAILS_2026-10-06.md)、[浙江首篇](ZHEJIANG_REGULATORY_FIRST_DETAIL_2026-10-06.md)。
+
+单篇样本中，广西、云南、宁夏、新疆显示具体财政监管业务；大连、宁波、深圳、海南、重庆、四川、贵州、陕西、青海样本主要是内部组织活动/学习，不能据此推断全栏噪声率。云南列表日/URL日为9/18、详情PubDate/可见日为9/24；新疆列表日/PubDate/可见日为9/24、URL路径日为7/17；均未裁定权威日期。浙江监管工作列表首条详情标题一致，PubDate/可见日期/URL日同为9/30，正文666字符/4段；它只提供一个业务内容样本。
+
+福建隔离库唯一pending文章cap1诊断结果为unconfirmed/non_article_container，body空/revision1/marker false；body selector只有16字重复标题，selector外PDF链接未请求。离线下游审计发现该状态有自动分析/精选可达路径。Sol审查为CHANGES_REQUIRED / APPROVED_SCOPE，已批准最小source-specific严格正文就绪保护，正在实现，尚无修复后回归。见[FJ诊断](FUJIAN_PENDING_BODY_DIAGNOSTIC_2026-10-06.md)、[下游审计](FUJIAN_UNCONFIRMED_SELECTION_GUARD_AUDIT_2026-10-06.md)和[Sol范围](S4_ATTACHMENT_GUARD_SCOPE_REVIEW_2026-10-06.md)。
+
+当前source配置工作树为19项（已提交代码SHA a00795e仍为15项），19源本机252/252等软件套件结果是S4修复前baseline。全部source仍disabled、未导入正式库；逐局验收/Gate 2仍NOT_PASSED。

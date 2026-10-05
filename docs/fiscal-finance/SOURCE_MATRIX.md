@@ -299,3 +299,21 @@ Sol对最小严格初次日期窗口与附件诊断/自动精选保护范围给�
 ## 2026-10-05 第四批江苏、浙江、安徽、江西栏目观察
 
 独立离线预算/hash核验及状态见[batch 4报告](REGIONAL_BUREAU_BATCH4_2026-10-05.md)和[逐局矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)。主页4次、栏目3次、浙江获批补充1次，共`attempted/dispatched/rejected=8/8/0`；Undici日志8 create/8 sendHeaders/8 headers，零错误，8份raw bytes/SHA均与manifest一致。江苏、安徽、江西从首页实际主内容锚点发现“工作动态”，其单页各有10项当前唯一同域`.htm`候选；没有访问详情或分页。浙江首页没有“工作动态/新闻动态”主内容标题，获准的`动态简讯`入口响应为379字节JS redirect wrapper，0列表锚点。其脚本精确目标后经单独授权读取，见[浙江target页报告](REGIONAL_BUREAU_ZHEJIANG_TARGET_2026-10-05.md)：页面标题“图片新闻”，9条唯一同域`.htm`候选、可见日2023-12-28—2026-09-11、0 PDF、1次HTTP200 direct dispatch；未请求详情。该观察只说明一个图片新闻列表页，不表示浙江目标监管动态总体栏目覆盖。四局均未配置，batch4观察不涉及collector或DB测试；页面观察不等于来源验收。
+
+## 2026-10-06恢复核验：batch5–9、详情与真实collector分段结果
+
+文档恢复日为2026-10-06；下述网页调用实际时点取自各manifest，主要发生于10月5日UTC，不能由恢复日期推导为跨日周期或新增采样。已提交代码仍15项；当前未提交`industry/sources.json`工作树为19项，新增河南/湖北/湖南/广东4项均disabled/fulltext=false。它们不是正式source导入或Gate验收。
+
+batch5–9尝试19局，其中18局取得“工作动态”首屏列表，甘肃主页GET超时、无栏目请求且不补请求。预算/目录链接/锚点和成功raw SHA经离线QA核验。新增栏目列表与详情结果见[逐局矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)及各batch报告。河南、湖北、湖南、广东各访问列表第一条详情一次，cap4、4/4/0，raw hash与字节数独立匹配manifest；详情标题及显示日期与所选列表项匹配。样本正文分别为河南1383字符、广东1790字符的财政监管业务内容，湖北235字符的青年组织宣传，湖南313字符的公文保密/内控培训。四篇只是一篇/局的有限内容边界观察，不能推断各局噪声率。
+
+北京、福建、上海各在独立fresh `_test`库中完成一轮受限collector。北京列表+10详情 cap11新增10条，指定详情显式抽取一篇后从pending变ok/revision1→2，重复list成功；首轮11个响应hash没有被捕获，继续unknown。福建 cap11新增10条，其中9篇body ok、1篇pending；显式抽取目标本已ok而0网络请求；repeat list成功且found/created/revised=10/0/0。上海 cap11新增10条且全部body ok；显式helper0请求跳过；repeat list GET一次超时并返回partial，没重试。FJ/SH隔离数据库均有35 migrations、各只有一条disabled source；无worker、模型、analyses、receipts、publications、selection或job_runs。详见[北京](BEIJING_REAL_COLLECTOR_2026-10-05.md)、[福建](FUJIAN_REAL_COLLECTOR_2026-10-05.md)、[上海](SHANGHAI_REAL_COLLECTOR_2026-10-05.md)报告和各自ignored日志/SQL。上述只覆盖单个列表及有限10条候选，不证明全页历史、90日窗口、分页或周期稳定；Gate 2继续NOT_PASSED。
+
+浙江“监管工作”候选页在图片新闻窄栏目之外增加9项真实列表证据；之后按该已存列表首条详情一次GET，HTTP200，列表/详情标题、PubDate/可见日/URL日一致，正文666可读字符/4段，未见附件。甘肃仍无目标栏目列表。整体配置/来源验收边界见[状态](STATUS.md)与[Gate 2清单](GATE2_ACTION_CHECKLIST.md)。
+
+### 2026-10-06 已保存列表的首篇详情补充
+
+获批的新增15次详情GET（Batch6 4、Batch7 4、Batch8 3、Batch9 3、浙江1）经独立离线核对为`attempted/dispatched/rejected=15/15/0`，Undici事件`create/sendHeaders/headers/error=15/15/14/1`。14份HTTP200 HTML raw的bytes与SHA-256逐份匹配manifest；唯一失败为青岛单次20秒timeout，无raw、无重试、无换候选。四组报告及浙江首篇详情报告见[batch6详情](REGIONAL_BUREAU_BATCH6_DETAILS_2026-10-06.md)、[batch7详情](REGIONAL_BUREAU_BATCH7_DETAILS_2026-10-06.md)、[batch8详情](REGIONAL_BUREAU_BATCH8_DETAILS_2026-10-06.md)、[batch9详情](REGIONAL_BUREAU_BATCH9_DETAILS_2026-10-06.md)、[浙江详情](ZHEJIANG_REGULATORY_FIRST_DETAIL_2026-10-06.md)。
+
+样本只推进各行对应的一篇文章证据。广西、云南、宁夏、新疆样本含明确财政监管业务；海南、重庆、四川、大连、宁波、深圳、贵州、陕西、青海等样本主要为内部活动/组织学习，不能推断全栏目噪声率。云南列表显示日/URL日为9月18、PubDate和可见日期为9月24；新疆列表显示日/PubDate/可见日为9月24，URL路径日为7月17；两处冲突均保留，不猜权威字段。青岛详情仍unknown。上述不是历史分页、长期selector稳定或source pass。
+
+同期香港FJ fresh库唯一pending行获批一次cap1诊断，观察为`unconfirmed/non_article_container`，正文空、revision1、marker false；保存raw离线解析后，配置body selector内只有16字标题文本，无结构化段落，selector外邻接PDF未请求。独立只读审计发现无marker的unconfirmed行有自动分析/精选可达路径。Sol审查标记`CHANGES_REQUIRED / APPROVED_SCOPE`，Root分派source-specific正文就绪保护实现；该修复尚未完成或回归，所有sources disabled，Gate 2保持`NOT_PASSED`。见[FJ诊断](FUJIAN_PENDING_BODY_DIAGNOSTIC_2026-10-06.md)、[下游边界审计](FUJIAN_UNCONFIRMED_SELECTION_GUARD_AUDIT_2026-10-06.md)、[Sol范围审查](S4_ATTACHMENT_GUARD_SCOPE_REVIEW_2026-10-06.md)。
