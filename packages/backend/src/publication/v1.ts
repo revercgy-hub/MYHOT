@@ -3,6 +3,7 @@ import type { PublicApiCategoryKey } from "@aihot/contracts/taxonomy";
 import { sql, type Db } from "../db.ts";
 import { decodeCursor, encodeCursor, InvalidCursorError, queryBinding } from "../lib/cursor.ts";
 import { newShortId } from "../lib/ids.ts";
+import { bodyReadinessHoldSql } from "../content/body-readiness.ts";
 import { categoryCondition, API_ITEM_COLUMNS, API_ITEM_FROM, listedCondition, pendingAttachment, selectedCondition, type ApiItemRow } from "./items.ts";
 import { publicMatchCondition, searchTerms, withSearchCapacity } from "./pool.ts";
 import { v1Payload, type V1ItemPayload } from "./publish.ts";
@@ -118,6 +119,19 @@ function ledgerPayload(minimal: boolean, payload = sql`payload`) {
   return minimal ? sql`(${payload} - ARRAY['originalTitle', 'summary', 'reason', 'attribution']::text[]) #- '{links,original}'` : payload;
 }
 
+function heldLedgerPayload(minimal: boolean, payload: ReturnType<typeof sql>) {
+  const held = sql`(${pendingAttachment(sql`current_article.raw`)} OR ${bodyReadinessHoldSql(sql`current_source.config`, sql`current_article.body_status`, sql`current_article.body_text`)})`;
+  const priorSummary = sql`(${payload} ->> 'summary')`;
+  const waitingSummary = sql`CASE
+    WHEN ${priorSummary} IS NULL OR ${priorSummary} = '' THEN '正文待解析'
+    WHEN ${priorSummary} = '正文待解析' OR ${priorSummary} LIKE '正文待解析 · %' THEN ${priorSummary}
+    ELSE '正文待解析 · ' || ${priorSummary} END`;
+  const safe = sql`CASE WHEN ${held} THEN
+      jsonb_set(jsonb_set(${payload}, '{summary}', to_jsonb(${waitingSummary}), true), '{reason}', 'null'::jsonb, true)
+    ELSE ${payload} END`;
+  return ledgerPayload(minimal, safe);
+}
+
 export interface SnapshotQuery {
   fields?: "default" | "minimal";
   limit: number;
@@ -147,17 +161,18 @@ export async function selectedSnapshot(q: SnapshotQuery, now = new Date()) {
   // behind a not-yet-released entry must not reach new snapshots. Its remove still follows in changes,
   // which the client applies as a no-op.
   const rows = await sql<{ article_id: string; payload: V1ItemPayload }[]>`
-    SELECT latest.article_id, ${ledgerPayload(fields === "minimal", sql`latest.payload`)} AS payload FROM (
+    SELECT latest.article_id, ${heldLedgerPayload(fields === "minimal", sql`latest.payload`)} AS payload FROM (
       SELECT DISTINCT ON (article_id) article_id, op, payload FROM selected_ledger
       WHERE seq <= ${w} AND article_id > ${afterId}
       ORDER BY article_id, seq DESC
     ) latest
     JOIN selected_state st ON st.article_id = latest.article_id AND st.in_set
     JOIN articles current_article ON current_article.id = latest.article_id
+    JOIN sources current_source ON current_source.id = current_article.source_id
     LEFT JOIN editorial_overrides current_override ON current_override.article_id = latest.article_id
     WHERE latest.op = 'upsert'
       AND NOT (coalesce((
-        ${pendingAttachment(sql`current_article.raw`)}
+        (${pendingAttachment(sql`current_article.raw`)} OR ${bodyReadinessHoldSql(sql`current_source.config`, sql`current_article.body_status`, sql`current_article.body_text`)})
         AND current_override.fields -> 'selected' IS DISTINCT FROM 'true'::jsonb
       ), false))
     ORDER BY latest.article_id
@@ -198,7 +213,7 @@ export async function selectedChanges(q: { cursor: string; limit: number }, now 
       CASE WHEN l.op = 'upsert' AND (
         coalesce(current_state.in_set, false) = false
         OR (
-          ${pendingAttachment(sql`current_article.raw`)}
+          (${pendingAttachment(sql`current_article.raw`)} OR ${bodyReadinessHoldSql(sql`current_source.config`, sql`current_article.body_status`, sql`current_article.body_text`)})
           AND (current_override.fields -> 'selected' IS DISTINCT FROM 'true'::jsonb OR l.seq < current_state.last_seq)
         )
       ) THEN 'remove' ELSE l.op END AS op,
@@ -206,13 +221,14 @@ export async function selectedChanges(q: { cursor: string; limit: number }, now 
       CASE WHEN l.op = 'upsert' AND (
         coalesce(current_state.in_set, false) = false
         OR (
-          ${pendingAttachment(sql`current_article.raw`)}
+          (${pendingAttachment(sql`current_article.raw`)} OR ${bodyReadinessHoldSql(sql`current_source.config`, sql`current_article.body_status`, sql`current_article.body_text`)})
           AND (current_override.fields -> 'selected' IS DISTINCT FROM 'true'::jsonb OR l.seq < current_state.last_seq)
         )
-      ) THEN NULL ELSE ${ledgerPayload(c.f === "minimal", sql`l.payload`)} END AS payload
+      ) THEN NULL ELSE ${heldLedgerPayload(c.f === "minimal", sql`l.payload`)} END AS payload
     FROM selected_ledger l
     LEFT JOIN selected_state current_state ON current_state.article_id = l.article_id
     LEFT JOIN articles current_article ON current_article.id = l.article_id
+    LEFT JOIN sources current_source ON current_source.id = current_article.source_id
     LEFT JOIN editorial_overrides current_override ON current_override.article_id = l.article_id
     WHERE l.seq > ${c.w} AND l.seq <= ${w}
     ORDER BY l.seq LIMIT ${q.limit + 1}`;

@@ -12,7 +12,8 @@ import { onlyXArticleLink, xArticleText } from "../sources/x.ts";
 import { sanitizeBody, trimTrailingChrome } from "./sanitize.ts";
 import type { BodyIdentity } from "./selected-body.ts";
 import { extractConfiguredHtmlBody, extractDirectPdfBody, type PdfFetcher, type PdfSourceBodyConfig } from "./pdf-body.ts";
-import { contentHash, syncAttachmentDiagnosticPublication } from "./materials.ts";
+import { contentHash, syncArticlePublication } from "./materials.ts";
+import { requiresBodyReadyForAutomaticSelection } from "./body-readiness.ts";
 import { attachmentDiagnosticForFailure, clearAttachmentDiagnostic, readAttachmentDiagnostic, setAttachmentDiagnostic } from "./attachment-diagnostics.ts";
 
 export interface ExtractedBody {
@@ -151,6 +152,7 @@ export async function extractArticleBody(articleId: string, allowJina = process.
   const hasAttachmentDriver = detail.pdfDirect === true || typeof detail.attachmentSelector === "string" ||
     (typeof attachmentScopeSelector === "string" && !!attachmentScopeSelector.trim());
   const hadPendingAttachment = !!readAttachmentDiagnostic(a.raw);
+  const strictBodySource = requiresBodyReadyForAutomaticSelection(a.source_config);
   const selectedBody = bodySelector || bodyPolicies || pdfBodyConfigured || attachmentScopeSelector !== undefined
     ? { config: {
         bodySelector,
@@ -185,10 +187,14 @@ export async function extractArticleBody(articleId: string, allowJina = process.
         const [updated] = await tx<{ id: string }[]>`UPDATE articles SET raw = ${tx.json(raw as never)}, body_status = 'unconfirmed',
           processing_state = 'new', processing_queued_at = NULL, processing_retry_at = NULL, updated_at = now()
           WHERE id = ${articleId} AND body_status <> 'ok' RETURNING id`;
-        if (updated && !hadPending) await syncAttachmentDiagnosticPublication(tx, articleId);
+        if (updated && (!hadPending || strictBodySource)) await syncArticlePublication(tx, articleId);
       });
     } else {
-      await sql`UPDATE articles SET body_status = 'unconfirmed', updated_at = now() WHERE id = ${articleId} AND body_status <> 'ok'`;
+      await sql.begin(async (tx) => {
+        const [updated] = await tx<{ id: string }[]>`UPDATE articles SET body_status = 'unconfirmed', updated_at = now()
+          WHERE id = ${articleId} AND body_status <> 'ok' RETURNING id`;
+        if (updated && strictBodySource) await syncArticlePublication(tx, articleId);
+      });
     }
     return "unconfirmed";
   }
@@ -209,7 +215,7 @@ export async function extractArticleBody(articleId: string, allowJina = process.
       WHERE id = ${articleId} RETURNING revision`;
     await tx`INSERT INTO article_revisions (article_id, revision, content_hash, title, body_text)
              VALUES (${articleId}, ${r!.revision}, ${hash}, ${row.title}, ${got.text})`;
-    if (clearMarker) await syncAttachmentDiagnosticPublication(tx, articleId);
+    if (clearMarker || strictBodySource) await syncArticlePublication(tx, articleId);
   });
   return "ok";
 }

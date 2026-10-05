@@ -8,6 +8,7 @@ import { behindSources, sourceClocks } from "../events/hot.ts";
 import { storyStatusFor } from "../events/digest.ts";
 import { itemUrl, storyApiUrl, storyUrl } from "./links.ts";
 import { SITE } from "@aihot/industry/site";
+import { bodyReadinessHoldSql } from "../content/body-readiness.ts";
 
 export type StoryLookup = { kind: "found"; storyId: number; publicId: string } | { kind: "merged"; target: string } | { kind: "not_found" };
 
@@ -58,13 +59,17 @@ interface ReportRow {
  */
 async function storyReports(storyId: number, now: Date): Promise<ReportRow[]> {
   return sql<ReportRow[]>`
-    SELECT DISTINCT ON (p.article_id) p.article_id AS id, p.title, p.summary, p.url, p.selected,
+    SELECT DISTINCT ON (p.article_id) p.article_id AS id, p.title,
+      CASE WHEN ${bodyReadinessHoldSql(sql`s.config`, sql`a.body_status`, sql`a.body_text`)} THEN coalesce('正文待解析 · ' || p.summary, '正文待解析') ELSE p.summary END AS summary,
+      p.url, p.selected,
       coalesce(p.published_at, p.discovered_at) AS at, s.id AS source_id, s.name AS source_name, s.kind AS source_kind,
       p.first_party, s.icon_url, f.public_id AS fact_public_id, f.id AS fact_id
     FROM facts f JOIN fact_articles fa ON fa.fact_id = f.id JOIN publications p ON p.article_id = fa.article_id
-    JOIN sources s ON s.id = p.source_id
+    JOIN sources s ON s.id = p.source_id JOIN articles a ON a.id = p.article_id
+    LEFT JOIN editorial_overrides eo ON eo.article_id = a.id
     WHERE f.story_id = ${storyId} AND p.visibility = 'public' AND s.participation_mode = 'editorial'
       AND (NOT p.selected OR p.visible_after <= ${now})
+      AND (NOT ${bodyReadinessHoldSql(sql`s.config`, sql`a.body_status`, sql`a.body_text`)} OR eo.fields->'selected' = 'true'::jsonb)
     ORDER BY p.article_id, (fa.role = 'primary') DESC`;
 }
 

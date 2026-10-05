@@ -10,6 +10,7 @@ import { collapseWhitespace } from "../lib/text.ts";
 import { itemUrl } from "./links.ts";
 import { enqueue, QUEUES, shutdownSignal } from "../jobs/queue.ts";
 import { hasPendingAttachmentParse } from "../content/attachment-diagnostics.ts";
+import { requiresBodyReadinessHold } from "../content/body-readiness.ts";
 import {
   bodyModeOf, channelOf, displayTags, isIndexable, isPoolEligible, isSelectable, mayRedistribute, type SourceFacts,
 } from "./rules.ts";
@@ -156,8 +157,8 @@ export async function publishArticleTx(tx: Tx, articleId: string, options: Publi
            body_text, raw, x_post, grouped_at
     FROM articles WHERE id = ${articleId} FOR UPDATE`;
   if (!article) return null;
-  const [source] = await tx<SourceFacts[]>`
-    SELECT id, name, kind, tier, participation_mode, first_party, site_fulltext, syndicate_fulltext FROM sources WHERE id = ${article.source_id}`;
+  const [source] = await tx<(SourceFacts & { config: Record<string, unknown> })[]>`
+    SELECT id, name, kind, tier, participation_mode, first_party, site_fulltext, syndicate_fulltext, config FROM sources WHERE id = ${article.source_id}`;
   if (!source) return null;
   const [analysis] = await tx<AnalysisRow[]>`
     SELECT id, input_revision, relevance, category, tags, subjects, title_zh, summary_zh, reason_zh, score, selected
@@ -172,6 +173,8 @@ export async function publishArticleTx(tx: Tx, articleId: string, options: Publi
 
   const f = override?.fields ?? {};
   const pendingAttachment = hasPendingAttachmentParse(article.raw);
+  const bodyReadinessHold = requiresBodyReadinessHold(source.config, article.body_status, article.body_text);
+  const automaticHold = pendingAttachment || bodyReadinessHold;
   // A revision can invalidate an old judgement (notably when a pending attachment parse succeeds
   // without changing the extracted body hash). Never reuse it to re-select the new revision.
   const currentAnalysis = analysis?.input_revision === article.revision ? analysis : undefined;
@@ -188,16 +191,16 @@ export async function publishArticleTx(tx: Tx, articleId: string, options: Publi
   // Pending attachment parsing blocks automatic judgements. Only the exact JSON boolean override
   // is an editorial release; a title/summary/relevance override or old analysis is not.
   const explicitManualSelection = f.selected === true;
-  const judgedSelected = pendingAttachment ? explicitManualSelection : typeof f.selected === "boolean" ? (f.selected as boolean) : currentAnalysis?.selected ?? null;
+  const judgedSelected = automaticHold ? explicitManualSelection : typeof f.selected === "boolean" ? (f.selected as boolean) : currentAnalysis?.selected ?? null;
   // Material from an isolated source reaches no public surface at all: not even a detail page.
   const visibility = source.participation_mode === "isolated" ? "withdrawn" : (override?.visibility ?? "public");
 
   const eligible = isPoolEligible({ participationMode: source.participation_mode, relevance, title, summary });
   const selected = isSelectable(eligible, judgedSelected, source.tier);
-  const reason = !pendingAttachment && selected ? pickString(f.reason, currentAnalysis?.reason_zh ?? null) : null;
+  const reason = !automaticHold && selected ? pickString(f.reason, currentAnalysis?.reason_zh ?? null) : null;
   const hasXPost = !!article.x_post;
   const channel = channelOf(source.kind, hasXPost);
-  const bodyMode = pendingAttachment ? "summary" : bodyModeOf(source, article.body_status, !!article.body_text && article.body_text.length > 0);
+  const bodyMode = automaticHold ? "summary" : bodyModeOf(source, article.body_status, !!article.body_text && article.body_text.length > 0);
   const syndicate = mayRedistribute(source, bodyMode);
   const originalTitle = isChineseTitle && title === collapseWhitespace(article.title) ? null : collapseWhitespace(article.title);
 
@@ -301,7 +304,7 @@ export async function publishArticleTx(tx: Tx, articleId: string, options: Publi
 
   // Content-group push: once, for an item that arrives live and becomes selected (never for imports,
   // backfill or stale-on-discovery material); it runs after the release gate opens.
-  if (selected && !pendingAttachment && !previous?.selected_ready_at && !options.releasedAt && !article.backfill && visibility === "public") {
+  if (selected && !automaticHold && !previous?.selected_ready_at && !options.releasedAt && !article.backfill && visibility === "public") {
     const at = visibleAfter && visibleAfter > now ? visibleAfter : now;
     await enqueue(QUEUES.notifySelected, { articleId }, { singletonKey: `selected:${articleId}`, startAfter: new Date(at.getTime() + 5_000) }, tx);
     // Its images are fetched and resized now, before the release gate lets readers in.

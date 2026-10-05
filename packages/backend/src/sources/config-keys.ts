@@ -26,7 +26,7 @@ const KEYS: Record<SourceRow["kind"], string[]> = {
 
 // Objects with fixed keys (headers and bodyJson are request data, free-form).
 const NESTED: Record<string, string[]> = {
-  _aihot: ["initialBackfillLimit", "initialBackfillMonths", "initialBackfillRequirePublishedAt"],
+  _aihot: ["initialBackfillLimit", "initialBackfillMonths", "initialBackfillRequirePublishedAt", "requireBodyReadyForAutomaticSelection"],
   ingestNoiseFilter: ["dropMarkers", "dropMarkersTitleOnly", "keepIfMatches"],
   itemUrlPrefixRewrite: ["from", "to"],
   requireBoolean: ["path", "equals"],
@@ -56,6 +56,9 @@ export function unsupportedConfig(kind: SourceRow["kind"], config: Record<string
       for (const sub of Object.keys(nested)) if (!NESTED[key]!.includes(sub)) out.push(`${key}.${sub}`);
       if (key === "_aihot" && nested.initialBackfillRequirePublishedAt !== undefined && typeof nested.initialBackfillRequirePublishedAt !== "boolean") {
         out.push("_aihot.initialBackfillRequirePublishedAt must be boolean");
+      }
+      if (key === "_aihot" && nested.requireBodyReadyForAutomaticSelection !== undefined && typeof nested.requireBodyReadyForAutomaticSelection !== "boolean") {
+        out.push("_aihot.requireBodyReadyForAutomaticSelection must be boolean");
       }
       if (key === "detail") {
         if (nested.bodyPolicies !== undefined) {

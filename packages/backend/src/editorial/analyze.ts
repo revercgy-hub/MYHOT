@@ -422,6 +422,7 @@ export async function analyzeArticle(articleId: string, opts: StepOpts = {}): Pr
   const input = await loadAnalyzeInput(articleId);
   if (!input) return null;
   if (input.attachmentPendingReason) return { analysisId: null, stale: false, skippedReason: input.attachmentPendingReason, output: null, receiptIds: [], reused: true };
+  if (input.bodyReadinessPending) return { analysisId: null, stale: false, skippedReason: "body_not_ready", output: null, receiptIds: [], reused: true };
   // Its page first; extraction queues the analysis again (normally the queue already routed it there).
   if (waitsForPage(input)) return { analysisId: null, stale: false, needsBody: true, output: null, receiptIds: [], reused: true };
   const run = await runAnalysis(input, opts);

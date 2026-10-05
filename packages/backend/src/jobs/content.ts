@@ -7,8 +7,9 @@ import type { PgBoss } from "pg-boss";
 import { sql, type Db } from "../db.ts";
 import { extractArticleBody, pageFetchable } from "../content/extract.ts";
 import { hasPendingAttachmentParse, readAttachmentDiagnostic } from "../content/attachment-diagnostics.ts";
+import { bodyReadinessHoldSql, requiresBodyReadinessHold } from "../content/body-readiness.ts";
 import { analyzeArticle, AnalysisInterruptedError } from "../editorial/analyze.ts";
-import { isHistorical } from "../content/materials.ts";
+import { isHistorical, syncArticlePublication } from "../content/materials.ts";
 import { publishArticle } from "../publication/publish.ts";
 import { BudgetExceededError, ProviderRejectedError, ReceiptBusyError, ReceiptUnknownError } from "../providers/receipts.ts";
 import { ModelOutputError } from "../providers/llm.ts";
@@ -31,6 +32,7 @@ interface Route {
   signal: boolean;
   historical: boolean;
   attachmentReason?: string;
+  strictBodyHold?: boolean;
 }
 
 /**
@@ -40,14 +42,17 @@ interface Route {
  * history adds no heat).
  */
 async function route(articleId: string, db: Db): Promise<Route | null> {
-  const [row] = await db<{ body_status: string; participation_mode: string; kind: string; config: Record<string, unknown>; url: string; bare: boolean; backfill: boolean; published_at: Date | null; discovered_at: Date; raw: unknown }[]>`
-    SELECT a.body_status, s.participation_mode, s.kind, s.config, a.url, a.raw, (coalesce(a.body_text, '') = '' AND a.x_post IS NULL) AS bare,
+  const [row] = await db<{ body_status: string; body_text: string | null; participation_mode: string; kind: string; config: Record<string, unknown>; url: string; bare: boolean; backfill: boolean; published_at: Date | null; discovered_at: Date; raw: unknown }[]>`
+    SELECT a.body_status, a.body_text, s.participation_mode, s.kind, s.config, a.url, a.raw, (coalesce(a.body_text, '') = '' AND a.x_post IS NULL) AS bare,
            a.backfill, a.published_at, a.discovered_at
     FROM articles a JOIN sources s ON s.id = a.source_id WHERE a.id = ${articleId}`;
   if (!row) return null;
   const historical = isHistorical(row);
   const attachmentReason = readAttachmentDiagnostic(row.raw)?.reason;
   if (hasPendingAttachmentParse(row.raw)) return { step: "analyze", signal: false, historical, attachmentReason };
+  if (requiresBodyReadinessHold(row.config, row.body_status, row.body_text)) {
+    return { step: row.body_status === "pending" ? "extract" : "analyze", signal: false, historical, strictBodyHold: true };
+  }
   const signal = row.participation_mode !== "editorial";
   const pending = row.body_status === "pending";
   const wantsBody = row.config.fetchPublicContent === true || !!row.config.detail || row.kind === "web_list";
@@ -73,7 +78,8 @@ export async function queueProcessing(articleId: string, opts: { step?: Step; at
   const r = await route(articleId, db);
   if (!r) return null;
   if (r.attachmentReason) return null;
-  const step = opts.step ?? r.step;
+  if (r.strictBodyHold && r.step !== "extract") return null;
+  const step = r.strictBodyHold ? "extract" : opts.step ?? r.step;
   await db`UPDATE articles SET processing_queued_at = now() WHERE id = ${articleId}`;
   if (step === "extract") return enqueue(QUEUES.extractBody, { articleId }, { singletonKey: articleId, priority: r.historical ? PRIORITY.history : PRIORITY.live }, opts.db);
   if (r.signal && !opts.attemptTag) {
@@ -100,11 +106,16 @@ export async function settleNonEditorial(articleId: string): Promise<{ group: bo
 
 /** attemptTag makes an explicit re-evaluation a new (paid) request; the same tag reuses its receipt. */
 export async function processArticle(articleId: string, opts: { attemptTag?: string } = {}): Promise<{ state: string; reason?: string }> {
-  const [found] = await sql<{ participation_mode: string; processing_state: string; revision: number; backfill: boolean; published_at: Date | null; discovered_at: Date; raw: unknown }[]>`
-    SELECT s.participation_mode, a.processing_state, a.revision, a.backfill, a.published_at, a.discovered_at, a.raw FROM articles a JOIN sources s ON s.id = a.source_id WHERE a.id = ${articleId}`;
+  const [found] = await sql<{ participation_mode: string; config: Record<string, unknown>; body_status: string; body_text: string | null; processing_state: string; revision: number; backfill: boolean; published_at: Date | null; discovered_at: Date; raw: unknown }[]>`
+    SELECT s.participation_mode, s.config, a.body_status, a.body_text, a.processing_state, a.revision, a.backfill, a.published_at, a.discovered_at, a.raw
+    FROM articles a JOIN sources s ON s.id = a.source_id WHERE a.id = ${articleId}`;
   if (!found) return { state: "missing" };
   const attachmentDiagnostic = readAttachmentDiagnostic(found.raw);
   if (attachmentDiagnostic) return { state: "waiting-attachment", reason: attachmentDiagnostic.reason };
+  if (requiresBodyReadinessHold(found.config, found.body_status, found.body_text)) {
+    if (found.body_status === "pending") await queueProcessing(articleId, { step: "extract" });
+    return { state: found.body_status === "pending" ? "fetching-body" : "waiting-body" };
+  }
   const row = { ...found, historical: isHistorical(found) };
   if (row.participation_mode !== "editorial") {
     // Normally queued straight for grouping (queueProcessing); an explicit re-evaluation lands here.
@@ -201,7 +212,13 @@ export async function registerExtractionJobs(boss: PgBoss) {
           processing_queued_at = NULL, processing_retry_at = now() + interval '10 minutes'
         WHERE id = ${articleId} RETURNING processing_attempts`;
       if ((a?.processing_attempts ?? MAX_EXTRACT_FAILURES) < MAX_EXTRACT_FAILURES) return { state: "retrying" };
-      await sql`UPDATE articles SET body_status = 'unconfirmed', processing_attempts = 0, processing_retry_at = NULL WHERE id = ${articleId} AND body_status = 'pending'`;
+      await sql.begin(async (tx) => {
+        const [updated] = await tx<{ config: Record<string, unknown> }[]>`UPDATE articles a SET body_status = 'unconfirmed', processing_attempts = 0, processing_retry_at = NULL
+          FROM sources s WHERE s.id = a.source_id AND a.id = ${articleId} AND a.body_status = 'pending' RETURNING s.config`;
+        if (updated && requiresBodyReadinessHold(updated.config, "unconfirmed", null)) {
+          await syncArticlePublication(tx, articleId);
+        }
+      });
       await queueProcessing(articleId, { step: "analyze" });
       return { state: "unconfirmed" };
     }
@@ -214,18 +231,22 @@ export async function registerExtractionJobs(boss: PgBoss) {
  */
 export async function sweepUnprocessed(): Promise<{ enqueued: number }> {
   const rows = await sql<{ id: string }[]>`
-    SELECT id FROM articles
-    WHERE processing_state = 'new' AND NOT COALESCE((
+    SELECT a.id FROM articles a JOIN sources s ON s.id = a.source_id
+    WHERE a.processing_state = 'new' AND NOT COALESCE((
         raw->'_aihotBodyExtractionPipelineMarker' = 'true'::jsonb
         AND raw->'_aihotBodyExtraction'->>'version' = '1'
         AND raw->'_aihotBodyExtraction'->>'state' = 'pending_parse'
         AND raw->'_aihotBodyExtraction'->>'kind' = 'attachment'), false)
-      AND created_at < now() - interval '3 minutes'
-      AND (processing_retry_at IS NULL OR processing_retry_at <= now())
-      AND (processing_queued_at IS NULL OR processing_queued_at < now() - ${QUEUED_STALE}::interval)
-    ORDER BY discovered_at DESC LIMIT 500`;
-  for (const r of rows) await queueProcessing(r.id);
-  return { enqueued: rows.length };
+      AND NOT (s.config -> '_aihot' -> 'requireBodyReadyForAutomaticSelection' = 'true'::jsonb
+        AND a.body_status <> 'pending'
+        AND ${bodyReadinessHoldSql(sql`s.config`, sql`a.body_status`, sql`a.body_text`)})
+      AND a.created_at < now() - interval '3 minutes'
+      AND (a.processing_retry_at IS NULL OR a.processing_retry_at <= now())
+      AND (a.processing_queued_at IS NULL OR a.processing_queued_at < now() - ${QUEUED_STALE}::interval)
+    ORDER BY a.discovered_at DESC LIMIT 500`;
+  let enqueued = 0;
+  for (const r of rows) if (await queueProcessing(r.id)) enqueued += 1;
+  return { enqueued };
 }
 
 /** How the runs page groups failures: the message with ids and numbers masked. */
@@ -238,15 +259,18 @@ export const failureGroupSql = (column = "processing_error") =>
  */
 export async function requeueFailed(group: string | null): Promise<{ requeued: number }> {
   const rows = await sql<{ id: string }[]>`
-    UPDATE articles SET processing_state = 'new', processing_attempts = 0, processing_retry_at = NULL, processing_error = NULL
-    WHERE processing_state = 'failed' AND NOT COALESCE((
+    UPDATE articles a SET processing_state = 'new', processing_attempts = 0, processing_retry_at = NULL, processing_error = NULL
+    FROM sources s WHERE s.id = a.source_id AND a.processing_state = 'failed' AND NOT COALESCE((
         raw->'_aihotBodyExtractionPipelineMarker' = 'true'::jsonb
         AND raw->'_aihotBodyExtraction'->>'version' = '1'
         AND raw->'_aihotBodyExtraction'->>'state' = 'pending_parse'
         AND raw->'_aihotBodyExtraction'->>'kind' = 'attachment'), false)
-      AND discovered_at > now() - interval '30 days'
-      AND (${group}::text IS NULL OR ${failureGroupSql()} = ${group})
-    RETURNING id`;
+      AND NOT (s.config -> '_aihot' -> 'requireBodyReadyForAutomaticSelection' = 'true'::jsonb
+        AND a.body_status <> 'pending'
+        AND ${bodyReadinessHoldSql(sql`s.config`, sql`a.body_status`, sql`a.body_text`)})
+      AND a.discovered_at > now() - interval '30 days'
+      AND (${group}::text IS NULL OR ${failureGroupSql("a.processing_error")} = ${group})
+    RETURNING a.id`;
   for (const r of rows.slice(0, 500)) await queueProcessing(r.id);
   return { requeued: rows.length };
 }

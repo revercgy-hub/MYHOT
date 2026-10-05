@@ -12,6 +12,7 @@ import {
   setAttachmentDiagnostic,
   type AttachmentDiagnostic,
 } from "./attachment-diagnostics.ts";
+import { requiresBodyReadyForAutomaticSelection } from "./body-readiness.ts";
 
 export interface MediaItem {
   kind: "image" | "video";
@@ -76,7 +77,7 @@ export const STALE_ON_DISCOVERY_MS = 48 * 3600 * 1000;
 export const FUTURE_TOLERANCE_MS = 3600 * 1000;
 
 /** Publish projection changes in the same transaction that adds/removes the trusted marker. */
-export async function syncAttachmentDiagnosticPublication(tx: Tx, articleId: string): Promise<void> {
+export async function syncArticlePublication(tx: Tx, articleId: string): Promise<void> {
   const { publishArticleTx } = await import("../publication/publish.ts");
   await publishArticleTx(tx, articleId);
 }
@@ -148,6 +149,8 @@ export async function upsertMaterial(m: MaterialInput, db: Db = sql): Promise<Ma
 }
 
 async function upsertIn(db: Db, m: MaterialInput): Promise<MaterialResult> {
+  const [sourcePolicy] = await db<{ config: Record<string, unknown> }[]>`SELECT config FROM sources WHERE id = ${m.sourceId}`;
+  const strictBodySource = requiresBodyReadyForAutomaticSelection(sourcePolicy?.config);
   const identityKey = identityKeyFor(m);
   const discoveredAt = m.discoveredAt ?? new Date();
   const title = collapseWhitespace(m.title).slice(0, 1000) || m.url;
@@ -203,7 +206,7 @@ async function upsertIn(db: Db, m: MaterialInput): Promise<MaterialResult> {
       processing_queued_at = CASE WHEN ${markTransition} THEN NULL ELSE processing_queued_at END,
       processing_retry_at = CASE WHEN ${markTransition} THEN NULL ELSE processing_retry_at END,
       updated_at = now() WHERE id = ${existing!.id}`;
-    if (diagnosticStateChanged) await syncAttachmentDiagnosticPublication(db as Tx, existing!.id);
+    if (diagnosticStateChanged) await syncArticlePublication(db as Tx, existing!.id);
   };
   // What the row will hold after this report: a listing without body keeps the stored (extracted) body.
   const bodyText = m.bodyText ?? existing!.body_text;
@@ -228,7 +231,7 @@ async function upsertIn(db: Db, m: MaterialInput): Promise<MaterialResult> {
       updated_at = now() WHERE id = ${existing!.id}`;
     await db`INSERT INTO article_revisions (article_id, revision, content_hash, title, body_text)
              VALUES (${existing!.id}, ${existing!.revision}, ${next}, ${title}, ${bodyText}) ON CONFLICT DO NOTHING`;
-    if (diagnosticStateChanged) await syncAttachmentDiagnosticPublication(db as Tx, existing!.id);
+    if (diagnosticStateChanged) await syncArticlePublication(db as Tx, existing!.id);
     return unchanged;
   }
   // A version this article already had is no new material (listings that alternate between two
@@ -261,6 +264,6 @@ async function upsertIn(db: Db, m: MaterialInput): Promise<MaterialResult> {
     RETURNING revision`;
   await db`INSERT INTO article_revisions (article_id, revision, content_hash, title, body_text)
            VALUES (${existing!.id}, ${row!.revision}, ${next}, ${title}, ${bodyText})`;
-  if (diagnosticStateChanged) await syncAttachmentDiagnosticPublication(db as Tx, existing!.id);
+  if (diagnosticStateChanged || strictBodySource) await syncArticlePublication(db as Tx, existing!.id);
   return { articleId: existing!.id, created: false, revised: true, backfill: existing!.backfill };
 }

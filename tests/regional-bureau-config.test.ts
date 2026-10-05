@@ -116,7 +116,11 @@ test("regional bureau disabled configs match the saved list DOMs and detail meta
     assert.equal(source.enabled, false);
     assert.equal(source.site_fulltext, false);
     assert.equal(source.syndicate_fulltext, false);
-    assert.deepEqual(config._aihot, { initialBackfillMonths: 3, initialBackfillRequirePublishedAt: true });
+    assert.deepEqual(config._aihot, {
+      initialBackfillMonths: 3,
+      initialBackfillRequirePublishedAt: true,
+      ...(spec.id === "mof-fujian-supervision-dynamics" ? { requireBodyReadyForAutomaticSelection: true } : {}),
+    });
     assert.deepEqual(unsupportedConfig("web_list", config), []);
     assert.equal(config.url, spec.url);
     assert.deepEqual(config.allowUrlPrefixes, [spec.url]);

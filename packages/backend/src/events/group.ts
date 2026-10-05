@@ -22,6 +22,8 @@ import { BudgetExceededError, ReceiptBusyError, completeReceipt } from "../provi
 import { embeddingsAvailable, ensureEmbeddings } from "../providers/embeddings.ts";
 import { isHistorical, STALE_ON_DISCOVERY_MS } from "../content/materials.ts";
 import { readAttachmentDiagnostic } from "../content/attachment-diagnostics.ts";
+import { requiresBodyReadinessHold } from "../content/body-readiness.ts";
+import { bodyReadinessHoldSql } from "../content/body-readiness.ts";
 import { enqueue, QUEUES } from "../jobs/queue.ts";
 import { publishArticle } from "../publication/publish.ts";
 import { mergeStoryInto } from "./merge.ts";
@@ -59,6 +61,8 @@ interface ArticleRow {
   participation_mode: string;
   regroup_pending: boolean;
   backfill: boolean;
+  body_status: string;
+  config: Record<string, unknown>;
 }
 
 interface PoolRow {
@@ -94,8 +98,9 @@ const trusted = (alias: string) =>
 const rootFactOf = (story: ReturnType<typeof sql> | number) => sql`(
   SELECT y.id FROM facts y
   JOIN fact_articles z ON z.fact_id = y.id AND z.role IN ('primary', 'report') AND ${trusted("z")}
+  JOIN articles ra ON ra.id = z.article_id JOIN sources rs ON rs.id = ra.source_id
   JOIN publications q ON q.article_id = z.article_id
-  WHERE y.story_id = ${story}
+  WHERE y.story_id = ${story} AND NOT ${bodyReadinessHoldSql(sql`rs.config`, sql`ra.body_status`, sql`ra.body_text`)}
   ORDER BY coalesce(q.published_at, q.discovered_at), y.id
   LIMIT 1)`;
 
@@ -107,7 +112,10 @@ async function recallPool(withWaiting = false): Promise<PoolRow[]> {
     JOIN facts f ON f.id = fa.fact_id
     JOIN stories st ON st.id = f.story_id AND st.merged_into IS NULL
     JOIN articles a ON a.id = fa.article_id
-    WHERE fa.role IN ('primary', 'report') AND ${withWaiting ? sql`true` : trusted("fa")} AND a.discovered_at > now() - make_interval(days => ${RECALL_DAYS})`;
+    JOIN sources s ON s.id = a.source_id
+    WHERE fa.role IN ('primary', 'report') AND ${withWaiting ? sql`true` : trusted("fa")}
+      AND NOT ${bodyReadinessHoldSql(sql`s.config`, sql`a.body_status`, sql`a.body_text`)}
+      AND a.discovered_at > now() - make_interval(days => ${RECALL_DAYS})`;
 }
 
 /** The public title and summary of reports (the analysis when a report has no publication yet). */
@@ -246,13 +254,17 @@ async function candidateViews(recalled: Recalled[]): Promise<CandidateView[]> {
   }[]>`
     SELECT DISTINCT ON (fa.fact_id) fa.fact_id, f.story_id, f.title AS fact_title, f.subject, f.action, f.object, f.occurred_at,
            p.title, p.summary, s.name AS source, p.first_party, coalesce(p.published_at, p.discovered_at) AS at,
-           (SELECT count(*) FROM fact_articles x WHERE x.fact_id = fa.fact_id AND x.role IN ('primary', 'report') AND ${trusted("x")}) AS members,
+           (SELECT count(*) FROM fact_articles x JOIN articles xa ON xa.id = x.article_id JOIN sources xs ON xs.id = xa.source_id
+            WHERE x.fact_id = fa.fact_id AND x.role IN ('primary', 'report') AND ${trusted("x")}
+              AND NOT ${bodyReadinessHoldSql(sql`xs.config`, sql`xa.body_status`, sql`xa.body_text`)}) AS members,
            ${rootFactOf(sql`f.story_id`)} AS root_fact_id
     FROM fact_articles fa
     JOIN facts f ON f.id = fa.fact_id
     JOIN publications p ON p.article_id = fa.article_id
     JOIN sources s ON s.id = p.source_id
+    JOIN articles a ON a.id = fa.article_id
     WHERE fa.fact_id = ANY(${recalled.map((r) => r.factId)}) AND fa.role IN ('primary', 'report') AND ${trusted("fa")}
+      AND NOT ${bodyReadinessHoldSql(sql`s.config`, sql`a.body_status`, sql`a.body_text`)}
     ORDER BY fa.fact_id, (fa.role = 'primary') DESC, p.timeline_at ASC`;
   const byFact = new Map(rows.map((r) => [Number(r.fact_id), r]));
   return recalled.flatMap((r) => {
@@ -432,13 +444,17 @@ async function storyRoot(storyId: number): Promise<StoryRoot | null> {
     SELECT f.subject, f.action, f.object, f.occurred_at, p.title, p.summary, s.name AS source, p.first_party,
            coalesce(p.published_at, p.discovered_at) AS at,
            (SELECT min(coalesce(q.published_at, q.discovered_at)) FROM fact_articles z JOIN publications q ON q.article_id = z.article_id
-            WHERE z.fact_id = f.id AND z.role IN ('primary', 'report') AND ${trusted("z")}) AS started_at,
+            JOIN articles za ON za.id = z.article_id JOIN sources zs ON zs.id = za.source_id
+            WHERE z.fact_id = f.id AND z.role IN ('primary', 'report') AND ${trusted("z")}
+              AND NOT ${bodyReadinessHoldSql(sql`zs.config`, sql`za.body_status`, sql`za.body_text`)}) AS started_at,
            EXISTS (SELECT 1 FROM grouping_decisions d WHERE d.article_id = fa.article_id AND d.verdict = 'roundup') AS roundup
     FROM facts f
     JOIN fact_articles fa ON fa.fact_id = f.id AND fa.role IN ('primary', 'report') AND ${trusted("fa")}
     JOIN publications p ON p.article_id = fa.article_id
     JOIN sources s ON s.id = p.source_id
+    JOIN articles a ON a.id = fa.article_id
     WHERE f.id = ${rootFactOf(storyId)}
+      AND NOT ${bodyReadinessHoldSql(sql`s.config`, sql`a.body_status`, sql`a.body_text`)}
     ORDER BY (fa.role = 'primary') DESC, p.timeline_at ASC
     LIMIT 1`;
   if (!row) return null;
@@ -609,8 +625,8 @@ export async function groupArticle(articleId: string, opts: GroupOptions = {}): 
 
 async function decide(articleId: string, opts: GroupOptions): Promise<GroupResult> {
   const [a] = await sql<ArticleRow[]>`
-    SELECT a.id, a.title, a.url, a.published_at, a.discovered_at, a.grouped_at, a.body_text, a.x_post, a.backfill,
-           s.id AS source_id, s.name AS source_name, s.signal_group_id, s.first_party, s.participation_mode,
+    SELECT a.id, a.title, a.url, a.published_at, a.discovered_at, a.grouped_at, a.body_text, a.body_status, a.x_post, a.backfill,
+           s.id AS source_id, s.name AS source_name, s.signal_group_id, s.first_party, s.participation_mode, s.config,
            EXISTS (SELECT 1 FROM regroup_pending rp WHERE rp.article_id = a.id) AS regroup_pending
     FROM articles a JOIN sources s ON s.id = a.source_id WHERE a.id = ${articleId}`;
   if (!a) return { verdict: "skipped" };
@@ -624,6 +640,7 @@ async function decide(articleId: string, opts: GroupOptions): Promise<GroupResul
     await publishArticle(articleId);
     return { verdict: "manual", factId: manual.factId };
   }
+  if (requiresBodyReadinessHold(a.config, a.body_status, a.body_text)) return { verdict: "skipped", reason: "body_not_ready" };
   const left = opts.force || a.regroup_pending ? await resetAutomatic(articleId) : [];
 
   // History founds no event and adds no heat (isHistorical); a regroup takes it out of any it joined.

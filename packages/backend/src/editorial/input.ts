@@ -5,6 +5,7 @@ import { collapseWhitespace, truncate } from "../lib/text.ts";
 import { produceImage } from "../media/images.ts";
 import type { ContentPart } from "../providers/llm.ts";
 import { readAttachmentDiagnostic } from "../content/attachment-diagnostics.ts";
+import { requiresBodyReadinessHold } from "../content/body-readiness.ts";
 
 export interface AnalyzeInputArticle {
   id: string;
@@ -35,6 +36,8 @@ export interface AnalyzeInputArticle {
   translationZh?: string | null;
   /** Internal hold: only a reliable attachment parser success releases this automatic gate. */
   attachmentPendingReason?: string | null;
+  /** Source-specific automatic hold for rows without a confirmed, non-empty body. */
+  bodyReadinessPending?: boolean;
 }
 
 /**
@@ -70,6 +73,7 @@ export async function loadAnalyzeInput(articleId: string): Promise<AnalyzeInputA
     },
     translationZh: row.translation_zh,
     attachmentPendingReason: readAttachmentDiagnostic(row.raw)?.reason ?? null,
+    bodyReadinessPending: requiresBodyReadinessHold(row.config, row.body_status, row.body_text),
   };
 }
 

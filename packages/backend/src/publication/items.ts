@@ -4,6 +4,7 @@ import type { CategoryKey, ChannelKey } from "@aihot/contracts/taxonomy";
 import type { FeedItemSummary, ItemSummary, MediaView, SourceKind, XPostView } from "@aihot/contracts/site";
 import { sql, type Db, type Sql } from "../db.ts";
 import { ATTACHMENT_DIAGNOSTIC_PIPELINE_MARKER_KEY, ATTACHMENT_DIAGNOSTIC_RAW_KEY } from "../content/attachment-diagnostics.ts";
+import { bodyReadinessHoldSql } from "../content/body-readiness.ts";
 import { proxiedImage, proxiedImageSet } from "../media/imgproxy.ts";
 import { displayTags } from "./rules.ts";
 
@@ -57,25 +58,33 @@ export function pendingAttachment(raw: ReturnType<Sql>) {
     AND ${marker} ->> 'version' = '1' AND ${marker} ->> 'state' = 'pending_parse' AND ${marker} ->> 'kind' = 'attachment')`;
 }
 
+const currentArticleBodyHold = bodyReadinessHoldSql(sql`gate_source.config`, sql`gate_article.body_status`, sql`gate_article.body_text`);
+const currentArticleAttachmentHold = pendingAttachment(sql`gate_article.raw`);
+const currentArticleHold = sql`(${currentArticleAttachmentHold} OR ${currentArticleBodyHold})`;
+const currentManualSelection = sql`gate_override.fields -> 'selected' = 'true'::jsonb`;
+const listedArticleHold = sql`(${pendingAttachment(sql`a.raw`)} OR ${bodyReadinessHoldSql(sql`s.config`, sql`a.body_status`, sql`a.body_text`)})`;
+const itemManualSelection = sql`eo.fields -> 'selected' = 'true'::jsonb`;
+
 const blockedCurrentSelection = sql`NOT EXISTS (
   SELECT 1 FROM articles gate_article
+  JOIN sources gate_source ON gate_source.id = gate_article.source_id
   LEFT JOIN editorial_overrides gate_override ON gate_override.article_id = gate_article.id
   WHERE gate_article.id = p.article_id
-    AND ${pendingAttachment(sql`gate_article.raw`)}
-    AND gate_override.fields -> 'selected' IS DISTINCT FROM 'true'::jsonb
+    AND ${currentArticleHold}
+    AND ${currentManualSelection} IS DISTINCT FROM true
 )`;
 const currentSelected = sql`(p.selected AND ${blockedCurrentSelection})`;
 
 /** Columns every item listing selects. Internal judgement details never leave this layer. */
 export const ITEM_COLUMNS = sql`
   p.article_id AS id, p.revision, p.title, p.original_title,
-  CASE WHEN ${pendingAttachment(sql`a.raw`)} THEN coalesce('正文待解析 · ' || p.summary, '正文待解析') ELSE p.summary END AS summary,
-  CASE WHEN ${pendingAttachment(sql`a.raw`)} THEN NULL ELSE p.reason END AS reason,
+  CASE WHEN ${listedArticleHold} THEN coalesce('正文待解析 · ' || p.summary, '正文待解析') ELSE p.summary END AS summary,
+  CASE WHEN ${listedArticleHold} THEN NULL ELSE p.reason END AS reason,
   p.category, p.tags,
-  CASE WHEN ${pendingAttachment(sql`a.raw`)} AND NOT coalesce(eo.fields -> 'selected' = 'true'::jsonb, false) THEN NULL ELSE p.score END AS score,
-  CASE WHEN ${pendingAttachment(sql`a.raw`)} THEN (p.selected AND coalesce(eo.fields -> 'selected' = 'true'::jsonb, false)) ELSE p.selected END AS selected,
+  CASE WHEN ${listedArticleHold} AND NOT coalesce(${itemManualSelection}, false) THEN NULL ELSE p.score END AS score,
+  CASE WHEN ${listedArticleHold} THEN (p.selected AND coalesce(${itemManualSelection}, false)) ELSE p.selected END AS selected,
   p.eligible, p.channel, p.url, p.published_at, p.discovered_at, p.timeline_at, p.sort_at, p.first_party, p.visibility,
-  CASE WHEN ${pendingAttachment(sql`a.raw`)} THEN 'summary' ELSE p.body_mode END AS body_mode,
+  CASE WHEN ${listedArticleHold} THEN 'summary' ELSE p.body_mode END AS body_mode,
   p.syndicate, p.indexable, p.visible_after, p.backfill, p.fact_id, p.story_id,
   s.id AS source_id, s.name AS source_name, s.kind AS source_kind, s.participation_mode AS source_mode, s.icon_url AS source_icon,
   a.x_post, a.author, a.language,
@@ -86,12 +95,12 @@ export const ITEM_COLUMNS = sql`
 export type ApiItemRow = Pick<ItemRow, "id" | "title" | "original_title" | "summary" | "source_name" | "url" | "published_at" | "discovered_at" | "category" | "score" | "selected" | "reason">;
 export const API_ITEM_COLUMNS = sql`
   p.article_id AS id, p.title, p.original_title,
-  CASE WHEN ${pendingAttachment(sql`a.raw`)} THEN coalesce('正文待解析 · ' || p.summary, '正文待解析') ELSE p.summary END AS summary,
+  CASE WHEN ${listedArticleHold} THEN coalesce('正文待解析 · ' || p.summary, '正文待解析') ELSE p.summary END AS summary,
   s.name AS source_name, p.url,
   p.published_at, p.discovered_at, p.category,
-  CASE WHEN ${pendingAttachment(sql`a.raw`)} AND NOT coalesce(eo.fields -> 'selected' = 'true'::jsonb, false) THEN NULL ELSE p.score END AS score,
-  CASE WHEN ${pendingAttachment(sql`a.raw`)} THEN (p.selected AND coalesce(eo.fields -> 'selected' = 'true'::jsonb, false)) ELSE p.selected END AS selected,
-  CASE WHEN ${pendingAttachment(sql`a.raw`)} THEN NULL ELSE p.reason END AS reason`;
+  CASE WHEN ${listedArticleHold} AND NOT coalesce(${itemManualSelection}, false) THEN NULL ELSE p.score END AS score,
+  CASE WHEN ${listedArticleHold} THEN (p.selected AND coalesce(${itemManualSelection}, false)) ELSE p.selected END AS selected,
+  CASE WHEN ${listedArticleHold} THEN NULL ELSE p.reason END AS reason`;
 export const API_ITEM_FROM = sql`FROM publications p JOIN sources s ON s.id = p.source_id
   JOIN articles a ON a.id = p.article_id
   LEFT JOIN editorial_overrides eo ON eo.article_id = p.article_id`;

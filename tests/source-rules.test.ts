@@ -313,11 +313,15 @@ test("initialBackfillRequirePublishedAt accepts only boolean values and the indu
     assert.ok(unsupportedConfig("web_list", { url: "https://example.org/", _aihot: { initialBackfillRequirePublishedAt: invalid } }).length > 0,
       `${JSON.stringify(invalid)} must not be coerced to a boolean`);
   }
-  const sources = JSON.parse(readFileSync(new URL("../industry/sources.json", import.meta.url), "utf8")) as { sources: { enabled: boolean; interval_minutes: number; site_fulltext: boolean; syndicate_fulltext: boolean; config: { _aihot?: { initialBackfillMonths?: number; initialBackfillRequirePublishedAt?: boolean } } }[] };
+  const sources = JSON.parse(readFileSync(new URL("../industry/sources.json", import.meta.url), "utf8")) as { sources: { id: string; enabled: boolean; interval_minutes: number; site_fulltext: boolean; syndicate_fulltext: boolean; config: { _aihot?: { initialBackfillMonths?: number; initialBackfillRequirePublishedAt?: boolean; requireBodyReadyForAutomaticSelection?: boolean } } }[] };
   assert.equal(sources.sources.length, 19);
   for (const source of sources.sources) {
     assert.equal(source.interval_minutes, 1440);
-    assert.deepEqual(source.config._aihot, { initialBackfillMonths: 3, initialBackfillRequirePublishedAt: true });
+    assert.deepEqual(source.config._aihot, {
+      initialBackfillMonths: 3,
+      initialBackfillRequirePublishedAt: true,
+      ...(source.id === "mof-fujian-supervision-dynamics" ? { requireBodyReadyForAutomaticSelection: true } : {}),
+    });
     assert.equal(source.enabled, false);
     assert.equal(source.site_fulltext, false);
     assert.equal(source.syndicate_fulltext, false);
