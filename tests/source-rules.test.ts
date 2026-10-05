@@ -314,7 +314,7 @@ test("initialBackfillRequirePublishedAt accepts only boolean values and the indu
       `${JSON.stringify(invalid)} must not be coerced to a boolean`);
   }
   const sources = JSON.parse(readFileSync(new URL("../industry/sources.json", import.meta.url), "utf8")) as { sources: { enabled: boolean; interval_minutes: number; site_fulltext: boolean; syndicate_fulltext: boolean; config: { _aihot?: { initialBackfillMonths?: number; initialBackfillRequirePublishedAt?: boolean } } }[] };
-  assert.equal(sources.sources.length, 12);
+  assert.equal(sources.sources.length, 15);
   for (const source of sources.sources) {
     assert.equal(source.interval_minutes, 1440);
     assert.deepEqual(source.config._aihot, { initialBackfillMonths: 3, initialBackfillRequirePublishedAt: true });

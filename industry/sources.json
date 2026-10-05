@@ -328,6 +328,99 @@
       "site_fulltext": false,
       "syndicate_fulltext": false,
       "enabled": false
+    },
+    {
+      "id": "mof-fujian-supervision-dynamics",
+      "name": "财政部福建监管局·工作动态",
+      "kind": "web_list",
+      "config": {
+        "url": "https://fj.mof.gov.cn/gzdt/caizhengjiancha/",
+        "itemSelector": "div.mainboxerji > div.zzright > div.listBox > ul.liBox > li",
+        "linkSelector": "a[href]",
+        "titleSelector": "a",
+        "titleAttribute": "title",
+        "publishedAtSelector": "span",
+        "publishedAtUtcOffset": "+08:00",
+        "allowUrlPrefixes": ["https://fj.mof.gov.cn/gzdt/caizhengjiancha/"],
+        "detail": {
+          "maxFetches": 10,
+          "publishedAtRegex": "<meta\\s+name=\"PubDate\"\\s+content=\"([^\"]+)",
+          "publishedAtUtcOffset": "+08:00",
+          "bodySelector": ".my_doccontent"
+        },
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
+      },
+      "tier": "T1",
+      "first_party": true,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": ["官方", "福建", "财政监管", "监管局动态"],
+      "site_fulltext": false,
+      "syndicate_fulltext": false,
+      "enabled": false
+    },
+    {
+      "id": "mof-beijing-supervision-dynamics",
+      "name": "财政部北京监管局·工作动态",
+      "kind": "web_list",
+      "config": {
+        "url": "https://bj.mof.gov.cn/caizhengjiancha/",
+        "itemSelector": "div.mainboxerji > div.zzright > div.listBox > ul.liBox > li",
+        "linkSelector": "a[href]",
+        "titleSelector": "a",
+        "titleAttribute": "title",
+        "publishedAtSelector": "span",
+        "publishedAtUtcOffset": "+08:00",
+        "allowUrlPrefixes": ["https://bj.mof.gov.cn/caizhengjiancha/"],
+        "detail": {
+          "maxFetches": 10,
+          "titleSelector": "h2.title_con",
+          "titleAuthoritative": true,
+          "publishedAtRegex": "<meta\\s+name=\"PubDate\"\\s+content=\"([^\"]+)",
+          "publishedAtUtcOffset": "+08:00",
+          "publishedAtAuthoritative": true,
+          "bodySelector": ".my_doccontent"
+        },
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
+      },
+      "tier": "T1",
+      "first_party": true,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": ["官方", "北京", "财政监管", "监管局动态"],
+      "site_fulltext": false,
+      "syndicate_fulltext": false,
+      "enabled": false
+    },
+    {
+      "id": "mof-shanghai-supervision-dynamics",
+      "name": "财政部上海监管局·工作动态",
+      "kind": "web_list",
+      "config": {
+        "url": "https://sh.mof.gov.cn/gzdt/caizhengjiancha/",
+        "itemSelector": "div.mainboxerji > div.zzright > div.listBox > ul.liBox > li",
+        "linkSelector": "a[href]",
+        "titleSelector": "a",
+        "titleAttribute": "title",
+        "publishedAtSelector": "span",
+        "publishedAtUtcOffset": "+08:00",
+        "allowUrlPrefixes": ["https://sh.mof.gov.cn/gzdt/caizhengjiancha/"],
+        "detail": {
+          "maxFetches": 10,
+          "publishedAtRegex": "<meta\\s+name=\"PubDate\"\\s+content=\"([^\"]+)",
+          "publishedAtUtcOffset": "+08:00",
+          "bodySelector": ".my_doccontent"
+        },
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
+      },
+      "tier": "T1",
+      "first_party": true,
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": ["官方", "上海", "财政监管", "监管局动态"],
+      "site_fulltext": false,
+      "syndicate_fulltext": false,
+      "enabled": false
     }
   ]
 }
