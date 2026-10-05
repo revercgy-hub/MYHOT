@@ -11,6 +11,7 @@ const sourceDoc = JSON.parse(readFileSync(sourcesFile, "utf8")) as {
     id: string;
     name: string;
     kind: string;
+    owner_entity_id?: string;
     config: Record<string, any>;
     tier: string;
     first_party: boolean;
@@ -31,6 +32,7 @@ const expected = [
     listDate: "2026-09-22T00:00:00+08:00",
     detailTitle: "财政部福建监管局：“三强化”提升资源综合利用增值税即征即退政策复查工作质量",
     detailDate: "2026-09-22 08:21:00",
+    parsedDetailTitle: null,
   },
   {
     id: "mof-beijing-supervision-dynamics",
@@ -41,6 +43,7 @@ const expected = [
     listDate: "2026-09-24T00:00:00+08:00",
     detailTitle: "北京监管局：坚持“四个进阶”提升属地中央预算单位预算编制审核质效",
     detailDate: "2026-09-30 08:39:00",
+    parsedDetailTitle: "北京监管局：坚持“四个进阶”提升属地中央预算单位预算编制审核质效",
   },
   {
     id: "mof-shanghai-supervision-dynamics",
@@ -51,6 +54,51 @@ const expected = [
     listDate: "2026-09-23T00:00:00+08:00",
     detailTitle: "财政部上海监管局四维靶向施策 扎实推进增值税留抵退税抽审提质增效",
     detailDate: "2026-09-23 15:09:00",
+    parsedDetailTitle: null,
+  },
+  {
+    id: "mof-henan-supervision-dynamics",
+    bureau: "henan",
+    url: "https://ha.mof.gov.cn/caizhengjiancha/",
+    article: "https://ha.mof.gov.cn/caizhengjiancha/202609/t20260930_3998389.htm",
+    title: "财政部河南监管局：多措并举 推动绩效评价工作高质量开展",
+    listDate: "2026-09-30T00:00:00+08:00",
+    detailTitle: "财政部河南监管局：多措并举 推动绩效评价工作高质量开展",
+    detailDate: "2026-09-30 11:16:00",
+    parsedDetailTitle: "财政部河南监管局：多措并举 推动绩效评价工作高质量开展",
+  },
+  {
+    id: "mof-hubei-supervision-dynamics",
+    bureau: "hubei",
+    url: "https://hb.mof.gov.cn/gzdt2019/caizhengjiancha/",
+    article: "https://hb.mof.gov.cn/gzdt2019/caizhengjiancha/202609/t20260929_3998269.htm",
+    title: "财政部湖北监管局：湖北监管局在第八届“财青8+” 青年调研中再创佳绩",
+    listDate: "2026-09-29T00:00:00+08:00",
+    detailTitle: "财政部湖北监管局：湖北监管局在第八届“财青8+” 青年调研中再创佳绩",
+    detailDate: "2026-09-29 09:00:00",
+    parsedDetailTitle: "财政部湖北监管局：湖北监管局在第八届“财青8+” 青年调研中再创佳绩",
+  },
+  {
+    id: "mof-hunan-supervision-dynamics",
+    bureau: "hunan",
+    url: "https://hn.mof.gov.cn/caizhengjiancha/",
+    article: "https://hn.mof.gov.cn/caizhengjiancha/202609/t20260930_3998467.htm",
+    title: "财政部湖南监管局组织开展公文、保密和内控工作培训",
+    listDate: "2026-09-30T00:00:00+08:00",
+    detailTitle: "财政部湖南监管局组织开展公文、保密和内控工作培训",
+    detailDate: "2026-09-30 15:14:00",
+    parsedDetailTitle: "财政部湖南监管局组织开展公文、保密和内控工作培训",
+  },
+  {
+    id: "mof-guangdong-supervision-dynamics",
+    bureau: "guangdong",
+    url: "https://gd.mof.gov.cn/caizhengjiancha/",
+    article: "https://gd.mof.gov.cn/caizhengjiancha/202609/t20260928_3998195.htm",
+    title: "广东监管局：健全“四个突出”监管体系，持续提升中央转移支付资金监管质效",
+    listDate: "2026-09-28T00:00:00+08:00",
+    detailTitle: "广东监管局：健全“四个突出”监管体系，持续提升中央转移支付资金监管质效",
+    detailDate: "2026-09-28 10:49:00",
+    parsedDetailTitle: "广东监管局：健全“四个突出”监管体系，持续提升中央转移支付资金监管质效",
   },
 ];
 
@@ -78,6 +126,12 @@ test("regional bureau disabled configs match the saved list DOMs and detail meta
     assert.equal(config.titleAttribute, "title");
     assert.equal(config.publishedAtSelector, "span");
     assert.equal(config.publishedAtUtcOffset, "+08:00");
+    if (["henan", "hubei", "hunan", "guangdong"].includes(spec.bureau)) {
+      assert.equal(source.owner_entity_id, "mof");
+      assert.equal(config.detail.titleSelector, "h2.title_con");
+      assert.equal(config.detail.titleAuthoritative, undefined);
+      assert.equal(config.detail.publishedAtAuthoritative, undefined);
+    }
 
     const listHtml = readFileSync(fixtureUrl(`${spec.bureau}-list.html`), "utf8");
     const candidates = fromHtml(listHtml, spec.url, { id: spec.id, config } as never);
@@ -102,7 +156,7 @@ test("regional bureau disabled configs match the saved list DOMs and detail meta
       });
     assert.equal(reads, 1);
     assert.equal(metadata.publishedAt?.toISOString(), new Date(`${spec.detailDate.replace(" ", "T")}+08:00`).toISOString());
-    assert.equal(metadata.title, spec.bureau === "beijing" ? spec.detailTitle : null);
+    assert.equal(metadata.title, spec.parsedDetailTitle);
   }
 
   const beijing = sources.find(({ id }) => id === "mof-beijing-supervision-dynamics")!.config.detail;

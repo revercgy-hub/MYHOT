@@ -421,6 +421,134 @@
       "site_fulltext": false,
       "syndicate_fulltext": false,
       "enabled": false
+    },
+    {
+      "id": "mof-henan-supervision-dynamics",
+      "name": "财政部河南监管局·工作动态",
+      "kind": "web_list",
+      "config": {
+        "url": "https://ha.mof.gov.cn/caizhengjiancha/",
+        "itemSelector": "div.mainboxerji > div.zzright > div.listBox > ul.liBox > li",
+        "linkSelector": "a[href]",
+        "titleSelector": "a",
+        "titleAttribute": "title",
+        "publishedAtSelector": "span",
+        "publishedAtUtcOffset": "+08:00",
+        "allowUrlPrefixes": ["https://ha.mof.gov.cn/caizhengjiancha/"],
+        "detail": {
+          "maxFetches": 10,
+          "titleSelector": "h2.title_con",
+          "publishedAtRegex": "<meta\\s+name=\"PubDate\"\\s+content=\"([^\"]+)",
+          "publishedAtUtcOffset": "+08:00",
+          "bodySelector": ".my_doccontent"
+        },
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
+      },
+      "tier": "T1",
+      "first_party": true,
+      "owner_entity_id": "mof",
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": ["官方", "河南", "财政监管", "监管局动态"],
+      "site_fulltext": false,
+      "syndicate_fulltext": false,
+      "enabled": false
+    },
+    {
+      "id": "mof-hubei-supervision-dynamics",
+      "name": "财政部湖北监管局·工作动态",
+      "kind": "web_list",
+      "config": {
+        "url": "https://hb.mof.gov.cn/gzdt2019/caizhengjiancha/",
+        "itemSelector": "div.mainboxerji > div.zzright > div.listBox > ul.liBox > li",
+        "linkSelector": "a[href]",
+        "titleSelector": "a",
+        "titleAttribute": "title",
+        "publishedAtSelector": "span",
+        "publishedAtUtcOffset": "+08:00",
+        "allowUrlPrefixes": ["https://hb.mof.gov.cn/gzdt2019/caizhengjiancha/"],
+        "detail": {
+          "maxFetches": 10,
+          "titleSelector": "h2.title_con",
+          "publishedAtRegex": "<meta\\s+name=\"PubDate\"\\s+content=\"([^\"]+)",
+          "publishedAtUtcOffset": "+08:00",
+          "bodySelector": ".my_doccontent"
+        },
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
+      },
+      "tier": "T1",
+      "first_party": true,
+      "owner_entity_id": "mof",
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": ["官方", "湖北", "财政监管", "监管局动态"],
+      "site_fulltext": false,
+      "syndicate_fulltext": false,
+      "enabled": false
+    },
+    {
+      "id": "mof-hunan-supervision-dynamics",
+      "name": "财政部湖南监管局·工作动态",
+      "kind": "web_list",
+      "config": {
+        "url": "https://hn.mof.gov.cn/caizhengjiancha/",
+        "itemSelector": "div.mainboxerji > div.zzright > div.listBox > ul.liBox > li",
+        "linkSelector": "a[href]",
+        "titleSelector": "a",
+        "titleAttribute": "title",
+        "publishedAtSelector": "span",
+        "publishedAtUtcOffset": "+08:00",
+        "allowUrlPrefixes": ["https://hn.mof.gov.cn/caizhengjiancha/"],
+        "detail": {
+          "maxFetches": 10,
+          "titleSelector": "h2.title_con",
+          "publishedAtRegex": "<meta\\s+name=\"PubDate\"\\s+content=\"([^\"]+)",
+          "publishedAtUtcOffset": "+08:00",
+          "bodySelector": ".my_doccontent"
+        },
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
+      },
+      "tier": "T1",
+      "first_party": true,
+      "owner_entity_id": "mof",
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": ["官方", "湖南", "财政监管", "监管局动态"],
+      "site_fulltext": false,
+      "syndicate_fulltext": false,
+      "enabled": false
+    },
+    {
+      "id": "mof-guangdong-supervision-dynamics",
+      "name": "财政部广东监管局·工作动态",
+      "kind": "web_list",
+      "config": {
+        "url": "https://gd.mof.gov.cn/caizhengjiancha/",
+        "itemSelector": "div.mainboxerji > div.zzright > div.listBox > ul.liBox > li",
+        "linkSelector": "a[href]",
+        "titleSelector": "a",
+        "titleAttribute": "title",
+        "publishedAtSelector": "span",
+        "publishedAtUtcOffset": "+08:00",
+        "allowUrlPrefixes": ["https://gd.mof.gov.cn/caizhengjiancha/"],
+        "detail": {
+          "maxFetches": 10,
+          "titleSelector": "h2.title_con",
+          "publishedAtRegex": "<meta\\s+name=\"PubDate\"\\s+content=\"([^\"]+)",
+          "publishedAtUtcOffset": "+08:00",
+          "bodySelector": ".my_doccontent"
+        },
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
+      },
+      "tier": "T1",
+      "first_party": true,
+      "owner_entity_id": "mof",
+      "participation_mode": "editorial",
+      "interval_minutes": 1440,
+      "tags": ["官方", "广东", "财政监管", "监管局动态"],
+      "site_fulltext": false,
+      "syndicate_fulltext": false,
+      "enabled": false
     }
   ]
 }
