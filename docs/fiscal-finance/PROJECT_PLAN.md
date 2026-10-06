@@ -20,6 +20,10 @@
 | P9 Staging 稳定性 | 逐步启用采集和小规模模型处理并观察 | Gate 5：连续运行、成本、故障恢复和 smoke 验收通过 |
 | P10 Production | 仅部署 Staging 验证过的固定 SHA | Production 数据、配置和卷独立，具备备份和回滚 |
 
+## 2026-10-06 Phase C evidence preparation status
+
+Phase C当前为`IN_PROGRESS`，Gate 2仍`NOT_PASSED`。Phase A/B批准仅覆盖各自受限实现，不代表source admission或90日覆盖。Lead报告上海候选有一份由A持有的单次受限探测报告待离线核验；该候选仍disabled，未作source pass。Lead另报告精确详情URL `t20260728_3994403.htm` 单次GET与列表日/路径日冲突，完整A-owned报告待核验；没有附件请求或DB/model写入。B的正文缺口方案与离线OCR S1范围包由B独立维护；Sol只读审查OCR范围不等于执行授权，OCR未运行。当前恢复环境、preview只读核验与服务健康证据见[Phase C恢复安全检查点](RECOVERY_SAFETY_CHECKPOINT_2026-10-06_PHASE_C.md)。本轮无代码、来源配置、schema或业务数据改动；后续请求、OCR执行、来源启用、完成标记/增量/重置设计须有各自明确范围批准。
+
 ## 新增来源覆盖要求：财政部各地监管局动态
 
 用户新增要求：资讯咨询覆盖全国财政部各地监管局发布的新闻动态。该要求纳入现有官方来源建设，不代表增加其他机构来源或扩展为各局全部主题栏目。用户确认首阶段须逐一覆盖各财政部地方监管局新闻动态栏目，中央选登只作补充。内容边界已确认：无实质业务事实的内部活动排除；新政策、问题发现、监管措施、调研成果纳入；地方一手内容不因传播范围低而降优先。`prefilter`与`selection-score`提示词已作最小文字更新，但无人工Gold模型评估或硬过滤器。用户确认附件无法可靠解析时保留原始URL、标注正文待解析、不进入自动精选，后续补解析；不支持附件不等于正文ok或来源通过。2026-10-04 Sol给严格首次90天日期范围及附件诊断/自动精选防护`APPROVED_SCOPE`，仅批准实现范围，不是Gate 2通过。S1实现已集成到代码SHA `dd3835460d4f6d180209acbe0a48e4b142ea7ac0`；最终fresh本地QA的250/250测试、typecheck、Web build/tests、重启到当前构建的loopback smoke以及CI run 37163791233均已通过。没有新增DB migration；未启用source或worker。用户确认daily check与首次近90日目标已写入disabled行业source JSON（12源），但未导入正式source行或验证定时运行；通用collector 12个月默认仍保留。以上配置/prompt不表示生产运行或Gate通过。分类沿用现有“财会监督”“地方实践”“政策发布”等标签；条目保留真实发布局名称，汇总稿按汇总来源展示。
