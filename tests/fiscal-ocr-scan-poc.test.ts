@@ -20,7 +20,8 @@ function fakeMonitor(code: string) {
 }
 const sampledMonitor = [
   "const fs=require('node:fs');const pid=Number(process.argv[1]);const path=process.argv[2];",
-  "const poll=setInterval(()=>{try{process.kill(pid,0);const row={pid,at:new Date().toISOString(),workingSetBytes:1};fs.appendFileSync(path,JSON.stringify(row)+'\\n');process.stdout.write(JSON.stringify(row)+'\\n')}catch{clearInterval(poll);fs.appendFileSync(path,JSON.stringify({pid,waited:true,at:new Date().toISOString()})+'\\n')}},20);",
+  "const sample=()=>{const row={pid,at:new Date().toISOString(),workingSetBytes:1};fs.appendFileSync(path,JSON.stringify(row)+'\\n');process.stdout.write(JSON.stringify(row)+'\\n')};sample();",
+  "const poll=setInterval(()=>{try{process.kill(pid,0);sample()}catch{clearInterval(poll);fs.appendFileSync(path,JSON.stringify({pid,exitCode:null,waited:true,at:new Date().toISOString()})+'\\n')}},20);",
 ].join('');
 function invocation(childCode: string, pageId: string, options: { monitorCode?: string; monitorReady?: boolean; budget?: any; elapsedBeforeMs?: number } = {}) {
   const outBase = join(scratch, pageId);
@@ -301,7 +302,7 @@ test('real Windows monitor observes the exact fake-child PID and records natural
   assert.ok(Number.isInteger(task.runtimeLog.pid) && task.runtimeLog.pid > 0);
   assert.ok(rows.some(row => Number.isFinite(row.workingSetBytes)));
   assert.equal(rows.at(-1).waited, true);
-  assert.equal(task.runtimeLog.closeObserved, true);
+  assert.equal(task.runtimeLog.childCloseObserved, true);
   assert.equal(task.runtimeLog.exitCode, 0);
   assert.ok(rows.some(row => Number.isFinite(row.workingSetBytes)));
   assert.ok(task.runtimeLog.monitorLastSampleToCloseMs >= 0);
@@ -316,7 +317,7 @@ test('real Windows monitor observes the exact fake-child PID and records natural
 });
 
 test('deadline kills the fake child and waits for its close event under the real Windows monitor', async () => {
-  const task = invocation('setInterval(() => {}, 1000);', 'deadline', { monitorCode: sampledMonitor, budget: { pageMs: 400, runMs: 1000 } });
+  const task = invocation('setInterval(() => {}, 1000);', 'deadline', { monitorCode: sampledMonitor, budget: { pageMs: 400, runMs: 3000, cleanupMs: 2000 } });
   await assert.rejects(task.run(), /terminated: page deadline/u);
   const rows = (await readFile(join(scratch, 'deadline.jsonl'), 'utf8')).trim().split(/\r?\n/u).map(line => JSON.parse(line));
   assert.equal(task.runtimeLog.killed, true);
@@ -327,7 +328,7 @@ test('deadline kills the fake child and waits for its close event under the real
 });
 
 test('total experiment deadline also kills and waits for the fake child', async () => {
-  const task = invocation('setInterval(() => {}, 1000);', 'total-deadline', { monitorCode: sampledMonitor, budget: { pageMs: 5000, runMs: 450 }, elapsedBeforeMs: 0 });
+  const task = invocation('setInterval(() => {}, 1000);', 'total-deadline', { monitorCode: sampledMonitor, budget: { pageMs: 5000, runMs: 2300, cleanupMs: 500 }, elapsedBeforeMs: 800 });
   await assert.rejects(task.run(), /terminated: total deadline/u);
   assert.equal(task.runtimeLog.killReason, 'total deadline');
   assert.equal(task.runtimeLog.closeObserved, true);
@@ -335,7 +336,7 @@ test('total experiment deadline also kills and waits for the fake child', async 
 });
 
 test('output over limit terminates the exact child and is also checked after close', async () => {
-  const task = invocation("console.error('x'.repeat(8192));setInterval(()=>{},1000);", 'output', { monitorCode: sampledMonitor, budget: { pageMs: 5000, runMs: 6000, pageOutputBytes: 1024 } });
+  const task = invocation("console.error('x'.repeat(8192));setInterval(()=>{},1000);", 'output', { monitorCode: sampledMonitor, budget: { pageMs: 5000, runMs: 6000, cleanupMs: 1000, pageOutputBytes: 1024 } });
   await assert.rejects(task.run(), /terminated: combined page output limit/u);
   assert.equal(task.runtimeLog.killed, true);
   assert.equal(task.runtimeLog.closeObserved, true);
@@ -346,7 +347,7 @@ test('output over limit terminates the exact child and is also checked after clo
 
 test('text and TSV output files count together toward the page output cap', async () => {
   const code = "const fs=require('node:fs');const p=process.argv[1];setTimeout(()=>{fs.writeFileSync(p+'.txt','t'.repeat(600));fs.writeFileSync(p+'.tsv','v'.repeat(600))},60);setInterval(()=>{},1000);";
-  const task = invocation(code, 'file-output', { monitorCode: sampledMonitor, budget: { pageMs: 5000, runMs: 6000, pageOutputBytes: 1024 } });
+  const task = invocation(code, 'file-output', { monitorCode: sampledMonitor, budget: { pageMs: 5000, runMs: 6000, cleanupMs: 1000, pageOutputBytes: 1024 } });
   await assert.rejects(task.run(), /terminated: combined page output limit/u);
   assert.equal(task.runtimeLog.closeObserved, true);
   assert.ok(task.runtimeLog.signal);
@@ -361,7 +362,7 @@ test('monitor early exit, failure, and no samples all fail closed and wait for c
     { name: 'no samples', code: "require('node:fs').writeFileSync(process.argv[2], JSON.stringify({waited:true})+'\\n');", error: /no samples/u },
   ];
   for (const item of cases) await t.test(item.name, async () => {
-    const task = invocation('setInterval(() => {}, 1000);', item.name.replaceAll(' ', '-'), { monitorCode: item.code, budget: { pageMs: 5000, runMs: 6000 } });
+    const task = invocation('setInterval(() => {}, 1000);', item.name.replaceAll(' ', '-'), { monitorCode: item.code, budget: { pageMs: 5000, runMs: 6000, cleanupMs: 1000 } });
     await assert.rejects(task.run(), item.error);
     assert.equal(task.runtimeLog.killed, true);
     assert.equal(task.runtimeLog.closeObserved, true);
@@ -370,9 +371,50 @@ test('monitor early exit, failure, and no samples all fail closed and wait for c
 });
 
 test('monitor startup must reach READY before the child is spawned', async () => {
-  const task = invocation('process.exit(0);', 'monitor-startup', { monitorCode: 'process.exit(9);', monitorReady: false, budget: { pageMs: 5000, runMs: 6000 } });
+  const task = invocation('process.exit(0);', 'monitor-startup', { monitorCode: 'process.exit(9);', monitorReady: false, budget: { pageMs: 5000, runMs: 6000, cleanupMs: 1000 } });
   await assert.rejects(task.run(), /resource monitor startup failed/u);
   assert.equal(task.runtimeLog.pid, undefined);
+});
+
+test('a child spawn failure still waits for both child and monitor within the page budget', async () => {
+  const outBase = join(scratch, 'missing-executable');
+  const runtimeLog: any = { pageId: 'missing-executable' };
+  await assert.rejects(invokeTesseract(join(scratch, 'does-not-exist.exe'), 'fake-image', outBase, 'fake-data', 0, runtimeLog, {
+    monitorCommand: execPath,
+    monitorArgs: () => ['-e', "process.stdout.write('READY\\n');process.stdin.once('end',()=>process.exit(0));"],
+    samplePath: join(scratch, 'missing.jsonl'),
+    budget: { pageMs: 800, runMs: 1200, cleanupMs: 100 },
+  }), /failed to spawn/u);
+  assert.equal(runtimeLog.childSpawned, false);
+  assert.equal(runtimeLog.childCloseObserved, false);
+  assert.equal(runtimeLog.childSpawnFailureWithoutPid, true);
+  assert.equal(runtimeLog.childCloseWaited, true);
+  assert.equal(runtimeLog.monitorCloseObserved, true);
+  assert.equal(runtimeLog.cleanupTimeout, false);
+});
+
+test('dedicated output directory cap includes marker/control files and stops the exact child', async () => {
+  await writeFile(join(scratch, 'existing-control.json'), 'x'.repeat(700));
+  const task = invocation("setInterval(()=>{},1000);", 'directory-cap', { monitorCode: sampledMonitor, budget: { pageMs: 5000, runMs: 6000, cleanupMs: 1000, directoryBytes: 1024 } });
+  const run = () => invokeTesseract(execPath, 'fake-image', join(scratch, 'directory-cap'), 'fake-data', 0, task.runtimeLog, {
+    childArgs: ['-e', "const fs=require('node:fs');const path=process.argv[1];setInterval(()=>{fs.writeFileSync(path+'.txt','y'.repeat(500))},50);setInterval(()=>{},1000);", join(scratch, 'directory-cap')],
+    monitorCommand: execPath,
+    monitorArgs: fakeMonitor(sampledMonitor),
+    samplePath: join(scratch, 'directory-cap.jsonl'),
+    directoryPath: scratch,
+    budget: { pageMs: 5000, runMs: 6000, cleanupMs: 1000, directoryBytes: 1024 },
+  });
+  await assert.rejects(run(), /output directory byte limit/u);
+  assert.equal(task.runtimeLog.closeObserved, true);
+  assert.equal(task.runtimeLog.killed, true);
+});
+
+test('monitor stdout byte-cap failure stays bounded and reports any unobserved monitor close', async () => {
+  const task = invocation('setInterval(() => {}, 1000);', 'monitor-log-cap', { monitorCode: "setTimeout(()=>process.stdout.write('x'.repeat(2048)),100);setInterval(()=>{},1000);", budget: { pageMs: 5000, runMs: 6000, cleanupMs: 1000, monitorLogBytes: 1024, monitorLineBytes: 128 } });
+  await assert.rejects(task.run(), /monitor\/control log byte limit|process cleanup timeout/u);
+  assert.equal(task.runtimeLog.childCloseObserved, true);
+  assert.match(task.runtimeLog.monitorError, /monitor\/control log byte limit/u);
+  assert.equal(task.runtimeLog.cleanupTimeout, !task.runtimeLog.monitorCloseObserved);
 });
 
 test('injected low soft working-set line records actual PID kill and wait', async () => {
@@ -380,9 +422,9 @@ test('injected low soft working-set line records actual PID kill and wait', asyn
     "const fs=require('node:fs');const pid=Number(process.argv[1]);const path=process.argv[2];const soft=Number(process.argv[3]);",
     "const at=new Date().toISOString();const sample={pid,at,workingSetBytes:soft+1};fs.appendFileSync(path,JSON.stringify(sample)+'\\n');process.stdout.write(JSON.stringify(sample)+'\\n');",
     "try{process.kill(pid)}catch{}",
-    "const poll=setInterval(()=>{try{process.kill(pid,0)}catch{clearInterval(poll);const done=new Date().toISOString();fs.appendFileSync(path,JSON.stringify({pid,kill:'single-process',reason:'working-set-soft-line',waited:true,at:done})+'\\n');fs.appendFileSync(path,JSON.stringify({pid,waited:true,at:done})+'\\n');}},10);",
+    "const poll=setInterval(()=>{try{process.kill(pid,0)}catch{clearInterval(poll);const done=new Date().toISOString();fs.appendFileSync(path,JSON.stringify({pid,kill:'single-process',reason:'working-set-soft-line',waited:true,at:done})+'\\n');fs.appendFileSync(path,JSON.stringify({pid,exitCode:null,waited:true,at:done})+'\\n');}},10);",
   ].join('');
-  const task = invocation('setInterval(() => {}, 1000);', 'soft-stop', { monitorCode: monitor, budget: { pageMs: 5000, runMs: 6000, workingSetSoftBytes: 0 } });
+  const task = invocation('setInterval(() => {}, 1000);', 'soft-stop', { monitorCode: monitor, budget: { pageMs: 5000, runMs: 6000, cleanupMs: 1000, workingSetSoftBytes: 0 } });
   await assert.rejects(task.run(), /terminated: working-set-soft-line/u);
   const rows = (await readFile(join(scratch, 'soft-stop.jsonl'), 'utf8')).trim().split(/\r?\n/u).map(line => JSON.parse(line));
   assert.equal(rows[0].workingSetBytes, 1);

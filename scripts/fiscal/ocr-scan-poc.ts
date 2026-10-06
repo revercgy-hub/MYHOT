@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -10,6 +10,7 @@ export const LIMITS = Object.freeze({
   pagePixels: 25_000_000, pageBytes: 20 * 1024 * 1024, totalInputBytes: 100 * 1024 * 1024,
   pageMs: 30_000, runMs: 180_000, pageOutputBytes: 1024 * 1024, outputBytes: 5 * 1024 * 1024,
   textChars: 120_000, workingSetSoftBytes: 512 * 1024 * 1024, sampleMs: 20, directoryBytes: 10 * 1024 * 1024,
+  cleanupMs: 5_000, monitorLogBytes: 1024 * 1024, monitorLineBytes: 4 * 1024,
 });
 // The run lock remains closed until the complete approved model/license and all required execution evidence exist.
 export const OCR_RUN_ENABLED = false;
@@ -284,7 +285,8 @@ function pngDimensions(buf: Buffer): { width: number; height: number } {
   return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
 }
 
-type ProcessBudget = Pick<typeof LIMITS, 'pageMs' | 'runMs' | 'pageOutputBytes' | 'workingSetSoftBytes'>;
+type ProcessBudgetKey = 'pageMs' | 'runMs' | 'pageOutputBytes' | 'workingSetSoftBytes' | 'cleanupMs' | 'monitorLogBytes' | 'monitorLineBytes' | 'directoryBytes';
+type ProcessBudget = { [K in ProcessBudgetKey]: number };
 type ProcessHooks = {
   /** Test seam for a local fake child. Production always uses the fixed Tesseract arguments below. */
   childArgs?: string[];
@@ -292,31 +294,50 @@ type ProcessHooks = {
   monitorCommand?: string;
   monitorArgs?: (pid: number, samplePath: string, workingSetSoftBytes: number) => string[];
   samplePath?: string;
+  /** Fixed single-page callers may audit every regular file in their dedicated output directory. */
+  directoryPath?: string;
   budget?: Partial<ProcessBudget>;
 };
 
 export async function invokeTesseract(exe: string, image: string, outBase: string, tessdata: string, elapsedBeforeMs: number, runtimeLog: any, hooks: ProcessHooks = {}): Promise<void> {
   const budget: ProcessBudget = { ...LIMITS, ...hooks.budget };
-  const remaining = Math.min(budget.pageMs, budget.runMs - elapsedBeforeMs);
+  const totalRemaining = budget.runMs - elapsedBeforeMs;
+  // Reserve the maximum cleanup grace inside the total budget before admitting
+  // either monitor or child; cleanup must never extend the 180s wall-clock cap.
+  const remaining = Math.min(budget.pageMs, totalRemaining - budget.cleanupMs);
   if (remaining <= 0) throw new Error('total runtime budget exhausted');
   const args = hooks.childArgs ?? [image, outBase, '-l', 'chi_sim', '--oem', '3', '--psm', '6', '--tessdata-dir', tessdata, 'txt', 'tsv'];
   const started = Date.now();
+  const totalDeadline = started + totalRemaining;
   const safeEnv: NodeJS.ProcessEnv = { OMP_THREAD_LIMIT: '1' };
   for (const name of ['SystemRoot', 'WINDIR', 'TEMP', 'TMP', 'PATH']) if (process.env[name]) safeEnv[name] = process.env[name];
   // Windows/libuv fills these identity variables for child processes even when omitted; clear them explicitly.
   for (const name of ['HOMEDRIVE', 'HOMEPATH', 'LOGONSERVER', 'SYSTEMDRIVE', 'USERDOMAIN', 'USERNAME', 'USERPROFILE']) safeEnv[name] = '';
-  let stderrBytes = 0, killed = false, killReason = '';
+  let stderrBytes = 0, monitorStdoutBytes = 0, monitorStderrBytes = 0, killed = false, killReason = '';
   const stderr: Buffer[] = [];
   let processClosed = false;
   let childExitCode: number | null = null;
   let childSignal: NodeJS.Signals | null = null;
   let childClosedAt: string | undefined;
   let childError: Error | undefined;
+  let spawnFailedWithoutPid = false;
   let child: ReturnType<typeof spawn> | undefined;
   const terminate = (reason: string) => {
     if (processClosed || !child) return;
     if (!killed) killReason = reason;
     try { killed = child.kill() || killed; } catch {}
+  };
+  const stopMonitor = () => { try { monitor.kill(); } catch {} };
+  const waitUntil = async (promise: Promise<unknown>, deadline: number): Promise<boolean> => {
+    const left = Math.max(0, deadline - Date.now());
+    if (left === 0) return false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const settled = await Promise.race([
+      promise.then(() => true),
+      new Promise<boolean>(resolvePromise => { timer = setTimeout(() => resolvePromise(false), left); }),
+    ]);
+    if (timer) clearTimeout(timer);
+    return settled;
   };
   const samplePath = hooks.samplePath ?? join(OUT, `monitor-${runtimeLog.pageId}.jsonl`);
   const powershellMonitorArgs = (_pid: number, path: string, softLimit: number) => {
@@ -332,22 +353,56 @@ export async function invokeTesseract(exe: string, image: string, outBase: strin
   const monitor = spawn(hooks.monitorCommand ?? 'powershell.exe', (hooks.monitorArgs ?? powershellMonitorArgs)(0, samplePath, budget.workingSetSoftBytes), { windowsHide: true, env: safeEnv, stdio: ['pipe', 'pipe', 'pipe'] });
   let monitorError: Error | undefined;
   let monitorExitCode: number | null = null;
-  const monitorStderr: Buffer[] = [];
   const liveSampleRows: any[] = [];
   let readyResolve!: () => void;
   let readyReject!: (error: Error) => void;
   let monitorReady = false;
   let monitorStdoutBuffer = '';
+  let monitorLineOverflow = false;
+  const maxMonitorSamples = Math.ceil((remaining + budget.cleanupMs) / LIMITS.sampleMs) + 20;
   const readySignal = new Promise<void>((resolveReady, rejectReady) => { readyResolve = resolveReady; readyReject = rejectReady; });
   monitor.stdout?.on('data', (chunk: Buffer) => {
+    monitorStdoutBytes += chunk.length;
+    if (monitorStdoutBytes + monitorStderrBytes > budget.monitorLogBytes) {
+      monitorError = new Error('monitor/control log byte limit exceeded');
+      if (!monitorReady) readyReject(monitorError);
+      terminate('monitor/control log byte limit');
+      stopMonitor();
+      return;
+    }
     monitorStdoutBuffer += chunk.toString('utf8');
+    if (Buffer.byteLength(monitorStdoutBuffer) > budget.monitorLineBytes && !monitorStdoutBuffer.includes('\n')) {
+      monitorLineOverflow = true;
+      monitorError = new Error('monitor line byte limit exceeded');
+      if (!monitorReady) readyReject(monitorError);
+      terminate('monitor line byte limit');
+      stopMonitor();
+      monitorStdoutBuffer = '';
+      return;
+    }
     const lines = monitorStdoutBuffer.split(/\r?\n/u);
     monitorStdoutBuffer = lines.pop() ?? '';
+    if (Buffer.byteLength(monitorStdoutBuffer) > budget.monitorLineBytes) {
+      monitorLineOverflow = true;
+      monitorError = new Error('monitor line byte limit exceeded');
+      if (!monitorReady) readyReject(monitorError);
+      terminate('monitor line byte limit');
+      stopMonitor();
+      monitorStdoutBuffer = '';
+    }
     for (const line of lines.filter(Boolean)) {
+      if (Buffer.byteLength(line) > budget.monitorLineBytes) {
+        monitorLineOverflow = true;
+        monitorError = new Error('monitor line byte limit exceeded');
+        if (!monitorReady) readyReject(monitorError);
+        terminate('monitor line byte limit');
+        stopMonitor();
+        continue;
+      }
       if (line === 'READY') { monitorReady = true; readyResolve(); continue; }
       try {
         const row = JSON.parse(line);
-        if (Number.isFinite(row.workingSetBytes) && typeof row.at === 'string' && row.pid === runtimeLog.pid) liveSampleRows.push(row);
+        if (Number.isFinite(row.workingSetBytes) && typeof row.at === 'string' && row.pid === runtimeLog.pid && liveSampleRows.length < maxMonitorSamples) liveSampleRows.push(row);
         else throw new Error('PID or sample fields did not match the target child');
       } catch (error) {
         monitorError = new Error(`invalid monitor sample: ${String(error)}; ${line.slice(0, 120)}`);
@@ -356,7 +411,15 @@ export async function invokeTesseract(exe: string, image: string, outBase: strin
       }
     }
   });
-  monitor.stderr?.on('data', (chunk: Buffer) => monitorStderr.push(chunk));
+  monitor.stderr?.on('data', (chunk: Buffer) => {
+    monitorStderrBytes += chunk.length;
+    if (monitorStdoutBytes + monitorStderrBytes > budget.monitorLogBytes) {
+      monitorError = new Error('monitor/control log byte limit exceeded');
+      if (!monitorReady) readyReject(monitorError);
+      terminate('monitor/control log byte limit');
+      stopMonitor();
+    }
+  });
   const monitorClosed = new Promise<number | null>(resolveCode => monitor.once('close', code => {
     monitorExitCode = code;
     if (child && !processClosed) terminate('resource monitor exited before Tesseract');
@@ -368,8 +431,13 @@ export async function invokeTesseract(exe: string, image: string, outBase: strin
   monitor.once('error', error => { monitorError = error; readyReject(error); });
   await readySignal.catch(async error => {
     clearTimeout(startupTimer);
-    try { monitor.kill(); } catch {}
-    await monitorClosed;
+    stopMonitor();
+    const closedByCleanup = await waitUntil(monitorClosed, Math.min(Date.now() + budget.cleanupMs, totalDeadline));
+    runtimeLog.monitorCloseObserved = monitorExitCode !== null;
+    runtimeLog.monitorCleanupWaited = closedByCleanup;
+    runtimeLog.cleanupTimeout = !closedByCleanup;
+    if (monitorError) runtimeLog.monitorError = monitorError.message.slice(0, 240);
+    if (monitorExitCode !== null) runtimeLog.monitorExitCode = monitorExitCode;
     throw new Error(`resource monitor startup failed: ${error}`);
   });
   clearTimeout(startupTimer);
@@ -382,10 +450,41 @@ export async function invokeTesseract(exe: string, image: string, outBase: strin
       if (stderrBytes <= LIMITS.pageOutputBytes) stderr.push(chunk);
       else terminate('stderr output limit');
     });
-    child!.once('error', error => { childError = error; terminate('child process error'); });
+    child!.once('error', error => {
+      childError = error;
+      if (!child!.pid) {
+        // Node reports an executable lookup failure without admitting a child PID.
+        // Record no admission, resolve the lifecycle waiter, and still wait for monitor close.
+        spawnFailedWithoutPid = true;
+        processClosed = true;
+        childClosedAt = new Date().toISOString();
+        childExitCode = null;
+        childSignal = null;
+        resolvePromise();
+      } else terminate('child process error');
+    });
     child!.once('close', (code, signal) => { processClosed = true; childClosedAt = new Date().toISOString(); childExitCode = code; childSignal = signal; resolvePromise(); });
   });
-  if (!child.pid) { monitor.stdin?.end(); await Promise.all([closed, monitorClosed]); throw new Error(`Tesseract failed to spawn: ${childError ?? 'missing pid'}`); }
+  if (!child.pid) {
+    monitor.stdin?.end();
+    const pair = Promise.all([closed, monitorClosed]);
+    let didClose = await waitUntil(pair, started + remaining);
+    if (!didClose) {
+      const cleanupDeadline = Math.min(Date.now() + budget.cleanupMs, totalDeadline, started + remaining + budget.cleanupMs);
+      if (!processClosed) terminate('spawn failure cleanup');
+      if (monitorExitCode === null) stopMonitor();
+      didClose = await waitUntil(pair, cleanupDeadline);
+    }
+    runtimeLog.childSpawned = Boolean(child.pid);
+    runtimeLog.childCloseObserved = Boolean(child.pid) && processClosed;
+    runtimeLog.childSpawnFailureWithoutPid = spawnFailedWithoutPid;
+    runtimeLog.monitorCloseObserved = monitorExitCode !== null;
+    runtimeLog.childCloseWaited = spawnFailedWithoutPid || processClosed;
+    runtimeLog.monitorCloseWaited = monitorExitCode !== null;
+    runtimeLog.cleanupTimeout = !didClose || (!spawnFailedWithoutPid && !processClosed) || monitorExitCode === null;
+    if (runtimeLog.cleanupTimeout) throw new Error(`Tesseract spawn cleanup timeout; child_closed=${processClosed}; monitor_closed=${monitorExitCode !== null}`);
+    throw new Error(`Tesseract failed to spawn: ${childError ?? 'missing pid'}`);
+  }
   monitor.stdin?.end(`${child.pid}\n`);
   const childStartedAt = Date.now();
   const sampleWatchdog = setInterval(() => {
@@ -395,46 +494,112 @@ export async function invokeTesseract(exe: string, image: string, outBase: strin
     if (overdue) terminate(lastAt === null ? 'resource monitor first sample overdue' : 'resource monitor sample overdue');
   }, 25);
   const startedAt = started;
+  let checking = false;
   const watchdog = setInterval(() => {
     const elapsed = Date.now() - startedAt;
     if (!processClosed && (elapsed > remaining || Date.now() - started > budget.pageMs)) terminate(elapsed > budget.pageMs ? 'page deadline' : 'total deadline');
-    void Promise.all(['.txt', '.tsv'].map(ext => stat(`${outBase}${ext}`).then(s => s.size).catch(() => 0)))
-      .then(sizes => { if (sizes[0] + sizes[1] + stderrBytes > budget.pageOutputBytes) terminate('combined page output limit'); });
+    if (checking) return;
+    checking = true;
+    void Promise.all([
+      ...['.txt', '.tsv'].map(ext => stat(`${outBase}${ext}`).then(s => s.size).catch(() => 0)),
+      stat(samplePath).then(s => s.size).catch(() => 0),
+      hooks.directoryPath ? readdir(hooks.directoryPath, { withFileTypes: true }).then(async entries => {
+        let total = 0;
+        for (const entry of entries) {
+          if (!entry.isFile()) throw new Error('single-page output directory contains a non-file entry');
+          total += (await stat(join(hooks.directoryPath!, entry.name))).size;
+        }
+        return total;
+      }).catch(() => Number.POSITIVE_INFINITY) : Promise.resolve(0),
+    ]).then(sizes => {
+      if (sizes[0] + sizes[1] + stderrBytes > budget.pageOutputBytes) terminate('combined page output limit');
+      if (sizes[2] + monitorStdoutBytes + monitorStderrBytes > budget.monitorLogBytes) {
+        monitorError = new Error('monitor/control log byte limit exceeded');
+        terminate('monitor/control log byte limit');
+        stopMonitor();
+      }
+      if (hooks.directoryPath && sizes[3] > (budget.directoryBytes ?? LIMITS.directoryBytes)) terminate('output directory byte limit');
+    }).finally(() => { checking = false; });
   }, 100);
-  try { await closed; } finally { clearInterval(watchdog); clearInterval(sampleWatchdog); }
-  await monitorClosed;
+  const bothClosed = Promise.all([closed, monitorClosed]);
+  let bothClosedByBudget = await waitUntil(bothClosed, started + remaining);
+  if (!bothClosedByBudget) {
+    if (!processClosed) terminate(Date.now() - started > budget.pageMs ? 'page deadline' : 'total deadline');
+    const cleanupDeadline = Math.min(Date.now() + budget.cleanupMs, totalDeadline);
+    const reserveForMonitorStop = Math.min(500, Math.floor(budget.cleanupMs / 2));
+    bothClosedByBudget = await waitUntil(bothClosed, Math.max(Date.now(), cleanupDeadline - reserveForMonitorStop));
+    if (!bothClosedByBudget) {
+      if (!processClosed) terminate('cleanup timeout');
+      if (monitorExitCode === null) stopMonitor();
+      bothClosedByBudget = await waitUntil(bothClosed, cleanupDeadline);
+    }
+  }
+  clearInterval(watchdog);
+  clearInterval(sampleWatchdog);
+  runtimeLog.childCloseObserved = processClosed;
+  runtimeLog.monitorCloseObserved = monitorExitCode !== null;
+  runtimeLog.childCloseWaited = processClosed;
+  runtimeLog.monitorCloseWaited = monitorExitCode !== null;
+  runtimeLog.cleanupTimeout = !bothClosedByBudget || !processClosed || monitorExitCode === null;
+  if (runtimeLog.cleanupTimeout) {
+    runtimeLog.killed = killed;
+    runtimeLog.killReason = killReason || null;
+    if (monitorError) runtimeLog.monitorError = monitorError.message.slice(0, 240);
+    throw new Error(`process cleanup timeout; child_closed=${processClosed}; monitor_closed=${monitorExitCode !== null}`);
+  }
   runtimeLog.exitCode = childExitCode;
   runtimeLog.signal = childSignal;
   runtimeLog.closeObserved = processClosed;
   runtimeLog.monitorExitCode = monitorExitCode;
   runtimeLog.killed = killed;
   runtimeLog.killReason = killReason || null;
+  if (monitorError) runtimeLog.monitorError = monitorError.message.slice(0, 240);
   const stderrBuf = Buffer.concat(stderr);
   await writeFile(`${outBase}.stderr`, stderrBuf);
   if (childError) throw new Error(`Tesseract process error: ${childError}`);
-  if (monitorError || monitorExitCode !== 0) throw new Error(`resource monitor failed: ${monitorError ?? `exit ${monitorExitCode}; ${Buffer.concat(monitorStderr).toString('utf8').trim()}`}`);
+  if (monitorError || monitorLineOverflow || monitorExitCode !== 0) throw new Error(`resource monitor failed: ${monitorError ?? `exit ${monitorExitCode}`}`);
   const finalSizes = await Promise.all(['.txt', '.tsv'].map(ext => stat(`${outBase}${ext}`).then(s => s.size).catch(() => 0)));
   if (finalSizes[0] + finalSizes[1] + stderrBytes > budget.pageOutputBytes && !killed) throw new Error('combined page output limit exceeded');
+  if (hooks.directoryPath) {
+    const entries = await readdir(hooks.directoryPath, { withFileTypes: true });
+    let bytes = 0;
+    for (const entry of entries) {
+      if (!entry.isFile()) throw new Error('single-page output directory contains a non-file entry');
+      bytes += (await stat(join(hooks.directoryPath, entry.name))).size;
+    }
+    const directoryLimit = budget.directoryBytes ?? LIMITS.directoryBytes;
+    if (bytes > directoryLimit) throw new Error(`output directory byte limit exceeded (${bytes} > ${directoryLimit})`);
+  }
   let monitorText: string;
-  try { monitorText = await readFile(samplePath, 'utf8'); }
+  try {
+    const sampleStat = await stat(samplePath);
+    if (sampleStat.size + monitorStdoutBytes + monitorStderrBytes > budget.monitorLogBytes) throw new Error('monitor/control log byte limit exceeded');
+    monitorText = await readFile(samplePath, 'utf8');
+  }
   catch { throw new Error('resource monitor produced no samples or wait record'); }
   let monitorRows: any[];
   try { monitorRows = monitorText.trim().split(/\r?\n/u).filter(Boolean).map(line => JSON.parse(line)); }
   catch (error) { throw new Error(`resource monitor log is invalid: ${String(error)}; ${JSON.stringify(monitorText.slice(0, 500))}`); }
   const sampleRows = monitorRows.filter(row => Number.isFinite(row.workingSetBytes));
-  if (!sampleRows.length || monitorRows.at(-1)?.waited !== true) throw new Error('resource monitor had no samples or did not confirm wait completion');
+  if (!sampleRows.length || monitorRows.at(-1)?.waited !== true || monitorRows.at(-1)?.exitCode === undefined) throw new Error(`resource monitor had no samples or did not confirm wait completion; samples=${sampleRows.length}; final=${JSON.stringify(monitorRows.at(-1) ?? null).slice(0, 240)}`);
   if (sampleRows.some(row => row.pid !== runtimeLog.pid) || monitorRows.at(-1)?.pid !== runtimeLog.pid) throw new Error('resource monitor PID did not match the exact child PID');
   if (liveSampleRows.length !== sampleRows.length) throw new Error('resource monitor live samples did not match its flushed sample log');
+  const sampleTimes = sampleRows.map(row => Date.parse(row.at));
+  if (sampleTimes.some(value => !Number.isFinite(value))) throw new Error('resource monitor sample timestamp is invalid');
   const softStop = monitorRows.find(row => row.kill === 'single-process' && row.reason === 'working-set-soft-line');
   if (softStop) { killed = true; killReason = 'working-set-soft-line'; }
   runtimeLog.killed = killed;
   runtimeLog.killReason = killReason || null;
   let maxGapMs = 0;
-  for (let i=1;i<sampleRows.length;i++) maxGapMs=Math.max(maxGapMs,Date.parse(sampleRows[i].at)-Date.parse(sampleRows[i-1].at));
-  const firstSampleDelayMs = Date.parse(sampleRows[0].at) - childStartedAt;
+  for (let i=1;i<sampleTimes.length;i++) {
+    const gap = sampleTimes[i] - sampleTimes[i-1];
+    if (gap < 0) throw new Error('resource monitor sample timestamps are out of order');
+    maxGapMs = Math.max(maxGapMs, gap);
+  }
+  const firstSampleDelayMs = sampleTimes[0] - childStartedAt;
   if (!Number.isFinite(firstSampleDelayMs) || firstSampleDelayMs < 0) throw new Error('resource monitor first sample time is invalid');
   maxGapMs = Math.max(maxGapMs, firstSampleDelayMs);
-  const lastSampleToCloseMs = Date.parse(childClosedAt!) - Date.parse(sampleRows.at(-1).at);
+  const lastSampleToCloseMs = Date.parse(childClosedAt!) - sampleTimes.at(-1)!;
   if (!Number.isFinite(lastSampleToCloseMs) || lastSampleToCloseMs < 0) throw new Error('resource monitor final sample preceded child close check is invalid');
   maxGapMs = Math.max(maxGapMs, lastSampleToCloseMs);
   runtimeLog.workingSetPeakBytes = Math.max(...sampleRows.map(row => row.workingSetBytes));
@@ -468,7 +633,7 @@ function fujianCandidate(pageNo: number, words: Word[]): any[] {
   return out;
 }
 
-function xiamenCandidate(words: Word[]): any[] {
+export function xiamenCandidate(words: Word[]): any[] {
   // Fixed, image-specific four-column table geometry. Candidate text only; no auto-match.
   const x=[172,315,747,897,1151], y=[799,924,1001,1064,1127,1327];
   const cells:Array<[number,number,string]>=[
