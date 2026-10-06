@@ -22,7 +22,7 @@
 
 ## 2026-10-06 Phase C evidence preparation status
 
-Phase C当前为`IN_PROGRESS`，Gate 2仍`NOT_PASSED`。Phase A/B批准仅覆盖各自受限实现，不代表source admission或90日覆盖。Lead报告上海候选有一份由A持有的单次受限探测报告待离线核验；该候选仍disabled，未作source pass。Lead另报告精确详情URL `t20260728_3994403.htm` 单次GET与列表日/路径日冲突，完整A-owned报告待核验；没有附件请求或DB/model写入。B的正文缺口方案与离线OCR S1范围包由B独立维护；Sol只读审查OCR范围不等于执行授权，OCR未运行。当前恢复环境、preview只读核验与服务健康证据见[Phase C恢复安全检查点](RECOVERY_SAFETY_CHECKPOINT_2026-10-06_PHASE_C.md)。本轮无代码、来源配置、schema或业务数据改动；后续请求、OCR执行、来源启用、完成标记/增量/重置设计须有各自明确范围批准。
+Phase C当前为`IN_PROGRESS`，Gate 2仍`NOT_PASSED`。Phase A/B批准仅覆盖各自受限实现，不代表source admission或90日覆盖。Lead指定上海为source evidence候选。page 1列表GET和一条详情GET分别有独立one-shot manifest/raw；QA已独立核验hash、URL绑定和日期对照。列表显示日/可见“发布日期”为7/31，路径token为7/28，详情PubDate为7/31 08:17 +08；候选仍disabled且`NOT_ADMITTED`，没有附件请求或DB/model写入。B的正文缺口方案与离线OCR S1范围包由B独立维护；Sol只读审查OCR范围不等于执行授权，OCR未运行。当前恢复环境、preview只读核验与服务健康证据见[Phase C恢复安全检查点](RECOVERY_SAFETY_CHECKPOINT_2026-10-06_PHASE_C.md)及[S1 Phase C来源证据检查点](HANDOFFS/S1_PHASE_C_SOURCE_EVIDENCE_CHECKPOINT_2026-10-06.md)。本轮无代码、来源配置、schema或业务数据改动；后续请求、OCR执行、来源启用、完成标记/增量/重置设计须有各自明确范围批准。
 
 ## 新增来源覆盖要求：财政部各地监管局动态
 
