@@ -1,6 +1,6 @@
 // Web list pages: HTML with selectors, Markdown through Jina Reader, and Docusaurus changelogs.
 import * as cheerio from "cheerio";
-import { guardedFetch } from "../lib/http-fetch.ts";
+import { guardedFetch, type GuardedFetchRunBudget } from "../lib/http-fetch.ts";
 import { collapseWhitespace, stripTags } from "../lib/text.ts";
 import { readable, type ExtractedBody } from "../content/extract.ts";
 import { extractConfiguredHtmlBody, extractDirectPdfBody, type PdfFetcher, type PdfSourceBodyConfig } from "../content/pdf-body.ts";
@@ -80,17 +80,34 @@ function absolute(href: string | undefined, base: string): string | null {
   }
 }
 
-async function fetchListingText(source: SourceRow): Promise<{ text: string; viaJina: boolean; base: string }> {
-  const url = String(source.config.url ?? "");
+export interface FetchWebListOptions {
+  /** The exact page being fetched; also used to resolve relative links and reject page-self links. */
+  listUrl?: string;
+  /** One shared admission/deadline budget for the request and any manual redirect hops. */
+  runBudget?: GuardedFetchRunBudget;
+}
+
+async function fetchListingText(source: SourceRow, options: FetchWebListOptions): Promise<{ text: string; viaJina: boolean; base: string; listingUrl: string }> {
+  const configuredUrl = String(source.config.url ?? "");
+  const url = options.listUrl ?? configuredUrl;
   if (!url) throw new FetchError("url missing");
+  const overrideTransport = options.listUrl !== undefined || options.runBudget !== undefined;
+  const directHtmlMode = source.config.adapter === undefined && (source.config.parseMode === undefined || source.config.parseMode === "html");
+  if (overrideTransport && (configuredUrl.startsWith(JINA_PREFIX) || url.startsWith(JINA_PREFIX) || !directHtmlMode)) {
+    throw new FetchError("listUrl/runBudget are supported only for direct HTML listings");
+  }
   if (url.startsWith(JINA_PREFIX)) {
     const target = url.slice(JINA_PREFIX.length);
     const page = await jinaRead(target, { purpose: "source_listing", subject: `source:${source.id}`, cacheToleranceSeconds: source.config.cacheToleranceSeconds, perRead: true });
-    return { text: page.markdown, viaJina: true, base: source.config.baseUrl ?? target };
+    return { text: page.markdown, viaJina: true, base: source.config.baseUrl ?? target, listingUrl: url };
   }
-  const res = await guardedFetch(url, { headers: { accept: "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8" }, timeoutMs: 25_000 });
+  const res = await guardedFetch(url, {
+    headers: { accept: "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.8" },
+    timeoutMs: 25_000,
+    ...(options.runBudget ? { runBudget: options.runBudget } : {}),
+  });
   if (res.status !== 200) throw new FetchError(`HTTP ${res.status}`, res.status);
-  return { text: res.text(), viaJina: false, base: source.config.baseUrl ?? url };
+  return { text: res.text(), viaJina: false, base: options.listUrl === undefined ? source.config.baseUrl ?? url : url, listingUrl: url };
 }
 
 export function fromMarkdown(md: string, base: string, source: SourceRow): Candidate[] {
@@ -119,12 +136,12 @@ export function fromMarkdown(md: string, base: string, source: SourceRow): Candi
   return out;
 }
 
-export function fromHtml(html: string, base: string, source: SourceRow): Candidate[] {
+export function fromHtml(html: string, base: string, source: SourceRow, listingUrl = String(source.config.url ?? base)): Candidate[] {
   const c = source.config;
   const $ = cheerio.load(html);
   const out: Candidate[] = [];
   const seen = new Set<string>();
-  const listing = String(c.url ?? base).replace(JINA_PREFIX, "");
+  const listing = listingUrl.replace(JINA_PREFIX, "");
   // Sections of the listing page are posts only for sources that keep fragments as identity.
   const sectionsArePosts = c.preserveUrlFragment === true;
   const itemSel: string | undefined = c.itemSelector;
@@ -272,14 +289,14 @@ async function fromMimoHome(html: string, base: string, source: SourceRow): Prom
   throw new FetchError("mimo_home: no Blog list in the homepage's chunks");
 }
 
-export async function fetchWebList(source: SourceRow): Promise<Candidate[]> {
-  const { text, viaJina, base } = await fetchListingText(source);
+export async function fetchWebList(source: SourceRow, options: FetchWebListOptions = {}): Promise<Candidate[]> {
+  const { text, viaJina, base, listingUrl } = await fetchListingText(source, options);
   const mode = source.config.adapter === "mimo_home" ? "mimo_home" : source.config.parseMode ?? (viaJina ? "markdown" : "html");
   let out: Candidate[];
   if (mode === "mimo_home") out = await fromMimoHome(text, base, source);
   else if (mode === "markdown") out = fromMarkdown(text, base, source);
   else if (mode === "docusaurus_changelog") out = fromDocusaurusChangelog(text, base, source);
-  else out = fromHtml(text, base, source);
+  else out = fromHtml(text, base, source, listingUrl);
   if (out.length === 0) throw new FetchError(`no items matched (${mode})`);
   return out;
 }

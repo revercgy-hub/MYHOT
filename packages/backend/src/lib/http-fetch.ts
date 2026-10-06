@@ -16,6 +16,16 @@ import { SITE } from "@aihot/industry/site";
  */
 export type EgressRoute = "egress" | "direct";
 
+/** A shared, caller-owned admission budget for one bounded network run. */
+export interface GuardedFetchRunBudget {
+  /** Shared deadline/cancellation signal across requests, redirects, parsing and checkpoint work. */
+  signal?: AbortSignal;
+  /** Synchronous admission hook immediately before each actual Undici fetch dispatch. */
+  beforeDispatch(input: { url: URL; method: string; redirectHop: number }): void;
+  /** Optional caller policy for a redirect after its target has passed the SSRF/DNS check. */
+  allowRedirect?(input: { from: URL; to: URL; redirectHop: number }): boolean;
+}
+
 let proxyAgent: ProxyAgent | null = null;
 let directAgent: Agent | null = null;
 
@@ -46,6 +56,8 @@ export interface GuardedFetchOptions {
   maxRedirects?: number;
   /** "egress" by default; see EgressRoute. */
   route?: EgressRoute;
+  /** Optional run-wide budget shared by every request and redirect hop in one logical operation. */
+  runBudget?: GuardedFetchRunBudget;
 }
 
 export interface GuardedResponse {
@@ -62,7 +74,10 @@ export const DEFAULT_UA = `Mozilla/5.0 (compatible; ${SITE.crawlerName}/1.0; +${
 export async function guardedFetch(input: string, opts: GuardedFetchOptions = {}): Promise<GuardedResponse> {
   // One budget includes DNS, every redirect and the body. Restarting it at each hop allowed a
   // nominal 20 s image request to occupy the API for minutes.
-  const signal = AbortSignal.timeout(opts.timeoutMs ?? 20_000);
+  const requestSignal = AbortSignal.timeout(opts.timeoutMs ?? 20_000);
+  const signal = opts.runBudget?.signal
+    ? AbortSignal.any([requestSignal, opts.runBudget.signal])
+    : requestSignal;
   const route = opts.route ?? "egress";
   const check = (target: string) => withinDeadline(
     assertPublicUrl(target, config.allowPrivateNetworkFetch, proxied(new URL(target), route)), signal,
@@ -71,8 +86,10 @@ export async function guardedFetch(input: string, opts: GuardedFetchOptions = {}
   const maxRedirects = opts.maxRedirects ?? 5;
   const maxBytes = opts.maxBytes ?? 8 * 1024 * 1024;
   for (let hop = 0; ; hop++) {
+    const method = opts.method ?? "GET";
+    opts.runBudget?.beforeDispatch({ url: new URL(url), method, redirectHop: hop });
     const res = await undiciFetch(url, {
-      method: opts.method ?? "GET",
+      method,
       headers: { "user-agent": DEFAULT_UA, "accept-language": "zh-CN,zh;q=0.9,en;q=0.8", ...(opts.headers ?? {}) },
       body: opts.body,
       redirect: "manual",
@@ -83,7 +100,12 @@ export async function guardedFetch(input: string, opts: GuardedFetchOptions = {}
       // Release the connection even when the next URL is refused or the redirect limit is reached.
       await res.body?.cancel();
       if (hop >= maxRedirects) throw new Error(`Too many redirects for ${input}`);
-      url = await check(new URL(res.headers.get("location")!, url).toString());
+      const from = new URL(url);
+      const to = await check(new URL(res.headers.get("location")!, url).toString());
+      if (opts.runBudget?.allowRedirect && !opts.runBudget.allowRedirect({ from, to: new URL(to), redirectHop: hop + 1 })) {
+        throw new Error(`Redirect target rejected by run budget for ${input}`);
+      }
+      url = to;
       continue;
     }
     const chunks: Buffer[] = [];

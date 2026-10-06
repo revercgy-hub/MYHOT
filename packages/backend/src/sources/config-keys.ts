@@ -3,6 +3,7 @@
 // articles, dates never found).
 import type { SourceRow } from "./types.ts";
 import { validateBodyPolicies } from "../content/selected-body.ts";
+import { validateWebListPagination } from "./web-list-pagination.ts";
 
 // Rules applied in collect.ts to every kind read through collectSource.
 const COLLECTED = ["_aihot", "allowUrlPrefixes", "denyUrlPrefixes", "ingestNoiseFilter", "itemUrlPrefixRewrite", "sortByPublishedAt", "detail", "fetchPublicContent"];
@@ -12,6 +13,7 @@ const KEYS: Record<SourceRow["kind"], string[]> = {
   web_list: [
     ...COLLECTED, "url", "baseUrl", "parseMode", "adapter", "cacheToleranceSeconds", "linksStartLine", "preserveUrlFragment",
     "itemSelector", "linkSelector", "titleSelector", "titleAttribute", "publishedAtSelector", "publishedAtRegex", "publishedAtUtcOffset",
+    "pagination",
   ],
   json_list: [
     ...COLLECTED, "url", "mode", "method", "headers", "bodyJson", "jsonKey", "windowVar", "itemsPath", "itemsObjectValues",
@@ -36,6 +38,7 @@ const NESTED: Record<string, string[]> = {
     "titleSelector", "titleRegex", "titleAuthoritative", "summarySelector", "articleSelector", "bodySelector", "allowShortBody", "bodyPolicies", "attachmentScopeSelector",
     "attachmentSelector", "attachmentMode", "pdfDirect",
   ],
+  pagination: ["mode", "maxPagesPerRun", "maxDispatches", "maxPageIndex"],
 };
 
 const VALUES: Record<string, string[]> = {
@@ -105,6 +108,7 @@ export function unsupportedConfig(kind: SourceRow["kind"], config: Record<string
       }
     }
   }
+  out.push(...validateWebListPagination(kind, config ?? {}));
   return out;
 }
 

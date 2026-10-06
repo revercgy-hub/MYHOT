@@ -7,6 +7,7 @@ import { republishKey } from "../jobs/publication.ts";
 import { normalizeUrl } from "../lib/url.ts";
 import { fetchJsonList } from "../sources/json-list.ts";
 import { fetchRss } from "../sources/rss.ts";
+import { createWebListPaginationBudget, isWebListPaginationUrl, readWebListPagination } from "../sources/web-list-pagination.ts";
 import { assertSupportedConfig } from "../sources/config-keys.ts";
 import { requiresBodyReadyForAutomaticSelection } from "../content/body-readiness.ts";
 import type { SourceRow } from "../sources/types.ts";
@@ -72,12 +73,31 @@ export async function previewSource(draft: Pick<SourceRow, "id" | "kind" | "conf
   assertSupportedConfig(source.kind, source.config);
   const started = Date.now();
   let candidates;
+  let paginationPreview = false;
   if (source.kind === "rss") candidates = (await fetchRss(source, { force: true })).candidates;
-  else if (source.kind === "web_list") candidates = await fetchWebList(source);
+  else if (source.kind === "web_list") {
+    const pagination = readWebListPagination(source.config);
+    if (pagination) {
+      const budget = createWebListPaginationBudget(source, pagination);
+      try {
+        budget.setCurrentPage(0);
+        const listUrl = String(source.config.url);
+        candidates = (await fetchWebList(source, { listUrl, runBudget: budget.runBudget }))
+          .filter((candidate) => !isWebListPaginationUrl(listUrl, candidate.url));
+        budget.assertActive();
+      } finally {
+        budget.dispose();
+      }
+      paginationPreview = true;
+    } else {
+      candidates = await fetchWebList(source);
+    }
+  }
   else if (source.kind === "json_list") candidates = await fetchJsonList(source);
   else if (source.kind === "x_search") candidates = (await fetchXSearch(source)).candidates;
   else throw new Error(`preview is not available for ${source.kind} sources`);
   return {
+    ...(paginationPreview ? { previewMode: "single_page", paginationExecuted: false, coverage: "unproven" } : {}),
     ms: Date.now() - started,
     count: candidates.length,
     items: candidates.slice(0, 20).map((c) => ({ title: c.title, url: c.url, publishedAt: c.publishedAt?.toISOString() ?? null, excerpt: (c.excerpt ?? c.bodyText ?? "").slice(0, 200) })),

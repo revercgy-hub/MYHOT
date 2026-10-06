@@ -8,6 +8,7 @@ import { BudgetExceededError } from "../providers/receipts.ts";
 import { fetchRss } from "./rss.ts";
 import { allowed, fetchDetail, fetchWebList, type DetailNeed } from "./web-list.ts";
 import { unsupportedConfig } from "./config-keys.ts";
+import { collectWebListBackfill, usesWebListPagination } from "./web-list-pagination.ts";
 import { fetchJsonList } from "./json-list.ts";
 import { fetchXSearch, planXShards, readXSearch, shardHandle, shardQuery, SHARDABLE_SQL, tweetToCandidate, type XBacklog, type XRead } from "./x.ts";
 import { FetchError, type Candidate, type SourceRow } from "./types.ts";
@@ -85,6 +86,12 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
   const source = await loadSource(sourceId);
   if (!source) return { sourceId, status: "skipped", found: 0, created: 0, revised: 0, error: "missing" };
   if (!source.enabled && !opts.force) return { sourceId, status: "skipped", found: 0, created: 0, revised: 0, error: "paused" };
+  if (usesWebListPagination(source)) {
+    return collectWebListBackfill(sourceId, {
+      force: opts.force,
+      validateConfig: (current) => unsupportedConfig(current.kind, current.config),
+    });
+  }
   if (source.kind === "mp_account" || source.kind === "external") {
     // WeChat accounts are reconciled by the mp job; external sources only receive reports.
     return { sourceId, status: "skipped", found: 0, created: 0, revised: 0 };
