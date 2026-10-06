@@ -38,7 +38,7 @@ const NESTED: Record<string, string[]> = {
     "titleSelector", "titleRegex", "titleAuthoritative", "summarySelector", "articleSelector", "bodySelector", "allowShortBody", "bodyPolicies", "attachmentScopeSelector",
     "attachmentSelector", "attachmentMode", "pdfDirect",
   ],
-  pagination: ["mode", "maxPagesPerRun", "maxDispatches", "maxPageIndex"],
+  pagination: ["mode", "maxPagesPerRun", "maxDispatches", "maxPageIndex", "detailMode"],
 };
 
 const VALUES: Record<string, string[]> = {

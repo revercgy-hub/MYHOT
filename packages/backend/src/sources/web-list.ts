@@ -8,6 +8,7 @@ import { attachmentDiagnosticForFailure, type AttachmentDiagnostic } from "../co
 import { sanitizeBody } from "../content/sanitize.ts";
 import { jinaRead } from "../providers/jina.ts";
 import { parseLooseDate } from "./date.ts";
+import { identityKeyForUrl } from "../lib/url.ts";
 import { FetchError, type Candidate, type SourceRow } from "./types.ts";
 
 const JINA_PREFIX = "https://r.jina.ai/";
@@ -310,6 +311,167 @@ export interface DetailNeed {
   /** Listing identity used to reject a mismatched explicit body container. */
   expectedTitle?: string;
   expectedPublishedAt?: Date | null;
+}
+
+export interface WebListMetadataNeed {
+  title: boolean;
+  date: boolean;
+}
+
+export type WebListMetadataField<T> =
+  | { status: "not_requested" }
+  | { status: "found"; value: T; source: "configured_rule" }
+  | { status: "missing"; source: "configured_rule" | "no_configured_rule" };
+
+export interface WebListMetadataResult {
+  /** The final URL validated by guardedFetch and the shared run budget. */
+  finalUrl: string;
+  title: WebListMetadataField<string>;
+  /** ISO instant normalized by the configured publication-date rule and source UTC offset. */
+  date: WebListMetadataField<string>;
+}
+
+export interface WebListMetadataOptions {
+  /** Required: the same source-local budget used for listing requests and redirect admissions. */
+  runBudget: GuardedFetchRunBudget;
+  /** Remaining run deadline; used to clamp this request's timeout. */
+  remainingMs(): number;
+  /** Rechecks the same run deadline before the request and after parsing. */
+  assertActive(): void;
+  /** Synthetic transport seam for contract tests; production callers use guardedFetch. */
+  testFetcher?: typeof guardedFetch;
+}
+
+function metadataTarget(url: string, source: SourceRow): URL {
+  let target: URL;
+  let listing: URL;
+  try {
+    target = new URL(url);
+    listing = new URL(String(source.config.url ?? ""));
+  } catch {
+    throw new FetchError("metadata detail URL is invalid");
+  }
+  const listingPath = listing.pathname.endsWith("/") ? listing.pathname : `${listing.pathname}/`;
+  if (target.protocol !== "https:" || listing.protocol !== "https:" || target.username || target.password ||
+      listing.username || listing.password || (target.port && target.port !== "443") || target.origin !== listing.origin ||
+      target.search || target.hash || !target.pathname.startsWith(listingPath) ||
+      target.pathname === listing.pathname || target.pathname === listingPath ||
+      /(?:^|\/)index(?:_\d+)?\.htm$/iu.test(target.pathname) ||
+      !allowed(target.toString(), source) || !identityKeyForUrl(target.toString())) {
+    throw new FetchError("metadata detail URL is outside the configured article directory");
+  }
+  return target;
+}
+
+function requestedRule(need: WebListMetadataNeed, source: SourceRow): boolean {
+  const detail = source.config.detail ?? {};
+  return (need.title && (typeof detail.titleSelector === "string" || typeof detail.titleRegex === "string")) ||
+    (need.date && (typeof detail.publishedAtSelector === "string" || typeof detail.publishedAtRegex === "string"));
+}
+
+/**
+ * Fetch only configured title/publication-date metadata from a direct HTML article page.
+ * This deliberately does not call fetchDetail: its legacy mode can read generic metadata,
+ * Jina, summaries, Readability, selected bodies, and attachments.
+ */
+export async function fetchWebListMetadata(
+  url: string,
+  source: SourceRow,
+  need: WebListMetadataNeed,
+  options: WebListMetadataOptions,
+): Promise<WebListMetadataResult> {
+  if (!need || typeof need !== "object" || Array.isArray(need) ||
+      Object.keys(need).some((key) => key !== "title" && key !== "date") ||
+      typeof need.title !== "boolean" || typeof need.date !== "boolean") {
+    throw new FetchError("metadata detail need must contain only boolean title/date fields");
+  }
+  if (source.kind !== "web_list" || source.config.pagination?.detailMode !== "direct_html_metadata_v1") {
+    throw new FetchError("metadata detail mode requires explicit direct_html_metadata_v1 opt-in");
+  }
+  if (!options || !options.runBudget || typeof options.runBudget.beforeDispatch !== "function" ||
+      typeof options.remainingMs !== "function" || typeof options.assertActive !== "function") {
+    throw new FetchError("metadata detail requires a shared run budget and deadline callbacks");
+  }
+
+  // Import at call time to avoid a static cycle: pagination uses this module's list parser.
+  const { unsupportedConfig } = await import("./config-keys.ts");
+  const configErrors = unsupportedConfig(source.kind, source.config);
+  if (configErrors.length) throw new FetchError(`unsupported metadata detail config: ${configErrors.join(", ")}`);
+
+  const detail = source.config.detail ?? {};
+  const titleRule = typeof detail.titleSelector === "string" || typeof detail.titleRegex === "string";
+  const dateRule = typeof detail.publishedAtSelector === "string" || typeof detail.publishedAtRegex === "string";
+  if (!requestedRule(need, source)) {
+    throw new FetchError("metadata detail need has no configured title/date rule");
+  }
+  for (const selector of [detail.titleSelector, detail.publishedAtSelector]) {
+    if (typeof selector !== "string") continue;
+    try { cheerio.load("")(selector); }
+    catch { throw new FetchError("metadata detail config contains an invalid selector"); }
+  }
+  const target = metadataTarget(url, source);
+  options.assertActive();
+  const remaining = options.remainingMs();
+  const timeoutMs = Math.floor(remaining);
+  if (!Number.isFinite(remaining) || timeoutMs < 1) {
+    options.assertActive();
+    throw new FetchError("metadata detail run deadline exhausted");
+  }
+  const fetcher = options.testFetcher ?? guardedFetch;
+  const response = await fetcher(target.toString(), {
+    method: "GET",
+    timeoutMs: Math.min(20_000, timeoutMs),
+    maxBytes: 6 * 1024 * 1024,
+    maxRedirects: 5,
+    route: "direct",
+    runBudget: options.runBudget,
+    headers: { accept: "text/html,application/xhtml+xml" },
+  });
+  options.assertActive();
+  if (response.status !== 200) throw new FetchError(`metadata detail HTTP ${response.status}`, response.status);
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!/^\s*text\/html(?:\s*;|\s*$)/iu.test(contentType)) {
+    throw new FetchError("metadata detail response is not text/html");
+  }
+
+  const finalUrl = metadataTarget(response.url, source);
+  if (identityKeyForUrl(finalUrl.toString()) !== identityKeyForUrl(target.toString())) {
+    throw new FetchError("metadata detail redirect changed article identity");
+  }
+  const html = response.text();
+  const $ = cheerio.load(html);
+  const title: WebListMetadataField<string> = !need.title
+    ? { status: "not_requested" }
+    : !titleRule
+      ? { status: "missing", source: "no_configured_rule" }
+      : (() => {
+        let value = "";
+        if (detail.titleRegex) value = new RegExp(detail.titleRegex, "m").exec(html)?.[1] ?? "";
+        else if (detail.titleSelector) value = $(detail.titleSelector).first().text();
+        const normalized = collapseWhitespace(value);
+        return normalized ? { status: "found", value: normalized, source: "configured_rule" } as const
+          : { status: "missing", source: "configured_rule" } as const;
+      })();
+  const date: WebListMetadataField<string> = !need.date
+    ? { status: "not_requested" }
+    : !dateRule
+      ? { status: "missing", source: "no_configured_rule" }
+      : (() => {
+        let parsed: Date | null = null;
+        if (detail.publishedAtSelector) {
+          const element = $(detail.publishedAtSelector).first();
+          parsed = parseLooseDate(element.attr("datetime") ?? element.attr("title") ?? element.text(),
+            detail.publishedAtUtcOffset ?? source.config.publishedAtUtcOffset);
+        }
+        if (!parsed && detail.publishedAtRegex) {
+          parsed = parseLooseDate(new RegExp(detail.publishedAtRegex).exec(html)?.[1],
+            detail.publishedAtUtcOffset ?? source.config.publishedAtUtcOffset);
+        }
+        return parsed ? { status: "found", value: parsed.toISOString(), source: "configured_rule" } as const
+          : { status: "missing", source: "configured_rule" } as const;
+      })();
+  options.assertActive();
+  return { finalUrl: finalUrl.toString(), title, date };
 }
 
 /**

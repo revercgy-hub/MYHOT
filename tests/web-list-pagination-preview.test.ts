@@ -82,6 +82,45 @@ test("pagination preview fetches exactly page zero and returns explicit unproven
   assert.equal(dispatched, 1, "only the configured page-0 request was dispatched; no detail or page-1 fetch occurred");
 });
 
+test("Phase B metadata opt-in still previews only page zero and writes no detail or cursor state", async () => {
+  const metadataBase = "https://sc.mof.gov.cn/caizhengjiancha/";
+  const articleUrl = new URL("202610/metadata-preview.htm", metadataBase).toString();
+  const pool = agent.get(new URL(metadataBase).origin);
+  let listingDispatches = 0;
+  let detailDispatches = 0;
+  pool.intercept({ path: new URL(metadataBase).pathname, method: "GET" }).reply(() => {
+    listingDispatches += 1;
+    return {
+      statusCode: 200,
+      data: `<ul><li><a href="202610/metadata-preview.htm">财政监管工作取得进展</a><time>2026-10-06</time></li></ul>`,
+      responseOptions: { headers: { "content-type": "text/html; charset=utf-8" } },
+    };
+  });
+  pool.intercept({ path: "/caizhengjiancha/202610/metadata-preview.htm", method: "GET" }).reply(() => {
+    detailDispatches += 1;
+    return { statusCode: 200, data: "<html><h1>detail must not be fetched</h1></html>" };
+  });
+
+  const configDraft = draft({
+    mode: "mof_index_v1",
+    maxPagesPerRun: 2,
+    maxDispatches: 4,
+    maxPageIndex: 45,
+    detailMode: "direct_html_metadata_v1",
+  }, { listingUrl: metadataBase, detailFetches: 3 });
+  const result = await previewSource(configDraft);
+
+  assert.equal(result.previewMode, "single_page");
+  assert.equal(result.paginationExecuted, false);
+  assert.equal(result.coverage, "unproven");
+  assert.equal(result.count, 1);
+  assert.equal(result.items[0]?.url, articleUrl);
+  assert.equal(listingDispatches, 1, "metadata-mode preview performs exactly one page-zero GET");
+  assert.equal(detailDispatches, 0, "metadata-mode preview never fetches article details");
+  assert.equal((await sql`SELECT id FROM sources WHERE id = ${id}`).length, 0, "preview creates no source or cursor row");
+  assert.equal((await sql`SELECT id FROM fetch_runs WHERE source_id = ${id}`).length, 0, "preview creates no fetch-run state");
+});
+
 test("pagination preview filters dated numbered-page links and query/hash aliases", async () => {
   const previewBase = "https://hb.mof.gov.cn/gzdt/caizhengjiancha/";
   const pool = agent.get(new URL(previewBase).origin);
@@ -170,6 +209,16 @@ test("invalid pagination config is rejected before any preview request", async (
   await assert.rejects(
     previewSource(draft({ mode: "mof_index_v1", maxPagesPerRun: 2, maxDispatches: 13, maxPageIndex: 45 })),
     /maxDispatches|pagination/iu,
+  );
+  await assert.rejects(
+    previewSource(draft({
+      mode: "mof_index_v1",
+      maxPagesPerRun: 2,
+      maxDispatches: 4,
+      maxPageIndex: 45,
+      detailMode: "future_mode",
+    }, { detailFetches: 3 })),
+    /detailMode|pagination/iu,
   );
   assert.equal(dispatched, 0, "invalid caps fail before transport");
 });
