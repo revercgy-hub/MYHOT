@@ -37,6 +37,7 @@
 
 - `parseMode`：`html`（默认，用选择器）、`markdown`（经 Jina 渲染后按 Markdown 读）、`docusaurus_changelog`。
 - `detail`：列表缺日期、标题或摘要时抓详情页补齐（`publishedAtSelector`、`titleSelector`、`summarySelector` 等）。
+- 有界分页的可选组合：`pagination.mode="mof_index_v1"` 开启受限列表分页；只有再显式设置 `pagination.detailMode="direct_html_metadata_v1"` 时，分页收集器才会在列表后续读取详情页中的配置日期或标题。此模式要求 `detail.maxFetches` 为 1–10，并至少配置一个 `detail.publishedAtSelector` / `publishedAtRegex` 或 `detail.titleSelector` / `titleRegex`；日期按配置的 UTC offset 解析。它只接受直接 HTML，不走 Jina、PDF、附件或正文提取路径，也不写文章正文或改变正文就绪标记。详情读取与列表共用请求数和截止时间预算，已解析列表行会在来源 cursor 中有界保存以便后续运行续做；文章、队列和 cursor 最后在同一事务提交。未设置 `detailMode` 时保留 Phase A 的不抓详情行为；没有 `pagination` 时保留 legacy 单页行为。该模式仍报告 `coverage=unproven`，不会设置 `initializedAt` 或宣称历史回填完成；当前没有生产来源使用该 opt-in。
 - `detail.bodySelector`：仅在对该官方页面人工核验正文容器完整后配置。selector 必须唯一命中有结构的干净正文，页面 `ArticleTitle`/日期必须与列表或已存条目相符；容器为空/仅导航链接或身份不符时不确认正文。配置后，详情预取和正文提取使用同一个严格 helper；失败保留未确认，不退回 Readability/Jina。
 - `detail.allowShortBody: true`：仅与显式 `bodySelector` 一起使用，表示该唯一容器已核实为完整但不足 200 字的公告。默认 200 字 Readability 门槛不变；不支持 `source.minBodyChars` 一类可随意降低的阈值。未配置正文 selector 的 source 继续旧 Readability 行为。
 - `detail.articleSelector`、`detail.attachmentSelector`、`detail.attachmentMode`：用于页面把完整通知正文与下载区放在同一文章外框、但正文和附件是兄弟节点的栏目。`articleSelector` 必须唯一命中文章 envelope；现有 `bodySelector` 在其中唯一命中干净正文；`attachmentSelector` 在同一 envelope 中命中下载区，helper 检查该区的**全部**文件链接后分类，不能先筛 `.pdf` 而漏掉 RAR/XLS。`attachmentMode` 可设 `required`（缺省）或显式 `optional`；optional 仅在 envelope 内没有任何下载项且干净 HTML 正文通过原 200 字门槛、结构及标题/日期校验时按普通 HTML 成功。短 intro 加附件失败、无附件或未知附件均不能绕过 PDF 确认。
