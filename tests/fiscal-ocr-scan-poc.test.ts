@@ -317,7 +317,9 @@ test('real Windows monitor observes the exact fake-child PID and records natural
 });
 
 test('deadline kills the fake child and waits for its close event under the real Windows monitor', async () => {
-  const task = invocation('setInterval(() => {}, 1000);', 'deadline', { monitorCode: sampledMonitor, budget: { pageMs: 400, runMs: 3000, cleanupMs: 2000 } });
+  // Keep the total budget (even after its cleanup reserve) well beyond this
+  // page deadline so this fixture exercises only the active page limit.
+  const task = invocation('setInterval(() => {}, 1000);', 'deadline', { monitorCode: sampledMonitor, elapsedBeforeMs: 0, budget: { pageMs: 1000, runMs: 10_000, cleanupMs: 1000 } });
   await assert.rejects(task.run(), /terminated: page deadline/u);
   const rows = (await readFile(join(scratch, 'deadline.jsonl'), 'utf8')).trim().split(/\r?\n/u).map(line => JSON.parse(line));
   assert.equal(task.runtimeLog.killed, true);
