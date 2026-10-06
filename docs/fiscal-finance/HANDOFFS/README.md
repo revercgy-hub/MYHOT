@@ -2,7 +2,7 @@
 
 ## 最新阶段状态
 
-当前财政金融站阶段为 **P3 进行中 / Gate 2 未通过**；P4/P5仍仅有准备，未运行真实模型或人工Gold评测。最新检查点见 [BUREAU_CONFIG_INTEGRATION_2026-10-05.md](BUREAU_CONFIG_INTEGRATION_2026-10-05.md)：代码SHA `a00795ea5911afaa2bdf4ac31580b29a9c84a33c` 已提交；Windows fresh本地测试252/252、typecheck、Web build、Web tests 15/15和loopback smoke 28/28通过；GitHub Check run 37281829324 对同SHA成功，Linux backend为252 tests/251 pass/1 Windows-only monitor skip。15项source全部disabled、全文关闭、未导入数据库；软件测试通过不代表来源验收、Gate 2或P4准入。区域证据与逐局矩阵见[区域覆盖矩阵](../REGIONAL_BUREAU_COVERAGE_MATRIX.md)、[来源矩阵](../SOURCE_MATRIX.md)；三局配置/集成测试见[配置报告](../OCT05_BUREAU_CONFIG_IMPLEMENTATION.md)、[集成QA](../OCT05_BUREAU_INTEGRATION_QA.md)，batch 4及浙江图片新闻页仅是受限静态观察，不能推断整体覆盖。三局真实collector验收仍未获批执行，其方案的预算级别须独立审阅。下一步继续补真实栏目、详情/日期、正文业务质量、分页和跨周期证据；后续P4/P7准入见[P4–P7执行计划](../P4_P7_EXECUTION_PLAN.md)。此前检查点均保留为历史记录，不覆盖。
+当前财政金融站阶段为 **P3 进行中 / Gate 2 未通过**；P4/P5仍未运行真实模型或人工Gold评测。最新 S1 Phase A 检查点见 [S1_PHASE_A_CHECKPOINT_2026-10-06.md](S1_PHASE_A_CHECKPOINT_2026-10-06.md)：代码SHA `b2f479c4517d040f4b1c24b14e1407ad342bbb3a` 已推送；fresh本机 backend `npm test` 276/276、typecheck、Web build、Web tests 15/15、preview loopback smoke 30/30通过；GitHub Check run 37408474478 对同SHA的Check和Docker jobs均success。19项现有source仍全部disabled、全文关闭、未导入生产数据库；软件测试通过不代表来源验收、Gate 2或P4准入。S1 Phase A只批准并验证了受限离线/loopback分页路径，`coverage=unproven`；Stage B详情元数据范围见独立 [S1_WEB_LIST_DETAIL_METADATA_SCOPE_REVIEW_2026-10-06.md](../S1_WEB_LIST_DETAIL_METADATA_SCOPE_REVIEW_2026-10-06.md)，待按其单独边界实施，不能推断任一source覆盖。区域证据与逐局矩阵见[区域覆盖矩阵](../REGIONAL_BUREAU_COVERAGE_MATRIX.md)、[来源矩阵](../SOURCE_MATRIX.md)；此前检查点均保留为历史记录，不覆盖。
 
 每个阶段结束时，负责人在此目录新建一份独立交接书。交接书必须能让没有本轮上下文的新会话复核状态、继续工作；不得用聊天摘要替代文件。未满足阶段退出条件时，只写检查点或未完成记录，不得写“阶段完成”，不得把任务交给下一阶段。
 
