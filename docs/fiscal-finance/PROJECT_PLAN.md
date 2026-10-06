@@ -22,7 +22,7 @@
 
 ## 2026-10-06 Phase C evidence preparation status
 
-Phase C当前为`IN_PROGRESS`，Gate 2仍`NOT_PASSED`。Phase A/B批准仅覆盖各自受限实现，不代表source admission或90日覆盖。Lead指定上海为source evidence候选。page 1列表GET和一条详情GET分别有独立one-shot manifest/raw；QA已独立核验hash、URL绑定和日期对照。列表显示日/可见“发布日期”为7/31，路径token为7/28，详情PubDate为7/31 08:17 +08；候选仍disabled且`NOT_ADMITTED`，没有附件请求或DB/model写入。B的正文缺口方案与离线OCR S1范围包由B独立维护；Sol只读审查OCR范围不等于执行授权，OCR未运行。当前恢复环境、preview只读核验与服务健康证据见[Phase C恢复安全检查点](RECOVERY_SAFETY_CHECKPOINT_2026-10-06_PHASE_C.md)及[S1 Phase C来源证据检查点](HANDOFFS/S1_PHASE_C_SOURCE_EVIDENCE_CHECKPOINT_2026-10-06.md)。本轮无代码、来源配置、schema或业务数据改动；后续请求、OCR执行、来源启用、完成标记/增量/重置设计须有各自明确范围批准。
+Phase C当前为`IN_PROGRESS`，Gate 2仍`NOT_PASSED`。Phase A/B批准仅覆盖各自受限实现，不代表source admission或90日覆盖。Lead指定上海为source evidence候选。page 1列表GET和一条详情GET分别有独立one-shot manifest/raw；QA已独立核验hash、URL绑定和日期对照。列表显示日/可见“发布日期”为7/31，路径token为7/28，详情PubDate为7/31 08:17 +08；候选仍disabled且`NOT_ADMITTED`，没有附件请求或DB/model写入。S1单页OCR固定工具代码`290619355c9d60b6da155c9215381c82b6acf9b2`、test-only budget fixture修复`c7a027491b809f91edec42c3abeaee017e901ba9`已通过本机fresh backend303/303、typecheck和CI Check+Docker run37438292607；同一runtime源码的Web build/tests15/15与loopback smoke30/30沿用本轮前序实测。独立只读合同复核未发现实现阻塞，但formal native monitor preflight case1失败：sample gap281.6508ms大于250ms且fake child被overdue停止；case2未运行、actual OCR未运行。详细软件与资源状态见[Phase C S1 OCR软件QA和preflight检查点](HANDOFFS/PHASE_C_S1_OFFLINE_OCR_SOFTWARE_QA_AND_PREFLIGHT_CHECKPOINT_2026-10-06.md)及[失败诊断](OFFLINE_OCR_MONITOR_FAILURE_ANALYSIS_2026-10-06.md)。当前恢复环境、preview只读核验与服务健康证据见[Phase C恢复安全检查点](RECOVERY_SAFETY_CHECKPOINT_2026-10-06_PHASE_C.md)及[S1 Phase C来源证据检查点](HANDOFFS/S1_PHASE_C_SOURCE_EVIDENCE_CHECKPOINT_2026-10-06.md)。后续来源请求、source opt-in、case2/新的preflight与actual OCR均须各自明确授权；软件测试绿灯不改变这些边界。
 
 ## 新增来源覆盖要求：财政部各地监管局动态
 
