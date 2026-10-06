@@ -1,6 +1,6 @@
 # Gate 2 action checklist
 
-**基线与最近代码检查点**：项目BASE `589f79eff09470b31ba8a7f1d9eb62d36ff2be6c`；本轮恢复基线 `437c63e61f1e5b1b7a2053a600c787bff259ab4a`；最终combined代码SHA `b3546ab9c803b6872eb6b82d68fab8ca87da8520` 的Check run [37346160222](https://github.com/revercgy-hub/MYHOT/actions/runs/37346160222) success。当前配置19项（18 HTML、1 JSON），全部disabled、全文关闭；FJ strict-body flag只是处理保护且来源disabled。Gate 1已通过，Gate 2=`NOT_PASSED`。本清单不增加或重定义Gate条件，不宣称任一source已整体通过；正式结论仍由授权的Gate 2审查作出。
+**基线与最近代码检查点**：项目BASE `589f79eff09470b31ba8a7f1d9eb62d36ff2be6c`；本轮恢复基线 `437c63e61f1e5b1b7a2053a600c787bff259ab4a`；最终combined代码SHA `b3546ab9c803b6872eb6b82d68fab8ca87da8520` 的Check run [37346160222](https://github.com/revercgy-hub/MYHOT/actions/runs/37346160222) success。当前配置19项（18 HTML、1 JSON），全部disabled、全文关闭；FJ strict-body flag只是处理保护且来源disabled。Gate 1已通过，Gate 2=`NOT_PASSED`。用户决定本地OCR为`OCR_DEFERRED_NOT_GATE2_BLOCKER`；详情见[OCR延后决策交接](HANDOFFS/OCR_DEFERRED_USER_DECISION_2026-10-06.md)。本清单不增加或重定义Gate条件，不宣称任一source已整体通过；正式结论仍由授权的Gate 2审查作出。
 
 **2026-10-06恢复核验状态**：两项代码提交及最终CI已完成；本机fresh backend full 257/257，CI Linux backend 257/256/0/1（1项Windows-only skip）、Web15/15。S4针对性回归5/5；source-specific正文保护已实现。所有真实请求的时点按manifest UTC；逐局证据见[矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)。
 
@@ -14,7 +14,7 @@
 | G2-A2 首页窗口与栏目/历史候选 | **现状：未结。** 32局目标工作动态首屏；厦门有既有限定记录，浙江监管工作列表与首篇详情已见，甘肃主页超时无列表。Batch6四个第二页样本各10项、无首页重叠；显示日范围最早到2026-07-29，未覆盖10月6日往前90天。 | 单页与单个page2样本不证明完整分页/90日历史/失败恢复；北京、福建、上海无可复用分页脚本证据。 | 按矩阵续查已保存页面历史/分页及跨周期；S1阶段A仅批准离线/loopback实现，不是source接入批准。失败保留partial不重试。 | 多时点证据可说明daily目标、历史窗口及失败恢复，不把配置值或少数分页样本当运行覆盖。 | QA/Lead；仍缺跨度与范围。 |
 | G2-A3 新鲜度、失败恢复与轮询稳定性 | **现状：未结。** 19项工作树配置目标为每日检查且disabled、未导入DB，scheduler未验证；短间隔同页不变只代表两个手工时点。 | 尚无多轮间隔、失败退避恢复、滑窗进入/退出完整证据。 | 仅在获批应用数据库/启用后观察daily轮询与失败恢复；不得据JSON声明运行通过。 | 可复核实际轮询、失败恢复及窗口更新行为。 | 工程与Lead；时效容忍仍需用户决定。 |
 | G2-A4 日期、一致性、去重与幂等 | **现状：部分。** 既有精确URL双轮证明若干固定文章幂等；会计司9/22 UTC切日误读已纠正；厦门证监API发布时间字符串和正文可见日均9/15；监管汇总与厦门当前候选无exact URL交集。 | 精确URL双轮不证明跨源相同事件去重；没有交集也不能证明去重；区域批次identity overlap为0、runtime dedupe unknown；日期元数据未知须保持unknown。 | 复用保存候选离线比较canonical URL/identity；在新快照出现重合时才检查真实入库dedupe；对固定样本核列表日、详情可见日和业务字段，不借URL路径推断日期。 | 重复/修订同一来源的行为有可审ID与revision证据；日期采用明确语义；跨源去重只在实际重叠样本测试后作结论，零重叠写unknown。 | 工程。 |
-| G2-A5 正文可用性、领域事实与边界噪声 | **现状：未结。** 北京一篇body ok；福建9 body ok、1篇诊断后unconfirmed；上海10 body ok。新增detail样本中既有财政监管业务，也有内部活动/学习。S4严格正文就绪保护已按来源opt-in实现并通过focused/full/CI。 | 单篇样本不能测全源质量；附近PDF未请求，selector配置未覆盖所有内容类型；全栏业务质量与噪声率未知。 | 积累正负正文边界样本，不将短度直接作噪声判定；任何附件能力另行核销。 | 来源正文异常安全保留；自动精选/公开行为可审；机器、人工、模型判断分开。软件通过不等于来源验收。 | 工程/QA；内容质量未闭环。 |
+| G2-A5 正文可用性、领域事实与边界噪声 | **现状：未结。** 北京一篇body ok；福建9 body ok、1篇诊断后unconfirmed；上海10 body ok。新增detail样本中既有财政监管业务，也有内部活动/学习。S4严格正文就绪保护已按来源opt-in实现并通过focused/full/CI。用户确认附件无法可靠解析时保留原文URL、正文待解析且不进入自动精选。 | 单篇样本不能测全源质量；附件类内容的业务正文可用性与全栏质量仍未知。 | 对HTML、JSON及可读text-PDF来源继续逐源小规模准入验证并积累正负正文边界样本；不将短度直接作噪声判定。扫描件OCR已延后，不作为Gate 2 blocker；若未来有实际需求，再评估provider API。 | 来源正文异常安全保留；自动精选/公开行为可审；机器、人工、模型判断分开。软件通过不等于来源验收。 | 工程/QA；内容质量未闭环。 |
 | G2-A6 有界执行与可复核账目 | **现状：部分。** P3 dispatch cap已用于三次真实collector阶段、详情批次和repeat；北京/FJ/SH均有隔离库、事件与只读SQL。 | 北京首轮11个response body hash仍unknown；上海repeat dispatch 1次后超时、无headers/body/hash并以partial停止；福建pending warning无article ID；9/30历史hop仍unknown。hook边界不覆盖其它Undici实例、worker/旁路或代理CONNECT内部。 | 保持分阶段cap、exact host/path和no retry；对已观测超时保留partial。证据报告明确分开“响应hash已捕获”与“response body未收到”；不得靠后续GET补旧hash。 | 新批次有可审计上限、dispatch事件、响应/失败和DB前后状态；旧unknown保留，不追认或静默改写。 | 工程/QA；Lead核销预算。 |
 
 ## 原12个核心配置source的处理顺序
@@ -60,6 +60,6 @@
 
 **RISKS**：35局的目标栏目、历史/分页、可信日期、正文业务质量、噪声与跨周期证据仍有缺口。北京首轮response hash unknown；青岛详情和上海repeat各有一项timeout partial；甘肃栏目未知；云南/新疆日期冲突未裁定。
 
-**BLOCKERS**：Gate 2来源验收证据未闭环；S1阶段A尚未实现，且当前裁定不允许把现有19个含详情规则的来源迁入阶段A或声称90天回填完成。P4真实provider、Gold标注、P6/P7与Gate4仍未完成。
+**BLOCKERS**：Gate 2来源验收证据未闭环：各目标栏目覆盖、逐源分页与历史、日期语义、正文业务质量、附件降级和跨周期重复仍缺实证；当前有限样本不能证明90天回填或来源通过。P4真实provider、Gold标注、P6/P7与Gate4仍未完成。OCR延后状态见本清单顶部链接，不构成Gate 2 blocker。
 
-**NEXT**：Lead已接受S1 Phase A限定为离线/loopback能力验证；按[scope review](S1_WEB_LIST_PAGINATION_SCOPE_REVIEW_2026-10-06.md)完成代码与契约测试后独立评估，保持production source config关闭、无真实请求、无migration/apps。之后继续来源级历史和跨周期验证，并单独安排Gate 2审查。此次docs-only提交不重复CI。
+**NEXT**：恢复主线为HTML/JSON/text-PDF来源准入与小规模验证，继续逐源检查栏目、分页/历史、日期、正文业务质量、附件失败降级和跨周期重复；source仍按独立范围审查与授权。扫描附件无法可靠解析时保留原文URL、标注正文待解析且不自动精选。API OCR只在未来有实际需求时按既有provider预算与receipt机制评估；当前不启用API/模型或实现调用。Gate 2仍`NOT_PASSED`，不把未完成的逐源证据描述为通过。此次docs-only提交不重跑CI。
