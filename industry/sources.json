@@ -182,7 +182,7 @@
             }
           ]
         },
-        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true, "requireBodyReadyForAutomaticSelection": true }
       },
       "tier": "T1",
       "first_party": true,

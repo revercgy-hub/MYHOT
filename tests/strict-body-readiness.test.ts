@@ -51,10 +51,14 @@ test("strict-body opt-in is exact boolean and body readiness requires nonblank c
   const registry = JSON.parse(readFileSync(new URL("../industry/sources.json", import.meta.url), "utf8")) as { sources: Array<{ id: string; config?: Record<string, unknown> }> };
   const sources = registry.sources;
   assert.equal(sources.length, 46, "the verified-source catalogue size remains explicit");
+  const accounting = sources.find((source) => source.id === "mof-accounting-notices");
+  assert.equal((accounting?.config?._aihot as Record<string, unknown> | undefined)?.requireBodyReadyForAutomaticSelection, true,
+    "the accounting source is the exact central-source exception");
   const fujian = sources.find((source) => source.id === "mof-fujian-supervision-dynamics");
   assert.equal((fujian?.config?._aihot as Record<string, unknown> | undefined)?.requireBodyReadyForAutomaticSelection, true);
   assert.deepEqual(sources.filter((source) => ((source.config?._aihot as Record<string, unknown> | undefined)?.requireBodyReadyForAutomaticSelection) === true)
     .map((source) => source.id).sort(), [
+      "mof-accounting-notices",
       "mof-anhui-supervision-dynamics",
       "mof-chongqing-supervision-dynamics",
       "mof-dalian-supervision-dynamics",
@@ -83,7 +87,7 @@ test("strict-body opt-in is exact boolean and body readiness requires nonblank c
       "mof-xinjiang-supervision-dynamics",
       "mof-yunnan-supervision-dynamics",
       "mof-zhejiang-supervision-dynamics",
-    ], "the opt-in remains limited to the twenty-eight reviewed supervision sources");
+    ], "the opt-in remains limited to twenty-eight reviewed supervision sources plus the exact accounting exception");
 
   assert.equal(requiresBodyReadyForAutomaticSelection({}), false);
   assert.equal(requiresBodyReadyForAutomaticSelection({ _aihot: { requireBodyReadyForAutomaticSelection: false } }), false);
