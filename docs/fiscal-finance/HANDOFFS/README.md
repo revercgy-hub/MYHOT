@@ -80,3 +80,5 @@ WORKTREE=<干净 / 有未提交改动；列明文件，不推测>
 
 
 最新代码 SHA fbccb32a611a963981bf95a84dd00865837f0a88（23个 disabled source，五个严格正文opt-in）本机fresh Node24 35-migration backend310/310、typecheck及Web检查通过；GitHub Check+Docker run[37564353711](https://github.com/revercgy-hub/MYHOT/actions/runs/37564353711)成功，Linux backend 309通过/0失败/1 Windows-only skip。前一 SHA 的两项OCR monitor timing CI failure、最小测试正确性修复和完整QA历史见[加速恢复检查点](ACCELERATED_P3_CHECKPOINT_2026-10-07.md)。Gate 2仍NOT_PASSED，source admission仍未批准。
+
+最新交接为[2026-10-07 连续 P3 配置与验证](CONTINUOUS_P3_HANDOFF_2026-10-07.md)：代码SHA `2e2a021ae5a5eaa614a758724480dc8b266f33e3`含46项disabled/fulltext-off source（45 HTML、1 JSON）和精确28个strict body-ready opt-ins；fresh 35-migration本地全套QA通过，GitHub Check+Docker run[37611936804](https://github.com/revercgy-hub/MYHOT/actions/runs/37611936804)成功。有限列表/详情配对和软件测试不证明来源准入、90日覆盖或Gate 2；Gate 2仍`NOT_PASSED`。后续独立source evidence与门槛按状态页、来源矩阵及Gate 2清单继续。

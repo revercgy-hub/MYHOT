@@ -2,6 +2,14 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
+## 2026-10-07 连续 P3 当前检查点
+
+代码SHA `2e2a021ae5a5eaa614a758724480dc8b266f33e3`将行业source配置扩至46项（45 HTML、1 JSON），其中精确28项使用既有strict body-ready opt-in；所有来源保持disabled且站内/转发全文关闭，没有seed到preview或production。冻结批次的fresh 35-migration本机QA：typecheck、backend 310/310、Web build、Web tests 15/15、loopback smoke通过；同SHA GitHub Check+Docker run [37611936804](https://github.com/revercgy-hub/MYHOT/actions/runs/37611936804)成功。该证据验证软件与配置约束，不构成任何来源准入或Gate 2通过。用户明确浙江首期主栏目为“监管工作”，图片新闻后续补充。
+
+Gate 2仍按完整既有要求审查35局逐一栏目覆盖、真实分页与近90日历史、可信日期、正文/附件质量、材料身份重复/修订、恢复与跨周期证据。G2-A4在P3核验真实相同normalized URL/material identity的重复发现和内容修订；无实际相同样本时写`not observed / runtime dedupe unknown`。跨来源同一事件的语义聚类准确性保持`P4_REQUIRED_NOT_RUN`，P4阶段仍须独立用隔离数据库及经授权Gold样本验证；此区分不删减P3/Gate 2要求，也不新设Gate 2退出条件。现有样本的题名、日期、正文与已知日期冲突按[来源矩阵](SOURCE_MATRIX.md)和[区域覆盖矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)逐项保留，有限样本不能外推为整源质量。
+
+完整测试、SHA、CI和运行边界见[连续P3交接](HANDOFFS/CONTINUOUS_P3_HANDOFF_2026-10-07.md)。
+
 ## 阶段顺序与 Gate
 
 | 阶段 | 工作 | 退出条件 |

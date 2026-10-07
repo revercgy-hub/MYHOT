@@ -1,6 +1,6 @@
 # Gate 2 action checklist
 
-**基线与最近代码检查点**：项目BASE `589f79eff09470b31ba8a7f1d9eb62d36ff2be6c`；本轮恢复基线 `437c63e61f1e5b1b7a2053a600c787bff259ab4a`；最终combined代码SHA `b3546ab9c803b6872eb6b82d68fab8ca87da8520` 的Check run [37346160222](https://github.com/revercgy-hub/MYHOT/actions/runs/37346160222) success。当前配置19项（18 HTML、1 JSON），全部disabled、全文关闭；FJ strict-body flag只是处理保护且来源disabled。Gate 1已通过，Gate 2=`NOT_PASSED`。用户决定本地OCR为`OCR_DEFERRED_NOT_GATE2_BLOCKER`；详情见[OCR延后决策交接](HANDOFFS/OCR_DEFERRED_USER_DECISION_2026-10-06.md)。本清单不增加或重定义Gate条件，不宣称任一source已整体通过；正式结论仍由授权的Gate 2审查作出。
+**基线与最近代码检查点**：项目BASE `589f79eff09470b31ba8a7f1d9eb62d36ff2be6c`；旧代码检查点与历史CI结果按下文保留。当前工作树配置46项（45 HTML、1 JSON），全部disabled、全文关闭；28个来源使用既有strict-body flag。配置未seed，最后冻结批次QA正在执行；软件QA不等于source admission。Gate 1已通过，Gate 2=`NOT_PASSED`。用户决定本地OCR为`OCR_DEFERRED_NOT_GATE2_BLOCKER`；详情见[OCR延后决策交接](HANDOFFS/OCR_DEFERRED_USER_DECISION_2026-10-06.md)。本清单不增加或重定义Gate条件，不宣称任一source已整体通过；正式结论仍由授权的Gate 2审查作出。用户已确认浙江首期以“监管工作”为主栏目，“图片新闻”后续补充；该范围决定不表示完整覆盖或来源通过。
 
 **2026-10-06恢复核验状态**：两项代码提交及最终CI已完成；本机fresh backend full 257/257，CI Linux backend 257/256/0/1（1项Windows-only skip）、Web15/15。S4针对性回归5/5；source-specific正文保护已实现。所有真实请求的时点按manifest UTC；逐局证据见[矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)。
 
@@ -10,12 +10,14 @@
 
 | 维度 | 现有证据 | 缺口 | 下一具体动作 | 完结标准 | 责任 |
 |---|---|---|---|---|---|
-| G2-A1 来源与候选身份 | **现状：部分。** 已提交19项配置（新增河南、湖北、湖南、广东四项disabled）。北京/FJ/SH隔离collector与各地详情有限样本仍有效；新增详情15次GET中14份raw/hash核实、青岛单次timeout。FJ诊断触发S4正文就绪保护，已完成测试和CI。 | 单篇和单页不能证明全栏目质量；北京首轮response hash仍unknown；上海repeat timeout partial；云南、新疆日期冲突未裁定。 | 按矩阵继续填补source范围、历史和跨周期证据。 | 官方入口、列表/详情身份、日期语义与正文边界均有逐source证据且配置allowlist正确。 | QA/Lead；本轮仅有限样本。 |
-| G2-A2 首页窗口与栏目/历史候选 | **现状：未结。** 32局目标工作动态首屏；厦门有既有限定记录，浙江监管工作列表与首篇详情已见，甘肃主页超时无列表。Batch6四个第二页样本各10项、无首页重叠；显示日范围最早到2026-07-29，未覆盖10月6日往前90天。 | 单页与单个page2样本不证明完整分页/90日历史/失败恢复；北京、福建、上海无可复用分页脚本证据。 | 按矩阵续查已保存页面历史/分页及跨周期；S1阶段A仅批准离线/loopback实现，不是source接入批准。失败保留partial不重试。 | 多时点证据可说明daily目标、历史窗口及失败恢复，不把配置值或少数分页样本当运行覆盖。 | QA/Lead；仍缺跨度与范围。 |
-| G2-A3 新鲜度、失败恢复与轮询稳定性 | **现状：未结。** 19项工作树配置目标为每日检查且disabled、未导入DB，scheduler未验证；短间隔同页不变只代表两个手工时点。 | 尚无多轮间隔、失败退避恢复、滑窗进入/退出完整证据。 | 仅在获批应用数据库/启用后观察daily轮询与失败恢复；不得据JSON声明运行通过。 | 可复核实际轮询、失败恢复及窗口更新行为。 | 工程与Lead；时效容忍仍需用户决定。 |
-| G2-A4 日期、一致性、去重与幂等 | **现状：部分。** 既有精确URL双轮证明若干固定文章幂等；会计司9/22 UTC切日误读已纠正；厦门证监API发布时间字符串和正文可见日均9/15；监管汇总与厦门当前候选无exact URL交集。 | 精确URL双轮不证明跨源相同事件去重；没有交集也不能证明去重；区域批次identity overlap为0、runtime dedupe unknown；日期元数据未知须保持unknown。 | 复用保存候选离线比较canonical URL/identity；在新快照出现重合时才检查真实入库dedupe；对固定样本核列表日、详情可见日和业务字段，不借URL路径推断日期。 | 重复/修订同一来源的行为有可审ID与revision证据；日期采用明确语义；跨源去重只在实际重叠样本测试后作结论，零重叠写unknown。 | 工程。 |
+| G2-A1 来源与候选身份 | **现状：部分。** 工作树有46项配置（45 HTML、1 JSON），均disabled；已核验多批首页/列表/配对详情，原始身份和有限正文边界见逐局矩阵。strict-body exact IDs为28项，仅为自动处理保护。 | 单篇和单页不能证明全栏目质量；个别目标详情超时或日期冲突保留，配置flag不等来源通过。 | 按矩阵继续填补来源范围、日期语义、正文质量和跨周期证据。 | 官方入口、列表/详情身份、日期语义与正文边界均有逐source证据且配置allowlist正确。 | QA/Lead；本轮仍为有限样本。 |
+| G2-A2 首页窗口与栏目/历史候选 | **现状：未结。** 按用户口径需覆盖35个地方局新闻动态栏目；浙江用户已指定首期主入口为“监管工作”、图片新闻后续补充。多局已保存首页和列表样本，包含甘肃配对详情；分页/90日覆盖仍未完整证明。 | 单页和少数分页样本不能证明完整栏目、分页、90日历史、失败恢复或跨周期稳定。 | 按矩阵续查保存页面历史/分页及跨周期；S1阶段A仅批准离线/loopback实现，不是source接入批准。失败保留partial不重试。 | 多时点证据可说明daily目标、历史窗口及失败恢复，不把配置值或少数分页样本当运行覆盖。 | QA/Lead；仍缺跨度与范围。 |
+| G2-A3 新鲜度、失败恢复与轮询稳定性 | **现状：未结。** 46项工作树配置仍全disabled、未导入DB；daily目标未通过scheduler实跑验证。 | 尚无多轮间隔、失败退避恢复、滑窗进入/退出完整证据。 | 仅在获批应用数据库/启用后观察daily轮询与失败恢复；不得据JSON声明运行通过。 | 可复核实际轮询、失败恢复及窗口更新行为。 | 工程与Lead；时效容忍仍需用户决定。 |
+| G2-A4 日期、材料身份去重与事件聚类 | **现状：部分。** PBOC OMO两个保存列表经runtime MockAgent相邻快照回放：191号重复候选保持同article ID/material identity/hash/revision与一次discovery；192号作为新精确URL新建一次。时钟相邻日为模拟，不能据此认定daily可靠性。区域来源间目前缺少形成充分重叠的已验证runtime样本，零交集保持unknown。 | **P3 / Gate 2**须核验相同normalized URL/material identity候选在重复发现、更新和跨来源发现时的source/article IDs、identity、discovery与revision变化；无实际重叠时记`not observed / runtime dedupe unknown`，不得以零交集宣称去重通过。日期冲突按来源保留hold/规则，不以URL token推断发布日期。 | 复用保存候选离线比较canonical URL/identity；在确有重叠且获准运行时检查真实入库dedupe，并保留前后计数。对固定样本核列表日、详情PubDate/可见日，不借路径覆盖冲突。 | 精确材料身份重复/修订行为有可审ID和revision证据；日期规则明确；零重叠仍写unknown。 | 工程/QA。 |
 | G2-A5 正文可用性、领域事实与边界噪声 | **现状：未结。** 北京一篇body ok；福建9 body ok、1篇诊断后unconfirmed；上海10 body ok。新增detail样本中既有财政监管业务，也有内部活动/学习。S4严格正文就绪保护已按来源opt-in实现并通过focused/full/CI。用户确认附件无法可靠解析时保留原文URL、正文待解析且不进入自动精选。 | 单篇样本不能测全源质量；附件类内容的业务正文可用性与全栏质量仍未知。 | 对HTML、JSON及可读text-PDF来源继续逐源小规模准入验证并积累正负正文边界样本；不将短度直接作噪声判定。扫描件OCR已延后，不作为Gate 2 blocker；若未来有实际需求，再评估provider API。 | 来源正文异常安全保留；自动精选/公开行为可审；机器、人工、模型判断分开。软件通过不等于来源验收。 | 工程/QA；内容质量未闭环。 |
 | G2-A6 有界执行与可复核账目 | **现状：部分。** P3 dispatch cap已用于三次真实collector阶段、详情批次和repeat；北京/FJ/SH均有隔离库、事件与只读SQL。 | 北京首轮11个response body hash仍unknown；上海repeat dispatch 1次后超时、无headers/body/hash并以partial停止；福建pending warning无article ID；9/30历史hop仍unknown。hook边界不覆盖其它Undici实例、worker/旁路或代理CONNECT内部。 | 保持分阶段cap、exact host/path和no retry；对已观测超时保留partial。证据报告明确分开“响应hash已捕获”与“response body未收到”；不得靠后续GET补旧hash。 | 新批次有可审计上限、dispatch事件、响应/失败和DB前后状态；旧unknown保留，不追认或静默改写。 | 工程/QA；Lead核销预算。 |
+
+**G2-A4阶段边界（不删减要求）**：P3/Gate 2验收真实材料身份去重、同URL重复发现与同源内容修订行为；只有在实际出现相同material identity样本时才能声称观察到跨源身份处理，零重叠仍为unknown。跨来源同一事件的语义聚类准确性为`P4_REQUIRED_NOT_RUN`，保留为P4明确待验事项，不伪装为已完成，也不将其提升为Gate 2退出条件。P4开始后仍须用隔离新库和经授权的真实Gold样本完成模型/语义聚类验证。更详细的依赖分界见[S1连续Gate依赖审阅](S1_CONTINUOUS_GATE_DEPENDENCIES_2026-10-07.md)。
 
 ## 原12个核心配置source的处理顺序
 
