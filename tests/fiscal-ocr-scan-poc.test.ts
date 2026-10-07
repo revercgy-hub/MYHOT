@@ -349,7 +349,12 @@ test('output over limit terminates the exact child and is also checked after clo
 
 test('text and TSV output files count together toward the page output cap', async () => {
   const code = "const fs=require('node:fs');const p=process.argv[1];setTimeout(()=>{fs.writeFileSync(p+'.txt','t'.repeat(600));fs.writeFileSync(p+'.tsv','v'.repeat(600))},60);setInterval(()=>{},1000);";
-  const task = invocation(code, 'file-output', { monitorCode: sampledMonitor, budget: { pageMs: 5000, runMs: 6000, cleanupMs: 1000, pageOutputBytes: 1024 } });
+  const outputCapMonitor = [
+    "const fs=require('node:fs');const pid=Number(process.argv[1]);const path=process.argv[2];",
+    "const sample=()=>{const row={pid,at:new Date().toISOString(),workingSetBytes:1};fs.appendFileSync(path,JSON.stringify(row)+'\\n');process.stdout.write(JSON.stringify(row)+'\\n')};",
+    "setTimeout(()=>{sample();const poll=setInterval(()=>{try{process.kill(pid,0);sample()}catch{clearInterval(poll);fs.appendFileSync(path,JSON.stringify({pid,exitCode:null,waited:true,at:new Date().toISOString()})+'\\n')}},20)},30);",
+  ].join('');
+  const task = invocation(code, 'file-output', { monitorCode: outputCapMonitor, budget: { pageMs: 5000, runMs: 6000, cleanupMs: 1000, pageOutputBytes: 1024 } });
   await assert.rejects(task.run(), /terminated: combined page output limit/u);
   assert.equal(task.runtimeLog.closeObserved, true);
   assert.ok(task.runtimeLog.signal);
