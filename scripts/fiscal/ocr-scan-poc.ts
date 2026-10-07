@@ -485,8 +485,8 @@ export async function invokeTesseract(exe: string, image: string, outBase: strin
     if (runtimeLog.cleanupTimeout) throw new Error(`Tesseract spawn cleanup timeout; child_closed=${processClosed}; monitor_closed=${monitorExitCode !== null}`);
     throw new Error(`Tesseract failed to spawn: ${childError ?? 'missing pid'}`);
   }
-  monitor.stdin?.end(`${child.pid}\n`);
   const childStartedAt = Date.now();
+  monitor.stdin?.end(`${child.pid}\n`);
   const sampleWatchdog = setInterval(() => {
     if (processClosed) return;
     const lastAt = liveSampleRows.length ? Date.parse(liveSampleRows.at(-1).at) : null;
@@ -497,7 +497,7 @@ export async function invokeTesseract(exe: string, image: string, outBase: strin
   let checking = false;
   const watchdog = setInterval(() => {
     const elapsed = Date.now() - startedAt;
-    if (!processClosed && (elapsed > remaining || Date.now() - started > budget.pageMs)) terminate(elapsed > budget.pageMs ? 'page deadline' : 'total deadline');
+    if (!processClosed && (elapsed >= remaining || elapsed >= budget.pageMs)) terminate(elapsed >= budget.pageMs ? 'page deadline' : 'total deadline');
     if (checking) return;
     checking = true;
     void Promise.all([
@@ -524,7 +524,7 @@ export async function invokeTesseract(exe: string, image: string, outBase: strin
   const bothClosed = Promise.all([closed, monitorClosed]);
   let bothClosedByBudget = await waitUntil(bothClosed, started + remaining);
   if (!bothClosedByBudget) {
-    if (!processClosed) terminate(Date.now() - started > budget.pageMs ? 'page deadline' : 'total deadline');
+    if (!processClosed) terminate(Date.now() - started >= budget.pageMs ? 'page deadline' : 'total deadline');
     const cleanupDeadline = Math.min(Date.now() + budget.cleanupMs, totalDeadline);
     const reserveForMonitorStop = Math.min(500, Math.floor(budget.cleanupMs / 2));
     bothClosedByBudget = await waitUntil(bothClosed, Math.max(Date.now(), cleanupDeadline - reserveForMonitorStop));
