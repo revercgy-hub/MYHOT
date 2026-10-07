@@ -305,6 +305,7 @@ export async function invokeTesseract(exe: string, image: string, outBase: strin
   // Reserve the maximum cleanup grace inside the total budget before admitting
   // either monitor or child; cleanup must never extend the 180s wall-clock cap.
   const remaining = Math.min(budget.pageMs, totalRemaining - budget.cleanupMs);
+  const deadlineReason = budget.pageMs <= totalRemaining - budget.cleanupMs ? 'page deadline' : 'total deadline';
   if (remaining <= 0) throw new Error('total runtime budget exhausted');
   const args = hooks.childArgs ?? [image, outBase, '-l', 'chi_sim', '--oem', '3', '--psm', '6', '--tessdata-dir', tessdata, 'txt', 'tsv'];
   const started = Date.now();
@@ -497,7 +498,7 @@ export async function invokeTesseract(exe: string, image: string, outBase: strin
   let checking = false;
   const watchdog = setInterval(() => {
     const elapsed = Date.now() - startedAt;
-    if (!processClosed && (elapsed >= remaining || elapsed >= budget.pageMs)) terminate(elapsed >= budget.pageMs ? 'page deadline' : 'total deadline');
+    if (!processClosed && (elapsed >= remaining || elapsed >= budget.pageMs)) terminate(deadlineReason);
     if (checking) return;
     checking = true;
     void Promise.all([
@@ -524,7 +525,7 @@ export async function invokeTesseract(exe: string, image: string, outBase: strin
   const bothClosed = Promise.all([closed, monitorClosed]);
   let bothClosedByBudget = await waitUntil(bothClosed, started + remaining);
   if (!bothClosedByBudget) {
-    if (!processClosed) terminate(Date.now() - started >= budget.pageMs ? 'page deadline' : 'total deadline');
+    if (!processClosed) terminate(deadlineReason);
     const cleanupDeadline = Math.min(Date.now() + budget.cleanupMs, totalDeadline);
     const reserveForMonitorStop = Math.min(500, Math.floor(budget.cleanupMs / 2));
     bothClosedByBudget = await waitUntil(bothClosed, Math.max(Date.now(), cleanupDeadline - reserveForMonitorStop));

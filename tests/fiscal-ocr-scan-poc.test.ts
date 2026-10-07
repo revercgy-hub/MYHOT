@@ -330,7 +330,7 @@ test('deadline kills the fake child and waits for its close event under the real
 });
 
 test('total experiment deadline also kills and waits for the fake child', async () => {
-  const task = invocation('setInterval(() => {}, 1000);', 'total-deadline', { monitorCode: sampledMonitor, budget: { pageMs: 5000, runMs: 2300, cleanupMs: 500 }, elapsedBeforeMs: 800 });
+  const task = invocation('setInterval(() => {}, 1000);', 'total-deadline', { monitorCode: sampledMonitor, budget: { pageMs: 10_000, runMs: 3000, cleanupMs: 1000 } });
   await assert.rejects(task.run(), /terminated: total deadline/u);
   assert.equal(task.runtimeLog.killReason, 'total deadline');
   assert.equal(task.runtimeLog.closeObserved, true);
