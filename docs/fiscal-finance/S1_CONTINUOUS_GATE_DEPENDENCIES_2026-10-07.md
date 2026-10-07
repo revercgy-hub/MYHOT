@@ -1,0 +1,120 @@
+# S1：连续 P3 的最小 Gate 依赖审阅（2026-10-07）
+
+**RESULT=CHANGES_REQUIRED（验收表述及云南日期例外）；常规 disabled 配置续批维持 CONDITIONAL_CONFIG_ONLY。Gate 2=NOT_PASSED；source admission=NOT_ADMITTED。** 本文是一次窄架构依赖裁定，不是正式 Gate 2 审查、通过或跳关授权。Lead/Luna 可继续不依赖下述例外的35局来源证据工作。
+
+## 依据与证据边界
+
+只读核对 `AGENTS.md`、README、根目录《财政金融热点站完整开发与部署任务书.md》第二十六、二十九、三十节、`PROJECT_PLAN.md`、`GATE2_ACTION_CHECKLIST.md`、`GATE2_USER_DECISIONS.md`、`STATUS.md`、10/7严格正文配置续批 standing rule、Batch 8/9详情记录、`P3_REMAINING_SOURCE_GAPS_2026-10-07.md`、Phase B详情元数据裁定及实际 sources/collect、materials、URL identity、events/group 代码。保存字节/hash及正文长度沿用报告的独立 QA，不宣称本审查重新完成 raw QA。
+
+用户已确认首阶段逐局覆盖35个地方监管局的新闻动态、每天检查、首次近90天并保留真实原发布日期；内部活动与实质业务事实按已确认内容边界处理。目录数、配置数、单篇正文及软件测试均不代替来源通过。只读时行业配置已出现甘肃、青岛、大连、宁波、深圳五个新增 disabled 项；动态工作树数量仍由实施方冻结后核算，不以父任务27项快照代表当前数量。
+
+## G2-A4：入库重复与语义事件必须分开验收
+
+任务书明确模型关闭时检查采集重复，核心官方源稳定后才能开启模型；下一模型阶段检查事件聚类准确性。计划对应 P3/Gate 2 → P4。实际 `content/materials.ts` 的 `identityKeyFor`、`upsertMaterial` 与 `lib/url.ts` 采用 URL material identity；唯一 identity 冲突时增加 discovery，相同来源真实内容变化才进入 revision，跨来源相同 material 不夺取原来源字段。这不需要真实模型。
+
+`events/group.ts` 的语义路径依赖 analysis、召回及 `group`/`groupReview` provider receipt。虽然存在 same-URL 和无需判模型的分支，它们不证明不同 URL 的政策报道、解读、实施细则已正确区分 `SAME_OCCURRENCE`、`SAME_STORY` 与不同事件。要求真实模型语义归组先通过才开放 Gate 2 后模型，会产生循环依赖。
+
+**最小文档修正**：Lead 把 G2-A4 的“跨源相同事件去重”拆为以下两项，不删需求、不把零交集改写成功：
+
+- Gate 2/P3：实际相同 normalized URL/material identity 的重叠候选与重复运行须保留 source ID、article ID、identity、discovery、revision 和前后计数证据；原来源修订与跨来源 discovery 分开核对。未出现重叠的 source pair 写 `not observed / runtime dedupe unknown`，保存离线 identity 比较只证明输入相同或不同。禁止新增标题相似去重或跨域 canonical 猜测来制造通过。
+- P4：用有业务区别的真实样本验证同政策多来源报道/解读的归组，以及征求意见、正式发布、实施细则、后续调整、执行数据的区分，记录模型决策/receipt和人工预期。该项记为 `P4_REQUIRED_NOT_RUN`，不能预先称通过；Gate 2正式审查仍独立审所有采集稳定性及用户35局范围证据。
+
+本裁定只纠正阶段依赖；不是把当前 Gate 2 判为通过，也不将全部核心源稳定、每日运行/恢复、可信日期、正文边界及近90天要求简化为 URL 测试。合成 fixture 只能核销软件行为，不能填真实来源重叠/跨周期证据。
+
+## 云南：原始日期未知，权威开关暂不批准
+
+精确冲突 URL：`https://yn.mof.gov.cn/caizhengjiancha/202609/t20260918_3997724.htm`。Batch 8及10/7复核记录列表9月18日、路径9月18日；详情 `PubDate=2026-09-24 08:22:00`、可见“发布日期”和正文首行均9月24日。三处页面字段一致只能证明详情现显示9月24日，不能证明9月18日字段不可信，或9月24日是首次原始发布而不是后续更新/重发。不能凭多数字段、标题一致或较新日期选择原发布日期。
+
+实际 legacy collector 已支持 `detail.publishedAtAuthoritative=true`：首次窗口过滤不先按列表排除，随后清空列表日期并在有界详情中读取配置规则，最终重新做首次日期窗过滤。这个开关表达整条 source 的列表不可信及详情权威；它不是只覆盖一条冲突记录，也不是 original-date 语义验证器。已存 identity 的 legacy 路径也不能当作日期修复工具。Phase B另有两个可信日期必须完全一致及存量元数据需审规则；本文不启用 Phase B、不批准 `<24h` 精度升级、不改 legacy 算法。
+
+**精确裁定**：不批准为候选 `mof-yunnan-supervision-dynamics` 设置 `publishedAtAuthoritative=true` 或以其使本 URL 自动通过。最小 hold 是此 URL 的可信原发布日期及对应来源日期权威结论；其正文、标题和栏目证据继续有效，不删除云南覆盖目标，不要求把所有云南稿永久排除。其他无冲突配对样本可继续独立补证，source 可保留明确 `date unresolved` 的 dormant 配置草案，但不能引用 standing rule 把未解决日期写成来源准入通过。
+
+解除 hold 需要保存、可审的来源证据说明原始发布与更新字段的含义，或本文章明确原日期；若拟设 source-wide authoritative，另需证据证明配置规则适用于该来源而非只适用一篇。之后 Lead 提交精确 ID/rule 与 fixture 回归范围作例外核销。重复获取同一未变 HTML 不自动补足语义。用户可以决定产品范围，却不能通过选择9/18或9/24替代来源日期事实。现阶段 hold 是 P3 证据/验收记录，不宣称 legacy runtime 已实现逐 URL date-conflict 自动拦截；真实 collector 请求包必须先避免处理此未决候选或另获适用裁定。
+
+## 新疆：URL token 不作日期权威，disabled 配置可继续
+
+精确配对 URL：`https://xj.mof.gov.cn/caizhengjiancha/202607/t20260717_3993738.htm`。Batch 9及10/7复核记录列表9月24日、`PubDate=2026-09-24 08:32:00`、可见发布日和正文首行9月24日；只有路径 token 为7月17日。当前 parser 实际读取列表/配置详情规则，不把路径 token 转为发布日期；因此无需增加“ignore path date”运行时 knob，也不能改成7月17日。
+
+**APPROVED_SCOPE（有条件）**：候选 `mof-xinjiang-supervision-dynamics` 可在官方映射、保存列表/配对详情、独立 QA及精确 fixture核销后，按现有 standing rule添加 disabled、全文关闭、1440分钟、首次3个月/require-date和严格正文保护配置；保留列表发布日规则，不增加 source-wide authoritative，不启用采集或分页模式。路径差异保留为非权威 token observation；它本身不阻断该 disabled 配置。列表/详情现显示日一致也不是“原始发布/更新语义全源已证明”；Gate 2日期可信度与历史原日期要求仍需逐源证据，不据此宣布来源通过。
+
+## 浙江：明确候选栏目，可配置；覆盖替代需 COLUMN 决策
+
+保存首页真实并列“监管工作” `/caizhengjiancha/` 与“动态简讯” `/dtjx/`。后者379字节 JS wrapper指向图片新闻子栏目，不能说成完整动态简讯；前者已有9条列表、首篇财政业务详情及16页静态声明。栏目和配对样本证明一个实见财政监管业务候选，可按真实名字保留/准备 `mof-zhejiang-supervision-dynamics` disabled 配置；不能改名成已完整覆盖新闻动态，也不能仅凭一篇认定整个栏目纯业务。
+
+**TRUE_HUMAN_DECISION=COLUMN**：若 Lead 要把浙江“监管工作”作为用户逐局新闻动态要求的浙江覆盖入口，而不再核动态简讯新闻范围，需一次用户范围确认：是否接受这个明确业务栏目作为浙江目标入口。现有证据无法证明两个栏目等价，也没有用户选择全部栏目；不能自动判 all-column pass或强制扩大所有35局到全站栏目。等待决定时继续其他局证据及浙江已知栏目的事实记录；决定只确定目标入口，不通过历史、日期、质量或来源验收。
+
+## 实施交接与边界
+
+Lead/Luna 只需：修正 G2-A4两阶段记录；云南 exact URL/date authority hold；新疆按条件做常规 disabled配置；浙江栏目替代单独列 COLUMN 决策。甘肃、青岛、大连、宁波、深圳已新增配置及剩余已知入口，仍按10/7 standing rule逐项接受证据与精确 ID/fixture/strict-body allowlist，不必每批重复 Sol审查。任何新 runtime、来源日期例外、未核栏目替代或启用均超出该常规规则。
+
+**MODEL**：Sol 单次窄依赖审阅；后续实施/来源证据/QA交 Luna。**FILES_CHANGED**：仅本文。**TESTS_RUN**：无；静态读取，无HTTP、DB、Git、worker、provider或OCR操作。**NEXT**：Lead更新其 owned清单与未决记录，继续有界 P3；不修OCR、不重开模型、不宣称35局覆盖或 Gate 2通过。
+
+## 同日最小补充裁定：云南精确 URL 配置排除及浙江用户决定
+
+**SUPPLEMENT_RESULT=APPROVED_SCOPE（条件配置）；云南原日期 hold 继续；COLUMN=CONFIRMED。** 根据 Root 转述的用户新决定，浙江以“监管工作”为主入口，图片动态以后补。此前 COLUMN 待决定状态已解除；现阶段只核所选业务栏目的证据和配置，不要求图片动态先通过，也不宣称浙江全部栏目已覆盖。来源/历史/质量验收状态不变。
+
+云南可使用现有 `denyUrlPrefixes`，值仅为完整冲突 URL `https://yn.mof.gov.cn/caizhengjiancha/202609/t20260918_3997724.htm`。实际 `sources/web-list.ts:46` 的 `allowed` 先匹配 deny 再匹配 allow，使用 `startsWith`，并只统一 HTTP/HTTPS scheme；`fromHtml` 在生成候选前调用它（154行），`fetchWebList` 走该 parser，legacy `sources/collect.ts:121,133` 获取列表后再次过滤，早于详情循环和 material store。因此在无 rewrite、直接 HTML 列表配置下，这条实见 URL 会被排除出 collector 候选，不进入该轮详情或入库。完整 URL 前缀还会匹配其 query/fragment及任何相同起始字符串；这是既有前缀语义，不是新增 exact-identity 全局封锁。不能将它写成整个 `/202609/` 或栏目目录，也不猜其他 URL aliases。
+
+**精确批准条件**：在另一条保存的云南列表/详情配对获得独立 QA，标题、列表日/详情可见发布日及配置发布字段无已知冲突、真实 selector明确后，可注册 `mof-yunnan-supervision-dynamics` disabled 配置，采用该保存证据支持的标准列表日期规则、现有详情/正文规则和精确上述 deny。保留1440分钟、首次3个月/require-date、严格正文 flag及两个全文 false；禁止 `publishedAtAuthoritative=true`、日期精度升级、分页 opt-in、URL rewrite、运行时修改、DB导入或存量日期覆盖。Lead按 standing rule核销新配对与精确 source-ID/strict allowlist，Luna为配置/parser fixture锁定冲突 URL 不产生候选、无冲突实见候选仍保留及其真实日期；相同 scheme 的既有前缀语义按适用检查记录。本审查不执行该 QA。
+
+这允许云南保留覆盖目标并推进 disabled 注册，不需要先查清这条已排除文章的原始日期；该文章仍列为未决、未采入及历史覆盖缺口，不能被计为已完成90日回填。此配置只阻止该 source 的 future collector列表候选，不改变已存文章、旧 jobs、其他来源或手工 ingest；不是通用日期冲突识别，也不证明其他未知冲突自动受保护。解除该 deny/hold仍需上文要求的原始日期来源证据。若后续另一配对也冲突，条件未满足，保留草案并继续补证，不设 source-wide authoritative 绕过。
+
+本补充仅追加同一报告，无代码、测试、HTTP、DB或Git操作；不重开正式 Gate 2审查。
+
+## 同日最小扩源裁定：甘肃一次隔离 legacy collector
+
+**GANSU_PACKET_RESULT=APPROVED_SCOPE（执行前置条件及 Root 最终核销）；Gate 2=NOT_PASSED，sourceAdmission=NOT_ADMITTED，coverage=unproven。** 已只读核对 `P3_REMAINING_SOURCE_GAPS_2026-10-07.md` 末尾 packet、`S1_P3_LIMITED_LEGACY_COLLECTION_SCOPE_2026-10-06.md` 原合同及 ignored 福建 runner/guard/preflight。这是同一有界 legacy 模式换一个已有 disabled 来源的范围扩展，不需要新 collector 架构、分页模式或 initializedAt 例外。历史福建 preflight/实跑不自动核销甘肃克隆或真实请求。
+
+唯一 source 为 `mof-gansu-supervision-dynamics`；唯一两条 GET 为列表 `https://gs.mof.gov.cn/gzdt/caizhengjiancha/` 与业务详情 `https://gs.mof.gov.cn/gzdt/caizhengjiancha/202608/t20260821_3995880.htm`。列表日、PubDate日及可见发布日9月4日一致，路径8月21日只作诊断；2,923清理正文字符等保存 QA事实不是本轮 collector结果，不以路径或抓取日替代发布时间。
+
+批准在新 ignored甘肃目录局部复制既有 `run-once.mjs`、`fujian-dispatch-guard.mjs` 和 corrected/gzip preflight；仅替换 source/fixture/URL/origin、fresh absent `_test`库校验、目录/manifest标签及更窄限制常量。fixture从当前甘肃对象复制，继续 disabled/全文false、既有日期和 `.my_doccontent`规则、严格正文flag；只把候选 allow-prefix收窄为完整唯一详情、`initialBackfillLimit=1`、`detail.maxFetches=1`。pagination缺省，无rewrite/adapter/Jina/PDF helper。一次 `collectSource(id,{force:true})`，只允许本次列表中精确出现的那一篇；不存在即零文章观察，不补链接、不换文章。
+
+两次 actual dispatch硬上限包含失败/超时；拒绝任何redirect、重复URL/retry及其它方法/host/path/query/fragment/附件目标。单请求20秒、HTML响应字节及解压结果各不超过6MiB、全进程总时限60秒；共享边界不得只写入manifest而不实际执行。guard的动态 `allowedUrls`/`expectedOrigin`须全量替换，福建默认目录/错误标签及保存路径不可留下错误语义；完整 URL prefix不替代派发边界等值校验。保留真实 SSRF/DNS、backend pinned Undici及真实 Agent防护，无global-fetch/其他实例旁路。
+
+真实请求前必须由执行者和 QA核销甘肃克隆的 syntax、配置/保存raw hash，以及 loopback-only preflight：唯一候选留存、prefix后缀拒绝、第三次超额实际派发为0、错误目标/方法拒绝、redirect零第二跳、非HTML拒绝、响应/解压上限及gzip列表先有界解压再以真实 parser检查精确候选。历史福建live gzip边界 partial不能追认成甘肃通过；preflight与真实预算分开从0起。任一未证明停在preflight；新真实run仍由Root另行核销。
+
+唯一新 absent disposable `_test`数据库须先核实本地连接身份、库不存在及35项migration/零业务初态；不连preview/正式库。写入范围沿用原合同：唯一disabled source、一次 fetch_run、最多一篇article及其revision/discovery、source cursor/health时间戳与 enqueue-only内容队列。PgBoss入队必要内部生命周期允许，应用 `.work()`、`.schedule()`、worker/scheduler入口禁止，队列业务started/completed及job_runs/analysis/receipt/publication/selected写入均为0。采集总开关、模型、推送及其他外部服务开关关闭，force仅限本fixture。初始化、cleanup及异常都须保存审计，正常/异常调用既有stopBoss与DB关闭；60秒硬停若中断清理，独立QA必须核实无残留业务进程/在途请求并照实标partial，不续跑。
+
+独立前后DB QA、每dispatch及响应raw/hash/EOF/编码/失败、实际保存日期/正文/队列状态和全部cursor须记录。`initializedAt`、`lastOkAt`、health/fetch_run ok均仅表示该单次legacy事实；不得清除伪装零初始化、复制cursor、称近90日已完成或覆盖来源通过。详情best-effort失败/guard拒绝即使被collector吞掉，也独立报partial，不篡改ok原值或消费旧jobs。无附件、OCR、模型、生产source改动及存量日期更新。
+
+本次只追加裁定；未克隆runner、运行preflight、建库、执行测试/HTTP/collector/DB/Git。执行准备和QA继续交Luna，满足条件后交Root核销唯一真实run。
+
+## 同日最小例外裁定：会计司未就绪正文保护
+
+**ACCOUNTING_RESULT=APPROVED_SCOPE（exact ID配置及负例QA）；Gate 2=NOT_PASSED。** 本轮只审 `mof-accounting-notices`，中央会计司不属于35局配置 standing rule，此处单独扩展既有严格正文flag的配置许可；不自动扩展其他中央、福建厦门核心源。
+
+只读代码确认当前会计司有两项真实正文bodyPolicies，未设置strict flag、detail maxFetches或attachmentSelector；保存 `tests/fixtures/fiscal-accounting-body/real-title-xlsx.html`只有题名容器和XLSX链接，不满足这些正文策略。`content/selected-body.ts`未匹配策略时返回 `selector_missing`；现有pdfLinks不是通用XLSX探测器。本报告未执行该负例，实际 extract结果/诊断有无由Luna与独立QA原样记录。
+
+既有 `content/body-readiness.ts`精确读取source config布尔true，没有区域source ID分支；`jobs/content.ts`未就绪路由只允许pending走extract，unconfirmed的queueProcessing直接返回null。`editorial/input.ts`读取当前source config，`editorial/analyze.ts:425`在provider之前返回body_not_ready；`events/group.ts:643`阻断自动group。`publication/publish.ts`和公开items/v1/groups的当前配置投影压住自动selected，精确布尔manual selection保留原例外。`content/extract.ts`无attachment diagnostic的抽取失败分支同样写unconfirmed并对strict source同步publication。因此此负例的hold不依赖PDF/XLSX诊断或新的附件schema。
+
+**最小实现许可**：只为 `industry/sources.json`中 `mof-accounting-notices`的 `_aihot`增加 `requireBodyReadyForAutomaticSelection: true`，保持既有列表/日期/bodyPolicies、每日/三个月配置、disabled及两个全文false；不添加解析XLSX、attachmentSelector、detail maxFetches、日期authority、分页、抽取回退、schema或packages/apps改动。该source所有未就绪稿均受保护，这是已存在source-level开关的效果，不是仅对一个XLSX URL的分支。可靠正文ok且trim非空仍按原路线恢复，不人为改变样本body_status。实际JSON提交不更新任何已导入DB source行；DB启用/迁移/存量操作均未在此获准。
+
+Luna同步精确配置与allowlist断言：当前读取为46源、28个regional opt-in，新增会计司后source总数不变，opt-in为原28项加此exact ID；最终冻结时与其它已授权并发变更核算。`STRICT_BODY_POLICY_OPERATOR_NOTES_2026-10-06.md`须区分区域standing rule与本中央exact-ID例外，保留用户附件规则和未解析事实，不写成所有中央源已受保护。
+
+**最低验证要求**：复用既有 `strict-body-readiness.test.ts`与`strict-body-readiness-publication.test.ts`的配置精确布尔、未就绪hold、pending仅extract、旧analysis不得复活、非空ready恢复、当前公开投影/同步撤回、manual exact布尔及absent/false legacy回归。另在Luna正在进行的fresh `_test`/MockAgent会计司真实fixture负例中使用修改后的实际配置：保留原article URL，确认XLSX未dispatch、body空/unconfirmed及真实selector_missing、无诊断时不伪造diagnostic，自动queue/analyze的hold与零provider/receipt，自动selected/公开精选不进入。保留标题/安全摘要/原文链接可见行为与manual例外；不为证明hold执行付费或外部请求。可在同一负例记录已准备的修复前事实及修复后效果，不改变历史日志。独立QA复核后按仓库要求完成适用软件检查；本审查不核销尚未执行的测试。
+
+原文文章链接及unconfirmed是本配置可保证的退化边界；未新增附件诊断时，不能宣称XLSX原附件URL已结构化持久化或UI已展示附件待解析详情。保存fixture中的附件链接证据继续保留，读者可经原文链接访问；附件解析/结构化状态若后续需要再另审。严格flag也不判断财政事实质量、不能修正错误判为ok的假正文，不能把所有附件格式或该来源整体判为通过。
+
+其他已known unconfirmed核心源须继续逐源列出自动路径风险及用户附件规则缺口；无需将它们捆绑为本会计司最小保护的前置条件，也不代表风险已豁免或其Gate项可结清。确有同类路径证据时另提exact ID配置许可，不能据本裁定或35局standing rule批量扩展。本文未运行负例、测试、网络/DB/provider/OCR/Git，未改任何代码；实施及独立QA继续交Luna。
+
+## 同日阶段依赖裁定：有限历史验证与首次上线近90日回填
+
+**HISTORY_STAGE_RESULT=CHANGES_REQUIRED（仅修正文档阶段归属）；可停止机械遍历旧页，继续核心来源质量和稳定性补证。Gate 2=NOT_PASSED。** 不改变任何用户要求或正式Gate权限，不新增退出条件、审批表或实现框架。
+
+任务书第二十九节要求模型关闭时逐源核HTTP、发现、标题、发布时间、URL、正文、重复、导航/党建/招聘/培训及错误栏目；其Gate 2原文为“核心官方源稳定以后才能打开模型调用”。下一节才是小规模核心源模型验证。计划对应P3/Gate 2→P4。`GATE2_ACTION_CHECKLIST.md`又明确“不以实现通用分页、遍历全部历史页……为通用前置”。用户决定5明确“首次上线回填近90天”，而非“Gate 2之前遍历35局所有历史页”。因此STATUS/BLOCKERS若把每源完整90日回填一概列为Gate 2前置，确实超出既有阶段约定，应拆开，不向用户重复询问已确认要求。
+
+**Gate 2仍保留的35局范围**：逐局实见目标栏目与官方映射、列表/详情候选身份、实际source规则/allow/deny、日期与正文业务边界及已知异常必须逐项记录，浙江按已确认主“监管工作”范围。中央选登、35域名、46配置或单篇配对不能替代逐局覆盖证据；未核实的局/入口/关键规则不因“核心源”措辞被删除或默认为通过。Lead所述当前35局配对及新增配置以对应QA矩阵为准，本报告不重核其原始响应，不把这些准备证据升级为各源稳定性/全栏目通过。
+
+**Gate 2所需历史验证沿用现有P3有限证据边界**：用已保存/有界样本说明首页日期窗口、旧稿/非单调行序/分页入口的真实边界；核已有首次过滤规则的可信日期、缺失/非法/未来及实际冲突处理，截止内/外和等于截止的既有行为，历史按真实发布时间呈现而不冒充新稿、不删除存量；对失败/预算停止、重复发现和修订保留真实partial及恢复/稳定性证据。软件fixture核销边界行为，真实来源样本核日期/内容语义，两类证据分开。这些是现有规则的核验内容，不要求为每个35局各新增一套runtime测试或全页遍历。核心源质量、附件安全退化、重复/更新和跨时点稳定性的未决问题继续真实列为Gate 2缺口；单次成功、配置daily或模拟时钟均不核销稳定性。
+
+**完整近90日要求继续是首次上线验收待办**：P7/Gate 4本地完整验收应核销拟上线回填能力、来源适用性与完成/部分状态的可信解释，保留尚需真实环境确认的缺口；P8/P9按原计划在隔离Staging验证实际采集、调度、恢复和覆盖，首次上线前必须履行用户选定的近90日范围与真实原发布日期原则。不是把尚未完成的历史覆盖直接称作Gate 4通过，更不是允许首次上线用一页初始化替代90日回填。若完整回填能力仍不支持，应明确作为P7/上线准备阻塞处理，未来所需最小实现另按既有S1机制审阅；本次不授权该实现或大规模GET。
+
+实际legacy `collect.ts`只对单页候选执行首次90×24小时过滤、有限候选/detail处理后写initializedAt；Phase A/B及`web-list-pagination.ts`保持coverage=unproven，旧日期、countPage/空页、预算页数和maxPageIndex都不产生complete，Phase B原裁定明确不实现complete/增量切换/跨页完整性。把三个page2中出现7月9日前日期或countPage=50升级为窗口完成，违反这些边界。非单调日期下不能在第一个旧日期停为complete；也不能因未完成便强制在Gate 2前抓35×50页。继续机械请求旧页不能补足完成协议、日期可信度、首屏漂移或业务质量证明。
+
+**给Lead/Luna的准确修正文案**（替换当前笼统Gate 2 BLOCKERS/NEXT，历史事实保留）：
+
+> Gate 2仍NOT_PASSED：35局目标栏目与来源规则须逐项有证据，核心官方源的标题/可信日期、正文业务质量与噪声、附件安全退化、材料身份重复/修订及跨时点稳定性仍按矩阵核销；有限首次窗口与失败安全验证不足之处如实保留。逐源完整近90日回填及coverage完成证据尚未完成，列为P7/Gate 4上线准备与P8/P9实际运行、首次上线验收待办，不作为Gate 2通用全历史遍历前置。现有配置、单页initializedAt及少数旧页样本均不证明历史完成或来源通过。暂停机械旧页遍历，优先补核心源日期、噪声/正文、附件退化、重复更新及跨周期证据；P4真实模型仍待正式Gate 2审查通过及授权。
+
+G2-A2只需把“完整栏目/90日历史未证明”标为持续范围/上线历史待办，并说明本阶段有限样本证明什么、不能证明什么；不删除记录，不把unknown写PASS，也不新增一个“每局历史边界必须抓到”的前置。每日上线目标仍保留，Staging完整调度实跑也不反向变成Gate 2前需运行NAS。此处仅区分既有阶段，不裁定当前采集证据已经够稳定。
+
+本次仅追加本文，静态核对任务书/决策/清单及Phase A/B与当前collector代码；无测试、HTTP、DB、Git或运行时改动。Lead/Luna同步其owned状态与清单，继续小规模P3质量主线。

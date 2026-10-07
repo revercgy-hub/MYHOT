@@ -17,7 +17,7 @@ WORKTREE=代码提交已push；本交接及共享状态/矩阵文档在后续doc
 
 ## 完成内容与可复核证据
 
-最终来源配置在代码SHA `2e2a021ae5a5eaa614a758724480dc8b266f33e3` 为46项（45 `web_list`、1 `json_list`），精确28个`_aihot.requireBodyReadyForAutomaticSelection: true` source IDs。全部46项`enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`；配置未导入或seed到preview/production。精确ID和operator边界见[operator notes](../STRICT_BODY_POLICY_OPERATOR_NOTES_2026-10-06.md)；逐局实际观察和未完成项目见[regional coverage matrix](../REGIONAL_BUREAU_COVERAGE_MATRIX.md)及[source matrix](../SOURCE_MATRIX.md)。
+在 `2e2a021ae5a5eaa614a758724480dc8b266f33e3` 代码检查点，来源配置为46项（45 `web_list`、1 `json_list`），含精确28个区域 `_aihot.requireBodyReadyForAutomaticSelection: true` IDs。其后获批的会计司中央精确ID例外见本交接末尾更新。全部来源仍`enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`；配置未导入或seed到preview/production。精确ID和operator边界见[operator notes](../STRICT_BODY_POLICY_OPERATOR_NOTES_2026-10-06.md)；逐局实际观察和未完成项目见[regional coverage matrix](../REGIONAL_BUREAU_COVERAGE_MATRIX.md)及[source matrix](../SOURCE_MATRIX.md)。
 
 QA重新比对了本轮获准source/list/detail raw、manifest记录、byte length与SHA-256，并检查精确URL/最终URL、HTTP结果/EOF、列表候选到详情title/date映射、可见日期、正文清理和附件链接。首篇详情批次10/11成功；辽宁最先授权候选一次timeout、无重试，后来核准的另一篇辽宁候选成功配对。甘肃首页栏目锚点指向“工作动态”列表。甘肃详情title与列表相符，列表日、PubDate、可见日为2026-09-04，URL路径日期为2026-08-21，clean正文约2,923字符/16段且没有附件链接。甘肃列表、detail与manifest边界见[P3 remaining source gaps](../P3_REMAINING_SOURCE_GAPS_2026-10-07.md)。
 
@@ -52,3 +52,23 @@ P4真实provider/语义事件聚类和P5 Gold标注属于后续Gate；不得在�
 ## 声明
 
 本报告将页面观察、配置、selector fixtures、本地软件QA和CI分开叙述。未由manifest、raw、命令输出或数据库查询支持的事实保持unknown。Gate 2仍为`NOT_PASSED`，本交接没有新增来源准入或生产运行授权。
+
+## 2026-10-07 会计司中央精确例外与有限历史检查
+
+### 会计司正文就绪保护
+
+Sol 批准在既有严格正文就绪source flag中，为 `mof-accounting-notices` 增加一个独立的中央精确ID例外；原28个区域ID standing set不变，当前共29个 opt-in IDs、46个来源。它没有把规则扩展到其他中央或核心来源。会计司仍disabled，`site_fulltext=false`、`syndicate_fulltext=false`；不导入或seed到任何预览/生产source行。
+
+来源配置与fixture的代码提交为 `3108be5671ec0939bda7341a0b0c5f4753a1daf7`，只改`industry/sources.json`、`tests/source-rules.test.ts`和`tests/strict-body-readiness.test.ts`。在fresh隔离库 `fiscalhot_oct07_accounting_guard_test` 完成35项迁移；`npm run typecheck`、`npm test` 310/310、Web build、Web tests 15/15、loopback smoke 30/30通过。测试时模型调用开关只在本地stub测试进程开启；真实provider key/base URL及proxy变量清空，采集、Jina、Feishu、IndexNow、私网和OCR开关关闭。GitHub Actions run [37614483314](https://github.com/revercgy-hub/MYHOT/actions/runs/37614483314)对同一SHA的Check与Docker job均成功，backend 310项/309通过/0失败/1 Windows-only skip，Web tests 15/15、migration/seed、built-site smoke及Docker smoke通过。代码已推送到`origin/feat/fiscal-finance-hot`。软件测试不构成source admission或Gate 2通过。
+
+会计司另有独立的offline MockAgent before/after负例，证据目录为ignored `.data/accounting-xlsx-runtime-replay-20261007/`。输入为保存列表 `mof-accounting-1.html`（14,348 bytes，SHA-256 `7ecbff8d2c9a6c227163b77b179d157dc8a1b33eab26635a90f9c75ee99c031f`）和固定真实题名fixture（572 bytes，SHA-256 `682cb13078371d318e58be1869eb7dc4f3763819a70d9b89007e3a4067460b62`）。fresh独立数据库 `fiscalhot_accounting_xlsx_runtime_replay_20261007_test` 有35 migrations。修复前只派发精确列表/详情Mock各一次，collector found/created/revised=`1/1/0`；详情体抽取为`unconfirmed`、真实diagnostic `selector_missing`、body为空、revision 1，未产生附件诊断；自动strict hold当时为false。strict开启只应用于该测试库；同一文章上的既有`queueProcessing`返回null，`analyzeArticle`返回`body_not_ready`且provider未到达；文章状态未改、只有一个created extract job，receipt/analysis/lb_model均为0。精确XLSX tripwire保持未触发，未请求附件。测试使用固定MockAgent且`disableNetConnect=true`，外部HTTP为0；runner环境曾将`ALLOW_PRIVATE_NETWORK_FETCH=true`，所以此证据只能表述为exact mock-bounded offline replay，不能称该开关为false，也不验证live SSRF保护或私网访问安全。所有退出文件均为0，QA独立重算manifest/log/SQL快照和fixture SHA，并用只读SQL核对结果。该样本说明source-level严格flag不依赖附件诊断、也不实现XLSX解析；真实附件是否可读和全源正文质量仍未知。
+
+### 限定分页窗口与PBOC快照观察
+
+独立离线复核了ignored `.data/fiscal-qa/continuous-source-gaps/history-pages-20261007/`中regional page 1、page 2和PBOC当前列表artifact。三个地方局每批均为精确3 GET、`3/3/0`、HTTP 200、最终URL精确、gzip EOF；QA重算raw大小/SHA和page0/page1引用hash，并用当前仓库`fromHtml`重解析六份HTML，每页10行、URL集合匹配manifest。page 1对page0无URL重叠、页内重复为0，显示日期均晚于2026-07-09边界。page 2对page0和page1无URL重叠、页内重复为0；按页面显示日期统计，2026-07-09及以前的行数为天津7、山东4、内蒙古4。page 2的显示日期最旧分别是2026-05-29、2026-06-25、2026-06-22；显示日与URL路径日差异仍有1/6/3项。日期行序和路径冲突不能当作可信日期结论或完整窗口；每局都只有两页样本，不构成近90日完整覆盖。
+
+同目录PBOC `pboc/manifest.json`是cap=1的单次当前列表快照，HTTP 200、EOF、raw 40,079 bytes、SHA-256 `fe16e2da27948d98b63dee28239f5d53895acacdd24a124e461b34864178aa4d`。实际parser得到20项，URL与既有保存snapshot的20项完全重合，new/removed/changed均0，最旧上海显示日为2026-09-04。此为单次列表对照，不是跨日runtime去重、daily可靠性或来源通过。上述两个regional page batch与PBOC list均未访问数据库或运行collector；manifest保留在ignored目录。
+
+### 阶段边界修正
+
+根据[S1连续Gate依赖与历史阶段裁定](../S1_CONTINUOUS_GATE_DEPENDENCIES_2026-10-07.md)，Gate 2继续要求35局真实入口、来源规则、有限历史窗口/日期可信度、正文/噪声、附件退化、身份去重/修订及失败安全/跨时点稳定性有证据；不把遍历所有历史页或对35局完整抓取90天作为通用Gate 2前置。首次上线近90天回填要求继续保留，完整能力与覆盖/部分状态解释属于P7/Gate 4上线准备及P8/P9实际运行、首次上线验收；不得因拆分阶段把回填待办写成已通过。当前新增page2触达90日边界只推进有限样本，不改变该结论。Gate 2仍`NOT_PASSED`，来源仍全部disabled，未作来源准入或上线授权。

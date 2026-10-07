@@ -45,7 +45,7 @@
 ## 配置与状态边界
 
 - `industry/sources.json` 当前有35个域名用于 `mof-regional-supervision-dynamics` 的中央选登 allowlist。这是一个汇总来源，不是35个地方栏目来源。
-- 该段记录的是先前中间状态：配置曾为27项、后为32项并有14个strict opt-in；这些数字与“QA待执行”不再代表当前HEAD。最终46项/28 strict配置、唯一QA和同SHA CI结果见本矩阵末尾[连续P3检查点](HANDOFFS/CONTINUOUS_P3_HANDOFF_2026-10-07.md)。Batch 1–4有14个目标列表观察（不含厦门既有有限记录）；batch 5–9尝试19局，其中18局取得目标栏目列表、甘肃首次主页超时无列表。10/07后续独立预算取得甘肃首页、列表和配对详情，及青岛已超时详情的一次新成功观测；先前失败保留。Batch7大连、宁波、深圳配对首页/列表/详情证据经独立raw/hash核验。其余既有分页、正文和日期事实按各自报告保留；没有一页样本可证明完整90日覆盖、跨周期稳定或来源通过。Gate 2仍NOT_PASSED。详见[剩余来源缺口](P3_REMAINING_SOURCE_GAPS_2026-10-07.md)、[下一历史页报告](P3_NEXT_HISTORY_CHECK_2026-10-07.md)、[配置续批裁定](S1_BUREAU_BODY_POLICY_CONTINUATION_2026-10-07.md)及当前连续P3交接。
+- 该段记录的是先前中间状态：配置曾为27项、后为32项并有14个strict opt-in；这些数字与“QA待执行”不再代表当前HEAD。区域配置包含46个来源、28个区域strict opt-in；之后Sol单独批准一个`mof-accounting-notices`中央exact exception，当前全仓共46源/29 strict IDs，但中心来源不属于本矩阵35个地方局行。当前唯一QA和同SHA CI结果见本矩阵末尾[连续P3检查点](HANDOFFS/CONTINUOUS_P3_HANDOFF_2026-10-07.md)。Batch 1–4有14个目标列表观察（不含厦门既有有限记录）；batch 5–9尝试19局，其中18局取得目标栏目列表、甘肃首次主页超时无列表。10/07后续独立预算取得甘肃首页、列表和配对详情，及青岛已超时详情的一次新成功观测；先前失败保留。Batch7大连、宁波、深圳配对首页/列表/详情证据经独立raw/hash核验。其余既有分页、正文和日期事实按各自报告保留；有限页面样本不能证明完整90日覆盖、跨周期稳定或来源通过。Gate 2仍NOT_PASSED。详见[剩余来源缺口](P3_REMAINING_SOURCE_GAPS_2026-10-07.md)、[下一历史页报告](P3_NEXT_HISTORY_CHECK_2026-10-07.md)、[配置续批裁定](S1_BUREAU_BODY_POLICY_CONTINUATION_2026-10-07.md)及当前连续P3交接。
 - “中央候选稿”列只说明既有中央选登材料中曾有对应局名稿件，不补齐该局的栏目入口、未出现局的覆盖或栏目稳定性。样本命中与否均不用于判定某局是否有动态。
 - 目录数量35按两页实际18+17计数；未把NFRA地方机构混入，也未按“25–35个来源”计划目标凑数。逐局确认范围不代表栏目已发现、source已验收或collector可批量启用；Gate 2仍未通过。
 
@@ -132,6 +132,6 @@ A另获批的batch6–9及浙江监管工作保存候选详情最多15条direct 
 
 ## 2026-10-07 连续P3最终冻结检查点
 
-最终代码SHA `2e2a021ae5a5eaa614a758724480dc8b266f33e3` 有46项source配置（45 HTML、1 JSON），28个严格正文就绪opt-in；全部source disabled、全文许可关闭。精确ID、runtime guard约束和短文/内部活动边界见[operator notes](STRICT_BODY_POLICY_OPERATOR_NOTES_2026-10-06.md)。冻结批次本机fresh35-migration QA与同SHA CI Check+Docker均通过，软件证据不证明真实栏目质量或来源准入；详见[连续P3交接](HANDOFFS/CONTINUOUS_P3_HANDOFF_2026-10-07.md)。
+前一regional配置代码SHA `2e2a021ae5a5eaa614a758724480dc8b266f33e3` 有46项source配置（45 HTML、1 JSON）和28个regional严格正文就绪opt-in；随后`3108be5671ec0939bda7341a0b0c5f4753a1daf7`增加的只是一个Sol单独批准的中央`mof-accounting-notices` exact flag exception，当前总计46源/29 strict IDs。全部source disabled、全文许可关闭。精确ID、中央例外与正文/附件边界见[operator notes](STRICT_BODY_POLICY_OPERATOR_NOTES_2026-10-06.md)。最新代码SHA本机fresh35-migration QA与同SHA CI Check+Docker均通过，软件证据不证明真实栏目质量或来源准入；详见[连续P3交接](HANDOFFS/CONTINUOUS_P3_HANDOFF_2026-10-07.md)。
 
-目前矩阵行记录的是已见的入口、列表、详情和有限正文事实；它没有证明35局栏目完整、90日历史/分页终点、来源级日期权威性、跨周期稳定性或全部内容质量。甘肃与辽宁/云南新详情的日期及正文观察按单篇保存，路径日期冲突不以token强推发布时间。用户确认浙江首期“监管工作”为主栏目、图片新闻后续补充，栏目历史仍未完结。Gate 2仍`NOT_PASSED`。
+目前矩阵行记录的是已见的入口、列表、详情和有限正文事实；它没有证明35局栏目完整、历史/分页终点、来源级日期权威性、跨周期稳定性或全部内容质量。2026-10-07对天津、山东、内蒙古的page1/page2有限样本已触及Jul9窗口边界；各自仅两页，未证明完整90日覆盖。甘肃与辽宁/云南新详情的日期及正文观察按单篇保存，路径日期冲突不以token强推发布时间。完整近90日首次回填仍是用户要求的上线事项，依[S1阶段裁定](S1_CONTINUOUS_GATE_DEPENDENCIES_2026-10-07.md)属于P7/Gate 4上线准备及P8/P9实际Staging/首次上线验收，不要求Gate 2前机械遍历全部旧页。用户确认浙江首期“监管工作”为主栏目、图片新闻后续补充，栏目历史仍未完结。Gate 2仍`NOT_PASSED`。

@@ -1,6 +1,6 @@
 # Gate 2 action checklist
 
-**基线与最近代码检查点**：项目BASE `589f79eff09470b31ba8a7f1d9eb62d36ff2be6c`；旧代码检查点与历史CI结果按下文保留。当前工作树配置46项（45 HTML、1 JSON），全部disabled、全文关闭；28个来源使用既有strict-body flag。配置未seed，最后冻结批次QA正在执行；软件QA不等于source admission。Gate 1已通过，Gate 2=`NOT_PASSED`。用户决定本地OCR为`OCR_DEFERRED_NOT_GATE2_BLOCKER`；详情见[OCR延后决策交接](HANDOFFS/OCR_DEFERRED_USER_DECISION_2026-10-06.md)。本清单不增加或重定义Gate条件，不宣称任一source已整体通过；正式结论仍由授权的Gate 2审查作出。用户已确认浙江首期以“监管工作”为主栏目，“图片新闻”后续补充；该范围决定不表示完整覆盖或来源通过。
+**基线与最近代码检查点**：项目BASE `589f79eff09470b31ba8a7f1d9eb62d36ff2be6c`；旧代码检查点与历史CI结果按下文保留。当前代码SHA `3108be5671ec0939bda7341a0b0c5f4753a1daf7`的工作树配置46项（45 HTML、1 JSON），全部disabled、全文关闭；29个来源使用既有strict-body flag（28个regional standing IDs和单独批准的中央`mof-accounting-notices` exact exception）。fresh全套本机QA及同SHA CI run [37614483314](https://github.com/revercgy-hub/MYHOT/actions/runs/37614483314)已通过；配置未seed，软件QA不等于source admission。Gate 1已通过，Gate 2=`NOT_PASSED`。用户决定本地OCR为`OCR_DEFERRED_NOT_GATE2_BLOCKER`；详情见[OCR延后决策交接](HANDOFFS/OCR_DEFERRED_USER_DECISION_2026-10-06.md)。本清单不增加或重定义Gate条件，不宣称任一source已整体通过；正式结论仍由授权的Gate 2审查作出。用户已确认浙江首期以“监管工作”为主栏目，“图片新闻”后续补充；该范围决定不表示完整覆盖或来源通过。
 
 **2026-10-06恢复核验状态**：两项代码提交及最终CI已完成；本机fresh backend full 257/257，CI Linux backend 257/256/0/1（1项Windows-only skip）、Web15/15。S4针对性回归5/5；source-specific正文保护已实现。所有真实请求的时点按manifest UTC；逐局证据见[矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)。
 
@@ -10,8 +10,8 @@
 
 | 维度 | 现有证据 | 缺口 | 下一具体动作 | 完结标准 | 责任 |
 |---|---|---|---|---|---|
-| G2-A1 来源与候选身份 | **现状：部分。** 工作树有46项配置（45 HTML、1 JSON），均disabled；已核验多批首页/列表/配对详情，原始身份和有限正文边界见逐局矩阵。strict-body exact IDs为28项，仅为自动处理保护。 | 单篇和单页不能证明全栏目质量；个别目标详情超时或日期冲突保留，配置flag不等来源通过。 | 按矩阵继续填补来源范围、日期语义、正文质量和跨周期证据。 | 官方入口、列表/详情身份、日期语义与正文边界均有逐source证据且配置allowlist正确。 | QA/Lead；本轮仍为有限样本。 |
-| G2-A2 首页窗口与栏目/历史候选 | **现状：未结。** 按用户口径需覆盖35个地方局新闻动态栏目；浙江用户已指定首期主入口为“监管工作”、图片新闻后续补充。多局已保存首页和列表样本，包含甘肃配对详情；分页/90日覆盖仍未完整证明。 | 单页和少数分页样本不能证明完整栏目、分页、90日历史、失败恢复或跨周期稳定。 | 按矩阵续查保存页面历史/分页及跨周期；S1阶段A仅批准离线/loopback实现，不是source接入批准。失败保留partial不重试。 | 多时点证据可说明daily目标、历史窗口及失败恢复，不把配置值或少数分页样本当运行覆盖。 | QA/Lead；仍缺跨度与范围。 |
+| G2-A1 来源与候选身份 | **现状：部分。** 工作树有46项配置（45 HTML、1 JSON），均disabled；已核验多批首页/列表/配对详情，原始身份和有限正文边界见逐局矩阵。strict-body exact IDs为29项：28个区域来源加一个单独批准的会计司中央精确例外，仅为自动处理保护。 | 单篇和单页不能证明全栏目质量；个别目标详情超时或日期冲突保留，配置flag不等来源通过。 | 按矩阵继续填补来源范围、日期语义、正文质量和跨周期证据。 | 官方入口、列表/详情身份、日期语义与正文边界均有逐source证据且配置allowlist正确。 | QA/Lead；本轮仍为有限样本。 |
+| G2-A2 首页窗口与栏目/历史候选 | **现状：未结。** 按用户口径需覆盖35个地方局新闻动态栏目；浙江用户已指定首期主入口为“监管工作”、图片新闻后续补充。多局已保存首页和有限分页样本，含甘肃配对详情；三局历史页样本已经触达2026-07-09边界，但未证明完整历史。 | 单页和少数分页样本不能证明完整栏目、来源级可信日期、失败恢复或跨周期稳定；不以机械遍历全部旧页作为Gate 2的通用前置。 | 按矩阵继续核实35局实际入口/规则，并审有限历史样本的日期、窗口边界、失败安全和partial处理；保留非单调行序及URL路径冲突。完整近90天首次回填能力与覆盖/partial解释属于P7/Gate 4上线准备以及P8/P9 staging和首次上线前验收。 | Gate 2保留逐局范围、核心源有限历史/日期/失败安全证据；不能把countPage或有限页面说成完整覆盖。完整近90天首次回填仍须在上线阶段验收，不因阶段区分而删去用户要求。 | QA/Lead；当前仍缺核心质量与周期证据。 |
 | G2-A3 新鲜度、失败恢复与轮询稳定性 | **现状：未结。** 46项工作树配置仍全disabled、未导入DB；daily目标未通过scheduler实跑验证。 | 尚无多轮间隔、失败退避恢复、滑窗进入/退出完整证据。 | 仅在获批应用数据库/启用后观察daily轮询与失败恢复；不得据JSON声明运行通过。 | 可复核实际轮询、失败恢复及窗口更新行为。 | 工程与Lead；时效容忍仍需用户决定。 |
 | G2-A4 日期、材料身份去重与事件聚类 | **现状：部分。** PBOC OMO两个保存列表经runtime MockAgent相邻快照回放：191号重复候选保持同article ID/material identity/hash/revision与一次discovery；192号作为新精确URL新建一次。时钟相邻日为模拟，不能据此认定daily可靠性。区域来源间目前缺少形成充分重叠的已验证runtime样本，零交集保持unknown。 | **P3 / Gate 2**须核验相同normalized URL/material identity候选在重复发现、更新和跨来源发现时的source/article IDs、identity、discovery与revision变化；无实际重叠时记`not observed / runtime dedupe unknown`，不得以零交集宣称去重通过。日期冲突按来源保留hold/规则，不以URL token推断发布日期。 | 复用保存候选离线比较canonical URL/identity；在确有重叠且获准运行时检查真实入库dedupe，并保留前后计数。对固定样本核列表日、详情PubDate/可见日，不借路径覆盖冲突。 | 精确材料身份重复/修订行为有可审ID和revision证据；日期规则明确；零重叠仍写unknown。 | 工程/QA。 |
 | G2-A5 正文可用性、领域事实与边界噪声 | **现状：未结。** 北京一篇body ok；福建9 body ok、1篇诊断后unconfirmed；上海10 body ok。新增detail样本中既有财政监管业务，也有内部活动/学习。S4严格正文就绪保护已按来源opt-in实现并通过focused/full/CI。用户确认附件无法可靠解析时保留原文URL、正文待解析且不进入自动精选。 | 单篇样本不能测全源质量；附件类内容的业务正文可用性与全栏质量仍未知。 | 对HTML、JSON及可读text-PDF来源继续逐源小规模准入验证并积累正负正文边界样本；不将短度直接作噪声判定。扫描件OCR已延后，不作为Gate 2 blocker；若未来有实际需求，再评估provider API。 | 来源正文异常安全保留；自动精选/公开行为可审；机器、人工、模型判断分开。软件通过不等于来源验收。 | 工程/QA；内容质量未闭环。 |
@@ -43,6 +43,7 @@
 ## 明确后置项与记录修正
 
 - Gate 2不以实现通用分页、遍历全部历史页、OCR、NAS RSS/内存验收或Linux真实PDF解析为通用前置；业务核心源若依赖不支持的附件，须按具体source清楚标记机器正文未验证/不支持。真实PDF Linux路径最迟P7/Gate 4验证；NAS在P8/P9验证。
+- 完整近90天首次回填仍是用户确认的首次上线要求，但不是Gate 2要求在上线前对35局机械遍历所有旧页。P7/Gate 4应验收回填实现、覆盖/partial状态解释和安全边界；P8/P9在实际Staging及首次上线验收中完成所需回填并按真实发布日期呈现，不删除已有数据库数据。
 - 所有source请求只作有界P3验证；Gate 2通过后P4也必须使用隔离新库，不能消费旧P3遗留jobs。
 - 财政部监管局汇总只代表官网选登候选，35个域名allowlist也不等于35局动态完整覆盖；不得以该汇总或一条厦门独立源宣称“全国35局full coverage”。
 - 历史完整首页批次的hop证据不可追认，但未来一批经审计且预算硬停验证的新范围证据可用于验收；不必永久阻塞。

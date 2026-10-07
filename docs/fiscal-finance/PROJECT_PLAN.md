@@ -4,9 +4,9 @@
 
 ## 2026-10-07 连续 P3 当前检查点
 
-代码SHA `2e2a021ae5a5eaa614a758724480dc8b266f33e3`将行业source配置扩至46项（45 HTML、1 JSON），其中精确28项使用既有strict body-ready opt-in；所有来源保持disabled且站内/转发全文关闭，没有seed到preview或production。冻结批次的fresh 35-migration本机QA：typecheck、backend 310/310、Web build、Web tests 15/15、loopback smoke通过；同SHA GitHub Check+Docker run [37611936804](https://github.com/revercgy-hub/MYHOT/actions/runs/37611936804)成功。该证据验证软件与配置约束，不构成任何来源准入或Gate 2通过。用户明确浙江首期主栏目为“监管工作”，图片新闻后续补充。
+代码SHA `3108be5671ec0939bda7341a0b0c5f4753a1daf7`在46项来源（45 HTML、1 JSON）中启用既有strict body-ready flag的精确29项：28个区域ID与Sol单独批准的中央`mof-accounting-notices`例外。所有source保持disabled且站内/转发全文关闭，没有seed到preview或production。新fresh 35-migration本机QA：typecheck、backend 310/310、Web build、Web tests15/15、loopback smoke30/30通过；同SHA GitHub Check+Docker run [37614483314](https://github.com/revercgy-hub/MYHOT/actions/runs/37614483314)成功。独立会计司offline MockAgent before/after negative replay验证未就绪正文严格hold；细节及私网开关边界见[连续P3交接](HANDOFFS/CONTINUOUS_P3_HANDOFF_2026-10-07.md)。软件与配置约束证据不构成source admission或Gate 2通过。用户明确浙江首期主栏目为“监管工作”，图片新闻后续补充。
 
-Gate 2仍按完整既有要求审查35局逐一栏目覆盖、真实分页与近90日历史、可信日期、正文/附件质量、材料身份重复/修订、恢复与跨周期证据。G2-A4在P3核验真实相同normalized URL/material identity的重复发现和内容修订；无实际相同样本时写`not observed / runtime dedupe unknown`。跨来源同一事件的语义聚类准确性保持`P4_REQUIRED_NOT_RUN`，P4阶段仍须独立用隔离数据库及经授权Gold样本验证；此区分不删减P3/Gate 2要求，也不新设Gate 2退出条件。现有样本的题名、日期、正文与已知日期冲突按[来源矩阵](SOURCE_MATRIX.md)和[区域覆盖矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)逐项保留，有限样本不能外推为整源质量。
+Gate 2仍要求35局逐一栏目与来源规则证据、核心来源有限历史窗口/日期可信度、正文/附件质量、材料身份重复/修订、失败安全和跨时点稳定性。有限样本和P2旧页不得当作历史完整。按[S1连续Gate依赖与历史阶段裁定](S1_CONTINUOUS_GATE_DEPENDENCIES_2026-10-07.md)，首次上线所需完整近90日回填仍是用户要求，完整能力及覆盖/partial解释属于P7/Gate 4上线准备和P8/P9实际Staging、首次上线验收；不要求Gate 2之前对35局机械遍历所有历史页。G2-A4在P3核验真实相同normalized URL/material identity的重复发现和内容修订；无实际相同样本时写`not observed / runtime dedupe unknown`。跨来源同一事件的语义聚类准确性保持`P4_REQUIRED_NOT_RUN`，P4阶段仍须独立用隔离数据库及经授权Gold样本验证；此区分不删减P3/Gate 2要求，也不新设Gate 2退出条件。现有样本的题名、日期、正文与已知日期冲突按[来源矩阵](SOURCE_MATRIX.md)和[区域覆盖矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)逐项保留，有限样本不能外推为整源质量。
 
 完整测试、SHA、CI和运行边界见[连续P3交接](HANDOFFS/CONTINUOUS_P3_HANDOFF_2026-10-07.md)。
 

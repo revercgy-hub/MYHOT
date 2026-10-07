@@ -358,7 +358,7 @@ Batch6四局保存的page1脚本推导出精确`index_1.htm`目标；四个direc
 
 ## 2026-10-07 最终冻结的连续P3配置、证据边界与软件QA
 
-本轮最终代码SHA `2e2a021ae5a5eaa614a758724480dc8b266f33e3` 包含46项配置（45 `web_list`、1 `json_list`），精确28个strict body-ready opt-in；每项均disabled，站内及转发全文许可关闭，未导入或seed到preview/production。已Lead exact接受新增来源ID包括大连、宁波、深圳、青岛、甘肃、天津、河北、山西、内蒙古、吉林、黑龙江、山东、江苏、安徽、江西、新疆、浙江、辽宁、云南；各源实际栏目/样本与缺口仍看[区域覆盖矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)。短文、内部活动或只通过合成fixture的条目不得升级成实际正文质量通过。
+此前连续来源配置检查点代码SHA `2e2a021ae5a5eaa614a758724480dc8b266f33e3` 包含46项配置（45 `web_list`、1 `json_list`），精确28个regional strict body-ready opt-in；每项均disabled，站内及转发全文许可关闭，未导入或seed到preview/production。已Lead exact接受新增regional IDs包括大连、宁波、深圳、青岛、甘肃、天津、河北、山西、内蒙古、吉林、黑龙江、山东、江苏、安徽、江西、新疆、浙江、辽宁、云南；各源实际栏目/样本与缺口仍看[区域覆盖矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)。短文、内部活动或只通过合成fixture的条目不得升级成实际正文质量通过。后续仅获准增加会计司中央source一个exact strict exception，详见本节最新增量。
 
 本轮独立QA离线重算了保存raw长度/hash并比对manifest、精确目标/最终URL、HTTP/EOF、列表候选和detail题名/日期字段、clean body与附件链接。末两条已批准详情中辽宁列表/PubDate/可见日期为8月26日而URL token为8月13日；云南配对样本三者为8月27日而URL token为8月21日。云南已知冲突文章`https://yn.mof.gov.cn/caizhengjiancha/202609/t20260918_3997764.htm`继续保留既有history hold，且按Sol批准的来源级exact URL deny排除；第二篇样本不决定云南的全源日期语义。甘肃对应detail为9月4日列表/PubDate/可见日与8月21日URL token，clean body约2,923字符/16段且无附件。浙江首期栏目依用户决定为“监管工作”，图片新闻后续补充。各请求、精确SHA及其它来源事实见[continuous handoff](HANDOFFS/CONTINUOUS_P3_HANDOFF_2026-10-07.md)和[连续P3剩余来源证据](P3_REMAINING_SOURCE_GAPS_2026-10-07.md)。所有这些都是有限观察，不建立90日历史覆盖、来源级日期规则、selector长期稳定或source admission。
 
@@ -369,3 +369,11 @@ Batch6四局保存的page1脚本推导出精确`index_1.htm`目标；四个direc
 甘肃在loopback canary之后获准执行唯一一次legacy collector样本。fresh库`fiscalhot_oct07_gansu_legacy_test`先有35 migrations、空source/articles/fetch_runs；一次运行精确GET列表与详情各1次（Undici `2/2/0`，两份HTTP200 gzip EOF），found1/new1，新增1篇2026-09-04(+08)正文`ok`/revision1、2,923字符。原始gzip captures为4,402B/SHA `bc1031388b55d4dc4262e3450416c645ba3836043afa836e2bd6243d827230da` 与8,604B/SHA `d4e11dac4708bc99c6060bb9fa4e14c18109a3eb0166d5e3e4db15bd3068b990`；QA独立解压并确认与保存list/detail raw逐字节一致。source仍disabled/fulltext-off，无分析、receipts、publication或selection；一个分析job queued但worker未启动/未消费。初始化cursor只证明该次运行写入，不证明daily调度、近90日覆盖、恢复、全栏质量或source admission；详细结果见[continuous handoff](HANDOFFS/CONTINUOUS_P3_HANDOFF_2026-10-07.md)。
 
 G2-A4另有PBOC OMO saved-snapshot runtime replay：固定MockAgent `disableNetConnect`、外网HTTP 0，在独立fresh 35-migration DB将9月29与9月30两张保存列表按精确已批准URLs回放。parser各20条，exact URL overlap19；第191号文章第二轮被识别为同一normalized URL/material identity，article ID/content hash/revision1/discovery1保持，第二轮只新建第192号一条。两次collector fetch均`ok`，分别found/new 1/1与2/1；每条详情只请求一次，无worker/model/receipt/analysis。时钟推进是模拟，不代表实际daily可靠性；中央样本也不替代地方35局逐项证据或source acceptance。原始审计、DB路径及边界见[连续P3交接](HANDOFFS/CONTINUOUS_P3_HANDOFF_2026-10-07.md)。
+
+## 2026-10-07 会计司精确正文保护与有限历史快照
+
+Sol额外批准`mof-accounting-notices`作为既有strict body-ready布尔flag的一个中央exact-ID例外；区域28项standing set未变，当前46源共29项opt-in。没有扩展其他中央/core源。代码SHA `3108be5671ec0939bda7341a0b0c5f4753a1daf7`只更改`sources.json`与两项配置精确断言；accounting source仍disabled、两种全文许可关闭。新fresh 35-migration QA backend310/310、typecheck、Web build/tests15/15、loopback smoke30/30通过；同SHA GitHub run [37614483314](https://github.com/revercgy-hub/MYHOT/actions/runs/37614483314) Check+Docker均成功。会计司独立before/after negative fixture及`ALLOW_PRIVATE_NETWORK_FETCH=true`例外见[连续P3交接](HANDOFFS/CONTINUOUS_P3_HANDOFF_2026-10-07.md)。strict hold证明不增加XLSX解析、附件诊断或source-wide quality事实。
+
+三局既有page1/page2与PBOC列表的独立QA使用保存raw、原始manifest、实际source selector/parser及之前快照；不连数据库、不运行collector。regional page1、page2各3个exact列表GET均HTTP200/final URL exact/gzip EOF，capture bytes/SHA与manifest一致；page0/page1引用raw hash亦复核一致。离线`fromHtml`重解析六份页面，每页10个候选，URL集合匹配；各页内重复及与之前页URL overlap均为0。page1显示日全晚于2026-07-09；page2按显示日统计，≤7/09天津7条、山东4条、内蒙古4条，显示日/路径日期不一致分别1/6/3。最早显示日5/29、6/25、6/22仅说明有限快照触及既定边界，非完整历史覆盖或日期权威。
+
+PBOC当前列表快照限cap=1，HTTP200/EOF，raw 40,079 bytes，SHA `fe16e2da27948d98b63dee28239f5d53895acacdd24a124e461b34864178aa4d`；实际parser取20条，和既有20条snapshot完全重叠，没有new/removed/changed。该单次列表对照不等于跨日runtime去重或daily可靠性。manifest路径、实际行/日期与边界见[连续P3交接](HANDOFFS/CONTINUOUS_P3_HANDOFF_2026-10-07.md)及ignored `.data/fiscal-qa/continuous-source-gaps/history-pages-20261007/`。Gate 2继续NOT_PASSED。
