@@ -16,6 +16,25 @@ const strictBodyIds = new Set([
   "mof-qinghai-supervision-dynamics",
   "mof-shaanxi-supervision-dynamics",
   "mof-guizhou-supervision-dynamics",
+  "mof-gansu-supervision-dynamics",
+  "mof-tianjin-supervision-dynamics",
+  "mof-hebei-supervision-dynamics",
+  "mof-shanxi-supervision-dynamics",
+  "mof-inner-mongolia-supervision-dynamics",
+  "mof-jilin-supervision-dynamics",
+  "mof-heilongjiang-supervision-dynamics",
+  "mof-shandong-supervision-dynamics",
+  "mof-jiangsu-supervision-dynamics",
+  "mof-anhui-supervision-dynamics",
+  "mof-jiangxi-supervision-dynamics",
+  "mof-xinjiang-supervision-dynamics",
+  "mof-zhejiang-supervision-dynamics",
+  "mof-liaoning-supervision-dynamics",
+  "mof-yunnan-supervision-dynamics",
+  "mof-dalian-supervision-dynamics",
+  "mof-ningbo-supervision-dynamics",
+  "mof-shenzhen-supervision-dynamics",
+  "mof-qingdao-supervision-dynamics",
 ]);
 const sourceDoc = JSON.parse(readFileSync(sourcesFile, "utf8")) as {
   sources: Array<{
@@ -199,6 +218,216 @@ const expected = [
     detailDate: "2026-09-23 10:55:00",
     parsedDetailTitle: "财政部贵州监管局：打造“1+5”模式 推动机关文化建设提质增效",
   },
+  {
+    id: "mof-gansu-supervision-dynamics",
+    bureau: "gansu",
+    url: "https://gs.mof.gov.cn/gzdt/caizhengjiancha/",
+    article: "https://gs.mof.gov.cn/gzdt/caizhengjiancha/202608/t20260821_3995880.htm",
+    title: "财政部甘肃监管局：构建“一二三”监管体系 推动甘肃中央财政监管工作提质增效",
+    listDate: "2026-09-04T00:00:00+08:00",
+    detailTitle: "财政部甘肃监管局：构建“一二三”监管体系 推动甘肃中央财政监管工作提质增效",
+    detailDate: "2026-09-04 08:19:00",
+    parsedDetailTitle: "财政部甘肃监管局：构建“一二三”监管体系 推动甘肃中央财政监管工作提质增效",
+  },
+  {
+    id: "mof-qingdao-supervision-dynamics",
+    bureau: "qingdao",
+    url: "https://qd.mof.gov.cn/gzdt/caizhengjiancha/",
+    article: "https://qd.mof.gov.cn/gzdt/caizhengjiancha/202609/t20260930_3998487.htm",
+    title: "情暖中秋树新风 清风润家促文明 ——财政部青岛监管局开展“我们的节日·中秋”系列活动",
+    listDate: "2026-09-30T00:00:00+08:00",
+    detailTitle: "情暖中秋树新风 清风润家促文明 ——财政部青岛监管局开展“我们的节日·中秋”系列活动",
+    detailDate: "2026-09-30 16:33:00",
+    parsedDetailTitle: "情暖中秋树新风 清风润家促文明 ——财政部青岛监管局开展“我们的节日·中秋”系列活动",
+  },
+  {
+    id: "mof-dalian-supervision-dynamics",
+    bureau: "dalian",
+    url: "https://dl.mof.gov.cn/caizhengjiancha/",
+    article: "https://dl.mof.gov.cn/caizhengjiancha/202609/t20260930_3998449.htm",
+    title: "财政部大连监管局开展节前警示教育 筑牢廉洁过节防线",
+    listDate: "2026-09-30T00:00:00+08:00",
+    detailTitle: "财政部大连监管局开展节前警示教育 筑牢廉洁过节防线",
+    detailDate: "2026-09-30 14:33:00",
+    parsedDetailTitle: "财政部大连监管局开展节前警示教育 筑牢廉洁过节防线",
+  },
+  {
+    id: "mof-ningbo-supervision-dynamics",
+    bureau: "ningbo",
+    url: "https://nb.mof.gov.cn/caizhengjiancha/",
+    article: "https://nb.mof.gov.cn/caizhengjiancha/202609/t20260930_3998450.htm",
+    title: "财政部宁波监管局：参加宁波市直机关工委理论宣讲活动",
+    listDate: "2026-09-30T00:00:00+08:00",
+    detailTitle: "财政部宁波监管局：参加宁波市直机关工委理论宣讲活动",
+    detailDate: "2026-09-30 14:31:00",
+    parsedDetailTitle: "财政部宁波监管局：参加宁波市直机关工委理论宣讲活动",
+  },
+  {
+    id: "mof-shenzhen-supervision-dynamics",
+    bureau: "shenzhen",
+    url: "https://sz.mof.gov.cn/caizhengjiancha/",
+    article: "https://sz.mof.gov.cn/caizhengjiancha/202609/t20260929_3998295.htm",
+    title: "深圳监管局：监管三处专题学习《中华人民共和国注册会计师法》",
+    listDate: "2026-09-29T00:00:00+08:00",
+    detailTitle: "深圳监管局：监管三处专题学习《中华人民共和国注册会计师法》",
+    detailDate: "2026-09-29 10:42:00",
+    parsedDetailTitle: "深圳监管局：监管三处专题学习《中华人民共和国注册会计师法》",
+  },
+  {
+    id: "mof-tianjin-supervision-dynamics",
+    bureau: "tianjin",
+    url: "https://tj.mof.gov.cn/gzdt2/caizhengjiancha/",
+    article: "https://tj.mof.gov.cn/gzdt2/caizhengjiancha/202609/t20260929_3998309.htm",
+    title: "财政部天津监管局：三维联动抓培训 多点发力促落实——以高质量培训推动过紧日子要求见行见效",
+    listDate: "2026-09-29T00:00:00+08:00",
+    detailTitle: "财政部天津监管局：三维联动抓培训 多点发力促落实——以高质量培训推动过紧日子要求见行见效",
+    detailDate: "2026-09-29 14:29:00",
+    parsedDetailTitle: "财政部天津监管局：三维联动抓培训 多点发力促落实——以高质量培训推动过紧日子要求见行见效",
+  },
+  {
+    id: "mof-hebei-supervision-dynamics",
+    bureau: "hebei",
+    url: "https://he.mof.gov.cn/caizhengjiancha/",
+    article: "https://he.mof.gov.cn/caizhengjiancha/202609/t20260915_3997463.htm",
+    title: "财政部河北监管局：立足三个导向扎实开展中小企业发展专项资金重点绩效评价工作",
+    listDate: "2026-09-15T00:00:00+08:00",
+    detailTitle: "财政部河北监管局：立足三个导向扎实开展中小企业发展专项资金重点绩效评价工作",
+    detailDate: "2026-09-15 15:23:00",
+    parsedDetailTitle: "财政部河北监管局：立足三个导向扎实开展中小企业发展专项资金重点绩效评价工作",
+  },
+  {
+    id: "mof-shanxi-supervision-dynamics",
+    bureau: "shanxi",
+    url: "https://sn.mof.gov.cn/gzdt/caizhengjiancha/",
+    article: "https://sn.mof.gov.cn/gzdt/caizhengjiancha/202609/t20260930_3998420.htm",
+    title: "山西监管局：优化监督检查廉政防控体系 锻造责任担当财会监督铁军",
+    listDate: "2026-09-30T00:00:00+08:00",
+    detailTitle: "山西监管局：优化监督检查廉政防控体系 锻造责任担当财会监督铁军",
+    detailDate: "2026-09-30 11:48:00",
+    parsedDetailTitle: "山西监管局：优化监督检查廉政防控体系 锻造责任担当财会监督铁军",
+  },
+  {
+    id: "mof-inner-mongolia-supervision-dynamics",
+    bureau: "inner-mongolia",
+    url: "https://nmg.mof.gov.cn/caizhengjiancha/",
+    article: "https://nmg.mof.gov.cn/caizhengjiancha/202609/t20260923_3998041.htm",
+    title: "财政部内蒙古监管局：坚持“四维发力” 持续推动财政收入监管提质增效",
+    listDate: "2026-09-23T00:00:00+08:00",
+    detailTitle: "财政部内蒙古监管局：坚持“四维发力” 持续推动财政收入监管提质增效",
+    detailDate: "2026-09-23 17:41:00",
+    parsedDetailTitle: "财政部内蒙古监管局：坚持“四维发力” 持续推动财政收入监管提质增效",
+  },
+  {
+    id: "mof-jilin-supervision-dynamics",
+    bureau: "jilin",
+    url: "https://jl.mof.gov.cn/caizhengjiancha/",
+    article: "https://jl.mof.gov.cn/caizhengjiancha/202609/t20260930_3998472.htm",
+    title: "财政部吉林监管局：构建闭环管理机制 推动绩效管理提质增效",
+    listDate: "2026-09-30T00:00:00+08:00",
+    detailTitle: "财政部吉林监管局：构建闭环管理机制 推动绩效管理提质增效",
+    detailDate: "2026-09-30 15:46:00",
+    parsedDetailTitle: "财政部吉林监管局：构建闭环管理机制推动绩效管理提质增效",
+  },
+  {
+    id: "mof-heilongjiang-supervision-dynamics",
+    bureau: "heilongjiang",
+    url: "https://hlj.mof.gov.cn/caizhengjiancha/",
+    article: "https://hlj.mof.gov.cn/caizhengjiancha/202609/t20260929_3998307.htm",
+    title: "黑龙江监管局：监管三处组织学习《改善普通高中学校办学条件补助资金管理办法》",
+    listDate: "2026-09-29T00:00:00+08:00",
+    detailTitle: "黑龙江监管局：监管三处组织学习《改善普通高中学校办学条件补助资金管理办法》",
+    detailDate: "2026-09-29 14:14:00",
+    parsedDetailTitle: "黑龙江监管局：监管三处组织学习《改善普通高中学校办学条件补助资金管理办法》",
+  },
+  {
+    id: "mof-shandong-supervision-dynamics",
+    bureau: "shandong",
+    url: "https://sd.mof.gov.cn/gzdt/caizhengjiancha/",
+    article: "https://sd.mof.gov.cn/gzdt/caizhengjiancha/202609/t20260922_3997968.htm",
+    title: "山东监管局：三维发力抓实中小企业专项资金重点绩效评价 推动惠企政策落地见效",
+    listDate: "2026-09-29T00:00:00+08:00",
+    detailTitle: "山东监管局：三维发力抓实中小企业专项资金重点绩效评价 推动惠企政策落地见效",
+    detailDate: "2026-09-29 08:34:00",
+    parsedDetailTitle: "山东监管局：三维发力抓实中小企业专项资金重点绩效评价推动惠企政策落地见效",
+  },
+  {
+    id: "mof-jiangsu-supervision-dynamics",
+    bureau: "jiangsu",
+    url: "https://jsz.mof.gov.cn/caizhengjiancha/",
+    article: "https://jsz.mof.gov.cn/caizhengjiancha/202609/t20260930_3998382.htm",
+    title: "财政部江苏监管局总结树立和践行正确政绩观学习教育开展情况",
+    listDate: "2026-09-30T00:00:00+08:00",
+    detailTitle: "财政部江苏监管局总结树立和践行正确政绩观学习教育开展情况",
+    detailDate: "2026-09-30 11:01:00",
+    parsedDetailTitle: "财政部江苏监管局总结树立和践行正确政绩观学习教育开展情况",
+  },
+  {
+    id: "mof-anhui-supervision-dynamics",
+    bureau: "anhui",
+    url: "https://ah.mof.gov.cn/caizhengjiancha/",
+    article: "https://ah.mof.gov.cn/caizhengjiancha/202609/t20260930_3998374.htm",
+    title: "财政部安徽监管局：派员现场观察安徽省2026年第九批地方政府债券发行工作",
+    listDate: "2026-09-30T00:00:00+08:00",
+    detailTitle: "财政部安徽监管局：派员现场观察安徽省2026年第九批地方政府债券发行工作",
+    detailDate: "2026-09-30 09:51:00",
+    parsedDetailTitle: "财政部安徽监管局：派员现场观察安徽省2026年第九批地方政府债券发行工作",
+  },
+  {
+    id: "mof-jiangxi-supervision-dynamics",
+    bureau: "jiangxi",
+    url: "https://jx.mof.gov.cn/gzdt/caizhengjiancha/",
+    article: "https://jx.mof.gov.cn/gzdt/caizhengjiancha/202609/t20260930_3998513.htm",
+    title: "财政部江西监管局：在2025年度财政部“三优”评选和第八届“财青8+”青年调研活动中取得好成绩",
+    listDate: "2026-09-30T00:00:00+08:00",
+    detailTitle: "财政部江西监管局：在2025年度财政部“三优”评选和第八届“财青8+”青年调研活动中取得好成绩",
+    detailDate: "2026-09-30 18:10:00",
+    parsedDetailTitle: "财政部江西监管局：在2025年度财政部“三优”评选和第八届“财青8+”青年调研活动中取得好成绩",
+  },
+  {
+    id: "mof-xinjiang-supervision-dynamics",
+    bureau: "xinjiang",
+    url: "https://xj.mof.gov.cn/caizhengjiancha/",
+    article: "https://xj.mof.gov.cn/caizhengjiancha/202607/t20260717_3993738.htm",
+    title: "新疆监管局：创新四维监管模式 筑牢兵团转移支付资金安全防线",
+    listDate: "2026-09-24T00:00:00+08:00",
+    detailTitle: "新疆监管局：创新四维监管模式 筑牢兵团转移支付资金安全防线",
+    detailDate: "2026-09-24 08:32:00",
+    parsedDetailTitle: "新疆监管局：创新四维监管模式 筑牢兵团转移支付资金安全防线",
+  },
+  {
+    id: "mof-zhejiang-supervision-dynamics",
+    bureau: "zhejiang",
+    url: "https://zj.mof.gov.cn/caizhengjiancha/",
+    article: "https://zj.mof.gov.cn/caizhengjiancha/202609/t20260930_3998386.htm",
+    title: "浙江监管局：协同推进 建立预算执行常态化监督联合工作机制",
+    listDate: "2026-09-30T00:00:00+08:00",
+    detailTitle: "浙江监管局：协同推进 建立预算执行常态化监督联合工作机制",
+    detailDate: "2026-09-30 11:13:00",
+    parsedDetailTitle: "浙江监管局：协同推进 建立预算执行常态化监督联合工作机制",
+  },
+  {
+    id: "mof-liaoning-supervision-dynamics",
+    bureau: "liaoning",
+    url: "https://ln.mof.gov.cn/gzdt2/caizhengjiancha/",
+    article: "https://ln.mof.gov.cn/gzdt2/caizhengjiancha/202608/t20260813_3995391.htm",
+    title: "财政部辽宁监管局：“三个坚持”扎实推进农村环境整治资金重点绩效评价工作",
+    listDate: "2026-08-26T00:00:00+08:00",
+    detailTitle: "财政部辽宁监管局：“三个坚持”扎实推进农村环境整治资金重点绩效评价工作",
+    detailDate: "2026-08-26 08:16:00",
+    parsedDetailTitle: "财政部辽宁监管局：“三个坚持”扎实推进农村环境整治资金重点绩效评价工作",
+  },
+  {
+    id: "mof-yunnan-supervision-dynamics",
+    bureau: "yunnan",
+    url: "https://yn.mof.gov.cn/caizhengjiancha/",
+    article: "https://yn.mof.gov.cn/caizhengjiancha/202608/t20260821_3995882.htm",
+    title: "财政部云南监管局：线上赋能 线下核查 多维统筹持续提升转移支付预算执行常态化监督质效",
+    listDate: "2026-08-27T00:00:00+08:00",
+    detailTitle: "财政部云南监管局：线上赋能 线下核查 多维统筹持续提升转移支付预算执行常态化监督质效",
+    detailDate: "2026-08-27 08:58:00",
+    parsedDetailTitle: "财政部云南监管局：线上赋能 线下核查 多维统筹持续提升转移支付预算执行常态化监督质效",
+    denyUrlPrefixes: ["https://yn.mof.gov.cn/caizhengjiancha/202609/t20260918_3997724.htm"],
+  },
 ];
 
 test("regional bureau disabled configs match the saved list DOMs and detail metadata", async () => {
@@ -223,13 +452,20 @@ test("regional bureau disabled configs match the saved list DOMs and detail meta
     assert.deepEqual(unsupportedConfig("web_list", config), []);
     assert.equal(config.url, spec.url);
     assert.deepEqual(config.allowUrlPrefixes, [spec.url]);
+    assert.deepEqual(config.denyUrlPrefixes ?? [], spec.denyUrlPrefixes ?? []);
     assert.equal(config.itemSelector, "div.mainboxerji > div.zzright > div.listBox > ul.liBox > li");
     assert.equal(config.linkSelector, "a[href]");
     assert.equal(config.titleSelector, "a");
     assert.equal(config.titleAttribute, "title");
     assert.equal(config.publishedAtSelector, "span");
     assert.equal(config.publishedAtUtcOffset, "+08:00");
-    if (["henan", "hubei", "hunan", "guangdong", "ningxia", "qinghai", "shaanxi", "guizhou"].includes(spec.bureau)) {
+    if (["henan", "hubei", "hunan", "guangdong", "ningxia", "qinghai", "shaanxi", "guizhou", "dalian", "ningbo", "shenzhen", "qingdao", "gansu", "tianjin", "hebei", "shanxi", "inner-mongolia", "jilin", "heilongjiang", "shandong", "jiangsu", "anhui", "jiangxi", "xinjiang", "zhejiang"].includes(spec.bureau)) {
+      assert.equal(source.owner_entity_id, "mof");
+      assert.equal(config.detail.titleSelector, "h2.title_con");
+      assert.equal(config.detail.titleAuthoritative, undefined);
+      assert.equal(config.detail.publishedAtAuthoritative, undefined);
+    }
+    if (spec.bureau === "liaoning" || spec.bureau === "yunnan") {
       assert.equal(source.owner_entity_id, "mof");
       assert.equal(config.detail.titleSelector, "h2.title_con");
       assert.equal(config.detail.titleAuthoritative, undefined);
@@ -242,16 +478,22 @@ test("regional bureau disabled configs match the saved list DOMs and detail meta
     assert.deepEqual(candidates.map(({ url, title, publishedAt }) => [url, title, publishedAt?.toISOString()]), [
       [spec.article, spec.title, new Date(spec.listDate).toISOString()],
     ]);
+    if (spec.id === "mof-yunnan-supervision-dynamics") {
+      const conflictUrl = "https://yn.mof.gov.cn/caizhengjiancha/202609/t20260918_3997724.htm";
+      assert.equal(candidates.some(({ url }) => url === conflictUrl), false, "known date-conflict item must be denied");
+      assert.equal(candidates.some(({ url }) => url === spec.article), true, "the separately paired alternate remains allowed");
+    }
 
     const detail = config.detail;
     assert.equal(detail.maxFetches, 10);
     assert.equal(detail.bodySelector, ".my_doccontent");
     assert.equal(detail.publishedAtUtcOffset, "+08:00");
     assert.equal(detail.publishedAtRegex, '<meta\\s+name="PubDate"\\s+content="([^"]+)');
-    const checksBody = strictBodyIds.has(spec.id);
+    // Shenzhen's saved ArticleTitle contains an encoded <br> absent from h2/list; strict identity must hold body readiness.
+    const checksBody = strictBodyIds.has(spec.id) && spec.id !== "mof-shenzhen-supervision-dynamics";
     let detailHtml = readFileSync(fixtureUrl(`${spec.bureau}-detail.html`), "utf8");
     if (checksBody) {
-      const syntheticBody = Array.from({ length: 8 }, () => "<p>Synthetic body paragraph for selector verification; no official article text is copied.</p>").join("");
+      const syntheticBody = Array.from({ length: 4 }, () => "<p>Synthetic body paragraph for selector verification; no official article text is copied.</p>").join("");
       detailHtml = detailHtml.replace(/(<div class="my_doccontent">)[\s\S]*?(<\/div>)/, (_match, start: string, end: string) => `${start}${syntheticBody}${end}`);
     }
     let reads = 0;

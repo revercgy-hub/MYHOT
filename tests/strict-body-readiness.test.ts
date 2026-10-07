@@ -50,20 +50,40 @@ async function create(sourceId: string, suffix: string, bodyStatus: "pending" | 
 test("strict-body opt-in is exact boolean and body readiness requires nonblank confirmed text", async () => {
   const registry = JSON.parse(readFileSync(new URL("../industry/sources.json", import.meta.url), "utf8")) as { sources: Array<{ id: string; config?: Record<string, unknown> }> };
   const sources = registry.sources;
+  assert.equal(sources.length, 46, "the verified-source catalogue size remains explicit");
   const fujian = sources.find((source) => source.id === "mof-fujian-supervision-dynamics");
   assert.equal((fujian?.config?._aihot as Record<string, unknown> | undefined)?.requireBodyReadyForAutomaticSelection, true);
   assert.deepEqual(sources.filter((source) => ((source.config?._aihot as Record<string, unknown> | undefined)?.requireBodyReadyForAutomaticSelection) === true)
     .map((source) => source.id).sort(), [
+      "mof-anhui-supervision-dynamics",
       "mof-chongqing-supervision-dynamics",
+      "mof-dalian-supervision-dynamics",
       "mof-fujian-supervision-dynamics",
+      "mof-gansu-supervision-dynamics",
       "mof-guangxi-supervision-dynamics",
       "mof-guizhou-supervision-dynamics",
       "mof-hainan-supervision-dynamics",
+      "mof-hebei-supervision-dynamics",
+      "mof-heilongjiang-supervision-dynamics",
+      "mof-inner-mongolia-supervision-dynamics",
+      "mof-jiangsu-supervision-dynamics",
+      "mof-jiangxi-supervision-dynamics",
+      "mof-jilin-supervision-dynamics",
+      "mof-liaoning-supervision-dynamics",
+      "mof-ningbo-supervision-dynamics",
       "mof-ningxia-supervision-dynamics",
+      "mof-qingdao-supervision-dynamics",
       "mof-qinghai-supervision-dynamics",
       "mof-shaanxi-supervision-dynamics",
+      "mof-shandong-supervision-dynamics",
+      "mof-shanxi-supervision-dynamics",
+      "mof-shenzhen-supervision-dynamics",
       "mof-sichuan-supervision-dynamics",
-    ], "the opt-in remains limited to the nine reviewed supervision sources");
+      "mof-tianjin-supervision-dynamics",
+      "mof-xinjiang-supervision-dynamics",
+      "mof-yunnan-supervision-dynamics",
+      "mof-zhejiang-supervision-dynamics",
+    ], "the opt-in remains limited to the twenty-eight reviewed supervision sources");
 
   assert.equal(requiresBodyReadyForAutomaticSelection({}), false);
   assert.equal(requiresBodyReadyForAutomaticSelection({ _aihot: { requireBodyReadyForAutomaticSelection: false } }), false);
