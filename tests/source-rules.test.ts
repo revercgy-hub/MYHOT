@@ -314,12 +314,16 @@ test("initialBackfillRequirePublishedAt accepts only boolean values and the indu
       `${JSON.stringify(invalid)} must not be coerced to a boolean`);
   }
   const sources = JSON.parse(readFileSync(new URL("../industry/sources.json", import.meta.url), "utf8")) as { sources: { id: string; enabled: boolean; interval_minutes: number; site_fulltext: boolean; syndicate_fulltext: boolean; config: { _aihot?: { initialBackfillMonths?: number; initialBackfillRequirePublishedAt?: boolean; requireBodyReadyForAutomaticSelection?: boolean } } }[] };
-  assert.equal(sources.sources.length, 23);
+  assert.equal(sources.sources.length, 27);
   assert.deepEqual(sources.sources.filter((source) => source.config._aihot?.requireBodyReadyForAutomaticSelection).map((source) => source.id).sort(), [
     "mof-chongqing-supervision-dynamics",
     "mof-fujian-supervision-dynamics",
     "mof-guangxi-supervision-dynamics",
+    "mof-guizhou-supervision-dynamics",
     "mof-hainan-supervision-dynamics",
+    "mof-ningxia-supervision-dynamics",
+    "mof-qinghai-supervision-dynamics",
+    "mof-shaanxi-supervision-dynamics",
     "mof-sichuan-supervision-dynamics",
   ]);
   for (const source of sources.sources) {
@@ -327,7 +331,7 @@ test("initialBackfillRequirePublishedAt accepts only boolean values and the indu
     assert.deepEqual(source.config._aihot, {
       initialBackfillMonths: 3,
       initialBackfillRequirePublishedAt: true,
-      ...(["mof-fujian-supervision-dynamics", "mof-guangxi-supervision-dynamics", "mof-hainan-supervision-dynamics", "mof-chongqing-supervision-dynamics", "mof-sichuan-supervision-dynamics"].includes(source.id) ? { requireBodyReadyForAutomaticSelection: true } : {}),
+      ...(["mof-chongqing-supervision-dynamics", "mof-fujian-supervision-dynamics", "mof-guangxi-supervision-dynamics", "mof-hainan-supervision-dynamics", "mof-sichuan-supervision-dynamics", "mof-ningxia-supervision-dynamics", "mof-qinghai-supervision-dynamics", "mof-shaanxi-supervision-dynamics", "mof-guizhou-supervision-dynamics"].includes(source.id) ? { requireBodyReadyForAutomaticSelection: true } : {}),
     });
     assert.equal(source.enabled, false);
     assert.equal(source.site_fulltext, false);

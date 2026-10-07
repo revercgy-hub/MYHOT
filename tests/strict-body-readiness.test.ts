@@ -57,9 +57,13 @@ test("strict-body opt-in is exact boolean and body readiness requires nonblank c
       "mof-chongqing-supervision-dynamics",
       "mof-fujian-supervision-dynamics",
       "mof-guangxi-supervision-dynamics",
+      "mof-guizhou-supervision-dynamics",
       "mof-hainan-supervision-dynamics",
+      "mof-ningxia-supervision-dynamics",
+      "mof-qinghai-supervision-dynamics",
+      "mof-shaanxi-supervision-dynamics",
       "mof-sichuan-supervision-dynamics",
-    ], "the opt-in remains limited to the five reviewed supervision sources");
+    ], "the opt-in remains limited to the nine reviewed supervision sources");
 
   assert.equal(requiresBodyReadyForAutomaticSelection({}), false);
   assert.equal(requiresBodyReadyForAutomaticSelection({ _aihot: { requireBodyReadyForAutomaticSelection: false } }), false);

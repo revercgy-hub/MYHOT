@@ -6,6 +6,17 @@ import { fetchDetail, fromHtml } from "@aihot/backend/sources/web-list";
 
 const sourcesFile = new URL("../industry/sources.json", import.meta.url);
 const fixtureUrl = (name: string) => new URL(`./fixtures/regional-bureaus/${name}`, import.meta.url);
+const strictBodyIds = new Set([
+  "mof-fujian-supervision-dynamics",
+  "mof-guangxi-supervision-dynamics",
+  "mof-hainan-supervision-dynamics",
+  "mof-chongqing-supervision-dynamics",
+  "mof-sichuan-supervision-dynamics",
+  "mof-ningxia-supervision-dynamics",
+  "mof-qinghai-supervision-dynamics",
+  "mof-shaanxi-supervision-dynamics",
+  "mof-guizhou-supervision-dynamics",
+]);
 const sourceDoc = JSON.parse(readFileSync(sourcesFile, "utf8")) as {
   sources: Array<{
     id: string;
@@ -144,6 +155,50 @@ const expected = [
     detailDate: "2026-09-28 16:37:00",
     parsedDetailTitle: "财政部四川监管局：加强沟通 密切协作用心用情做好服务代表委员工作",
   },
+  {
+    id: "mof-ningxia-supervision-dynamics",
+    bureau: "ningxia",
+    url: "https://nx.mof.gov.cn/caizhengjiancha/",
+    article: "https://nx.mof.gov.cn/caizhengjiancha/202609/t20260930_3998460.htm",
+    title: "财政部宁夏监管局召开2026年中央转移支付监管工作座谈会",
+    listDate: "2026-09-30T00:00:00+08:00",
+    detailTitle: "财政部宁夏监管局召开2026年中央转移支付监管工作座谈会",
+    detailDate: "2026-09-30 15:06:00",
+    parsedDetailTitle: "财政部宁夏监管局召开2026年中央转移支付监管工作座谈会",
+  },
+  {
+    id: "mof-qinghai-supervision-dynamics",
+    bureau: "qinghai",
+    url: "https://qh.mof.gov.cn/gzdt/caizhengjiancha/",
+    article: "https://qh.mof.gov.cn/gzdt/caizhengjiancha/202609/t20260930_3998464.htm",
+    title: "财政部青海监管局：深学细悟民族法规 筑牢高原民族团结法治根基",
+    listDate: "2026-09-30T00:00:00+08:00",
+    detailTitle: "财政部青海监管局：深学细悟民族法规 筑牢高原民族团结法治根基",
+    detailDate: "2026-09-30 15:12:00",
+    parsedDetailTitle: "财政部青海监管局：深学细悟民族法规 筑牢高原民族团结法治根基",
+  },
+  {
+    id: "mof-shaanxi-supervision-dynamics",
+    bureau: "shaanxi",
+    url: "https://sx.mof.gov.cn/gzdt/caizhengjiancha/",
+    article: "https://sx.mof.gov.cn/gzdt/caizhengjiancha/202609/t20260930_3998367.htm",
+    title: "财政部陕西监管局开展中秋、国庆 “双节”廉洁、安全提醒",
+    listDate: "2026-09-30T00:00:00+08:00",
+    detailTitle: "财政部陕西监管局开展中秋、国庆 “双节”廉洁、安全提醒",
+    detailDate: "2026-09-30 09:45:00",
+    parsedDetailTitle: "财政部陕西监管局开展中秋、国庆 “双节”廉洁、安全提醒",
+  },
+  {
+    id: "mof-guizhou-supervision-dynamics",
+    bureau: "guizhou",
+    url: "https://gz.mof.gov.cn/caizhengjiancha/",
+    article: "https://gz.mof.gov.cn/caizhengjiancha/202609/t20260923_3998000.htm",
+    title: "财政部贵州监管局：打造“1+5”模式 推动机关文化建设提质增效",
+    listDate: "2026-09-23T00:00:00+08:00",
+    detailTitle: "财政部贵州监管局：打造“1+5”模式 推动机关文化建设提质增效",
+    detailDate: "2026-09-23 10:55:00",
+    parsedDetailTitle: "财政部贵州监管局：打造“1+5”模式 推动机关文化建设提质增效",
+  },
 ];
 
 test("regional bureau disabled configs match the saved list DOMs and detail metadata", async () => {
@@ -163,7 +218,7 @@ test("regional bureau disabled configs match the saved list DOMs and detail meta
     assert.deepEqual(config._aihot, {
       initialBackfillMonths: 3,
       initialBackfillRequirePublishedAt: true,
-      ...(["mof-fujian-supervision-dynamics", "mof-guangxi-supervision-dynamics", "mof-hainan-supervision-dynamics", "mof-chongqing-supervision-dynamics", "mof-sichuan-supervision-dynamics"].includes(spec.id) ? { requireBodyReadyForAutomaticSelection: true } : {}),
+      ...(strictBodyIds.has(spec.id) ? { requireBodyReadyForAutomaticSelection: true } : {}),
     });
     assert.deepEqual(unsupportedConfig("web_list", config), []);
     assert.equal(config.url, spec.url);
@@ -174,7 +229,7 @@ test("regional bureau disabled configs match the saved list DOMs and detail meta
     assert.equal(config.titleAttribute, "title");
     assert.equal(config.publishedAtSelector, "span");
     assert.equal(config.publishedAtUtcOffset, "+08:00");
-    if (["henan", "hubei", "hunan", "guangdong"].includes(spec.bureau)) {
+    if (["henan", "hubei", "hunan", "guangdong", "ningxia", "qinghai", "shaanxi", "guizhou"].includes(spec.bureau)) {
       assert.equal(source.owner_entity_id, "mof");
       assert.equal(config.detail.titleSelector, "h2.title_con");
       assert.equal(config.detail.titleAuthoritative, undefined);
@@ -193,7 +248,7 @@ test("regional bureau disabled configs match the saved list DOMs and detail meta
     assert.equal(detail.bodySelector, ".my_doccontent");
     assert.equal(detail.publishedAtUtcOffset, "+08:00");
     assert.equal(detail.publishedAtRegex, '<meta\\s+name="PubDate"\\s+content="([^"]+)');
-    const checksBody = ["mof-guangxi-supervision-dynamics", "mof-hainan-supervision-dynamics", "mof-chongqing-supervision-dynamics", "mof-sichuan-supervision-dynamics"].includes(spec.id);
+    const checksBody = strictBodyIds.has(spec.id);
     let detailHtml = readFileSync(fixtureUrl(`${spec.bureau}-detail.html`), "utf8");
     if (checksBody) {
       const syntheticBody = Array.from({ length: 8 }, () => "<p>Synthetic body paragraph for selector verification; no official article text is copied.</p>").join("");
@@ -222,6 +277,11 @@ test("regional bureau disabled configs match the saved list DOMs and detail meta
   assert.equal(beijing.titleSelector, "h2.title_con");
   assert.equal(beijing.titleAuthoritative, true);
   assert.equal(beijing.publishedAtAuthoritative, true);
+  for (const id of ["mof-ningxia-supervision-dynamics", "mof-qinghai-supervision-dynamics", "mof-shaanxi-supervision-dynamics", "mof-guizhou-supervision-dynamics"]) {
+    const source = sources.find((candidate) => candidate.id === id)!;
+    assert.deepEqual(source.config._aihot, { initialBackfillMonths: 3, initialBackfillRequirePublishedAt: true, requireBodyReadyForAutomaticSelection: true });
+    assert.equal(source.owner_entity_id, "mof");
+  }
   for (const source of sources.filter(({ id }) => id !== "mof-beijing-supervision-dynamics")) {
     assert.equal(source.config.detail.titleAuthoritative, undefined);
     assert.equal(source.config.detail.publishedAtAuthoritative, undefined);
