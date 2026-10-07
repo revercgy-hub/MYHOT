@@ -118,3 +118,23 @@ Luna同步精确配置与allowlist断言：当前读取为46源、28个regional 
 G2-A2只需把“完整栏目/90日历史未证明”标为持续范围/上线历史待办，并说明本阶段有限样本证明什么、不能证明什么；不删除记录，不把unknown写PASS，也不新增一个“每局历史边界必须抓到”的前置。每日上线目标仍保留，Staging完整调度实跑也不反向变成Gate 2前需运行NAS。此处仅区分既有阶段，不裁定当前采集证据已经够稳定。
 
 本次仅追加本文，静态核对任务书/决策/清单及Phase A/B与当前collector代码；无测试、HTTP、DB、Git或运行时改动。Lead/Luna同步其owned状态与清单，继续小规模P3质量主线。
+
+## 同日核心来源保护续批裁定：预算司、金融司与固定12核心ID
+
+**CORE_BODY_RESULT=APPROVED_SCOPE；CORE_STANDING_RULE=CONDITIONAL_CONFIG_ONLY。** 本轮精确批准 `mof-budget-work`、`mof-finance-notices`各增加现有 `_aihot.requireBodyReadyForAutomaticSelection: true`。不自动修改其他source，不正式验收Gate 2；区域35局standing rule继续沿用，核心12项的规则仅由本段单独授予。
+
+只读复核实际source JSON、materials新建状态、jobs/content的route/queueProcessing/processArticle及抽取完成/失败重排链、既有strict-body tests。预算司为editorial web_list，暂无detail配置，仍因现有wantsBody/web_list路线处理pending；金融司已有article/body/attachment规则。`materials.ts`新建有正文时按输入状态，无正文默认pending；两条正常列表路径不因缺detail maxFetches而必然落none。strictfalse下无marker的unconfirmed可进analyze；stricttrue不依赖marker，pending仅extract，unconfirmed/none等非ready状态hold，真实非空ok按原流程恢复。父任务所述预算1条空body unconfirmed/8 pending与金融1条空body unconfirmed作为待QA核实的负例线索，不借本只读审查追认历史DB或marker事实。
+
+**none边界**：none不是ready，strict hold是既有意图，不可为避免停留把none伪装成ok或自动改pending。现有strict route对none不自动enqueue extract；它可能等待实际既有补正文入口或明确人工处置，这不等于所有none均能自动恢复。故每个续批源须核对真实正常创建/抽取路径，确认可读业务样本能pending→extract→非空ok并恢复，或已有可信body入口；若正常可读稿长期产生none且没有既有到ready路径，不满足常规续批条件，单独说明实际例外。hold未解析失败稿是产品规则，不以“防死锁”为由绕过guard；本规则不新增none恢复算法、body补写或存量修复。
+
+**本轮最小实施/QA**：两项只改精确布尔flag，其enabled/fulltext、date/body/attachment规则、daily/首次三个月及其它配置保持。源总数不变；在当前已批准会计司+区域精确集合上只追加这两个ID，冻结时据实际配置核算strict allowlist。Luna更新配置断言及operator notes，明确核心条件规则与区域规则不同。以两源实际配置和保存/负例数据在fresh `_test`核无marker unconfirmed同样不入auto queue/analyze/group/selected、零provider/receipt；有marker对照照实记录、不伪造旧诊断；pending仍只extract及已核实可读正文ready恢复、旧analysis不复活，none hold和未就绪empty/whitespace ok hold。复用既有strict-body routing/publication、manual exact布尔及false/absent legacy回归与适用整体检查，由独立QA核销。允许合成状态fixture检验软件guard，不能把合成稿计为真实来源正文可读证据。历史marker未知不阻止加强当前保护，也不因新flag而变成已复原。
+
+**固定核心条件续批集合**（从原12核心清单与实际source对象核对；不可增域名/机构）：`mof-budget-work`、`fujian-finance-notices`、`xiamen-finance-debt`、`pboc-xiamen-work`、`mof-policy-release`、`mof-finance-notices`、`mof-accounting-notices`、`pboc-open-market`、`mof-treasury-debt-data`、`xiamen-csrc-regulatory-work`、`mof-regional-supervision-dynamics`、`mof-xiamen-supervision-dynamics`。这只是允许逐项考虑的固定ID集合，不是本轮全部opt-in集合。
+
+集合内未来source在以下现有边界均满足后，可由Lead/Luna继续配置保护，无需每源重复Sol：已有保存/真实负例证明未可靠正文或无marker unconfirmed的自动路径风险；独立QA核对actual source身份/配置与负例事实、正常正文路径及上文none/pending/ready边界；Lead接受exact ID并更新精确allowlist及operator notes；仅增加现成true，所有source继续disabled/全文false且日期/body规则保持；核销同一严格正文行为回归、实际source配置/fixture与适用QA。未知诊断可以明确保留，不要求追认所有历史marker；但不得从旧数字推断当前正文状态或把未知当ready。不满足任何条件则保留该source缺口，另提具体例外或补证。
+
+本standing不批准新source/domain、JSON摘要假正文、false-positive ok修复、附件解析/diagnostic/schema、runtime/queue/none处理变化、OCR/paid调用、门槛、source启用/DB配置更新或存量操作。尤其已知假正文ok必须另有真实业务质量判定，flag不能解决；合法summary-only稿若因来源正常流程无正文而全部hold，不能默默降低ready条件，须保留具体产品/能力缺口。安全摘要与原文链接及现有manual选择例外继续沿原实现，软件ready不代替业务事实质量或来源验收。
+
+本次只追加同一报告，未执行测试、HTTP、DB、Git或代码修改。Luna完成两ID配置和负例，独立QA核销；后续仅按条件精确续批，不把本规则写成12核心全量自动批准。
+
+Root随后补充Luna只读核销的两条真实行：`corebatch_test`预算司article `s411ti7pcubnwhgmza55uicgx`、URL `https://yss.mof.gov.cn/gongzuodongtai/202506/t20250625_3966523.htm`；`ingest_test`金融司article `sfz58qc6jd7t83eohtop1ihlg`、URL `https://jrs.mof.gov.cn/gongzuotongzhi/202512/t20251212_3979075.htm`。两行均unconfirmed、正文0字符、revision1、raw/attachment marker/DB strictflag为NULL，当前对应JSON未opt-in。这使无marker自动路径风险有具体行证据；本报告引用该Luna核验、不冒称亲自查询。原抽取响应/失败上下文仍unknown，不能据此推断selector或HTTP原因；两项配置保护许可不依赖先复原该原因，独立QA继续核现负例与配置效果。
