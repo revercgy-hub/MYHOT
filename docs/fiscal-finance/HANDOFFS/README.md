@@ -2,7 +2,11 @@
 
 ## 最新阶段状态
 
-最新检查点为 [2026-10-07 P3 已保存响应离线审计与内容解码](P3_CONTENT_ENCODING_CHECKPOINT_2026-10-07.md)：Gate 2 仍 `NOT_PASSED`，19 个 source 继续 disabled/全文关闭。福建保存列表有乱序日期，不能假设遇到首个 90 日外条目即可停止翻页；审计只从保存脚本导出 `index_1.htm` 候选，没有发送请求。任何后续分页 GET 都需新请求预算，10 月 6 日的一次性核准不可复用。最终代码 SHA `cdbb329529f407f25db122510dc042ceca5fd975` 为独立本地有界离线内容解码器；Node24.16.0 fresh 35-migration `npm test` 310/310、typecheck 通过。Web build/tests15/15 和 loopback smoke30/30 通过；GitHub Actions Check run [37556665439](https://github.com/revercgy-hub/MYHOT/actions/runs/37556665439) 对该 SHA 的 Check 与 Docker jobs 均成功。本结果不表示 source admission、90 日覆盖或 Gate 2 通过。审计细节、preview 不变核验、环境边界及后续 owner 见上述检查点与[福建保存响应来源质量回顾审计](../P3_FUJIAN_SAVED_RESPONSE_AUDIT_2026-10-07.md)。
+最新交接为 [2026-10-07 P3 加速恢复检查点](ACCELERATED_P3_CHECKPOINT_2026-10-07.md)：Gate 2 仍 `NOT_PASSED`。它逐项汇总现有六维退出条件及未结证据；用户确认的 35 局逐一新闻动态栏目仍是覆盖范围，中央选登只能补充。未把有限核心源样本或软件测试解释为 Gate 通过。来源请求、启用或运行目标仍须各自遵守原有核准与安全边界。
+
+本检查点承接的最近技术/来源证据仍见 [2026-10-07 P3 已保存响应离线审计与内容解码](P3_CONTENT_ENCODING_CHECKPOINT_2026-10-07.md)：19 个 source 继续 disabled/全文关闭。福建保存列表日期乱序，保存脚本导出 `index_1.htm` 候选但没有发送请求；任何分页 GET 都需新预算，10 月 6 日一次性核准不可复用。代码 SHA `cdbb329529f407f25db122510dc042ceca5fd975` 为本地有界离线内容解码器；Node24.16.0 fresh 35-migration `npm test` 310/310、typecheck 通过。Web build/tests15/15、loopback smoke30/30 及 GitHub Actions run [37556665439](https://github.com/revercgy-hub/MYHOT/actions/runs/37556665439) 均只说明该代码 SHA 的软件验证，不代表 source admission、90 日覆盖或 Gate 2 通过。审计细节见该检查点及[福建保存响应来源质量回顾审计](../P3_FUJIAN_SAVED_RESPONSE_AUDIT_2026-10-07.md)。
+
+2026-10-07 后续经独立核验，福建 `index_1.htm`、`index_2.htm`、`index_3.htm` 三次请求均为核准的一次性精确 GET，raw/hash 与 manifest 相符；四页逐页共 40 个列表候选、无 URL 或可见日期重复，但日期顺序非单调，90 天范围仍未证明覆盖完整。详情、collector/DB、worker、模型和 OCR 均未运行。逐页日期、分页、请求和 QA 边界见[福建分页观察报告](../P3_PAGINATION_OBSERVATION_2026-10-07.md)及[加速恢复检查点](ACCELERATED_P3_CHECKPOINT_2026-10-07.md)。
 
 当前财政金融站阶段为 **P3 进行中 / Gate 2 未通过**，Phase C source evidence preparation 为 `IN_PROGRESS`。最新用户决定记录在[OCR延后决策交接](OCR_DEFERRED_USER_DECISION_2026-10-06.md)：本地OCR监控状态为`OCR_DEFERRED_NOT_GATE2_BLOCKER`，从当前主线退出；native monitor case1失败、case2与actual OCR未运行的报告继续作为历史证据保留。下一项恢复工作为HTML/JSON/text-PDF来源准入与小规模验证。扫描附件无法可靠解析时保留原文链接、标注正文待解析、不进入自动精选；API OCR仅未来按既有provider预算与receipt按需评估，本次未启用API/模型。此前来源检查点见 [S1_PHASE_C_SOURCE_EVIDENCE_CHECKPOINT_2026-10-06.md](S1_PHASE_C_SOURCE_EVIDENCE_CHECKPOINT_2026-10-06.md)：上海仍为 `EVIDENCE_PACKET_ONLY / NOT_ADMITTED`；QA独立复核两页列表和一条详情的raw/hash、请求manifest与日期对照，没有提出来源准入；19项source仍全部disabled、全文关闭。该检查点旧tested code SHA为 `c7a027491b809f91edec42c3abeaee017e901ba9`，fresh backend 303/303、typecheck、Web build/tests15/15、loopback smoke30/30和CI run37438292607均通过。当前软件验证以本段上方的2026-10-07 P3检查点为准；这些软件测试不代表source pass、90日覆盖或Gate 2通过。区域证据与逐局矩阵见[区域覆盖矩阵](../REGIONAL_BUREAU_COVERAGE_MATRIX.md)、[来源矩阵](../SOURCE_MATRIX.md)；既有Phase A/B handoffs保留为历史记录，不覆盖。
 
@@ -71,3 +75,6 @@ WORKTREE=<干净 / 有未提交改动；列明文件，不推测>
 - 每阶段的下一 Agent 分配按当前工作比例和文件冲突安排；并行任务须标记唯一文件所有权和依赖，存在共享依赖时先完成前置阶段再交接。
 - 新证据到来后追加修订记录和日期；保留历史状态，不静默改写已报告的测试范围、Gate 结果或 SHA。
 - 不把目录清单当栏目验证、不把候选解析当 collector 验证、不把摘要长度当正文质量、不把本地 mock 当真实模型、不把旧 CI 当新代码验证。
+
+
+最新代码 SHA fbccb32a611a963981bf95a84dd00865837f0a88（23个 disabled source，五个严格正文opt-in）本机fresh Node24 35-migration backend310/310、typecheck及Web检查通过；GitHub Check+Docker run[37564353711](https://github.com/revercgy-hub/MYHOT/actions/runs/37564353711)成功，Linux backend 309通过/0失败/1 Windows-only skip。前一 SHA 的两项OCR monitor timing CI failure、最小测试正确性修复和完整QA历史见[加速恢复检查点](ACCELERATED_P3_CHECKPOINT_2026-10-07.md)。Gate 2仍NOT_PASSED，source admission仍未批准。
