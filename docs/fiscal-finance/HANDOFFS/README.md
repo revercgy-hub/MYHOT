@@ -2,6 +2,8 @@
 
 ## 最新阶段状态
 
+最新检查点为[2026-10-07新四局配置与QA](NEXT_BUREAU_CHECKPOINT_2026-10-07.md)：配置SHA `e3791c2744c285c7967cb1c6597da3187817889b` 本机fresh full QA通过但CI run37573322451保留OCR deadline分类失败；获准的最小确定性维护SHA `d4fd46ded57cd899793e819a3b49ff8bf6e72e4f` 后续fresh backend QA及CI run [37574033213](https://github.com/revercgy-hub/MYHOT/actions/runs/37574033213) 均通过。checkpoint区分宁夏/青海page2双成功GET与后来一次宁夏首页超时尝试。Gate 2仍 `NOT_PASSED`，不代表来源准入或90日覆盖。
+
 最新交接为 [2026-10-07 P3 加速恢复检查点](ACCELERATED_P3_CHECKPOINT_2026-10-07.md)：Gate 2 仍 `NOT_PASSED`。它逐项汇总现有六维退出条件及未结证据；用户确认的 35 局逐一新闻动态栏目仍是覆盖范围，中央选登只能补充。未把有限核心源样本或软件测试解释为 Gate 通过。来源请求、启用或运行目标仍须各自遵守原有核准与安全边界。
 
 本检查点承接的最近技术/来源证据仍见 [2026-10-07 P3 已保存响应离线审计与内容解码](P3_CONTENT_ENCODING_CHECKPOINT_2026-10-07.md)：19 个 source 继续 disabled/全文关闭。福建保存列表日期乱序，保存脚本导出 `index_1.htm` 候选但没有发送请求；任何分页 GET 都需新预算，10 月 6 日一次性核准不可复用。代码 SHA `cdbb329529f407f25db122510dc042ceca5fd975` 为本地有界离线内容解码器；Node24.16.0 fresh 35-migration `npm test` 310/310、typecheck 通过。Web build/tests15/15、loopback smoke30/30 及 GitHub Actions run [37556665439](https://github.com/revercgy-hub/MYHOT/actions/runs/37556665439) 均只说明该代码 SHA 的软件验证，不代表 source admission、90 日覆盖或 Gate 2 通过。审计细节见该检查点及[福建保存响应来源质量回顾审计](../P3_FUJIAN_SAVED_RESPONSE_AUDIT_2026-10-07.md)。

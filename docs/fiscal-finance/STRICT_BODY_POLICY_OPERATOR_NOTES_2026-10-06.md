@@ -1,12 +1,12 @@
-# Strict Body Policy Operator Notes — 2026-10-06
+# Strict Body Policy Operator Notes — updated 2026-10-07
 
 ## Purpose and status
 
-This note records the operator boundary for the existing S4 strict body-ready policy and its approved configuration scope. It is not a source acceptance result, a Gate 2 pass, or authorization to enable collection, model calls, or publication. The five sources listed below remain disabled and both full-text flags remain off.
+This note records the operator boundary for the existing S4 strict body-ready policy and its approved configuration scope. It is not a source acceptance result, a Gate 2 pass, or authorization to enable collection, model calls, or publication. The nine sources listed below remain disabled and both full-text flags remain off.
 
-The original 2026-10-06 S4 implementation scope allowed only `mof-fujian-supervision-dynamics` to opt in. On 2026-10-07, Sol approved an additive configuration-only scope for four new bureau sources, bringing the exact opt-in set to Fujian, Guangxi, Hainan, Chongqing, and Sichuan. The review found the existing guard reads each source's configuration dynamically; no runtime special case or policy change was approved. Other sources retain their existing values and legacy RSS/summary behavior.
+The original 2026-10-06 S4 implementation scope allowed only `mof-fujian-supervision-dynamics` to opt in. On 2026-10-07, Sol approved additive configuration-only scopes for the Guangxi/Hainan/Chongqing/Sichuan batch and the Ningxia/Qinghai/Shaanxi/Guizhou batch. The exact opt-in set is now nine regional supervision sources. The review found the existing guard reads each source's configuration dynamically; no runtime special case or policy change was approved. Other sources retain their existing values and legacy RSS/summary behavior.
 
-The approved IDs are `mof-fujian-supervision-dynamics`, `mof-guangxi-supervision-dynamics`, `mof-hainan-supervision-dynamics`, `mof-chongqing-supervision-dynamics`, and `mof-sichuan-supervision-dynamics`. Each must use the exact JSON Boolean `true` for `_aihot.requireBodyReadyForAutomaticSelection`, remain `enabled=false`, `site_fulltext=false`, and `syndicate_fulltext=false`, and retain its existing source-specific date, interval, list, and detail configuration. This flag does not establish full-body quality or source admission. The scope review is [S1_REGIONAL_STRICT_BODY_OPTIN_SCOPE_2026-10-07.md](S1_REGIONAL_STRICT_BODY_OPTIN_SCOPE_2026-10-07.md); its tests and implementation status are recorded in the current project status and validation handoff, separately from the original S4 evidence.
+The approved IDs are `mof-fujian-supervision-dynamics`, `mof-guangxi-supervision-dynamics`, `mof-hainan-supervision-dynamics`, `mof-chongqing-supervision-dynamics`, `mof-sichuan-supervision-dynamics`, `mof-ningxia-supervision-dynamics`, `mof-qinghai-supervision-dynamics`, `mof-shaanxi-supervision-dynamics`, and `mof-guizhou-supervision-dynamics`. Each must use the exact JSON Boolean `true` for `_aihot.requireBodyReadyForAutomaticSelection`, remain `enabled=false`, `site_fulltext=false`, and `syndicate_fulltext=false`, and retain its existing source-specific date, interval, list, and detail configuration. This flag does not establish full-body quality or source admission. The original review is [S1_REGIONAL_STRICT_BODY_OPTIN_SCOPE_2026-10-07.md](S1_REGIONAL_STRICT_BODY_OPTIN_SCOPE_2026-10-07.md); the additive four-source ruling and its 35-bureau continuation boundary are recorded in [S1_BUREAU_BODY_POLICY_CONTINUATION_2026-10-07.md](S1_BUREAU_BODY_POLICY_CONTINUATION_2026-10-07.md). Tests and implementation status are in project status and the current validation handoff, separately from the original S4 evidence.
 
 ## Two independent controls
 
@@ -14,7 +14,7 @@ The body-ready policy is a processing and selected-release guard. For an opted-i
 
 `site_fulltext` is a separate display/licensing permission. A ready body does not grant permission to expose its full text. Fujian's `site_fulltext` and `syndicate_fulltext` stay `false`; the existing summary and original-link behavior remains. The strict guard must not become a global RSS or summary-only restriction.
 
-The strict Boolean key is `_aihot.requireBodyReadyForAutomaticSelection`. The runtime accepts only JSON boolean `true`; absent, false, and non-boolean values retain legacy behavior, and source config validation rejects non-boolean values. The body-ready condition is `body_status === "ok"` with a JavaScript-trimmed nonempty `body_text`. The SQL projection uses an exact JSONB boolean comparison and matching ECMAScript whitespace characters. The current approved opt-in set is the five IDs listed above; operators must not infer that a committed JSON value has updated an already-imported source row.
+The strict Boolean key is `_aihot.requireBodyReadyForAutomaticSelection`. The runtime accepts only JSON boolean `true`; absent, false, and non-boolean values retain legacy behavior, and source config validation rejects non-boolean values. The body-ready condition is `body_status === "ok"` with a JavaScript-trimmed nonempty `body_text`. The SQL projection uses an exact JSONB boolean comparison and matching ECMAScript whitespace characters. The current approved opt-in set is exactly the nine IDs listed above. A future source in the same verified 35-bureau catalogue may be considered for this existing source-specific guard only after its exact identity and saved source evidence are reviewed and accepted by QA and the lead. This conditional scope does not auto-enable a source, stage it in a database, or satisfy any Gate. Operators must not infer that a committed JSON value has updated an already-imported source row.
 
 ## Manual selection
 
@@ -33,7 +33,7 @@ The source's live config and current article body state must govern current publ
 ## Safe operator interpretation
 
 - Missing/false strict flag means existing behavior. Preserve legacy RSS and summary-only flows.
-- The approved opt-in set is exactly Fujian, Guangxi, Hainan, Chongqing, and Sichuan. This additive scope does not approve any other source.
+- The approved opt-in set is exactly the nine IDs named above. The conditional future-bureau rule requires exact catalogue identity plus QA and lead acceptance; it grants no automatic opt-in to unrelated sources.
 - Strict readiness and full-text permission are separate settings; keep both Fujian full-text flags false.
 - Manual selection is editorial, exact-Boolean selection only. It does not call a model or repair the body.
 - A JSON edit is not an existing-database update. A trusted admin change and completed republication are separate operational evidence.
