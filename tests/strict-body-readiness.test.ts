@@ -52,8 +52,14 @@ test("strict-body opt-in is exact boolean and body readiness requires nonblank c
   const sources = registry.sources;
   const fujian = sources.find((source) => source.id === "mof-fujian-supervision-dynamics");
   assert.equal((fujian?.config?._aihot as Record<string, unknown> | undefined)?.requireBodyReadyForAutomaticSelection, true);
-  assert.equal(sources.filter((source) => ((source.config?._aihot as Record<string, unknown> | undefined)?.requireBodyReadyForAutomaticSelection) === true).length, 1,
-    "the opt-in stays source-specific to Fujian");
+  assert.deepEqual(sources.filter((source) => ((source.config?._aihot as Record<string, unknown> | undefined)?.requireBodyReadyForAutomaticSelection) === true)
+    .map((source) => source.id).sort(), [
+      "mof-chongqing-supervision-dynamics",
+      "mof-fujian-supervision-dynamics",
+      "mof-guangxi-supervision-dynamics",
+      "mof-hainan-supervision-dynamics",
+      "mof-sichuan-supervision-dynamics",
+    ], "the opt-in remains limited to the five reviewed supervision sources");
 
   assert.equal(requiresBodyReadyForAutomaticSelection({}), false);
   assert.equal(requiresBodyReadyForAutomaticSelection({ _aihot: { requireBodyReadyForAutomaticSelection: false } }), false);

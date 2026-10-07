@@ -100,6 +100,50 @@ const expected = [
     detailDate: "2026-09-28 10:49:00",
     parsedDetailTitle: "广东监管局：健全“四个突出”监管体系，持续提升中央转移支付资金监管质效",
   },
+  {
+    id: "mof-guangxi-supervision-dynamics",
+    bureau: "guangxi",
+    url: "https://gx.mof.gov.cn/gzdt/caizhengjiancha/",
+    article: "https://gx.mof.gov.cn/gzdt/caizhengjiancha/202609/t20260929_3998321.htm",
+    title: "广西监管局：三维聚力推动会计监督检查提质增效",
+    listDate: "2026-09-29T00:00:00+08:00",
+    detailTitle: "广西监管局：三维聚力推动会计监督检查提质增效",
+    detailDate: "2026-09-29 15:51:00",
+    parsedDetailTitle: "广西监管局：三维聚力推动会计监督检查提质增效",
+  },
+  {
+    id: "mof-hainan-supervision-dynamics",
+    bureau: "hainan",
+    url: "https://hq.mof.gov.cn/caizhengjiancha/",
+    article: "https://hq.mof.gov.cn/caizhengjiancha/202609/t20260930_3998477.htm",
+    title: "财政部海南监管局：传承红色家风 涵养清廉正气",
+    listDate: "2026-09-30T00:00:00+08:00",
+    detailTitle: "财政部海南监管局：传承红色家风 涵养清廉正气",
+    detailDate: "2026-09-30 15:53:00",
+    parsedDetailTitle: "财政部海南监管局：传承红色家风 涵养清廉正气",
+  },
+  {
+    id: "mof-chongqing-supervision-dynamics",
+    bureau: "chongqing",
+    url: "https://cq.mof.gov.cn/gzdt2019/caizhengjiancha/",
+    article: "https://cq.mof.gov.cn/gzdt2019/caizhengjiancha/202609/t20260930_3998376.htm",
+    title: "财政部重庆监管局：监管五处党支部开展 “护航网络安全 赋能财会监督”网络安全学习",
+    listDate: "2026-09-30T00:00:00+08:00",
+    detailTitle: "财政部重庆监管局：监管五处党支部开展 “护航网络安全 赋能财会监督”网络安全学习",
+    detailDate: "2026-09-30 10:09:00",
+    parsedDetailTitle: "财政部重庆监管局：监管五处党支部开展 “护航网络安全 赋能财会监督”网络安全学习",
+  },
+  {
+    id: "mof-sichuan-supervision-dynamics",
+    bureau: "sichuan",
+    url: "https://sc.mof.gov.cn/caizhengjiancha/",
+    article: "https://sc.mof.gov.cn/caizhengjiancha/202609/t20260928_3998248.htm",
+    title: "财政部四川监管局：加强沟通 密切协作用心用情做好服务代表委员工作",
+    listDate: "2026-09-28T00:00:00+08:00",
+    detailTitle: "财政部四川监管局：加强沟通 密切协作用心用情做好服务代表委员工作",
+    detailDate: "2026-09-28 16:37:00",
+    parsedDetailTitle: "财政部四川监管局：加强沟通 密切协作用心用情做好服务代表委员工作",
+  },
 ];
 
 test("regional bureau disabled configs match the saved list DOMs and detail metadata", async () => {
@@ -119,7 +163,7 @@ test("regional bureau disabled configs match the saved list DOMs and detail meta
     assert.deepEqual(config._aihot, {
       initialBackfillMonths: 3,
       initialBackfillRequirePublishedAt: true,
-      ...(spec.id === "mof-fujian-supervision-dynamics" ? { requireBodyReadyForAutomaticSelection: true } : {}),
+      ...(["mof-fujian-supervision-dynamics", "mof-guangxi-supervision-dynamics", "mof-hainan-supervision-dynamics", "mof-chongqing-supervision-dynamics", "mof-sichuan-supervision-dynamics"].includes(spec.id) ? { requireBodyReadyForAutomaticSelection: true } : {}),
     });
     assert.deepEqual(unsupportedConfig("web_list", config), []);
     assert.equal(config.url, spec.url);
@@ -149,18 +193,29 @@ test("regional bureau disabled configs match the saved list DOMs and detail meta
     assert.equal(detail.bodySelector, ".my_doccontent");
     assert.equal(detail.publishedAtUtcOffset, "+08:00");
     assert.equal(detail.publishedAtRegex, '<meta\\s+name="PubDate"\\s+content="([^"]+)');
-    const detailHtml = readFileSync(fixtureUrl(`${spec.bureau}-detail.html`), "utf8");
+    const checksBody = ["mof-guangxi-supervision-dynamics", "mof-hainan-supervision-dynamics", "mof-chongqing-supervision-dynamics", "mof-sichuan-supervision-dynamics"].includes(spec.id);
+    let detailHtml = readFileSync(fixtureUrl(`${spec.bureau}-detail.html`), "utf8");
+    if (checksBody) {
+      const syntheticBody = Array.from({ length: 8 }, () => "<p>Synthetic body paragraph for selector verification; no official article text is copied.</p>").join("");
+      detailHtml = detailHtml.replace(/(<div class="my_doccontent">)[\s\S]*?(<\/div>)/, (_match, start: string, end: string) => `${start}${syntheticBody}${end}`);
+    }
     let reads = 0;
+    const expectedDetailDate = new Date(`${spec.detailDate.replace(" ", "T")}+08:00`);
     const metadata = await fetchDetail(spec.article, { id: spec.id, kind: "web_list", config } as never,
-      { date: true, title: true, summary: false, body: false }, {
+      { date: true, title: true, summary: false, body: checksBody, ...(checksBody ? { expectedTitle: spec.detailTitle, expectedPublishedAt: expectedDetailDate } : {}) }, {
         fetcher: async (url) => {
           reads += 1;
           return { status: 200, url, headers: new Headers({ "content-type": "text/html; charset=utf-8" }), body: Buffer.from(detailHtml), text: () => detailHtml };
         },
       });
     assert.equal(reads, 1);
-    assert.equal(metadata.publishedAt?.toISOString(), new Date(`${spec.detailDate.replace(" ", "T")}+08:00`).toISOString());
+    assert.equal(metadata.publishedAt?.toISOString(), expectedDetailDate.toISOString());
     assert.equal(metadata.title, spec.parsedDetailTitle);
+    if (checksBody) {
+      assert.ok(metadata.body?.text && metadata.body.text.length >= 200, `${spec.id} extracts the configured body fixture`);
+      assert.ok(metadata.body!.text.includes("Synthetic body paragraph"), `${spec.id} body comes from .my_doccontent`);
+      assert.ok(!metadata.body!.text.includes("DETAIL-CHROME-SHOULD-NOT-LEAK"), `${spec.id} excludes page chrome`);
+    }
   }
 
   const beijing = sources.find(({ id }) => id === "mof-beijing-supervision-dynamics")!.config.detail;
