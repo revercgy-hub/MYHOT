@@ -10,6 +10,8 @@ export interface SelectedBodyConfig {
   bodyPolicies?: SelectedBodyPolicy[];
   attachmentScopeSelector?: string;
   publishedAtUtcOffset?: string;
+  titleRegex?: string;
+  publishedAtRegex?: string;
 }
 
 export interface SelectedBodyPolicy {
@@ -73,19 +75,48 @@ function localDateKey(date: Date, offset: string): string | null {
   return new Date(date.getTime() + delta * 60_000).toISOString().slice(0, 10);
 }
 
-function identityFromHtml($: cheerio.CheerioAPI, offset: string): BodyIdentity | null {
-  const title = collapseWhitespace(
-    $("meta[name='ArticleTitle']").attr("content") ??
-    $("meta[property='og:title']").attr("content") ??
-    $("meta[property='article:title']").attr("content") ??
-    $("title").first().text(),
-  );
-  const rawDate =
-    $("meta[name='PubDate']").attr("content") ??
-    $("meta[property='article:published_time']").attr("content") ??
-    $("meta[name='pubdate']").attr("content") ??
-    $("time[datetime]").first().attr("datetime") ??
-    null;
+const MAX_IDENTITY_REGEX_CHARS = 1_000;
+const IDENTITY_REGEX_FIELDS = ["titleRegex", "publishedAtRegex"] as const;
+
+/** Source-config and direct helper calls share the same fail-closed regex boundary. */
+export function validateSelectedBodyIdentityRegexes(config: Record<string, unknown>): string[] {
+  const errors: string[] = [];
+  for (const field of IDENTITY_REGEX_FIELDS) {
+    if (!Object.hasOwn(config, field)) continue;
+    const value = config[field];
+    if (typeof value !== "string" || !value.trim() || value.length > MAX_IDENTITY_REGEX_CHARS) {
+      errors.push(`${field} must be a non-empty string of at most ${MAX_IDENTITY_REGEX_CHARS} characters`);
+      continue;
+    }
+    try { new RegExp(value); }
+    catch { errors.push(`${field} must be a valid regular expression`); }
+  }
+  return errors;
+}
+
+function regexCapture(html: string, value: unknown): string | null {
+  if (typeof value !== "string" || !value.trim() || value.length > MAX_IDENTITY_REGEX_CHARS) return null;
+  try { return new RegExp(value).exec(html)?.[1]?.trim() || null; }
+  catch { return null; }
+}
+
+function identityFromHtml($: cheerio.CheerioAPI, html: string, offset: string, config: SelectedBodyConfig): BodyIdentity | null {
+  const rawConfig = config as SelectedBodyConfig & Record<string, unknown>;
+  const hasTitleRegex = Object.hasOwn(rawConfig, "titleRegex");
+  const hasPublishedAtRegex = Object.hasOwn(rawConfig, "publishedAtRegex");
+  const title = collapseWhitespace(hasTitleRegex
+    ? regexCapture(html, rawConfig.titleRegex) ?? ""
+    : $("meta[name='ArticleTitle']").attr("content") ??
+      $("meta[property='og:title']").attr("content") ??
+      $("meta[property='article:title']").attr("content") ??
+      $("title").first().text());
+  const rawDate = hasPublishedAtRegex
+    ? regexCapture(html, rawConfig.publishedAtRegex)
+    : $("meta[name='PubDate']").attr("content") ??
+      $("meta[property='article:published_time']").attr("content") ??
+      $("meta[name='pubdate']").attr("content") ??
+      $("time[datetime]").first().attr("datetime") ??
+      null;
   const publishedAt = parseLooseDate(rawDate, offset);
   return title && publishedAt ? { title, publishedAt } : null;
 }
@@ -211,6 +242,9 @@ export function extractSelectedBody(
   options: { pdfAttachmentsPrevalidated?: boolean } = {},
 ): SelectedBodyResult {
   const rawConfig = config as SelectedBodyConfig & Record<string, unknown>;
+  if (validateSelectedBodyIdentityRegexes(rawConfig).length > 0) {
+    return { body: null, reason: "identity_missing", attachments: [] };
+  }
   const scopeConfigured = rawConfig.attachmentScopeSelector !== undefined;
   if (scopeConfigured) {
     const scope = rawConfig.attachmentScopeSelector;
@@ -281,7 +315,7 @@ export function extractSelectedBody(
   if (!rawText || !textOutsideLinks) return { body: null, reason: "empty_body", attachments: scanAttachments() };
 
   if (activePolicy?.table && hasUnsupportedTableLayout(rawHtml)) return { body: null, reason: "body_policy_table_invalid", attachments: scanAttachments() };
-  const pageIdentity = identityFromHtml($, config.publishedAtUtcOffset ?? "+08:00");
+  const pageIdentity = identityFromHtml($, html, config.publishedAtUtcOffset ?? "+08:00", config);
   if (!pageIdentity?.publishedAt || !expected.title.trim() || !expected.publishedAt) {
     return { body: null, reason: "identity_missing", attachments: [] };
   }
@@ -369,6 +403,8 @@ export function extractSelectedArticleEnvelope(
     bodySelector: config.bodySelector,
     allowShortBody: attachment ? true : false,
     publishedAtUtcOffset: config.publishedAtUtcOffset,
+    ...(Object.hasOwn(config, "titleRegex") ? { titleRegex: config.titleRegex } : {}),
+    ...(Object.hasOwn(config, "publishedAtRegex") ? { publishedAtRegex: config.publishedAtRegex } : {}),
   }, expected, { pdfAttachmentsPrevalidated: true });
   if (!bodyResult.body) return { body: null, attachment, ...(attachment ? { attachments: [attachment] } : {}), reason: bodyResult.reason ?? "empty_body" };
   if (!attachment && bodyResult.body.text.length < 200) return { body: null, attachment: null, reason: "short_body_not_allowed" };

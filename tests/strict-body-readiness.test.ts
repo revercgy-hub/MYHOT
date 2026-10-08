@@ -50,11 +50,11 @@ async function create(sourceId: string, suffix: string, bodyStatus: "pending" | 
 test("strict-body opt-in is exact boolean and body readiness requires nonblank confirmed text", async () => {
   const registry = JSON.parse(readFileSync(new URL("../industry/sources.json", import.meta.url), "utf8")) as { sources: Array<{ id: string; config?: Record<string, unknown> }> };
   const sources = registry.sources;
-  assert.equal(sources.length, 46, "the verified-source catalogue size remains explicit");
+  assert.equal(sources.length, 47, "the configured-source catalogue size remains explicit");
   const accounting = sources.find((source) => source.id === "mof-accounting-notices");
   assert.equal((accounting?.config?._aihot as Record<string, unknown> | undefined)?.requireBodyReadyForAutomaticSelection, true,
     "the accounting source is the exact central-source exception");
-  for (const id of ["fujian-finance-notices", "mof-budget-work", "mof-finance-notices", "xiamen-finance-debt"]) {
+  for (const id of ["fujian-finance-notices", "mof-budget-work", "mof-finance-notices", "xiamen-finance-debt", "govcn-policy-library"]) {
     const source = sources.find((entry) => entry.id === id);
     assert.equal((source?.config?._aihot as Record<string, unknown> | undefined)?.requireBodyReadyForAutomaticSelection, true,
       `${id} is an exact body-readiness exception`);
@@ -64,6 +64,7 @@ test("strict-body opt-in is exact boolean and body readiness requires nonblank c
   assert.deepEqual(sources.filter((source) => ((source.config?._aihot as Record<string, unknown> | undefined)?.requireBodyReadyForAutomaticSelection) === true)
     .map((source) => source.id).sort(), [
       "fujian-finance-notices",
+      "govcn-policy-library",
       "mof-accounting-notices",
       "mof-anhui-supervision-dynamics",
       "mof-beijing-supervision-dynamics",
@@ -103,7 +104,7 @@ test("strict-body opt-in is exact boolean and body readiness requires nonblank c
       "mof-yunnan-supervision-dynamics",
       "mof-zhejiang-supervision-dynamics",
       "xiamen-finance-debt",
-    ], "the opt-in remains limited to thirty-five reviewed supervision sources plus five exact core exceptions");
+    ], "the opt-in remains limited to thirty-five reviewed supervision sources plus six exact core exceptions");
 
   assert.equal(requiresBodyReadyForAutomaticSelection({}), false);
   assert.equal(requiresBodyReadyForAutomaticSelection({ _aihot: { requireBodyReadyForAutomaticSelection: false } }), false);

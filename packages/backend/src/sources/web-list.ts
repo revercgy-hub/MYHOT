@@ -513,6 +513,8 @@ export async function fetchDetail(url: string, source: SourceRow, need: DetailNe
               bodyPolicies: d.bodyPolicies,
               attachmentScopeSelector: d.attachmentScopeSelector,
               publishedAtUtcOffset: d.publishedAtUtcOffset ?? source.config.publishedAtUtcOffset,
+              ...(Object.hasOwn(d, "titleRegex") ? { titleRegex: d.titleRegex } : {}),
+              ...(Object.hasOwn(d, "publishedAtRegex") ? { publishedAtRegex: d.publishedAtRegex } : {}),
               articleSelector: d.articleSelector,
               attachmentSelector: d.attachmentSelector,
               attachmentMode: d.attachmentMode,

@@ -143,6 +143,8 @@ export async function extractHtmlEnvelopeWithPdf(
     attachmentMode: config.attachmentMode,
     allowShortBody: config.allowShortBody,
     publishedAtUtcOffset: config.publishedAtUtcOffset,
+    ...(Object.hasOwn(config, "titleRegex") ? { titleRegex: config.titleRegex } : {}),
+    ...(Object.hasOwn(config, "publishedAtRegex") ? { publishedAtRegex: config.publishedAtRegex } : {}),
   };
   const selected = extractSelectedArticleEnvelope(html, url, envelopeConfig, expected);
   if (!selected.body) return { body: null, reason: selected.reason ?? "body_unconfirmed", ...(selected.attachments ? { attachments: selected.attachments } : {}) };

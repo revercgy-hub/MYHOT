@@ -2,7 +2,7 @@
 // know would otherwise fall back silently to the generic parse (menus and sentence fragments as
 // articles, dates never found).
 import type { SourceRow } from "./types.ts";
-import { validateBodyPolicies } from "../content/selected-body.ts";
+import { validateBodyPolicies, validateSelectedBodyIdentityRegexes } from "../content/selected-body.ts";
 import { validateWebListPagination } from "./web-list-pagination.ts";
 
 // Rules applied in collect.ts to every kind read through collectSource.
@@ -64,6 +64,9 @@ export function unsupportedConfig(kind: SourceRow["kind"], config: Record<string
         out.push("_aihot.requireBodyReadyForAutomaticSelection must be boolean");
       }
       if (key === "detail") {
+        if (nested.bodySelector !== undefined || nested.bodyPolicies !== undefined) {
+          for (const error of validateSelectedBodyIdentityRegexes(nested)) out.push(`detail.${error}`);
+        }
         if (nested.bodyPolicies !== undefined) {
           for (const error of validateBodyPolicies(nested.bodyPolicies)) out.push(`detail.${error}`);
           if (kind !== "web_list") out.push("detail.bodyPolicies is only supported by web_list");

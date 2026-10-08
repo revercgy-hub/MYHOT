@@ -160,6 +160,8 @@ export async function extractArticleBody(articleId: string, allowJina = process.
         bodyPolicies,
         attachmentScopeSelector,
         publishedAtUtcOffset: detail.publishedAtUtcOffset ?? a.source_config.publishedAtUtcOffset,
+        ...(Object.hasOwn(detail, "titleRegex") ? { titleRegex: detail.titleRegex } : {}),
+        ...(Object.hasOwn(detail, "publishedAtRegex") ? { publishedAtRegex: detail.publishedAtRegex } : {}),
         articleSelector: detail.articleSelector,
         attachmentSelector: detail.attachmentSelector,
         attachmentMode: detail.attachmentMode,
