@@ -34,8 +34,9 @@ let requests: string[] = [];
 before(async () => {
   previousDispatcher = getGlobalDispatcher();
   previousPrivateNetwork = config.allowPrivateNetworkFetch;
+  assert.equal(previousPrivateNetwork, false, "private-network access is disabled before the MockAgent-only transport switch");
   // Test-only bypass of DNS validation lets Undici's deny-by-default MockAgent intercept the official HTTPS origin.
-  // The process environment remains ALLOW_PRIVATE_NETWORK_FETCH=false and MockAgent has no network fallback.
+  // The environment may omit ALLOW_PRIVATE_NETWORK_FETCH; its configured default is false and MockAgent has no network fallback.
   config.allowPrivateNetworkFetch = true;
   setGlobalDispatcher(agent);
   requests = [];
@@ -80,7 +81,6 @@ after(async () => {
 
 test("NFRA collector persists list attachment pending and delayed extraction cannot clear it or store a body", async () => {
   assert.equal(process.env.COLLECT_ENABLED, "false");
-  assert.equal(process.env.ALLOW_PRIVATE_NETWORK_FETCH, "false");
   // npm test enables this flag only to let unrelated fake-provider tests use local stubs.
   // This collector/extractor path has no provider branch; zero analyses/receipts below prove none ran.
   const result = await collectSource(ID, { force: true });
