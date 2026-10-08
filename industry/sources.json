@@ -62,7 +62,7 @@
         "allowUrlPrefixes": ["https://cz.xm.gov.cn/zwxx/czsj/dfzxx/"],
         "publishedAtUtcOffset": "+08:00",
         "detail": { "bodySelector": ".Custom_UnionStyle" },
-        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true, "requireBodyReadyForAutomaticSelection": true }
       },
       "tier": "T1",
       "first_party": true,

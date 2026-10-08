@@ -54,10 +54,10 @@ test("strict-body opt-in is exact boolean and body readiness requires nonblank c
   const accounting = sources.find((source) => source.id === "mof-accounting-notices");
   assert.equal((accounting?.config?._aihot as Record<string, unknown> | undefined)?.requireBodyReadyForAutomaticSelection, true,
     "the accounting source is the exact central-source exception");
-  for (const id of ["fujian-finance-notices", "mof-budget-work", "mof-finance-notices"]) {
+  for (const id of ["fujian-finance-notices", "mof-budget-work", "mof-finance-notices", "xiamen-finance-debt"]) {
     const source = sources.find((entry) => entry.id === id);
     assert.equal((source?.config?._aihot as Record<string, unknown> | undefined)?.requireBodyReadyForAutomaticSelection, true,
-      `${id} is an exact central-source exception`);
+      `${id} is an exact body-readiness exception`);
   }
   const fujian = sources.find((source) => source.id === "mof-fujian-supervision-dynamics");
   assert.equal((fujian?.config?._aihot as Record<string, unknown> | undefined)?.requireBodyReadyForAutomaticSelection, true);
@@ -102,7 +102,8 @@ test("strict-body opt-in is exact boolean and body readiness requires nonblank c
       "mof-xinjiang-supervision-dynamics",
       "mof-yunnan-supervision-dynamics",
       "mof-zhejiang-supervision-dynamics",
-    ], "the opt-in remains limited to thirty-five reviewed supervision sources plus four exact non-regional exceptions");
+      "xiamen-finance-debt",
+    ], "the opt-in remains limited to thirty-five reviewed supervision sources plus five exact core exceptions");
 
   assert.equal(requiresBodyReadyForAutomaticSelection({}), false);
   assert.equal(requiresBodyReadyForAutomaticSelection({ _aihot: { requireBodyReadyForAutomaticSelection: false } }), false);
