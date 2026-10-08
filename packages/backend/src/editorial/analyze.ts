@@ -16,6 +16,7 @@ import { sql } from "../db.ts";
 import { chatJson, MODELS, type ContentPart } from "../providers/llm.ts";
 import { completeReceipt, ProviderRejectedError } from "../providers/receipts.ts";
 import { collapseWhitespace } from "../lib/text.ts";
+import { sha256, stableJson } from "../lib/ids.ts";
 import { modelFor } from "./models.ts";
 import { buildMaterial, firstImagePart, loadAnalyzeInput, type AnalyzeInputArticle } from "./input.ts";
 import { pageFetchable } from "../content/extract.ts";
@@ -181,7 +182,11 @@ export function waitsForPage(a: AnalyzeInputArticle): boolean {
   return a.bodyStatus === "pending" && !a.bodyText && !a.xPost && pageFetchable(a.url, a.source.kind);
 }
 
-type StepOpts = { attemptTag?: string; scoreModel?: string };
+export interface BoundedAnalysisExpectation { revision: number; contentHash: string; sourceId: string; sourceConfigHash: string; title: string; url: string; model: "deepseek-flash" }
+type StepOpts = { attemptTag?: string; scoreModel?: string; boundedPilot?: BoundedAnalysisExpectation };
+async function stepModel(capability: Parameters<typeof modelFor>[0], opts: StepOpts): Promise<string> {
+  return opts.boundedPilot?.model ?? modelFor(capability);
+}
 export class AnalysisInterruptedError extends Error {}
 
 function checkAnalysisRunning() {
@@ -192,7 +197,7 @@ const subjectOf = (a: AnalyzeInputArticle) => `article:${a.id}@${a.revision}`;
 const tagged = (attemptTag: string | undefined, step: string) => [attemptTag, step].filter(Boolean).join(":") || undefined;
 
 async function runPrefilter(a: AnalyzeInputArticle, opts: StepOpts): Promise<AnalysisRun["prefilter"]> {
-  const model = await modelFor("prefilter");
+  const model = await stepModel("prefilter", opts);
   checkAnalysisRunning();
   const res = await chatJson({
     model,
@@ -211,8 +216,8 @@ async function runPrefilter(a: AnalyzeInputArticle, opts: StepOpts): Promise<Ana
   return { label, reason: res.data.reason, model: res.model, receiptId: res.receiptId, reused: res.reused };
 }
 
-async function runScores(a: AnalyzeInputArticle, threshold: number, opts: StepOpts): Promise<NonNullable<AnalysisRun["scores"]>> {
-  const model = opts.scoreModel ?? (await modelFor("score"));
+async function runScores(a: AnalyzeInputArticle, threshold: number, opts: StepOpts, failOnRefusal = false): Promise<NonNullable<AnalysisRun["scores"]>> {
+  const model = opts.boundedPilot?.model ?? opts.scoreModel ?? (await modelFor("score"));
   const call = scoreCall(model);
   const input = buildScoreInput(a);
   const values: number[] = [];
@@ -233,7 +238,7 @@ async function runScores(a: AnalyzeInputArticle, threshold: number, opts: StepOp
       reused &&= res.reused;
     } catch (error) {
       // The model's content filter declines the material (Zhipu 1301): not scored, so not selected.
-      if (isContentFilter(error)) return { model, threshold, values, receiptIds, reused: false, refused: true };
+      if (isContentFilter(error) && !failOnRefusal) return { model, threshold, values, receiptIds, reused: false, refused: true };
       throw error;
     }
   }
@@ -241,7 +246,7 @@ async function runScores(a: AnalyzeInputArticle, threshold: number, opts: StepOp
 }
 
 async function runStructure(a: AnalyzeInputArticle, opts: StepOpts): Promise<NonNullable<AnalysisRun["structure"]>> {
-  const model = await modelFor("structure");
+  const model = await stepModel("structure", opts);
   checkAnalysisRunning();
   const res = await chatJson({
     model,
@@ -260,8 +265,8 @@ async function runStructure(a: AnalyzeInputArticle, opts: StepOpts): Promise<Non
 }
 
 /** The content understanding; null when the model's content filter declines the material. */
-async function runUnderstand(a: AnalyzeInputArticle, opts: StepOpts): Promise<AnalysisRun["writing"]> {
-  const model = await modelFor("understand");
+async function runUnderstand(a: AnalyzeInputArticle, opts: StepOpts, failOnRefusal = false): Promise<AnalysisRun["writing"]> {
+  const model = await stepModel("understand", opts);
   const text = understandUser(a);
   const call = (image: ContentPart | null) => {
     checkAnalysisRunning();
@@ -277,13 +282,13 @@ async function runUnderstand(a: AnalyzeInputArticle, opts: StepOpts): Promise<An
   try {
     res = await call(image);
   } catch (error) {
-    if (isContentFilter(error)) return null;
+    if (isContentFilter(error) && !failOnRefusal) return null;
     // The model refused the image (download, format): the text is written without it.
-    if (!image || !(error instanceof ProviderRejectedError) || error.retryable) throw error;
+    if (failOnRefusal || !image || !(error instanceof ProviderRejectedError) || error.retryable) throw error;
     try {
       res = await call(null);
     } catch (retryError) {
-      if (isContentFilter(retryError)) return null;
+      if (isContentFilter(retryError) && !failOnRefusal) return null;
       throw retryError;
     }
   }
@@ -306,7 +311,7 @@ async function runSummarize(a: AnalyzeInputArticle, opts: StepOpts): Promise<Non
   // A short post already in Chinese is its own copy, and too little text is not written up from a title.
   if (short && !needsShortTweetTranslation(main)) return { kind: "verbatim", model: null, titleZh: main, summaryZh: main, ...plain };
   if (!short && t.text.trim().length < 20) return { kind: "none", model: null, titleZh: looksZh(t.title) ? t.title : "", summaryZh: "", ...plain };
-  const model = await modelFor("summarize");
+  const model = await stepModel("summarize", opts);
   checkAnalysisRunning();
   const res = await chatJson({
     model,
@@ -342,6 +347,16 @@ export async function runAnalysis(a: AnalyzeInputArticle, opts: StepOpts & { sta
   // UNKNOWN is let through (its material is as complete as it will get); BLOCK stops here.
   if (prefilter.label === "BLOCK") return { prefilter, scores: null, writing: null, structure: null };
   const threshold = tierThreshold(a.source.tier);
+  if (opts.boundedPilot) {
+    const scores = threshold === null ? null : await runScores(a, threshold, opts, true);
+    // Bounded pilot calls are deliberately serial: a failed stage leaves no later paid request in flight.
+    const structure = await runStructure(a, opts);
+    const sum = scores && !scores.refused && scores.values.length === SCORE_CALLS ? scores.values.reduce((total, v) => total + v, 0) : null;
+    const near = sum !== null && (sum >= scores!.threshold * SCORE_CALLS || sum > UNDERSTAND_FLOOR * SCORE_CALLS);
+    const writing = near ? await runUnderstand(a, opts, true) : await runSummarize(a, opts);
+    if (!writing) throw new Error("bounded pilot writer returned no output");
+    return { prefilter, scores, writing, structure };
+  }
   if (opts.stages === "selection") {
     const scores = threshold === null ? null : await runScores(a, threshold, opts);
     return { prefilter, scores, writing: null, structure: null };
@@ -421,6 +436,23 @@ export interface AnalyzeResult {
 export async function analyzeArticle(articleId: string, opts: StepOpts = {}): Promise<AnalyzeResult | null> {
   const input = await loadAnalyzeInput(articleId);
   if (!input) return null;
+  if (opts.boundedPilot) {
+    const expected = opts.boundedPilot;
+    if (expected.contentHash !== input.contentHash || expected.contentHash !== input.revisionContentHash || expected.revision !== input.revision || expected.sourceId !== input.sourceId || expected.title !== input.title || expected.url !== input.url || input.id !== articleId) {
+      throw new Error("bounded pilot frozen article identity changed");
+    }
+    if (input.source.participationMode !== "editorial") throw new Error("bounded pilot requires an editorial source");
+    if (input.bodyStatus !== "ok" || !input.bodyText?.trim()) throw new Error("bounded pilot requires confirmed non-empty body text");
+    if (input.attachmentPendingReason || input.bodyReadinessPending) throw new Error("bounded pilot attachment/body guard is active");
+    if (input.xPost || input.media.length > 0) throw new Error("bounded pilot is text-only; media-bearing input is rejected");
+    const [current] = await sql<{ revision: number; content_hash: string | null; revision_content_hash: string | null; source_id: string; title: string; url: string; source_config: Record<string, unknown> }[]>`
+      SELECT a.revision, a.content_hash, ar.content_hash AS revision_content_hash, a.source_id, a.title, a.url, s.config AS source_config
+      FROM articles a JOIN sources s ON s.id = a.source_id LEFT JOIN article_revisions ar ON ar.article_id = a.id AND ar.revision = a.revision
+      WHERE a.id = ${articleId}`;
+    if (!current || current.revision !== expected.revision || current.content_hash !== expected.contentHash || current.revision_content_hash !== expected.contentHash || current.source_id !== expected.sourceId || current.title !== expected.title || current.url !== expected.url || sha256(stableJson(current.source_config)) !== expected.sourceConfigHash) {
+      throw new Error("bounded pilot frozen article identity changed before provider call");
+    }
+  }
   if (input.attachmentPendingReason) return { analysisId: null, stale: false, skippedReason: input.attachmentPendingReason, output: null, receiptIds: [], reused: true };
   if (input.bodyReadinessPending) return { analysisId: null, stale: false, skippedReason: "body_not_ready", output: null, receiptIds: [], reused: true };
   // Its page first; extraction queues the analysis again (normally the queue already routed it there).
@@ -439,7 +471,13 @@ export async function analyzeArticle(articleId: string, opts: StepOpts = {}): Pr
     fact: out.fact,
   };
   const committed = await sql.begin(async (tx) => {
-    const [current] = await tx<{ revision: number }[]>`SELECT revision FROM articles WHERE id = ${articleId} FOR UPDATE`;
+    const [current] = await tx<{ revision: number; content_hash: string | null; revision_content_hash: string | null; source_id: string; title: string; url: string; source_config: Record<string, unknown> }[]>`
+      SELECT a.revision, a.content_hash, ar.content_hash AS revision_content_hash, a.source_id, a.title, a.url, s.config AS source_config
+      FROM articles a JOIN sources s ON s.id = a.source_id LEFT JOIN article_revisions ar ON ar.article_id = a.id AND ar.revision = a.revision
+      WHERE a.id = ${articleId} FOR UPDATE OF a, s`;
+    if (opts.boundedPilot && (!current || current.revision !== opts.boundedPilot.revision || current.content_hash !== opts.boundedPilot.contentHash || current.revision_content_hash !== opts.boundedPilot.contentHash || current.source_id !== opts.boundedPilot.sourceId || current.title !== opts.boundedPilot.title || current.url !== opts.boundedPilot.url || sha256(stableJson(current.source_config)) !== opts.boundedPilot.sourceConfigHash)) {
+      throw new Error("bounded pilot article changed before analysis commit");
+    }
     const stale = !current || current.revision !== input.revision;
     const [row] = await tx<{ id: number }[]>`
       INSERT INTO analyses (article_id, input_revision, origin, model, prompt_version, receipt_ids, relevance, category, tags,
