@@ -7,6 +7,13 @@ import { fetchDetail, fromHtml } from "@aihot/backend/sources/web-list";
 const sourcesFile = new URL("../industry/sources.json", import.meta.url);
 const fixtureUrl = (name: string) => new URL(`./fixtures/regional-bureaus/${name}`, import.meta.url);
 const strictBodyIds = new Set([
+  "mof-xiamen-supervision-dynamics",
+  "mof-beijing-supervision-dynamics",
+  "mof-shanghai-supervision-dynamics",
+  "mof-henan-supervision-dynamics",
+  "mof-hubei-supervision-dynamics",
+  "mof-hunan-supervision-dynamics",
+  "mof-guangdong-supervision-dynamics",
   "mof-fujian-supervision-dynamics",
   "mof-guangxi-supervision-dynamics",
   "mof-hainan-supervision-dynamics",

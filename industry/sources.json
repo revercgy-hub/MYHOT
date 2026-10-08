@@ -37,7 +37,7 @@
         "publishedAtSelector": "span.bf-pass",
         "allowUrlPrefixes": ["https://czt.fujian.gov.cn/zwgk/tzgg/"],
         "publishedAtUtcOffset": "+08:00",
-        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true, "requireBodyReadyForAutomaticSelection": true }
       },
       "tier": "T1",
       "first_party": true,
@@ -318,7 +318,7 @@
         "publishedAtSelector": "span",
         "publishedAtUtcOffset": "+08:00",
         "allowUrlPrefixes": ["https://xm.mof.gov.cn/caizhengjiancha/"],
-        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true, "requireBodyReadyForAutomaticSelection": true }
       },
       "tier": "T1",
       "first_party": true,
@@ -381,7 +381,7 @@
           "publishedAtAuthoritative": true,
           "bodySelector": ".my_doccontent"
         },
-        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true, "requireBodyReadyForAutomaticSelection": true }
       },
       "tier": "T1",
       "first_party": true,
@@ -411,7 +411,7 @@
           "publishedAtUtcOffset": "+08:00",
           "bodySelector": ".my_doccontent"
         },
-        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true, "requireBodyReadyForAutomaticSelection": true }
       },
       "tier": "T1",
       "first_party": true,
@@ -442,7 +442,7 @@
           "publishedAtUtcOffset": "+08:00",
           "bodySelector": ".my_doccontent"
         },
-        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true, "requireBodyReadyForAutomaticSelection": true }
       },
       "tier": "T1",
       "first_party": true,
@@ -474,7 +474,7 @@
           "publishedAtUtcOffset": "+08:00",
           "bodySelector": ".my_doccontent"
         },
-        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true, "requireBodyReadyForAutomaticSelection": true }
       },
       "tier": "T1",
       "first_party": true,
@@ -506,7 +506,7 @@
           "publishedAtUtcOffset": "+08:00",
           "bodySelector": ".my_doccontent"
         },
-        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true, "requireBodyReadyForAutomaticSelection": true }
       },
       "tier": "T1",
       "first_party": true,
@@ -538,7 +538,7 @@
           "publishedAtUtcOffset": "+08:00",
           "bodySelector": ".my_doccontent"
         },
-        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true, "requireBodyReadyForAutomaticSelection": true }
       },
       "tier": "T1",
       "first_party": true,

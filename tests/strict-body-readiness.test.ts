@@ -54,7 +54,7 @@ test("strict-body opt-in is exact boolean and body readiness requires nonblank c
   const accounting = sources.find((source) => source.id === "mof-accounting-notices");
   assert.equal((accounting?.config?._aihot as Record<string, unknown> | undefined)?.requireBodyReadyForAutomaticSelection, true,
     "the accounting source is the exact central-source exception");
-  for (const id of ["mof-budget-work", "mof-finance-notices"]) {
+  for (const id of ["fujian-finance-notices", "mof-budget-work", "mof-finance-notices"]) {
     const source = sources.find((entry) => entry.id === id);
     assert.equal((source?.config?._aihot as Record<string, unknown> | undefined)?.requireBodyReadyForAutomaticSelection, true,
       `${id} is an exact central-source exception`);
@@ -63,19 +63,25 @@ test("strict-body opt-in is exact boolean and body readiness requires nonblank c
   assert.equal((fujian?.config?._aihot as Record<string, unknown> | undefined)?.requireBodyReadyForAutomaticSelection, true);
   assert.deepEqual(sources.filter((source) => ((source.config?._aihot as Record<string, unknown> | undefined)?.requireBodyReadyForAutomaticSelection) === true)
     .map((source) => source.id).sort(), [
+      "fujian-finance-notices",
       "mof-accounting-notices",
       "mof-anhui-supervision-dynamics",
+      "mof-beijing-supervision-dynamics",
       "mof-budget-work",
       "mof-chongqing-supervision-dynamics",
       "mof-dalian-supervision-dynamics",
       "mof-finance-notices",
       "mof-fujian-supervision-dynamics",
       "mof-gansu-supervision-dynamics",
+      "mof-guangdong-supervision-dynamics",
       "mof-guangxi-supervision-dynamics",
       "mof-guizhou-supervision-dynamics",
       "mof-hainan-supervision-dynamics",
       "mof-hebei-supervision-dynamics",
       "mof-heilongjiang-supervision-dynamics",
+      "mof-henan-supervision-dynamics",
+      "mof-hubei-supervision-dynamics",
+      "mof-hunan-supervision-dynamics",
       "mof-inner-mongolia-supervision-dynamics",
       "mof-jiangsu-supervision-dynamics",
       "mof-jiangxi-supervision-dynamics",
@@ -87,14 +93,16 @@ test("strict-body opt-in is exact boolean and body readiness requires nonblank c
       "mof-qinghai-supervision-dynamics",
       "mof-shaanxi-supervision-dynamics",
       "mof-shandong-supervision-dynamics",
+      "mof-shanghai-supervision-dynamics",
       "mof-shanxi-supervision-dynamics",
       "mof-shenzhen-supervision-dynamics",
       "mof-sichuan-supervision-dynamics",
       "mof-tianjin-supervision-dynamics",
+      "mof-xiamen-supervision-dynamics",
       "mof-xinjiang-supervision-dynamics",
       "mof-yunnan-supervision-dynamics",
       "mof-zhejiang-supervision-dynamics",
-    ], "the opt-in remains limited to twenty-eight reviewed supervision sources plus three exact central-source exceptions");
+    ], "the opt-in remains limited to thirty-five reviewed supervision sources plus four exact non-regional exceptions");
 
   assert.equal(requiresBodyReadyForAutomaticSelection({}), false);
   assert.equal(requiresBodyReadyForAutomaticSelection({ _aihot: { requireBodyReadyForAutomaticSelection: false } }), false);
