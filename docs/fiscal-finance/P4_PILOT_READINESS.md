@@ -1,10 +1,34 @@
 # P4 精选试点只读准备器
 
-DATE=2026-10-03（Asia/Shanghai）
-CODE_BASE_HEAD=c335c71031becab5d9e7ec1c4dab90d223decd78（实现开始时工作区HEAD；变更未提交）
-STAGE=P4 offline readiness only
-GATE_2=NOT_PASSED
-MODEL_EXECUTION=NOT_AUTHORIZED / NOT_RUN
+DATE=2026-10-08（Asia/Shanghai；本节更新）
+STAGE=P4 bounded pilot preparation / model execution not started
+GATE_2=PASSED_FOR_BOUNDED_P4_PILOT（仅限Gate_2_REVIEW中的逐篇合格文章）
+MODEL=DeepSeek V4.1 Flash（DeepSeek API model slug: deepseek-flash；用户已选择）
+MODEL_EXECUTION=NOT_RUN；MODEL_CALLS_ENABLED=false；COLLECT_ENABLED=false；真实API key未配置
+BUDGET=执行方案提议已发用户，等待选择；当前未获付费调用授权
+LATEST_SAMPLE=隔离库 fiscalhot_p4_preparation_20261008_test；两篇合格候选：Treasury 1、PBOC OMO 1；厦门监管局候选尚未加入该快照
+GOLD=人工标签仍为null/needs_review；未形成Gold Dataset或模型质量结论
+
+## 2026-10-08 用户模型选择与协议兼容核对
+
+本文后续的范围、验证和结论段落记录2026-10-03首次交付时状态；本节及页首字段是2026-10-08的最新P4准备状态，Gate 2结论以正式review为准。
+
+用户已选择 DeepSeek V4.1 Flash。DeepSeek 官方将当前服务模型名列为 `deepseek-flash`；OpenAI格式文档给出的根地址为 `https://api.deepseek.com`。本仓库 [llm.ts](../../packages/backend/src/providers/llm.ts) 将配置根地址拼接 `/chat/completions`，因此准备配置示例使用该根地址。当前仓库客户端使用 DeepSeek 官方支持的 OpenAI-compatible Chat Completions。
+
+以下是无密钥的配置示例，仅供Lead在已批准的执行准备中使用；本次没有写入 `.env`、凭证目录或环境变量：
+
+```dotenv
+LLM_BASE_URL=https://api.deepseek.com
+LLM_MODEL=deepseek-flash
+LLM_EXTRA_JSON={"thinking":{"type":"disabled"}}
+# LLM_JSON_MODE 默认开启；如需显式记录可写 true
+LLM_JSON_MODE=true
+# LLM_API_KEY 由用户在获批执行时自行安全配置，不放入文档或仓库
+```
+
+静态字段核对：当前client发送 `messages`、`temperature`、`max_tokens`，默认附加 `response_format: {type: "json_object"}`，通过 `LLM_EXTRA_JSON`附加DeepSeek的 `thinking` 开关，并从 `choices[0].message.content`读取输出。公开DeepSeek Chat Completions、JSON Output和Thinking Mode文档列有对应接口字段；在 `thinking.type=disabled` 下准备配置不额外指定reasoning effort。没有真实API请求或端到端响应验证，故当前只是一份待实测配置提案。供应商JSON Output文档还建议在提示中包含json指令并合理设置max_tokens；现有prompt与token上限需在首次获批小样中观察，不能由静态字段匹配替代验证。官方依据：[First API Call](https://api-docs.deepseek.com/en/)、[JSON Output](https://api-docs.deepseek.com/guides/json_mode/)、[Thinking Mode](https://api-docs.deepseek.com/guides/thinking_mode/)。
+
+Gate 2只放行 `pboc-open-market`、`mof-treasury-debt-data`、`mof-xiamen-supervision-dynamics`中逐篇核验身份、日期、附件无未决问题且正文 `body_status=ok`、trim后非空的文章。10月8日隔离准备快照只包含前两项各一篇；planner给出的 `ready` 和receipt容量只用于静态准备，不执行分析、不预留预算，也不表示全部三项来源或全目录通过。Lead已向用户提出首次冒烟方案待选择：两篇 Treasury+OMO 串行、最多20次物理模型请求且不自动重试，或最多10次/暂不付费。用户尚未选择，故当前没有实际调用授权；每篇具体额度还需在执行前清点调用链。首次两篇冒烟不以内部活动负例为前置条件，负例仍需纳入后续P4质量评估。详细阶段范围以[Gate 2正式审查](GATE_2_REVIEW.md)为准。
 
 ## 范围和架构
 
