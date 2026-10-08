@@ -144,7 +144,10 @@ async function withinDeadline<T>(work: Promise<T>, signal: AbortSignal): Promise
 function decodeBody(body: Buffer, contentType: string | null): string {
   const m = /charset=([\w-]+)/i.exec(contentType ?? "");
   let charset = m?.[1]?.toLowerCase() ?? "utf-8";
-  if (!m) {
+  const mediaType = contentType?.split(";", 1)[0]?.trim() ?? "";
+  const isJsonMediaType = /^application\/json$/i.test(mediaType)
+    || /^[!#$%&'*+.^_`|~0-9a-z-]+\/[!#$%&'*+.^_`|~0-9a-z-]+\+json$/i.test(mediaType);
+  if (!m && !isJsonMediaType) {
     const head = body.subarray(0, 2048).toString("latin1");
     const meta = /<meta[^>]+charset=["']?([\w-]+)/i.exec(head) ?? /encoding=["']([\w-]+)["']/i.exec(head);
     if (meta) charset = meta[1]!.toLowerCase();
