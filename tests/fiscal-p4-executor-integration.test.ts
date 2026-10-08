@@ -103,10 +103,20 @@ async function startActivityHolder(env: NodeJS.ProcessEnv): Promise<import("node
 
 if (process.env.P4_EXECUTOR_INTEGRATION_TEST === "true") {
   test(`P4 CLI fake-provider integration (${scenario})`, async () => {
-    assert.ok(scenario === "happy" || scenario === "429" || scenario === "out-exists", "select exactly one isolated fake-provider scenario");
+    const driftScenarios = ["drift-revision", "drift-hash", "drift-media", "drift-source-config", "drift-provider"];
+    assert.ok(scenario === "happy" || scenario === "429" || scenario === "out-exists" || driftScenarios.includes(scenario ?? ""), "select exactly one isolated fake-provider scenario");
     const seeded = await seedFixture();
     const capturePath = path.join(REPO_ROOT, ".data", "fiscal-p4-pilot", `mock-capture-${safeSegment(databaseName)}-${scenario}.json`);
     assert.equal(existsSync(capturePath), false, "never overwrite a prior test capture");
+    if (scenario === "drift-revision") {
+      await sql`UPDATE articles SET revision = 2 WHERE id = ${ids[0]}`;
+    } else if (scenario === "drift-hash") {
+      await sql`UPDATE articles SET content_hash = ${hash("changed after manifest freeze")} WHERE id = ${ids[0]}`;
+    } else if (scenario === "drift-media") {
+      await sql`UPDATE articles SET media = ${sql.json([{ type: "image", url: "https://fixture.invalid/image.png" }])} WHERE id = ${ids[0]}`;
+    } else if (scenario === "drift-source-config") {
+      await sql`UPDATE sources SET config = ${sql.json({ changedAfterFreeze: true })} WHERE id = ${sourceIds[0]}`;
+    }
     await closeDb(); // The executor has an idle-connection guard; run it after fixture setup exits.
     const env: NodeJS.ProcessEnv = { ...process.env, P4_FAKE_CAPTURE_PATH: capturePath };
     const outputPath = `.data/fiscal-p4-pilot/mock-result-${safeSegment(databaseName)}-${scenario}.json`;
@@ -115,7 +125,17 @@ if (process.env.P4_EXECUTOR_INTEGRATION_TEST === "true") {
       "--source-config-hash", seeded.sourceConfigHash, "--max-requests", "10", "--confirm-execute",
       "--out", outputPath];
 
-    if (scenario === "out-exists") {
+    if (scenario?.startsWith("drift-")) {
+      const driftCapture = `${capturePath}.drift`;
+      env.P4_FAKE_CAPTURE_PATH = driftCapture;
+      if (scenario === "drift-provider") env.PREFILTER_MODEL = "glm-5.3-flash";
+      const rejected = await run(process.execPath, args, env);
+      assert.notEqual(rejected.code, 0, `${scenario} must be rejected before paid-provider dispatch`);
+      assert.match(rejected.stderr, scenario === "drift-provider" ? /capability model override conflicts/u : /changed|conflicts|unsafe/u);
+      const capture = JSON.parse(readFileSync(driftCapture, "utf8")) as { requests: unknown[] };
+      assert.equal(capture.requests.length, 0, `${scenario} must produce zero provider POSTs`);
+      assert.equal(existsSync(path.resolve(REPO_ROOT, outputPath)), false, "rejected input drift must not create an execution report");
+    } else if (scenario === "out-exists") {
       const sentinel = `preserve-existing-report-${databaseName}\n`;
       const reportPath = path.resolve(REPO_ROOT, outputPath);
       assert.equal(existsSync(reportPath), false, "never overwrite an existing report artifact");
