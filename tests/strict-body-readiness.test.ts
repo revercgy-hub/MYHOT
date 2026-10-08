@@ -50,11 +50,11 @@ async function create(sourceId: string, suffix: string, bodyStatus: "pending" | 
 test("strict-body opt-in is exact boolean and body readiness requires nonblank confirmed text", async () => {
   const registry = JSON.parse(readFileSync(new URL("../industry/sources.json", import.meta.url), "utf8")) as { sources: Array<{ id: string; config?: Record<string, unknown> }> };
   const sources = registry.sources;
-  assert.equal(sources.length, 47, "the configured-source catalogue size remains explicit");
+  assert.equal(sources.length, 48, "the configured-source catalogue size remains explicit");
   const accounting = sources.find((source) => source.id === "mof-accounting-notices");
   assert.equal((accounting?.config?._aihot as Record<string, unknown> | undefined)?.requireBodyReadyForAutomaticSelection, true,
     "the accounting source is the exact central-source exception");
-  for (const id of ["fujian-finance-notices", "mof-budget-work", "mof-finance-notices", "xiamen-finance-debt", "govcn-policy-library"]) {
+  for (const id of ["fujian-finance-notices", "mof-budget-work", "mof-finance-notices", "xiamen-finance-debt", "govcn-policy-library", "nfra-regulatory-dynamics"]) {
     const source = sources.find((entry) => entry.id === id);
     assert.equal((source?.config?._aihot as Record<string, unknown> | undefined)?.requireBodyReadyForAutomaticSelection, true,
       `${id} is an exact body-readiness exception`);
@@ -103,6 +103,7 @@ test("strict-body opt-in is exact boolean and body readiness requires nonblank c
       "mof-xinjiang-supervision-dynamics",
       "mof-yunnan-supervision-dynamics",
       "mof-zhejiang-supervision-dynamics",
+      "nfra-regulatory-dynamics",
       "xiamen-finance-debt",
     ], "the opt-in remains limited to thirty-five reviewed supervision sources plus six exact core exceptions");
 

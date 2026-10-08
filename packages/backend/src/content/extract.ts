@@ -14,7 +14,9 @@ import type { BodyIdentity } from "./selected-body.ts";
 import { extractConfiguredHtmlBody, extractDirectPdfBody, type PdfFetcher, type PdfSourceBodyConfig } from "./pdf-body.ts";
 import { contentHash, syncArticlePublication } from "./materials.ts";
 import { requiresBodyReadyForAutomaticSelection } from "./body-readiness.ts";
-import { attachmentDiagnosticForFailure, clearAttachmentDiagnostic, readAttachmentDiagnostic, setAttachmentDiagnostic } from "./attachment-diagnostics.ts";
+import { attachmentDiagnosticForFailure, clearAttachmentDiagnostic, createAttachmentDiagnostic, readAttachmentDiagnostic, setAttachmentDiagnostic } from "./attachment-diagnostics.ts";
+import { fetchNfraJsonDetail, createNfraJsonRunBudget, nfraConfigIsSupported } from "./nfra-json-detail.ts";
+import type { SourceRow } from "../sources/types.ts";
 
 export interface ExtractedBody {
   html: string;
@@ -72,8 +74,24 @@ function markdownToHtml(md: string): string {
     .join("");
 }
 
-export async function extractFromUrl(url: string, opts: { allowJina: boolean; subject: string; selectedBody?: { config: PdfSourceBodyConfig; expected: BodyIdentity; allowUrlPrefixes: string[] }; onSelectedBodyFailure?: (reason: string, attachments?: Array<{ url: string; title: string }>) => void; fetcher?: PdfFetcher }): Promise<ExtractedBody | null> {
+export async function extractFromUrl(url: string, opts: { allowJina: boolean; subject: string; selectedBody?: { config: PdfSourceBodyConfig & { mode?: string }; expected: BodyIdentity; allowUrlPrefixes: string[]; nfra?: { docId: number; listAttachmentPending: boolean; source: SourceRow } }; onSelectedBodyFailure?: (reason: string, attachments?: Array<{ url: string; title: string }>) => void; fetcher?: PdfFetcher }): Promise<ExtractedBody | null> {
   const fetcher = opts.fetcher ?? guardedFetch;
+  if (opts.selectedBody?.nfra) {
+    if (!nfraConfigIsSupported(opts.selectedBody.nfra.source)) {
+      opts.onSelectedBodyFailure?.("unsupported_nfra_detail_config");
+      return null;
+    }
+    const budget = createNfraJsonRunBudget({ delayedDocId: opts.selectedBody.nfra.docId });
+    try {
+      const result = await fetchNfraJsonDetail(url, opts.selectedBody.nfra.source as never, {
+        docId: opts.selectedBody.nfra.docId, title: opts.selectedBody.expected.title,
+        publishedAt: opts.selectedBody.expected.publishedAt ?? new Date(NaN),
+        listAttachmentPending: opts.selectedBody.nfra.listAttachmentPending,
+      }, { fetcher: fetcher as never, runBudget: budget.runBudget, remainingMs: budget.remainingMs });
+      if (!result.body && result.reason) opts.onSelectedBodyFailure?.("attachments_unprocessed");
+      return result.body;
+    } finally { budget.dispose(); }
+  }
   if (opts.selectedBody?.config.attachmentScopeSelector !== undefined &&
     (typeof opts.selectedBody.config.attachmentScopeSelector !== "string" || !opts.selectedBody.config.attachmentScopeSelector.trim() ||
       opts.selectedBody.config.attachmentScopeSelector.trim().length > 500 ||
@@ -149,10 +167,12 @@ export async function extractArticleBody(articleId: string, allowJina = process.
   const bodyPolicies = Array.isArray(detail.bodyPolicies) ? detail.bodyPolicies : undefined;
   const attachmentScopeSelector = detail.attachmentScopeSelector;
   const pdfBodyConfigured = detail.pdfDirect === true || typeof detail.attachmentSelector === "string";
+  const nfraMode = detail.mode === "nfra_json_v1";
   const hasAttachmentDriver = detail.pdfDirect === true || typeof detail.attachmentSelector === "string" ||
-    (typeof attachmentScopeSelector === "string" && !!attachmentScopeSelector.trim());
+    (typeof attachmentScopeSelector === "string" && !!attachmentScopeSelector.trim()) || nfraMode;
   const hadPendingAttachment = !!readAttachmentDiagnostic(a.raw);
   const strictBodySource = requiresBodyReadyForAutomaticSelection(a.source_config);
+  const rawExternalId = a.raw && typeof a.raw === "object" && !Array.isArray(a.raw) ? Number((a.raw as Record<string, unknown>).externalId) : NaN;
   const selectedBody = bodySelector || bodyPolicies || pdfBodyConfigured || attachmentScopeSelector !== undefined
     ? { config: {
         bodySelector,
@@ -166,7 +186,8 @@ export async function extractArticleBody(articleId: string, allowJina = process.
         attachmentSelector: detail.attachmentSelector,
         attachmentMode: detail.attachmentMode,
         ...(!bodyPolicies && detail.pdfDirect !== undefined ? { pdfDirect: detail.pdfDirect } : {}),
-      }, expected: { title: a.title, publishedAt: a.published_at }, allowUrlPrefixes: a.source_config.allowUrlPrefixes ?? [] }
+      }, expected: { title: a.title, publishedAt: a.published_at }, allowUrlPrefixes: a.source_config.allowUrlPrefixes ?? [],
+      ...(nfraMode ? { nfra: { docId: Number.isSafeInteger(rawExternalId) ? rawExternalId : -1, listAttachmentPending: hadPendingAttachment, source: { id: a.source_id, kind: "json_list", config: a.source_config } as SourceRow } } : {}) }
     : undefined;
   let selectedFailure: string | null = null;
   let selectedAttachments: Array<{ url: string; title: string }> = [];
@@ -178,7 +199,9 @@ export async function extractArticleBody(articleId: string, allowJina = process.
   if (selectedFailure) console.warn(JSON.stringify({ level: "warn", msg: "source body selector declined", article: a.id, source: a.source_id, reason: selectedFailure }));
   if (!got) {
     const diagnostic = selectedFailure && selectedBody
-      ? attachmentDiagnosticForFailure(selectedBody.config, { reason: selectedFailure, articleUrl: a.url, attachments: selectedAttachments })
+      ? nfraMode
+        ? createAttachmentDiagnostic({ reason: "attachments_unprocessed", articleUrl: a.url, attachments: [] })
+        : attachmentDiagnosticForFailure(selectedBody.config, { reason: selectedFailure, articleUrl: a.url, attachments: selectedAttachments })
       : null;
     if (diagnostic) {
       await sql.begin(async (tx) => {

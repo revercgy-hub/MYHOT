@@ -16,7 +16,7 @@ const KEYS: Record<SourceRow["kind"], string[]> = {
     "pagination",
   ],
   json_list: [
-    ...COLLECTED, "url", "mode", "method", "headers", "bodyJson", "jsonKey", "windowVar", "itemsPath", "itemsObjectValues",
+    ...COLLECTED, "url", "mode", "method", "headers", "bodyJson", "jsonKey", "windowVar", "itemsPath", "itemsObjectValues", "categorySelection",
     "titlePaths", "summaryPaths", "summaryIsBody", "authorPaths", "publishedAtPath", "publishedAtUnit", "publishedAtUtcOffset", "externalIdPath",
     "urlTemplate", "urlTemplateFallback", "rawDropKeys", "requireBoolean", "minNumeric",
   ],
@@ -34,11 +34,12 @@ const NESTED: Record<string, string[]> = {
   requireBoolean: ["path", "equals"],
   minNumeric: ["path", "min"],
   detail: [
-    "maxFetches", "publishedAtSelector", "publishedAtRegex", "publishedAtUtcOffset", "publishedAtAuthoritative", "upgradeDatePrecision",
+    "mode", "maxFetches", "publishedAtSelector", "publishedAtRegex", "publishedAtUtcOffset", "publishedAtAuthoritative", "upgradeDatePrecision",
     "titleSelector", "titleRegex", "titleAuthoritative", "summarySelector", "articleSelector", "bodySelector", "allowShortBody", "bodyPolicies", "attachmentScopeSelector",
     "attachmentSelector", "attachmentMode", "pdfDirect",
   ],
   pagination: ["mode", "maxPagesPerRun", "maxDispatches", "maxPageIndex", "detailMode"],
+  categorySelection: ["arrayPath", "categoryIdPath", "categoryId", "itemsPath"],
 };
 
 const VALUES: Record<string, string[]> = {
@@ -64,6 +65,7 @@ export function unsupportedConfig(kind: SourceRow["kind"], config: Record<string
         out.push("_aihot.requireBodyReadyForAutomaticSelection must be boolean");
       }
       if (key === "detail") {
+        if (nested.mode !== undefined && nested.mode !== "nfra_json_v1") out.push("detail.mode");
         if (nested.bodySelector !== undefined || nested.bodyPolicies !== undefined) {
           for (const error of validateSelectedBodyIdentityRegexes(nested)) out.push(`detail.${error}`);
         }
@@ -110,6 +112,35 @@ export function unsupportedConfig(kind: SourceRow["kind"], config: Record<string
         }
       }
     }
+  }
+  if ((config.detail as Record<string, unknown> | undefined)?.mode === "nfra_json_v1") {
+    const detail = config.detail as Record<string, unknown>;
+    const selection = config.categorySelection as Record<string, unknown> | undefined;
+    const exactUrl = "https://www.nfra.gov.cn/cbircweb/DocInfo/SelectItemAndDocByItemPId?itemId=914&pageSize=6";
+    if (kind !== "json_list") out.push("detail.mode=nfra_json_v1 is only supported by json_list");
+    if (config.url !== exactUrl || (config.method !== undefined && config.method !== "GET") || config.bodyJson !== undefined || config.headers !== undefined || config.mode !== undefined || config.jsonKey !== undefined || config.windowVar !== undefined || config.itemsPath !== undefined || config.itemsObjectValues !== undefined) {
+      out.push("NFRA detail mode requires the observed direct GET list URL without other JSON modes");
+    }
+    if (!selection || Object.keys(selection).length !== 4 || selection.arrayPath !== "data" || selection.categoryIdPath !== "itemId" || selection.categoryId !== 915 || selection.itemsPath !== "docInfoVOList") {
+      out.push("NFRA detail mode requires the exact categorySelection for itemId 915");
+    }
+    const allowedDetail = new Set(["mode", "maxFetches", "publishedAtUtcOffset", "bodySelector"]);
+    for (const field of Object.keys(detail)) if (!allowedDetail.has(field)) out.push(`NFRA detail mode does not support detail.${field}`);
+    if (detail.maxFetches !== 6) out.push("NFRA detail mode requires detail.maxFetches=6");
+    if (detail.publishedAtUtcOffset !== "+08:00") out.push("NFRA detail mode requires detail.publishedAtUtcOffset=+08:00");
+    if (typeof detail.bodySelector !== "string" || !detail.bodySelector.trim()) out.push("NFRA detail mode requires a non-empty detail.bodySelector");
+    if (config.summaryIsBody !== false) out.push("NFRA summary must remain excerpt-only");
+    const topLevel = new Set(["url", "categorySelection", "summaryIsBody", "publishedAtUtcOffset", "allowUrlPrefixes", "detail", "_aihot"]);
+    for (const field of Object.keys(config)) if (!topLevel.has(field)) out.push(`NFRA detail mode does not support ${field}`);
+    if (config.publishedAtUtcOffset !== "+08:00") out.push("NFRA list requires publishedAtUtcOffset=+08:00");
+    if (!Array.isArray(config.allowUrlPrefixes) || config.allowUrlPrefixes.length !== 1 || config.allowUrlPrefixes[0] !== "https://www.nfra.gov.cn/cn/view/pages/ItemDetail.html?") out.push("NFRA canonical article URL prefix must be exact");
+    const policy = config._aihot as Record<string, unknown> | undefined;
+    if (policy?.initialBackfillMonths !== 3 || policy.initialBackfillRequirePublishedAt !== true || policy.requireBodyReadyForAutomaticSelection !== true ||
+      Object.keys(policy ?? {}).some((field) => !["initialBackfillMonths", "initialBackfillRequirePublishedAt", "requireBodyReadyForAutomaticSelection"].includes(field))) {
+      out.push("NFRA requires the exact 3-month published-date and body-readiness policy");
+    }
+  } else if (config.categorySelection !== undefined) {
+    out.push("categorySelection requires detail.mode=nfra_json_v1");
   }
   out.push(...validateWebListPagination(kind, config ?? {}));
   return out;

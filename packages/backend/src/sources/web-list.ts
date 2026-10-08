@@ -10,6 +10,7 @@ import { jinaRead } from "../providers/jina.ts";
 import { parseLooseDate } from "./date.ts";
 import { identityKeyForUrl } from "../lib/url.ts";
 import { FetchError, type Candidate, type SourceRow } from "./types.ts";
+import { fetchNfraJsonDetail, nfraConfigIsSupported } from "../content/nfra-json-detail.ts";
 
 const JINA_PREFIX = "https://r.jina.ai/";
 export { parseLooseDate } from "./date.ts";
@@ -311,6 +312,8 @@ export interface DetailNeed {
   /** Listing identity used to reject a mismatched explicit body container. */
   expectedTitle?: string;
   expectedPublishedAt?: Date | null;
+  expectedExternalId?: number;
+  listAttachmentPending?: boolean;
 }
 
 export interface WebListMetadataNeed {
@@ -480,8 +483,18 @@ export async function fetchWebListMetadata(
  * text ("Published Time: …", "# Heading"), so that paid rendering is bought only when such a rule is
  * needed; selectors and page metadata read the page's own HTML.
  */
-export async function fetchDetail(url: string, source: SourceRow, need: DetailNeed, options: { fetcher?: PdfFetcher } = {}): Promise<{ publishedAt: Date | null; title: string | null; summary: string | null; body: ExtractedBody | null; attachmentDiagnostic?: AttachmentDiagnostic }> {
+export async function fetchDetail(url: string, source: SourceRow, need: DetailNeed, options: { fetcher?: PdfFetcher; runBudget?: GuardedFetchRunBudget; remainingMs?: () => number } = {}): Promise<{ publishedAt: Date | null; title: string | null; summary: string | null; body: ExtractedBody | null; attachmentDiagnostic?: AttachmentDiagnostic }> {
   const d = source.config.detail ?? {};
+  if (d.mode === "nfra_json_v1") {
+    if (!nfraConfigIsSupported(source) || !need.body || !Number.isSafeInteger(need.expectedExternalId) || !need.expectedTitle || !need.expectedPublishedAt) {
+      throw new FetchError("NFRA detail requires expected listing identity and body need");
+    }
+    const result = await fetchNfraJsonDetail(url, source, {
+      docId: need.expectedExternalId!, title: need.expectedTitle, publishedAt: need.expectedPublishedAt,
+      listAttachmentPending: need.listAttachmentPending === true,
+    }, { fetcher: options.fetcher as never, runBudget: options.runBudget, remainingMs: options.remainingMs });
+    return { publishedAt: null, title: null, summary: null, body: result.body, ...(result.attachmentDiagnostic ? { attachmentDiagnostic: result.attachmentDiagnostic } : {}) };
+  }
   const fetcher = options.fetcher ?? guardedFetch;
   const pdfConfigured = d.pdfDirect === true || typeof d.attachmentSelector === "string";
   const jinaListing = String(source.config.url ?? "").startsWith(JINA_PREFIX);

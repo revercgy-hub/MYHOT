@@ -12,6 +12,7 @@ import { collectWebListBackfill, usesWebListPagination } from "./web-list-pagina
 import { fetchJsonList } from "./json-list.ts";
 import { fetchXSearch, planXShards, readXSearch, shardHandle, shardQuery, SHARDABLE_SQL, tweetToCandidate, type XBacklog, type XRead } from "./x.ts";
 import { FetchError, type Candidate, type SourceRow } from "./types.ts";
+import { createNfraJsonRunBudget, nfraConfigIsSupported } from "../content/nfra-json-detail.ts";
 
 export interface CollectResult {
   sourceId: string;
@@ -102,10 +103,15 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
   let created = 0;
   let revised = 0;
   let found = 0;
+  let nfraBudget: ReturnType<typeof createNfraJsonRunBudget> | null = null;
   try {
     // A config entry this kind does not implement fails the run, visibly, instead of being ignored.
     const unsupported = unsupportedConfig(source.kind, source.config);
     if (unsupported.length) throw new FetchError(`unsupported config: ${unsupported.join(", ")}`);
+    if (source.config.detail?.mode === "nfra_json_v1") {
+      if (!nfraConfigIsSupported(source)) throw new FetchError("unsupported NFRA detail mode");
+      nfraBudget = createNfraJsonRunBudget();
+    }
     let candidates: Candidate[];
     let nextCursor: Record<string, unknown> = { ...(source.cursor ?? {}) };
     let detail: Record<string, unknown> | null = null;
@@ -119,7 +125,7 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
       if (rss.notModified) detail = { notModified: true, httpStatus: 304 };
     }
     else if (source.kind === "web_list") candidates = await fetchWebList(source);
-    else if (source.kind === "json_list") candidates = await fetchJsonList(source);
+    else if (source.kind === "json_list") candidates = await fetchJsonList(source, nfraBudget ? { runBudget: nfraBudget.runBudget, timeoutMs: Math.min(25_000, nfraBudget.remainingMs()), assertActive: nfraBudget.assertActive } : {});
     else {
       const x = await fetchXSearch(source);
       candidates = x.candidates;
@@ -164,6 +170,7 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
     const detailBudget = Number(d?.maxFetches ?? 0);
     let detailUsed = 0;
     for (const c of candidates) {
+      nfraBudget?.assertActive();
       // Listing dates the source marks unreliable are dropped; the detail page's rule decides.
       if (d?.publishedAtAuthoritative === true) c.publishedAt = null;
       const stored = known.get(c.url);
@@ -180,11 +187,13 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
         body: source.participation_mode === "editorial" && !c.bodyText && (!c.bodyStatus || c.bodyStatus === "pending"),
         expectedTitle: c.title,
         expectedPublishedAt: c.publishedAt ?? null,
+        ...(nfraConfigIsSupported(source) ? { expectedExternalId: Number((c.raw as Record<string, unknown> | null)?.externalId), listAttachmentPending: !!c.attachmentDiagnostic } : {}),
       };
       if (!need.date && !need.title && !need.summary && !(need.body && (d.bodySelector || Array.isArray(d.bodyPolicies)))) continue;
       detailUsed += 1;
       try {
-        const got = await fetchDetail(c.url, source, need);
+        const got = await fetchDetail(c.url, source, need, nfraBudget ? { runBudget: nfraBudget.runBudget, remainingMs: nfraBudget.remainingMs } : {});
+        nfraBudget?.assertActive();
         if (got.title) c.title = got.title;
         if (got.summary) c.excerpt = got.summary;
         // The same Readability path as extraction, using bytes already fetched for the detail rules.
@@ -240,6 +249,8 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
       WHERE id = ${sourceId}`;
     await sql`UPDATE fetch_runs SET status = 'failed', finished_at = now(), found_count = ${found}, new_count = ${created}, error = ${message} WHERE id = ${run!.id}`;
     return { sourceId, status: "failed", found, created, revised, error: message };
+  } finally {
+    nfraBudget?.dispose();
   }
 }
 

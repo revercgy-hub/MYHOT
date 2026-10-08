@@ -234,12 +234,13 @@ function hasUnsupportedTableLayout(html: string): boolean {
 }
 
 /** Strict opt-in body extraction for a source-verified, unique article container. */
-export function extractSelectedBody(
+function extractSelectedBodyCore(
   html: string,
   url: string,
   config: SelectedBodyConfig,
   expected: BodyIdentity,
   options: { pdfAttachmentsPrevalidated?: boolean } = {},
+  validatedIdentity?: BodyIdentity,
 ): SelectedBodyResult {
   const rawConfig = config as SelectedBodyConfig & Record<string, unknown>;
   if (validateSelectedBodyIdentityRegexes(rawConfig).length > 0) {
@@ -315,7 +316,7 @@ export function extractSelectedBody(
   if (!rawText || !textOutsideLinks) return { body: null, reason: "empty_body", attachments: scanAttachments() };
 
   if (activePolicy?.table && hasUnsupportedTableLayout(rawHtml)) return { body: null, reason: "body_policy_table_invalid", attachments: scanAttachments() };
-  const pageIdentity = identityFromHtml($, html, config.publishedAtUtcOffset ?? "+08:00", config);
+  const pageIdentity = validatedIdentity ?? identityFromHtml($, html, config.publishedAtUtcOffset ?? "+08:00", config);
   if (!pageIdentity?.publishedAt || !expected.title.trim() || !expected.publishedAt) {
     return { body: null, reason: "identity_missing", attachments: [] };
   }
@@ -337,6 +338,62 @@ export function extractSelectedBody(
     return { body: null, reason: "short_body_not_allowed", attachments };
   }
   return { body: { html: clean, text, images: imagesFromHtml(clean), via: "selector" }, reason: null, attachments };
+}
+
+/** Ordinary HTML keeps its page-identity requirement. */
+export function extractSelectedBody(
+  html: string,
+  url: string,
+  config: SelectedBodyConfig,
+  expected: BodyIdentity,
+  options: { pdfAttachmentsPrevalidated?: boolean } = {},
+): SelectedBodyResult {
+  return extractSelectedBodyCore(html, url, config, expected, options);
+}
+
+export interface NfraJsonIdentityExpected extends BodyIdentity {
+  docId: number;
+}
+
+/** Strict JSON identity entry: caller cannot supply a prevalidated identity or bypass the normal HTML path. */
+export function extractNfraJsonSelectedBody(
+  jsonText: string,
+  canonicalUrl: string,
+  config: SelectedBodyConfig,
+  expected: NfraJsonIdentityExpected,
+): { selected: SelectedBodyResult | null; identityValid: boolean; docId: number | null; publishDate: Date | null; hasAttachmentEvidence: boolean } {
+  let canonical: URL;
+  try { canonical = new URL(canonicalUrl); } catch { return { selected: null, identityValid: false, docId: null, publishDate: null, hasAttachmentEvidence: false }; }
+  const urlIds = canonical.searchParams.getAll("docId");
+  const urlCategories = canonical.searchParams.getAll("itemId");
+  if (canonical.origin !== "https://www.nfra.gov.cn" || canonical.pathname !== "/cn/view/pages/ItemDetail.html" || canonical.username || canonical.password || canonical.hash ||
+    [...canonical.searchParams.keys()].length !== 2 || urlIds.length !== 1 || urlIds[0] !== String(expected.docId) || urlCategories.length !== 1 || urlCategories[0] !== "915") {
+    return { selected: null, identityValid: false, docId: null, publishDate: null, hasAttachmentEvidence: false };
+  }
+  let parsed: unknown;
+  try { parsed = JSON.parse(jsonText); } catch { return { selected: null, identityValid: false, docId: null, publishDate: null, hasAttachmentEvidence: false }; }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return { selected: null, identityValid: false, docId: null, publishDate: null, hasAttachmentEvidence: false };
+  const root = parsed as Record<string, unknown>;
+  if (root.rptCode !== 200 || !root.data || typeof root.data !== "object" || Array.isArray(root.data)) return { selected: null, identityValid: false, docId: null, publishDate: null, hasAttachmentEvidence: false };
+  const data = root.data as Record<string, unknown>;
+  const docId = data.docId;
+  const title = collapseWhitespace(typeof data.docSubtitle === "string" && data.docSubtitle.trim() ? data.docSubtitle : typeof data.docTitle === "string" ? data.docTitle : "");
+  const publishDate = typeof data.publishDate === "string" ? parseLooseDate(data.publishDate, config.publishedAtUtcOffset ?? "+08:00") : null;
+  const expectedTitle = collapseWhitespace(expected.title);
+  const expectedDay = expected.publishedAt ? localDateKey(expected.publishedAt, config.publishedAtUtcOffset ?? "+08:00") : null;
+  const actualDay = publishDate ? localDateKey(publishDate, config.publishedAtUtcOffset ?? "+08:00") : null;
+  const identityValid = Number.isSafeInteger(docId) && docId === expected.docId && !!title && title === expectedTitle && !!publishDate && !!expectedDay && actualDay === expectedDay;
+  if (!identityValid || typeof data.docClob !== "string" || !data.docClob.trim()) {
+    return { selected: null, identityValid, docId: Number.isSafeInteger(docId) ? Number(docId) : null, publishDate, hasAttachmentEvidence: false };
+  }
+  const attachmentInfo = data.attachmentInfoVOList;
+  const imageInfo = data.docImageInfoVOList;
+  const hasAttachmentEvidence = data.docFileUrl != null && data.docFileUrl !== "" || data.pdfFileUrl != null && data.pdfFileUrl !== "" ||
+    (Array.isArray(attachmentInfo) && attachmentInfo.length > 0) || (Array.isArray(imageInfo) && imageInfo.length > 0);
+  // Run the shared sanitizer/selector checks using the JSON-verified identity, but callers must
+  // still keep the body unready while attachment semantics are unknown.
+  const selected = extractSelectedBodyCore(data.docClob, canonicalUrl, config, expected, {}, { title, publishedAt: publishDate! });
+  return { selected, identityValid: true, docId: Number(docId), publishDate, hasAttachmentEvidence };
 }
 
 /**

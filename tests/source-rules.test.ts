@@ -314,7 +314,7 @@ test("initialBackfillRequirePublishedAt accepts only boolean values and the indu
       `${JSON.stringify(invalid)} must not be coerced to a boolean`);
   }
   const sources = JSON.parse(readFileSync(new URL("../industry/sources.json", import.meta.url), "utf8")) as { sources: { id: string; enabled: boolean; interval_minutes: number; site_fulltext: boolean; syndicate_fulltext: boolean; config: { _aihot?: { initialBackfillMonths?: number; initialBackfillRequirePublishedAt?: boolean; requireBodyReadyForAutomaticSelection?: boolean } } }[] };
-  assert.equal(sources.sources.length, 47);
+  assert.equal(sources.sources.length, 48);
   assert.deepEqual(sources.sources.filter((source) => source.config._aihot?.requireBodyReadyForAutomaticSelection).map((source) => source.id).sort(), [
     "fujian-finance-notices",
     "govcn-policy-library",
@@ -356,6 +356,7 @@ test("initialBackfillRequirePublishedAt accepts only boolean values and the indu
     "mof-xinjiang-supervision-dynamics",
     "mof-yunnan-supervision-dynamics",
     "mof-zhejiang-supervision-dynamics",
+    "nfra-regulatory-dynamics",
     "xiamen-finance-debt",
   ]);
   for (const source of sources.sources) {
@@ -363,7 +364,7 @@ test("initialBackfillRequirePublishedAt accepts only boolean values and the indu
     assert.deepEqual(source.config._aihot, {
       initialBackfillMonths: 3,
       initialBackfillRequirePublishedAt: true,
-      ...(["fujian-finance-notices", "xiamen-finance-debt", "mof-accounting-notices", "mof-budget-work", "mof-finance-notices", "govcn-policy-library", "mof-beijing-supervision-dynamics", "mof-shanghai-supervision-dynamics", "mof-henan-supervision-dynamics", "mof-hubei-supervision-dynamics", "mof-hunan-supervision-dynamics", "mof-guangdong-supervision-dynamics", "mof-anhui-supervision-dynamics", "mof-chongqing-supervision-dynamics", "mof-dalian-supervision-dynamics", "mof-fujian-supervision-dynamics", "mof-gansu-supervision-dynamics", "mof-guangxi-supervision-dynamics", "mof-guizhou-supervision-dynamics", "mof-hebei-supervision-dynamics", "mof-heilongjiang-supervision-dynamics", "mof-hainan-supervision-dynamics", "mof-inner-mongolia-supervision-dynamics", "mof-jiangsu-supervision-dynamics", "mof-jiangxi-supervision-dynamics", "mof-jilin-supervision-dynamics", "mof-liaoning-supervision-dynamics", "mof-ningbo-supervision-dynamics", "mof-ningxia-supervision-dynamics", "mof-qingdao-supervision-dynamics", "mof-qinghai-supervision-dynamics", "mof-shanxi-supervision-dynamics", "mof-shaanxi-supervision-dynamics", "mof-shandong-supervision-dynamics", "mof-shenzhen-supervision-dynamics", "mof-sichuan-supervision-dynamics", "mof-tianjin-supervision-dynamics", "mof-xiamen-supervision-dynamics", "mof-xinjiang-supervision-dynamics", "mof-yunnan-supervision-dynamics", "mof-zhejiang-supervision-dynamics"].includes(source.id) ? { requireBodyReadyForAutomaticSelection: true } : {}),
+      ...(["fujian-finance-notices", "xiamen-finance-debt", "mof-accounting-notices", "mof-budget-work", "mof-finance-notices", "govcn-policy-library", "nfra-regulatory-dynamics", "mof-beijing-supervision-dynamics", "mof-shanghai-supervision-dynamics", "mof-henan-supervision-dynamics", "mof-hubei-supervision-dynamics", "mof-hunan-supervision-dynamics", "mof-guangdong-supervision-dynamics", "mof-anhui-supervision-dynamics", "mof-chongqing-supervision-dynamics", "mof-dalian-supervision-dynamics", "mof-fujian-supervision-dynamics", "mof-gansu-supervision-dynamics", "mof-guangxi-supervision-dynamics", "mof-guizhou-supervision-dynamics", "mof-hebei-supervision-dynamics", "mof-heilongjiang-supervision-dynamics", "mof-hainan-supervision-dynamics", "mof-inner-mongolia-supervision-dynamics", "mof-jiangsu-supervision-dynamics", "mof-jiangxi-supervision-dynamics", "mof-jilin-supervision-dynamics", "mof-liaoning-supervision-dynamics", "mof-ningbo-supervision-dynamics", "mof-ningxia-supervision-dynamics", "mof-qingdao-supervision-dynamics", "mof-qinghai-supervision-dynamics", "mof-shanxi-supervision-dynamics", "mof-shaanxi-supervision-dynamics", "mof-shandong-supervision-dynamics", "mof-shenzhen-supervision-dynamics", "mof-sichuan-supervision-dynamics", "mof-tianjin-supervision-dynamics", "mof-xiamen-supervision-dynamics", "mof-xinjiang-supervision-dynamics", "mof-yunnan-supervision-dynamics", "mof-zhejiang-supervision-dynamics"].includes(source.id) ? { requireBodyReadyForAutomaticSelection: true } : {}),
     });
     assert.equal(source.enabled, false);
     assert.equal(source.site_fulltext, false);

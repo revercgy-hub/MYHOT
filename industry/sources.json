@@ -1102,6 +1102,22 @@
       },
       "tier": "T1", "first_party": true, "owner_entity_id": "mof", "participation_mode": "editorial", "interval_minutes": 1440,
       "tags": ["官方", "云南", "财政监管", "监管局动态"], "site_fulltext": false, "syndicate_fulltext": false, "enabled": false
+    },
+    {
+      "id": "nfra-regulatory-dynamics",
+      "name": "金融监管总局·监管动态（待准入）",
+      "kind": "json_list",
+      "config": {
+        "url": "https://www.nfra.gov.cn/cbircweb/DocInfo/SelectItemAndDocByItemPId?itemId=914&pageSize=6",
+        "categorySelection": { "arrayPath": "data", "categoryIdPath": "itemId", "categoryId": 915, "itemsPath": "docInfoVOList" },
+        "summaryIsBody": false,
+        "publishedAtUtcOffset": "+08:00",
+        "allowUrlPrefixes": ["https://www.nfra.gov.cn/cn/view/pages/ItemDetail.html?"],
+        "detail": { "mode": "nfra_json_v1", "maxFetches": 6, "publishedAtUtcOffset": "+08:00", "bodySelector": ".Section0" },
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true, "requireBodyReadyForAutomaticSelection": true }
+      },
+      "tier": "T1", "first_party": true, "owner_entity_id": "nfra", "participation_mode": "editorial", "interval_minutes": 1440,
+      "tags": ["官方", "金融监管", "监管动态"], "site_fulltext": false, "syndicate_fulltext": false, "enabled": false
     }
   ]
 }
