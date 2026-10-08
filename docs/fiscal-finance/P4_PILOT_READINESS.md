@@ -4,11 +4,19 @@ DATE=2026-10-08（Asia/Shanghai；本节更新）
 STAGE=P4 bounded pilot preparation / model execution not started
 GATE_2=PASSED_FOR_BOUNDED_P4_PILOT（仅限Gate_2_REVIEW中的逐篇合格文章）
 MODEL=DeepSeek V4.1 Flash（DeepSeek API model slug: deepseek-flash；用户已选择）
-MODEL_EXECUTION=NOT_RUN；MODEL_CALLS_ENABLED=false；COLLECT_ENABLED=false；真实API key未配置
-BUDGET=执行方案提议已发用户，等待选择；当前未获付费调用授权
-LATEST_SAMPLE=隔离库 fiscalhot_p4_preparation_20261008_test；两篇合格候选：Treasury 1、PBOC OMO 1；厦门监管局候选尚未加入该快照
+MODEL_EXECUTION=NOT_RUN；PAID_EXECUTION=DEFERRED_BY_USER；MODEL_CALLS_ENABLED=false；COLLECT_ENABLED=false；未配置真实API key
+BUDGET=用户决定目前先不付费；20/10次数选择不再是当前阻塞，不追问；无预算预留或真实调用授权
+LATEST_SAMPLE=隔离库 fiscalhot_p4_preparation_20261008_test；Treasury 1、PBOC OMO 1；厦门监管负例另存ignored候选且尚未冻结
 GOLD=人工标签仍为null/needs_review；未形成Gold Dataset或模型质量结论
+EXECUTOR_STATUS=代码已提交推送SHA `57647d954ac56f4269b89adf0cc184a36b530ee0`；本轮仅三文档待提交。report wx独占预留修复后typecheck、focused contract2/2、output-exists1/1、happy1/1通过；317 full suite和Web build/15测试属于修复前基线，未在新SHA重跑。新SHA尚无CI run；最近绿色CI仍是旧代码SHA `18e159be43810974dc80b2bb26d05babd6744646`。全fault matrix待核
 
+## 当前付费选择与软件验证状态（2026-10-08）
+
+`PAID_EXECUTION=DEFERRED_BY_USER`。用户决定先不付费；此前提出的20次/10次方案已不再是当前阻塞，也不应再次追问。此项延期不妨碍无付费的软件验证。Fake/loopback fixture的请求cap仅约束测试行为，不构成真实provider请求的授权；真实模型执行仍需未来明确的新授权。模型开关、collection开关保持关闭，没有写入API key或调用provider。
+
+S1有界执行器代码已提交并推送SHA `57647d954ac56f4269b89adf0cc184a36b530ee0`（5个实现/contract代码路径及2个integration/preload测试文件）；`packages/backend/src/editorial/analyze.ts`、`packages/backend/src/editorial/input.ts`、`packages/backend/src/jobs/p4-pilot.ts`、`scripts/fiscal/p4-execute.ts`、`tests/fiscal-p4-executor-contract.test.ts`。实现代理报告typecheck exit 0及focused contract test 2/2通过；独立QA在fresh `fiscalhot_p4_existing_suite_20261008_test`（35 migrations）报告typecheck及backend 317/317通过，并完成Web build及15/15测试；这是新增report独占预留修复前的基线，不是新代码SHA的完整suite结果。另以严格MockAgent `disableNetConnect`、官方endpoint及假key运行opt-in fake-provider integration：旧happy DB `fiscalhot_p4qa_happy_retry6_20261008_test`为10个串行POST、2 analyses、10 receipts且fetch/publication/selected为0；429隔离DB `fiscalhot_p4qa_429_retry1_20261008_test`为一条failed receipt，重复执行0 POST；存在其他DB连接时拒绝且0 POST。report输出路径修复提交SHA `57647d954ac56f4269b89adf0cc184a36b530ee0`后的focused QA再用`fiscalhot_p4qa_out_20261008_test`（35 migrations、2 fixtures）验证既存report拒绝：0 analyses/receipts/attempts/fetch_runs，sentinel保持原字节，MockAgent 0请求；`fiscalhot_p4qa_happy_fd_20261008_test`（35 migrations）验证active-session guard 0 dispatch后fake-only执行生成1500-byte report，2 analyses/10 completed receipts/10 received attempts，fetch/publication/selected均0。全程仅MockAgent无真实HTTP/付费调用。未发生真实HTTP或付费调用。post-fix只跑typecheck/focused contract2/2/output-exists1/1/happy1/1；新SHA完整suite未重跑。所有S1 fault cases仍待完整QA记录；smoke未运行，因为3000/3001无listener且未启动服务。
+
+厦门内部活动负例候选的ignored证据为`.data/fiscal-qa/p4-xiamen-negative-candidate-20261008.json`（SHA-256 `5c1c9bf9be5bbadc703c8b5adb0faa6440e044057ea3b367c7f2f9d547eeb1c3`）。保存P3正文片段可复原379字符正文并匹配body hash；候选仅供审阅，不是Gold。此前只读连接`fiscalhot_regional_batch_test`失败；QA恢复本机127.0.0.1:5432测试集群后，此候选当前DB行仍未重新验证，故候选未冻结。它不构成当下付费阻塞，因为付费执行已按用户决定延期。
 ## 2026-10-08 用户模型选择与协议兼容核对
 
 本文后续的范围、验证和结论段落记录2026-10-03首次交付时状态；本节及页首字段是2026-10-08的最新P4准备状态，Gate 2结论以正式review为准。
@@ -28,7 +36,7 @@ LLM_JSON_MODE=true
 
 静态字段核对：当前client发送 `messages`、`temperature`、`max_tokens`，默认附加 `response_format: {type: "json_object"}`，通过 `LLM_EXTRA_JSON`附加DeepSeek的 `thinking` 开关，并从 `choices[0].message.content`读取输出。公开DeepSeek Chat Completions、JSON Output和Thinking Mode文档列有对应接口字段；在 `thinking.type=disabled` 下准备配置不额外指定reasoning effort。没有真实API请求或端到端响应验证，故当前只是一份待实测配置提案。供应商JSON Output文档还建议在提示中包含json指令并合理设置max_tokens；现有prompt与token上限需在首次获批小样中观察，不能由静态字段匹配替代验证。官方依据：[First API Call](https://api-docs.deepseek.com/en/)、[JSON Output](https://api-docs.deepseek.com/guides/json_mode/)、[Thinking Mode](https://api-docs.deepseek.com/guides/thinking_mode/)。
 
-Gate 2只放行 `pboc-open-market`、`mof-treasury-debt-data`、`mof-xiamen-supervision-dynamics`中逐篇核验身份、日期、附件无未决问题且正文 `body_status=ok`、trim后非空的文章。10月8日隔离准备快照只包含前两项各一篇；planner给出的 `ready` 和receipt容量只用于静态准备，不执行分析、不预留预算，也不表示全部三项来源或全目录通过。Lead已向用户提出首次冒烟方案待选择：两篇 Treasury+OMO 串行、最多20次物理模型请求且不自动重试，或最多10次/暂不付费。用户尚未选择，故当前没有实际调用授权；每篇具体额度还需在执行前清点调用链。此前“首次两篇不以前置负例为条件”的措辞已由[S1有界执行器范围审查](S1_P4_BOUNDED_EXECUTOR_SCOPE_2026-10-08.md)纠正：首次付费前必须冻结合格的厦门监管业务活动负例及后续独立执行边界；负例不必与前两篇同一进程执行，也不加入首批两篇executor的固定ID或共享额度。详细阶段范围以[Gate 2正式审查](GATE_2_REVIEW.md)为准。
+Gate 2只放行 `pboc-open-market`、`mof-treasury-debt-data`、`mof-xiamen-supervision-dynamics`中逐篇核验身份、日期、附件无未决问题且正文 `body_status=ok`、trim后非空的文章。10月8日隔离准备快照只包含前两项各一篇；planner给出的 `ready` 和receipt容量只用于静态准备，不执行分析、不预留预算，也不表示全部三项来源或全目录通过。早先提出的20次/10次或暂不付费方案现由用户选择“先不付费”所取代；当前无须再选择且不追问。此前“首次两篇不以前置负例为条件”的措辞已由[S1有界执行器范围审查](S1_P4_BOUNDED_EXECUTOR_SCOPE_2026-10-08.md)纠正：首次付费前必须冻结合格的厦门监管业务活动负例及后续独立执行边界；负例不必与前两篇同一进程执行，也不加入首批两篇executor的固定ID或共享额度。详细阶段范围以[Gate 2正式审查](GATE_2_REVIEW.md)为准。
 
 ## 范围和架构
 
@@ -86,11 +94,11 @@ The standard content worker does not implement a no-retry run. `llm.ts` performs
 
 The existing receipt budget can enforce a conservative count ceiling in a dedicated fresh `_test` database if all five analysis capabilities resolve to one provider service and that service's `per_day` is set to 20 (or 10). Each attempt is counted under a per-service advisory lock before its single provider POST, so retries consume the same cap. This is a rolling 24-hour request-count circuit breaker, not a per-run reservation or currency/token cap; the current planner only snapshots capacity. The frozen planner still reports `default`/`UNCONFIGURED`; the documented default-model route uses service `llm` (default daily limit 40,000), while the named `deepseek-flash` preset uses service `deepseek` (default daily limit 20,000). A run must verify one effective service across prefilter, score, understand, summarize and structure, and set the cap on that service. Amount/cost remains unknown.
 
-At the time of this static audit, there was no dedicated bounded P4 executor. The subsequent [S1 scope review](S1_P4_BOUNDED_EXECUTOR_SCOPE_2026-10-08.md) approved a narrow implementation contract and delegated implementation to Luna High; implementation is now in progress, not accepted or tested. It does not reopen Gate 2 or authorize a paid call. The minimum contract is a one-shot worker restricted to the two frozen article IDs, revisions and hashes, invoking guarded analysis only in article order, stopping on the first error, and avoiding queue retry, sweeper, publish, grouping, collector and admin-recovery paths. Keep receipts and configure the isolated database's single-service daily attempt cap to the selected 20/10 ceiling as a second guard. The user's request limit remains pending; no budget row, model setting or runtime flag has been changed and no provider call was made.
+At the time of this static audit, there was no dedicated bounded P4 executor. The subsequent [S1 scope review](S1_P4_BOUNDED_EXECUTOR_SCOPE_2026-10-08.md) approved a narrow implementation contract and delegated implementation to Luna High; implementation is present as five uncommitted files; the implementer reports typecheck and focused contract tests passing, while strict fake-provider integration and the full backend suite remain pending. This does not reopen Gate 2 or authorize a paid call. The minimum contract is a one-shot worker restricted to the two frozen article IDs, revisions and hashes, invoking guarded analysis only in article order, stopping on the first error, and avoiding queue retry, sweeper, publish, grouping, collector and admin-recovery paths. If paid execution is later reauthorized, retain receipts and configure a single-service attempt cap matching the newly authorized run as a second guard. The user has since deferred paid execution, so the previously discussed 20/10 request limit is not a current blocker and should not be asked again. Continue unpaid software validation only; a fixture cap does not authorize live execution. No budget row, model setting or runtime flag has been changed and no provider call was made.
 
 ## 后续配置清单（尚未应用）
 
-用户继续开发不代表已经选定首次请求上限。真实调用前，仍需先确定是20次、10次还是暂不付费；本清单不构成授权，也不要求现在提供API key。
+用户目前决定先不付费，真实执行处于延期状态。若用户将来主动重新启动付费执行，仍须重新明确授权并核验本清单；本清单不构成授权，也不要求现在提供API key。
 
 - **五项分析能力统一路由**：`prefilter`、`score`、`structure`、`understand`、`summarize`都必须解析到同一DeepSeek路由/服务，避免服务级预算被拆开。`modelFor()`优先级是数据库`settings.models.<capability>`覆盖，其次是对应环境变量（`PREFILTER_MODEL`、`SCORE_MODEL`、`STRUCTURE_MODEL`、`UNDERSTAND_MODEL`、`SUMMARIZE_MODEL`），最后才是代码默认`default`。执行前须复核五项的有效值，不读取或输出secret。
 - **选定一条配置路径**：最贴近当前planner快照（五项均为`default`）的是保持五项为`default`，设置`LLM_BASE_URL=https://api.deepseek.com`、`LLM_MODEL=deepseek-flash`及`LLM_API_KEY`；这条注册项的budget service ID是`llm`。若将五项都显式路由到命名preset `deepseek-flash`，则配置`DEEPSEEK_BASE_URL`、`DEEPSEEK_API_KEY`；此preset的service ID是`deepseek`。`LLM_*`只配置`default`注册项，不会覆盖数据库已有的每项model设置。DeepSeek可选的`LLM_EXTRA_JSON`仅适用于default路由；named preset自身已关闭thinking。
@@ -101,4 +109,4 @@ At the time of this static audit, there was no dedicated bounded P4 executor. Th
 
 ## 2026-10-08 S1范围批准与负例要求纠正
 
-[S1一次性有界执行器审查](S1_P4_BOUNDED_EXECUTOR_SCOPE_2026-10-08.md)的结论为`APPROVED_SCOPE`：仅批准最小实现和loopback软件验证范围，不是Gate 2结论、实现验收、真实模型授权或P4质量通过。Luna High当前实现状态为`IN_PROGRESS`；待代码完成并独立QA。前述“首次两篇无需负例前置”的历史说法与正式Gate要求冲突，现按S1裁定更正：在首次付费调用前必须核验并冻结一篇合格的`mof-xiamen-supervision-dynamics`真实内部活动负例及其后续独立执行边界。Treasury+OMO仍可作为第一批、executor只接受这两个固定ID；负例无需和它们同进程付费执行，不加入这批ID或共用这批预算。若负例尚未合格并冻结，只继续实现与loopback QA，不进行首轮付费调用。配置清单已在上一节记录；DeepSeek V4.1 Flash已选，20/10/暂不付费仍待用户选择，运行开关保持关闭。
+[S1一次性有界执行器审查](S1_P4_BOUNDED_EXECUTOR_SCOPE_2026-10-08.md)的结论为`APPROVED_SCOPE`：仅批准最小实现和loopback软件验证范围，不是Gate 2结论、实现验收、真实模型授权或P4质量通过。实现现包含5个未提交文件；typecheck与focused contract 2/2通过，严格fake-provider integration及full suite待独立QA。前述“首次两篇无需负例前置”的历史说法与正式Gate要求冲突，现按S1裁定更正：在首次付费调用前必须核验并冻结一篇合格的`mof-xiamen-supervision-dynamics`真实内部活动负例及其后续独立执行边界。Treasury+OMO仍可作为第一批、executor只接受这两个固定ID；负例无需和它们同进程付费执行，不加入这批ID或共用这批预算。若负例尚未合格并冻结，只继续实现与loopback QA，不进行首轮付费调用。配置清单已在上一节记录；DeepSeek V4.1 Flash已选；用户当前决定先不付费，20/10不是当前阻塞且不追问。5个未提交实现文件的typecheck和focused contract 2/2通过，fake-provider integration/full suite待QA；运行开关保持关闭。
