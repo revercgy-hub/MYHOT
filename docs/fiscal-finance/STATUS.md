@@ -1,7 +1,7 @@
 # 项目状态
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=以 `git rev-parse HEAD` 实时读取（避免状态文档自引用）；Phase C OCR实现提交=`290619355c9d60b6da155c9215381c82b6acf9b2`，deadline fixture测试修复提交=`c7a027491b809f91edec42c3abeaee017e901ba9`
+CURRENT_SHA=本次docs checkpoint前代码HEAD=`fad270a2dce1ed6ef953f7fc20c6430d5e98f492`；docs-only HEAD在提交后以`git log -1 --format=%H`读取，不代表CI覆盖；未提交的P4 executor代码保持IN_PROGRESS。Phase C OCR实现提交=`290619355c9d60b6da155c9215381c82b6acf9b2`，deadline fixture测试修复提交=`c7a027491b809f91edec42c3abeaee017e901ba9`
 LATEST_TESTED_CODE_SHA=18e159be43810974dc80b2bb26d05babd6744646（2026-10-08 JSON外层charset修复；fresh 35-migration DB typecheck、backend 314/314、Web build/tests15/15、loopback smoke通过；CI run37712335532 Check+Docker成功）
 PHASE_A_CHECKPOINT_CODE_SHA=b2f479c4517d040f4b1c24b14e1407ad342bbb3a（历史Phase A组合代码与publication测试fixture修复；本机fresh `npm test` 276/276）
 PHASE_B_BASE_CODE_SHA=b2f479c4517d040f4b1c24b14e1407ad342bbb3a（Phase B批准范围工作起点；未包含Phase B实现）
@@ -17,7 +17,7 @@ PREVIOUS_CI_TESTED_SHA=8e845812b6ce1db45821ade7b2162a90f589e1de
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 PHASE_B_ROUND_BASE_SHA=9814ceb0dcdf3fc71ab647d04fd12a1997f73c5f（历史Phase B恢复时branch HEAD）
 ROUND_BASE_SHA=95c0596796ba6b6cdde7766147229b68d3451035（2026-10-07离线审计/解码器QA轮branch起点；不替代项目BASE_SHA）
-DOC_HEAD=本次handoff文档提交不自引用；文档提交后由 `git rev-parse HEAD` 实时读取，CI code SHA单独记录
+DOC_HEAD=本次docs-only提交后以`git log -1 --format=%H`核实；docs SHA不是CI tested code SHA，CI code SHA单独记录
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
 
 STAGE=P3来源主线与有界P4 pilot准备；S1 Phase A/B受限实现与软件QA完成；本地OCR工作`OCR_DEFERRED_NOT_GATE2_BLOCKER`。
