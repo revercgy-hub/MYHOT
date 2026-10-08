@@ -2,13 +2,15 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
-## 2026-10-07 连续 P3 当前检查点
+## 2026-10-08 连续 P3 当前检查点
 
-代码SHA `3108be5671ec0939bda7341a0b0c5f4753a1daf7`在46项来源（45 HTML、1 JSON）中启用既有strict body-ready flag的精确29项：28个区域ID与Sol单独批准的中央`mof-accounting-notices`例外。所有source保持disabled且站内/转发全文关闭，没有seed到preview或production。新fresh 35-migration本机QA：typecheck、backend 310/310、Web build、Web tests15/15、loopback smoke30/30通过；同SHA GitHub Check+Docker run [37614483314](https://github.com/revercgy-hub/MYHOT/actions/runs/37614483314)成功。独立会计司offline MockAgent before/after negative replay验证未就绪正文严格hold；细节及私网开关边界见[连续P3交接](HANDOFFS/CONTINUOUS_P3_HANDOFF_2026-10-07.md)。软件与配置约束证据不构成source admission或Gate 2通过。用户明确浙江首期主栏目为“监管工作”，图片新闻后续补充。
+代码SHA `edd0644ddcdee42de03eb21ad4704108f08000a5`的46项来源（45 HTML、1 JSON）中，exact strict body-ready opt-in共40项：35个地方局ID与5个中央/核心ID。全部source保持disabled且站内/转发全文关闭，没有seed到preview或production。fresh 35-migration本机QA：typecheck、backend 310/310、Web build、Web tests15/15、loopback smoke通过；同SHA GitHub Check+Docker run [37709884742](https://github.com/revercgy-hub/MYHOT/actions/runs/37709884742)成功。Xiamen finance debt实际配置helper返回`identity_missing`且无body，strict hold为true；既有205字符历史假正文未改。新保存的两份current-list snapshot只作为有限页面观察，不证明历史覆盖或source pass。详细软件QA、失败历史和边界见[连续P3交接](HANDOFFS/CONTINUOUS_P3_HANDOFF_2026-10-07.md)。正式审查裁定Gate 2=`PASSED_FOR_BOUNDED_P4_PILOT`：仅允许三个指定核心来源中逐篇核验合格文章的小样验证，详见[Gate 2正式审查](GATE_2_REVIEW.md)。这不构成全量source admission或无人值守采集授权。用户明确浙江首期主栏目为“监管工作”，图片新闻后续补充。
 
-Gate 2仍要求35局逐一栏目与来源规则证据、核心来源有限历史窗口/日期可信度、正文/附件质量、材料身份重复/修订、失败安全和跨时点稳定性。有限样本和P2旧页不得当作历史完整。按[S1连续Gate依赖与历史阶段裁定](S1_CONTINUOUS_GATE_DEPENDENCIES_2026-10-07.md)，首次上线所需完整近90日回填仍是用户要求，完整能力及覆盖/partial解释属于P7/Gate 4上线准备和P8/P9实际Staging、首次上线验收；不要求Gate 2之前对35局机械遍历所有历史页。G2-A4在P3核验真实相同normalized URL/material identity的重复发现和内容修订；无实际相同样本时写`not observed / runtime dedupe unknown`。跨来源同一事件的语义聚类准确性保持`P4_REQUIRED_NOT_RUN`，P4阶段仍须独立用隔离数据库及经授权Gold样本验证；此区分不删减P3/Gate 2要求，也不新设Gate 2退出条件。现有样本的题名、日期、正文与已知日期冲突按[来源矩阵](SOURCE_MATRIX.md)和[区域覆盖矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)逐项保留，有限样本不能外推为整源质量。
+2026-10-08正式review将Gate 2裁定为`PASSED_FOR_BOUNDED_P4_PILOT`，只限review规定的三个核心source逐篇合格文章；未把全35局或46源目录判为通过。地方局与其它来源的逐项覆盖/质量证据仍是来源主线及后续扩展工作，不阻断该固定小样进入P4。有限样本和P2旧页不得当作历史完整。按[S1连续Gate依赖与历史阶段裁定](S1_CONTINUOUS_GATE_DEPENDENCIES_2026-10-07.md)，首次上线所需完整近90日回填仍是用户要求，完整能力及覆盖/partial解释属于P7/Gate 4上线准备和P8/P9实际Staging、首次上线验收；不要求Gate 2之前对35局机械遍历所有历史页。P3须核验真实相同normalized URL/material identity的重复发现和内容修订；无实际相同样本时写`not observed / runtime dedupe unknown`。跨来源同一事件的语义聚类准确性保持`P4_REQUIRED_NOT_RUN`，留在P4独立验证；不增加为Gate 2前置。现有样本的题名、日期、正文与已知日期冲突按[来源矩阵](SOURCE_MATRIX.md)和[区域覆盖矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)逐项保留，有限样本不能外推为整源质量。
 
 完整测试、SHA、CI和运行边界见[连续P3交接](HANDOFFS/CONTINUOUS_P3_HANDOFF_2026-10-07.md)。
+
+该有界裁定不关闭全项目来源工作：35个地方局仍按用户确认的逐局新闻动态范围继续核验；中国政府网、NFRA和其它未完成来源均保留在来源主线及其后续阶段，不能标作已覆盖或永久延期，也无需全部完成才进入本次三个source的小样P4 pilot。另一个核心源`xiamen-finance-debt`保持`NOT_ADMITTED`，严格flag的配置不修复其身份缺失或旧205字符假正文。无剩余Gate 2技术前置阻断这个已核核心小样；具体provider/receipt预算、Gold与冻结文章清单属于P4准备。详见[Gate 2正式审查](GATE_2_REVIEW.md)。
 
 ## 阶段顺序与 Gate
 

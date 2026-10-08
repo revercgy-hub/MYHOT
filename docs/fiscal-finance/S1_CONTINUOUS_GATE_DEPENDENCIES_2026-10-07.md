@@ -138,3 +138,17 @@ G2-A2只需把“完整栏目/90日历史未证明”标为持续范围/上线�
 本次只追加同一报告，未执行测试、HTTP、DB、Git或代码修改。Luna完成两ID配置和负例，独立QA核销；后续仅按条件精确续批，不把本规则写成12核心全量自动批准。
 
 Root随后补充Luna只读核销的两条真实行：`corebatch_test`预算司article `s411ti7pcubnwhgmza55uicgx`、URL `https://yss.mof.gov.cn/gongzuodongtai/202506/t20250625_3966523.htm`；`ingest_test`金融司article `sfz58qc6jd7t83eohtop1ihlg`、URL `https://jrs.mof.gov.cn/gongzuotongzhi/202512/t20251212_3979075.htm`。两行均unconfirmed、正文0字符、revision1、raw/attachment marker/DB strictflag为NULL，当前对应JSON未opt-in。这使无marker自动路径风险有具体行证据；本报告引用该Luna核验、不冒称亲自查询。原抽取响应/失败上下文仍unknown，不能据此推断selector或HTTP原因；两项配置保护许可不依赖先复原该原因，独立QA继续核现负例与配置效果。
+
+## 2026-10-08 厦门财政地方债：仅安全暂停自动路径的精确例外
+
+**XIAMEN_DEBT_HOLD_RESULT=APPROVED_SCOPE（exact ID dormant/pending保护）；Gate 2=NOT_PASSED，source admission=NOT_ADMITTED，machine body readiness=UNPROVEN。** 唯一对象为厦门市财政局 `xiamen-finance-debt`，不是财政部厦门监管局。此项单独批准安全hold，不按固定12核心standing的正常正文恢复条件宣称常规续批完成，也不扩展其他source。
+
+只读核对实际JSON、保存 `.data/fiscal-source-audit/details/xiamen-finance-debt.html` 与selected-body/extract/jobs/editorial/group/publication代码：当前正文selector仍是 `.Custom_UnionStyle`；保存页该容器只有公告提示，业务PDF在容器外。现helper的页面身份字段不能读取此页的 `.article_time` 日期，因而在附件扫描和长度判定之前先拒绝 `identity_missing`，不能把历史报告的 `attachments_unprocessed`追认成当前运行结果；本轮未运行helper。配置selected-body抽取失败直接返回，不fallback Readability/Jina。历史205字generic Readability `ok`已被既有正文审计认定为标题、日期、扫码及页尾假正文；旧单次PDF验证只返回 `pdf_page_no_text`，不证明全文件扫描或可读业务字段。本轮没有同源机器正文positive，实际pending→非空ok的业务恢复路径仍未证明，不用合成ready稿填补此缺口。
+
+**最小许可**：Luna仅为该ID既有 `_aihot`增加精确布尔 `requireBodyReadyForAutomaticSelection: true`，保留enabled=false、site_fulltext=false、syndicate_fulltext=false、当前日期/列表/body selector、每日检查和首次3个月配置。现成guard不依赖attachment marker；pending只可进入既有extract，失败成为unconfirmed后不进入自动queue/analyze/group/selected，none及空白ok同样hold。安全标题/摘要和原文章URL沿现实现保留，“正文待解析”投影及精确布尔manual选择例外沿既有规则；不宣称PDF附件URL已结构化持久化。允许长期待解析符合用户已确认的附件决定C及OCR延后决定，不需要先获得正文positive才能加强安全暂停；这不授权启用、DB导入、模型pilot或任何source验收。
+
+flag不修复已存非空 `ok`假正文：`isBodyReady`只核状态与trim非空，抽取入口也跳过既有ok。旧205字记录、旧状态/日志/DB必须保留，不改写、不删除、不宣称已撤回或重解析。行业JSON新增flag也不会自动更新已导入DB source行。后续经正式Gate 2及模型授权的pilot须使用新隔离库和另行核实的真实业务样本，不能复制此错误sample或消费旧P3 jobs；解除本source能力hold仍需实际可靠业务正文证据，所需identity/附件支持另审。
+
+**实施/QA边界**：仅精确flag及其allowlist/operator notes、适用负例fixture；不增加PDF/OCR解析、identity fallback、short-body豁免、schema、runtime、queue或none恢复算法。Luna与独立QA在当前39-ID冻结批结束后核销新增exact ID；source总数不变，若无其他变更则39→40，不并改已冻结四个codefiles。QA复用严格正文回归并以实际source配置、保存HTML核当前拒绝事实，fresh隔离负例验证无marker unconfirmed的hold、pending仅extract、零外部provider/receipt、旧analysis不能复活、当前公开精选投影与原文链接保留、none/empty/whitespace hold及manual/absent/false边界；合成非空ok只能验证既有软件ready分支，明确不计为本sourcepositive。本审查不核销尚未执行的QA，不要求重复HTTP或再取PDF。
+
+**TASK**：厦门财政地方债未就绪自动路径的窄架构例外。**MODEL**：派发 `gpt-6.1-sol / medium`，一次审阅；项目provider调用0。**FILES_CHANGED**：仅追加本文，Root授予本段唯一append所有权，QA冻结期不并写。**TESTS_RUN**：无；仅静态文件读取，无HTTP、DB、模型、OCR、worker、测试或Git操作。**RESULT**：APPROVED_SCOPE，仅exact ID安全暂停，未实施。**RISKS**：旧非空ok假正文不受flag拦截；当前无可靠machine正文positive，附件结构化状态和恢复能力未证明。**BLOCKERS**：正文能力及来源质量缺口继续保留，Gate 2未通过。**NEXT**：Luna在当前QA冻结批完成后实施精确配置/断言与负例，由独立QA核销；保持disabled、隔离新库原则和旧DB记录。

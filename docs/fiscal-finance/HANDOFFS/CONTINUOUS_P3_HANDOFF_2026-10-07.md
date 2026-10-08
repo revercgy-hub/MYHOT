@@ -2,7 +2,7 @@
 
 STATUS=IN_PROGRESS
 STAGE=P3 / Gate 2 remediation
-GATE=Gate 1 PASSED；Gate 2 NOT_PASSED
+GATE=截至原2026-10-07记录时Gate 2 NOT_PASSED；2026-10-08正式review已批准`PASSED_FOR_BOUNDED_P4_PILOT`，仅限本交接末尾定义的三source逐篇合格小样
 BRANCH=feat/fiscal-finance-hot
 HANDOFF_HEAD=2e2a021ae5a5eaa614a758724480dc8b266f33e3（代码提交；本交接文件随后的文档提交另记于Git）
 STAGE_CODE_SHA=2e2a021ae5a5eaa614a758724480dc8b266f33e3
@@ -52,6 +52,26 @@ P4真实provider/语义事件聚类和P5 Gold标注属于后续Gate；不得在�
 ## 声明
 
 本报告将页面观察、配置、selector fixtures、本地软件QA和CI分开叙述。未由manifest、raw、命令输出或数据库查询支持的事实保持unknown。Gate 2仍为`NOT_PASSED`，本交接没有新增来源准入或生产运行授权。
+
+## 2026-10-08 精确正文保护续批与恢复检查点
+
+当前代码HEAD为`edd0644ddcdee42de03eb21ad4704108f08000a5`（分支`feat/fiscal-finance-hot`），来源目录为46项（45 `web_list`、1 `json_list`）；精确40个source启用既有`_aihot.requireBodyReadyForAutomaticSelection: true`，包括35个地方局来源和5个中央/核心来源。全部来源仍`enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`；本批没有修改生产/preview数据库，也没有seed配置。配置统计不代表来源准入或Gate通过。35地方局范围与五个非地方局例外的精确ID见[operator notes](../STRICT_BODY_POLICY_OPERATOR_NOTES_2026-10-06.md)。
+
+39-ID代码检查点`14073fafefedb5d445cd9099945981a1eb12b675`与40-ID检查点`edd0644ddcdee42de03eb21ad4704108f08000a5`均位于该分支。39阶段第一份fresh全套测试曾有309/310通过，唯一失败是`tests/regional-bureau-config.test.ts`的精确flag期望集遗漏获批ID；失败日志保留，测试期望仅在现有精确列表中补齐后，另一新建35-migration数据库重跑为310/310。40阶段使用新建隔离库`fiscalhot_xmdebt40_fullqa_test`，完成35 migrations；`npm run typecheck`通过、`npm test` 310/310通过、Web production build通过、Web tests 15/15通过、loopback smoke通过。模型相关测试仅在测试子进程使用localhost fake providers；真实provider凭证/base URL与代理环境清空，凭证目录不存在。采集、Feishu、Jina、IndexNow、私网和全局embedding开关关闭；runtime/API未开启真实模型、collector、worker或OCR。此前39批的初次25项model-valve失败和其隔离配置原因继续作为历史，不计作代码失败或最终通过证据。
+
+39-ID commit的GitHub Actions [run 37709351011](https://github.com/revercgy-hub/MYHOT/actions/runs/37709351011) 对其精确SHA成功；40-ID commit的 [run 37709884742](https://github.com/revercgy-hub/MYHOT/actions/runs/37709884742) 对`edd0644ddcdee42de03eb21ad4704108f08000a5`的Check和Docker均成功。该结果只覆盖软件回归，不表示source admission、来源正文质量、近90日历史完整或Gate 2通过。代码commit和CI使用显式仓库`revercgy-hub/MYHOT`；旧默认remote权限失败保留在历史记录，没有重复尝试。
+
+### 厦门地方债来源的严格正文负例
+
+获批的精确核心flag仅为`xiamen-finance-debt`；没有因此扩展到其它未标记核心来源。离线使用当前配置和保存的列表/详情重新运行实际`fromHtml`及`extractConfiguredHtmlBody`后，匹配候选URL `https://cz.xm.gov.cn/zwxx/czsj/dfzxx/202609/t20260911_3016829.htm`的详情返回`identity_missing`、正文为空；`requiresBodyReadinessHold("unconfirmed", null)`为true，fetcher调用为0。保存详情raw位于`.data/fiscal-source-audit/details/xiamen-finance-debt.html`，大小15,640字节，SHA-256 `19a2f94d976ad7a077c7c1789e0fbb40159bb8d9d35ec843c521b713b3468a08`；可复核JSON为`.data/fiscal-source-audit/xiamen-finance-debt-strict-helper-probe-20261008.json`。已知旧数据库中205字符的历史假正文未修改；它不是正文就绪正例。该来源尚无机器正文就绪正例，仍未获来源准入；此负例也不证明所有PDF均不可读或OCR结果。
+
+### 10月8日保存列表快照
+
+独立QA按获批的精确cap=2/60秒批次离线核验`.data/fiscal-qa/core-list-snapshots-20261008-attempt2/manifest.json`、运行退出状态、目标/最终URL、响应状态、EOF、raw长度/SHA，并用当前`fromHtml`重解析。财政部统计栏目raw为12,330字节，SHA-256 `DFCEE01132E64572FD373457A4CAB5796DFA56E0ACD8632C28C2E0B8E6055E9D`；和现有绑定raw逐字节相同，当前解析10项，页面最旧可见日期2025-12-30、最新2026-09-24。厦门监管局列表raw为12,797字节，SHA-256 `927B4F055EFB98202737D410DD65BE029AB21E57D866C9E4FF744A537E07F89E`；和9月29日保存raw逐字节相同，解析10项，可见日范围2026-09-01至09-29。该厦门列表中一条路径日期为9月20日而页面发布日期为9月24日，按可见发布日期记录，路径token仅作冲突诊断。Undici实际记录`attempted/dispatched/rejected=2/2/0`，只访问获批两个host；没有详情/PDF、DB、collector、worker、模型或OCR操作。两份第一页同此前raw相同只证明所保存两次快照内容一致；既不确定先前捕获时点，也不证明日常刷新、分页历史覆盖、90日完整或source pass。人工title noise cue不是分类器结果。
+
+### Gate与交接边界
+
+本次恢复不扩大历史观察跨度。有限窗口、现有相同URL/material identity更新证据、未知的跨周期稳定性和来源级日期/正文/附件情况仍按各矩阵保存；跨来源语义事件聚类维持`P4_REQUIRED_NOT_RUN`，不与P3材料身份去重混为一项。完整近90日首次回填仍须按已冻结的S1阶段裁定，在后续上线准备/实际staging阶段验证，不以机械遍历所有历史页作为Gate 2全局硬前置。正式审查已冻结于[Gate 2正式审查](../GATE_2_REVIEW.md)：`APPROVED / PASSED_FOR_BOUNDED_P4_PILOT`仅覆盖`pboc-open-market`、`mof-treasury-debt-data`、`mof-xiamen-supervision-dynamics`中逐篇通过真实身份/日期/附件核实且`body_status=ok`、trim非空的固定小样。它不是46源全量准入、35局持续运行通过、无人值守采集或生产授权。厦门地方债`xiamen-finance-debt`明确`NOT_ADMITTED`、安全排除；不得修改、删除或复制其205字符历史假正文进入pilot。中国政府网/NFRA仍保留在来源主线与后续阶段待办，但不阻断这三个已核核心source的小样P4 pilot；其它source不得由此自动defer或扩scope。未决日期/身份/附件文章必须排除于该小样之外。完整review列明P4执行准备与未来来源工作的最小闭环。
 
 ## 2026-10-07 会计司中央精确例外与有限历史检查
 

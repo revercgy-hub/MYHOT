@@ -132,10 +132,14 @@ A另获批的batch6–9及浙江监管工作保存候选详情最多15条direct 
 
 ## 2026-10-07 连续P3最终冻结检查点
 
-前一regional配置代码SHA `2e2a021ae5a5eaa614a758724480dc8b266f33e3` 有46项source配置（45 HTML、1 JSON）和28个regional严格正文就绪opt-in；随后`3108be5671ec0939bda7341a0b0c5f4753a1daf7`增加的只是一个Sol单独批准的中央`mof-accounting-notices` exact flag exception，当前总计46源/29 strict IDs。全部source disabled、全文许可关闭。精确ID、中央例外与正文/附件边界见[operator notes](STRICT_BODY_POLICY_OPERATOR_NOTES_2026-10-06.md)。最新代码SHA本机fresh35-migration QA与同SHA CI Check+Docker均通过，软件证据不证明真实栏目质量或来源准入；详见[连续P3交接](HANDOFFS/CONTINUOUS_P3_HANDOFF_2026-10-07.md)。
+前一regional配置代码SHA `2e2a021ae5a5eaa614a758724480dc8b266f33e3` 有46项source配置（45 HTML、1 JSON）和28个regional严格正文就绪opt-in；随后获得精确中央/核心例外。当前HEAD `edd0644ddcdee42de03eb21ad4704108f08000a5`为46源/40 strict IDs，其中35个区域ID与5个非区域核心ID。全部source disabled、全文许可关闭。精确ID、核心例外与正文/附件边界见[operator notes](STRICT_BODY_POLICY_OPERATOR_NOTES_2026-10-06.md)。该代码SHA本机fresh35-migration QA与同SHA CI Check+Docker均通过；软件证据不证明真实栏目质量或来源准入，详见[连续P3交接](HANDOFFS/CONTINUOUS_P3_HANDOFF_2026-10-07.md)。正式Gate 2审查已批准的范围仅为三个核心source的逐篇合格文章开展有界P4 pilot，不改变35局目标栏目逐局核验与后续来源待办；详见[GATE_2_REVIEW](GATE_2_REVIEW.md)。
 
 目前矩阵行记录的是已见的入口、列表、详情和有限正文事实；它没有证明35局栏目完整、历史/分页终点、来源级日期权威性、跨周期稳定性或全部内容质量。2026-10-07对天津、山东、内蒙古的page1/page2有限样本已触及Jul9窗口边界；各自仅两页，未证明完整90日覆盖。甘肃与辽宁/云南新详情的日期及正文观察按单篇保存，路径日期冲突不以token强推发布时间。完整近90日首次回填仍是用户要求的上线事项，依[S1阶段裁定](S1_CONTINUOUS_GATE_DEPENDENCIES_2026-10-07.md)属于P7/Gate 4上线准备及P8/P9实际Staging/首次上线验收，不要求Gate 2前机械遍历全部旧页。用户确认浙江首期“监管工作”为主栏目、图片新闻后续补充，栏目历史仍未完结。Gate 2仍`NOT_PASSED`。
 
 ### Central strict-body configuration checkpoint — 2026-10-07
 
 The regional standing set remains 28 IDs. Two later exact central-source approvals (`mof-budget-work` and `mof-finance-notices`) raised the 46-source catalogue to 31 strict opt-ins total, alongside the previously approved `mof-accounting-notices`. This does not alter any regional row or claim regional coverage; all sources remain disabled and full-text off. Their exact scope and unknown body-extraction cause are recorded in [operator notes](STRICT_BODY_POLICY_OPERATOR_NOTES_2026-10-06.md) and the [continuous handoff](HANDOFFS/CONTINUOUS_P3_HANDOFF_2026-10-07.md).
+
+### 2026-10-08 Gate 2 bounded-pilot disposition
+
+The 2026-10-08 formal review is `APPROVED / PASSED_FOR_BOUNDED_P4_PILOT`, limited to verified nonempty `ok` articles with no unresolved identity/date/attachment issues from `pboc-open-market`, `mof-treasury-debt-data`, and `mof-xiamen-supervision-dynamics`. This does not mean all 35 regional bureaus are accepted or continuously validated. The user-confirmed 35-bureau scope and all remaining source/quality work remain in the coverage rows; GovCN/NFRA are not removed or deferred. `xiamen-finance-debt` is a separate core source, explicitly `NOT_ADMITTED` and excluded from the pilot; its existing 205-character false-positive row stays unchanged. The exact Gate disposition and P4/article-level requirements are in [GATE_2_REVIEW](GATE_2_REVIEW.md).

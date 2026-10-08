@@ -2,6 +2,8 @@
 
 ## 最新阶段状态
 
+最新来源/QA交接是[2026-10-08连续P3恢复检查点](CONTINUOUS_P3_HANDOFF_2026-10-07.md)，当前代码SHA `edd0644ddcdee42de03eb21ad4704108f08000a5`、46来源/40 strict IDs、fresh 35-migration全套QA及同SHA CI run37709884742通过。正式Gate状态由[2026-10-08 Gate 2审查](../GATE_2_REVIEW.md)确定为`PASSED_FOR_BOUNDED_P4_PILOT`，仅限三个source中逐篇合格的固定小样；不等于46源准入、35局持续运行或无人值守采集。厦门财债`xiamen-finance-debt`仍`NOT_ADMITTED`。详见[STATUS](../STATUS.md)、[连续P3交接](CONTINUOUS_P3_HANDOFF_2026-10-07.md)和[正式review](../GATE_2_REVIEW.md)。
+
 最新检查点为[2026-10-07新四局配置与QA](NEXT_BUREAU_CHECKPOINT_2026-10-07.md)：配置SHA `e3791c2744c285c7967cb1c6597da3187817889b` 本机fresh full QA通过但CI run37573322451保留OCR deadline分类失败；获准的最小确定性维护SHA `d4fd46ded57cd899793e819a3b49ff8bf6e72e4f` 后续fresh backend QA及CI run [37574033213](https://github.com/revercgy-hub/MYHOT/actions/runs/37574033213) 均通过。checkpoint区分宁夏/青海page2双成功GET与后来一次宁夏首页超时尝试。Gate 2仍 `NOT_PASSED`，不代表来源准入或90日覆盖。
 
 最新交接为 [2026-10-07 P3 加速恢复检查点](ACCELERATED_P3_CHECKPOINT_2026-10-07.md)：Gate 2 仍 `NOT_PASSED`。它逐项汇总现有六维退出条件及未结证据；用户确认的 35 局逐一新闻动态栏目仍是覆盖范围，中央选登只能补充。未把有限核心源样本或软件测试解释为 Gate 通过。来源请求、启用或运行目标仍须各自遵守原有核准与安全边界。
@@ -10,7 +12,7 @@
 
 2026-10-07 后续经独立核验，福建 `index_1.htm`、`index_2.htm`、`index_3.htm` 三次请求均为核准的一次性精确 GET，raw/hash 与 manifest 相符；四页逐页共 40 个列表候选、无 URL 或可见日期重复，但日期顺序非单调，90 天范围仍未证明覆盖完整。详情、collector/DB、worker、模型和 OCR 均未运行。逐页日期、分页、请求和 QA 边界见[福建分页观察报告](../P3_PAGINATION_OBSERVATION_2026-10-07.md)及[加速恢复检查点](ACCELERATED_P3_CHECKPOINT_2026-10-07.md)。
 
-当前财政金融站阶段为 **P3 进行中 / Gate 2 未通过**，Phase C source evidence preparation 为 `IN_PROGRESS`。最新用户决定记录在[OCR延后决策交接](OCR_DEFERRED_USER_DECISION_2026-10-06.md)：本地OCR监控状态为`OCR_DEFERRED_NOT_GATE2_BLOCKER`，从当前主线退出；native monitor case1失败、case2与actual OCR未运行的报告继续作为历史证据保留。下一项恢复工作为HTML/JSON/text-PDF来源准入与小规模验证。扫描附件无法可靠解析时保留原文链接、标注正文待解析、不进入自动精选；API OCR仅未来按既有provider预算与receipt按需评估，本次未启用API/模型。此前来源检查点见 [S1_PHASE_C_SOURCE_EVIDENCE_CHECKPOINT_2026-10-06.md](S1_PHASE_C_SOURCE_EVIDENCE_CHECKPOINT_2026-10-06.md)：上海仍为 `EVIDENCE_PACKET_ONLY / NOT_ADMITTED`；QA独立复核两页列表和一条详情的raw/hash、请求manifest与日期对照，没有提出来源准入；19项source仍全部disabled、全文关闭。该检查点旧tested code SHA为 `c7a027491b809f91edec42c3abeaee017e901ba9`，fresh backend 303/303、typecheck、Web build/tests15/15、loopback smoke30/30和CI run37438292607均通过。当前软件验证以本段上方的2026-10-07 P3检查点为准；这些软件测试不代表source pass、90日覆盖或Gate 2通过。区域证据与逐局矩阵见[区域覆盖矩阵](../REGIONAL_BUREAU_COVERAGE_MATRIX.md)、[来源矩阵](../SOURCE_MATRIX.md)；既有Phase A/B handoffs保留为历史记录，不覆盖。
+当前项目状态为P3来源主线继续、Gate 2仅通过上述有界P4 pilot门槛；Phase C source evidence preparation继续进行。最新用户决定记录在[OCR延后决策交接](OCR_DEFERRED_USER_DECISION_2026-10-06.md)：本地OCR监控状态为`OCR_DEFERRED_NOT_GATE2_BLOCKER`，从当前主线退出；native monitor case1失败、case2与actual OCR未运行的报告继续作为历史证据保留。扫描附件无法可靠解析时保留原文链接、标注正文待解析、不进入自动精选；API OCR仅未来按既有provider预算与receipt按需评估。此前来源检查点及其当时未通过的Gate状态均作为历史保留，不覆盖为当前结论。区域证据与逐局矩阵见[区域覆盖矩阵](../REGIONAL_BUREAU_COVERAGE_MATRIX.md)、[来源矩阵](../SOURCE_MATRIX.md)；既有Phase A/B handoffs保留为历史记录，不覆盖。
 
 2026-10-06 福建有限 legacy collector 单次运行已完成，状态`PARTIAL_LIMITED_SAMPLE`。3/12次GET dispatch、两条允许的文章URL写入隔离库；一条正文ok、一条pending。live listing为gzip，运行时guard未证明解压后候选在parser边界的精确校验，后续offline canary不能追溯补证。测试库cursor只代表一次运行，queue仅created且未消费；Gate 2仍`NOT_PASSED`、source `NOT_ADMITTED`、coverage `unproven`。preview前后只读计数相同。完整有限结果与hash/version限制见[P3福建小规模采集检查点](P3_SMALL_COLLECTION_CHECKPOINT_2026-10-06.md)和[请求包](../P3_NEXT_SMALL_COLLECTION_PACKET_2026-10-06.md)。
 
