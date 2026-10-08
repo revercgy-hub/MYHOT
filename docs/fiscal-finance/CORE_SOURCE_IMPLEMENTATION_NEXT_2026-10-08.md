@@ -81,3 +81,48 @@ HTML新闻页面是客户端壳，不能直接提供可抽正文详情。另一�
 ## Independent QA result (2026-10-08)
 
 The “Independent QA is pending” status above records the implementation handoff time and is superseded by this result. Independent QA on code SHA `99c3a9a3a1da91457eb2fdda81b1694d217b0511` confirmed the exact query/detail saved fixture bytes and passed the Gov identity test 6/6, focused Gov/selected-body/metadata/PDF/source-rule/strict set 46/46, `npm run typecheck`, backend suite 322/322, Web production build and tests 15/15. Both `fiscalhot_govcn_compat_focus_20261008_test` and `fiscalhot_govcn_compat_full_20261008_test` were fresh 35-migration databases. A post-code local loopback smoke passed 30/30; readonly preview counts before/after were unchanged except the standard API heartbeat setting. GitHub Check+Docker #37744820133 succeeded for this exact code SHA; no source admission, 90-day coverage, live HTTP, model call, or production behavior is inferred.
+
+## 2026-10-08 NFRA adapter implementation checkpoint (uncommitted worktree)
+
+The prior NFRA section above records the proposal before S1 review and is superseded by [the approved narrow scope](S1_NFRA_JSON_DETAIL_SCOPE_2026-10-08.md) and this implementation checkpoint. The exact local candidate is `nfra-regulatory-dynamics`: disabled, T1/editorial, 1,440-minute interval, three-month published-date backfill, strict body-readiness enabled, site/syndicate full-text disabled, summary excerpt-only. Parsed catalogue counts are 48 sources / 42 exact strict IDs; zero sources are enabled. It remains unadmitted and has not been seeded or collected.
+
+Implementation changes are limited to `json-list.ts`, `config-keys.ts`, `collect.ts`, `web-list.ts`, `selected-body.ts`, `extract.ts`, new `nfra-json-detail.ts`, the one `industry/sources.json` candidate, exact response fixtures, NFRA contract tests and the source-count/strict-set assertions. The list mapper chooses category by exact numeric `itemId=915` rather than array position, filters unsafe IDs/external title links, normalizes original title/date and holds candidates with an attachment-pending diagnostic. The fixed detail driver validates the canonical article URL before constructing the official JSON endpoint, enforces the source-local 7-dispatch/120-second budget and detail response limits, and compares `rptCode`, `docId`, normalized title and local date to the original listing identity. Its validated JSON body enters the existing private selected-body core; the ordinary HTML identity path is unchanged. Both prefetch and delayed extraction use this driver and fail closed without HTML/Readability/Jina fallback.
+
+For the observed pair, list `docFileUrl` and `pdfFileUrl` are nonempty but detail values are null with empty `attachmentInfoVOList`. The mapping captures a pipeline-owned pending marker before prefetch; neither empty detail fields nor a delayed re-fetch clears it. The selected `.Section0` body can be checked internally, but returned/stored body stays null and the marker remains `attachments_unprocessed`. This does not claim the category is attachment-free or that its text is publishable.
+
+The raw fixture copies are exact: list 26,200 bytes / SHA-256 `a45ad64cf1313e75850616e77a2e1cf65036008e7b1e51e915c07c3d5c914600`; detail 54,623 bytes / SHA-256 `b6e46388f904c8c8fead84cc66997b0a11dc4eca79e02fd03de1556fa7fc2af7`. Before the source-count assertions are run, the current evidence is `npm run typecheck` PASS; `node --test tests/nfra-json-detail.test.ts` PASS 7/7; `git diff --check` PASS. Tests exercised exact hashes, category order/duplicates, mapping identity, strict UTF-8 and detail mismatch cases, empty/malformed attachment outcomes, shared prefetch/delayed driver, no generic fallback, body selector/sanitizer failures, and dispatch caps/rejections. No HTTP, DB, collector, worker, provider, or model call ran. Independent QA is pending; DB-backed collection/delayed-extraction integration and elapsed-time hard-expiry were not executed by the author.
+
+### Eight-field implementation handoff
+
+**TASK**: Implement only the S1-approved NFRA JSON category/detail compatibility and disabled candidate.
+
+**MODEL**: Delegated implementation agent; no paid provider, credential, or model request.
+
+**FILES_CHANGED**: NFRA source/config/runtime files and tests above, plus `SOURCE_MATRIX.md` and this checkpoint. Existing QA-owned `STATUS.md`, `P4_PILOT_READINESS.md` and continuous handoff changes are separate. Worktree is based on branch `feat/fiscal-finance-hot`, HEAD `4ff4b04ada90a72212b535dc4b741c723de9b98a`; no code commit has been created.
+
+**TESTS_RUN**: `npm run typecheck` PASS; `node --test tests/nfra-json-detail.test.ts` 7/7 PASS; `git diff --check` PASS. Independent fresh-database QA is pending.
+
+**RESULT**: 48 configured sources / 42 exact strict IDs, all disabled. Actual pair remains body-null and attachment-pending in both modeled paths.
+
+**RISKS**: Attachment semantics are unresolved; one category snapshot and one article pair do not prove all category schemas, source quality, history coverage, or sustained stability.
+
+**BLOCKERS**: Independent QA, especially fresh backend/config/source-rule regressions and delayed-path persistence integration; no source admission authorization is implied.
+
+**NEXT**: Independent QA review this frozen code, report actual coverage gaps, and then update status without enabling or collecting the candidate.
+
+## NFRA independent QA correction (2026-10-08)
+
+The implementation checkpoint and its 7/7 author-focused result above are historical and superseded by final independent QA on code commit `e09d7cb5c2b3f4c3130e2bbe63721475b8f53cb1`. QA passed the NFRA/source focused set 98/98, `npm run typecheck`, backend suite 334/334, Web production build and tests 15/15. The fresh-database persistence case applied 35 migrations, collected the fixture pair with seven fake HTTP responses, then exercised one delayed extraction response; the stored article remained body-null, attachment-pending, revision 1, with zero analyses, receipts, selected items, or jobs. A fake-clock deadline case rejected before dispatch (0 requests). Redirect rejection, byte-preserving raw fixtures, and all existing HTML/default-source regressions passed. No live HTTP, paid provider, real key, production database, or source collection was used.
+
+The exact candidate remains disabled and unadmitted; these checks establish implementation behavior only, not attachment absence, broader NFRA category/layout quality, history coverage, or 90-day completeness. The source-owned runtime/config/fixtures/focused tests and QA-owned persistence test are frozen for the source commit; shared readiness documents remain owned by QA.
+
+### Eight-field NFRA QA handoff
+
+**TASK**: Implement the approved fixed NFRA JSON category/detail adapter and verify its persisted pending behavior.
+**MODEL**: No paid provider, key, model, real HTTP, worker, or source collection.
+**FILES_CHANGED**: Approved NFRA runtime/config/candidate, exact raw fixtures, focused and source-count tests; QA added the independent persistence test. `SOURCE_MATRIX.md` and this document record the result.
+**TESTS_RUN**: Independent focused 98/98, typecheck, backend 334/334, Web build plus tests 15/15, fresh 35-migration persistence integration (7 list/detail fixture responses plus one delayed extraction response), fake-clock deadline rejection with zero dispatch.
+**RESULT**: Persisted row stayed body-null and `attachments_unprocessed`, revision 1; analyses/receipts/selected items/jobs all zero. Candidate stays disabled and unadmitted.
+**RISKS**: One saved category/detail pair does not establish attachment semantics, other categories/layouts, history coverage, source quality, or admission.
+**BLOCKERS**: None for this bounded implementation; no source admission or paid execution is authorized by these test results.
+**NEXT**: Preserve disabled/unadmitted state; any source admission or live collection requires a separate decision and evidence.

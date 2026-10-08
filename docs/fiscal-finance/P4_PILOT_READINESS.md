@@ -8,7 +8,19 @@ MODEL_EXECUTION=NOT_RUN；PAID_EXECUTION=DEFERRED_BY_USER；MODEL_CALLS_ENABLED=
 BUDGET=用户决定目前先不付费；20/10次数选择不再是当前阻塞，不追问；无预算预留或真实调用授权
 LATEST_SAMPLE=隔离库 fiscalhot_p4_preparation_20261008_test；Treasury 1、PBOC OMO 1；厦门监管负例另存ignored候选且尚未冻结
 GOLD=人工标签仍为null/needs_review；未形成Gold Dataset或模型质量结论
-EXECUTOR_STATUS=bounded executor代码SHA `57647d954ac56f4269b89adf0cc184a36b530ee0`；五个输入漂移集成场景test-only SHA `b0a0eeb59e19c696b94e045d2d6d3dcb08a69ea1`及CI run37743439955 Check+Docker均成功。当前GovCN source implementation代码HEAD `99c3a9a3a1da91457eb2fdda81b1694d217b0511`；fresh35-migration typecheck/backend322/322/Web build/Web15/15和post-code loopback smoke30/30通过，GitHub Check+Docker #37744820133 对该SHA成功。其它fault cases仍待覆盖，不宣称完整fail-path验收。
+EXECUTOR_STATUS=bounded executor代码SHA `57647d954ac56f4269b89adf0cc184a36b530ee0`；五个输入漂移集成场景test-only SHA `b0a0eeb59e19c696b94e045d2d6d3dcb08a69ea1`及CI run37743439955 Check+Docker均成功。NFRA implementation code SHA `e09d7cb5c2b3f4c3130e2bbe63721475b8f53cb1`独立fresh35-migration typecheck/backend334/334/Web build/Web15/15通过；其首次CI #37757946149旧测试误要求`ALLOW_PRIVATE_NETWORK_FETCH=false`环境字符串必须显式存在（workflow未设置；配置默认false）。Test-only修复SHA `bb02255051bedc3470eaf60add6723662e1df6ce`的Check+Docker #37758646045成功。post-code local preview smoke未运行。其它fault cases仍待覆盖，不宣称完整fail-path验收。
+
+## 2026-10-08 NFRA compatibility preparation (in progress)
+
+本轮只准备NFRA已有saved JSON响应的离线兼容工作。source-scope审查已给出窄范围，implementation code SHA `e09d7cb5c2b3f4c3130e2bbe63721475b8f53cb1`已通过独立focused/full QA；test-only correction SHA `bb02255051bedc3470eaf60add6723662e1df6ce`的Check+Docker #37758646045成功。先前run #37757946149仅因旧版测试要求workflow显式提供`ALLOW_PRIVATE_NETWORK_FETCH=false`字符串而失败；workflow未设置此项，配置默认值为false。post-code local preview smoke/count comparison未运行，启动尝试被工具策略阻止后又发生过已向Root披露的替代启动偏差；此后不得再运行服务操作。NFRA尚未source-admitted。本轮不发真实HTTP、不采集、不启动worker或模型，不做付费调用（测试请求仅由disableNetConnect MockAgent拦截）。当前代码包含48项/strict 42项，新增`nfra-regulatory-dynamics`仍disabled、fulltext-off。公共仓库`revercgy-hub/MYHOT`经GitHub核验为`PUBLIC`，这是用户明确选择的托管可见性，不表示production部署。
+
+初始preview核验：`http://127.0.0.1:3000/`与API `http://127.0.0.1:3001/api/health`均HTTP 200；监听仅为loopback `127.0.0.1:3000/3001/5432`。对`fiscalhot_preview_test`以`postgres@127.0.0.1:5432`执行只读事务：35 migrations、3 sources（0 enabled/0 fulltext）、3 articles、3 publications；analyses、receipts、receipt_attempts、fetch_runs、selected_ledger、job_runs均0。此为本阶段before snapshot；API/Web/PG已运行，本次没有重启服务或写preview内容。
+
+Focused QA通过：`fiscalhot_nfra_independent_focus4_20261008_test` fresh 35 migrations，typecheck exit 0、focused 98/98；source rules/strict exact config 9/9，48/42且enabled 0。MockAgent `disableNetConnect` 下collector恰有7次请求（1 exact list + 6 distinct detail），延迟detail另作1次mock回放；文章1273452保持`unconfirmed`/无body-ready文本/revision 1并有`attachments_unprocessed` marker，analyses/receipts/selected publications/article jobs均0。另有20秒fake-clock boundary验证已过deadline后0 dispatch；这不是120秒真实wall-time测试。最终fresh full suite正在进行，暂不记录为通过。
+
+首次full attempt保留为`333 pass / 1 fail / 334 total`：失败在新测试的环境断言误把fake-provider suite期望为`MODEL_CALLS_ENABLED=false`，而该suite按项目测试协议显式启用fake-only MODEL并以`MockAgent.disableNetConnect`拦截；尚无runtime失败依据。该test-only假设已修正，追加focused/typecheck再次通过；首次失败记录保留、不覆盖、不删除。
+
+最终fresh retry `fiscalhot_nfra_independent_full4_20261008_test`通过35 migrations、backend334/334、typecheck、Web build与Web tests15/15；日志位于ignored `.data/test-pg/nfra-independent-qa-20261008/`。该QA只证明冻结软件候选的本地/Mock行为。隐藏`Start-Process`请求曾被工具策略拒绝；之后的一次foreground Node启动使API PID 374832加载了代码，但按协调要求未运行smoke。启动后只读SQL counts与before相同，settings只有标准`heartbeat.api:3001`行；这不构成post-code smoke pass，且Root已指示不得再进行runtime操作。run #37757946149的旧测试断言误要求`ALLOW_PRIVATE_NETWORK_FETCH`环境字符串显式为`false`；GitHub workflow未设置该变量，而应用配置默认false。仅修正测试后，SHA `bb02255051bedc3470eaf60add6723662e1df6ce`的Check+Docker #37758646045成功。N+1 budgets和其它未针对NFRA增加的错误/外部环境场景不得推称已证明。
 
 ## 当前付费选择与软件验证状态（2026-10-08）
 
