@@ -12,6 +12,12 @@ export interface JsonListFetchOptions {
   assertActive?: () => void;
 }
 
+export interface JsonListPageResult {
+  candidates: Candidate[];
+  rawRowCount: number;
+  rowsUndated: number;
+}
+
 export function getPath(obj: unknown, path: string): unknown {
   if (!path) return obj;
   let cur: unknown = obj;
@@ -170,9 +176,52 @@ function embeddedJson(html: string, source: SourceRow): unknown {
   throw new FetchError(`embedded key ${key} not found`);
 }
 
-export async function fetchJsonList(source: SourceRow, options: JsonListFetchOptions = {}): Promise<Candidate[]> {
+const GOVCN_LIST_URL = "https://sousuo.www.gov.cn/search-gov/data?q=&sort=score&sortType=1&searchfield=title&p=1&n=5&type=gwyzcwjk";
+
+function govcnPageUrl(source: SourceRow, page: number): string {
+  const p = source.config.pagination;
   const c = source.config;
-  const url = String(c.url ?? "");
+  const detail = c.detail;
+  const configKeys = ["url", "itemsPath", "titlePaths", "summaryPaths", "summaryIsBody", "publishedAtPath", "publishedAtUnit", "publishedAtUtcOffset", "externalIdPath", "urlTemplate", "allowUrlPrefixes", "detail", "_aihot", "pagination"];
+  if (source.id !== "govcn-policy-library" || source.kind !== "json_list" || page < 1 || page > 2 || !Number.isSafeInteger(page) ||
+      source.config.url !== GOVCN_LIST_URL || p?.mode !== "govcn_query_v1" || Object.keys(p).length !== 3 ||
+      !Number.isSafeInteger(p.maxPagesPerRun) || p.maxPagesPerRun < page || p.maxPagesPerRun > 2 ||
+      !Number.isSafeInteger(p.maxDispatches) || p.maxDispatches < 1 || p.maxDispatches > 12 ||
+      Object.keys(c).some((key) => !configKeys.includes(key)) ||
+      c.itemsPath !== "searchVO.catMap.bumenfile.listVO" || JSON.stringify(c.titlePaths) !== JSON.stringify(["title"]) ||
+      JSON.stringify(c.summaryPaths) !== JSON.stringify(["summary"]) || c.summaryIsBody !== false || c.publishedAtPath !== "pubtime" ||
+      c.publishedAtUnit !== "epoch_ms" || c.publishedAtUtcOffset !== "+08:00" || c.externalIdPath !== "id" || c.urlTemplate !== "{raw:url}" ||
+      !Array.isArray(c.allowUrlPrefixes) || c.allowUrlPrefixes.length !== 1 || c.allowUrlPrefixes[0] !== "https://www.gov.cn/zhengce/zhengceku/" ||
+      !detail || typeof detail !== "object" || Array.isArray(detail) || Object.keys(detail).some((key) => !["maxFetches", "titleRegex", "publishedAtRegex", "publishedAtUtcOffset", "bodySelector"].includes(key)) ||
+      !Number.isSafeInteger(detail.maxFetches) || detail.maxFetches < 1 || detail.maxFetches > 5 ||
+      detail.titleRegex !== "<title>(.*?)_国务院部门文件_中国政府网</title>" ||
+      detail.publishedAtRegex !== "name=\"firstpublishedtime\" content=\"(\\d{4}-\\d{2}-\\d{2})-\\d{2}:\\d{2}:\\d{2}\"" ||
+      detail.publishedAtUtcOffset !== "+08:00" || detail.bodySelector !== "#UCAP-CONTENT .trs_editor_view" ||
+      c._aihot?.initialBackfillMonths !== 3 || c._aihot?.initialBackfillRequirePublishedAt !== true || c._aihot?.requireBodyReadyForAutomaticSelection !== true ||
+      Object.keys(c._aihot ?? {}).some((key) => !["initialBackfillMonths", "initialBackfillRequirePublishedAt", "requireBodyReadyForAutomaticSelection"].includes(key))) {
+    throw new FetchError("unsupported GovCN JSON pagination entry");
+  }
+  const url = new URL(GOVCN_LIST_URL);
+  if (url.searchParams.getAll("p").length !== 1 || url.searchParams.get("p") !== "1") throw new FetchError("invalid GovCN JSON page query");
+  url.searchParams.set("p", String(page));
+  return url.toString();
+}
+
+export async function fetchGovcnJsonPage(source: SourceRow, page: number, options: JsonListFetchOptions = {}): Promise<JsonListPageResult> {
+  return fetchJsonListPageInternal(source, options, govcnPageUrl(source, page));
+}
+
+export async function fetchJsonList(source: SourceRow, options: JsonListFetchOptions = {}): Promise<Candidate[]> {
+  if (Object.hasOwn(source.config ?? {}, "pagination")) {
+    if (source.config.pagination?.mode !== "govcn_query_v1") throw new FetchError("unsupported JSON pagination mode");
+    return (await fetchGovcnJsonPage(source, 1, options)).candidates;
+  }
+  return (await fetchJsonListPageInternal(source, options)).candidates;
+}
+
+async function fetchJsonListPageInternal(source: SourceRow, options: JsonListFetchOptions = {}, govcnRequestedUrl?: string): Promise<JsonListPageResult> {
+  const c = source.config;
+  const url = govcnRequestedUrl ?? String(c.url ?? "");
   if (c.detail?.mode === "nfra_json_v1") {
     const exactUrl = "https://www.nfra.gov.cn/cbircweb/DocInfo/SelectItemAndDocByItemPId?itemId=914&pageSize=6";
     const detailKeys = Object.keys(c.detail).every((key) => ["mode", "maxFetches", "publishedAtUtcOffset", "bodySelector"].includes(key));
@@ -197,18 +246,19 @@ export async function fetchJsonList(source: SourceRow, options: JsonListFetchOpt
     body: c.bodyJson ? JSON.stringify(c.bodyJson) : undefined,
     timeoutMs: options.timeoutMs ?? 25_000,
     ...(options.runBudget ? { runBudget: options.runBudget } : {}),
-    ...(source.config.detail?.mode === "nfra_json_v1" ? { maxBytes: 6 * 1024 * 1024, maxRedirects: 0 } : {}),
+    ...(source.config.detail?.mode === "nfra_json_v1" || govcnRequestedUrl ? { maxBytes: 6 * 1024 * 1024, maxRedirects: 0 } : {}),
   });
   if (res.status !== 200) throw new FetchError(`HTTP ${res.status}`, res.status);
   if (c.detail?.mode === "nfra_json_v1" && res.url !== url) throw new FetchError("NFRA list response changed URL identity");
+  if (govcnRequestedUrl && res.url !== url) throw new FetchError("GovCN JSON list response changed URL identity");
   let data: unknown;
-  if (c.detail?.mode === "nfra_json_v1") {
+  if (c.detail?.mode === "nfra_json_v1" || govcnRequestedUrl) {
     let text: string;
     try { text = new TextDecoder("utf-8", { fatal: true }).decode(res.body); }
-    catch { throw new FetchError("NFRA list is not valid UTF-8"); }
-    if (!/^application\/(?:[a-z0-9.+-]+\+)?json(?:\s*;|$)/i.test(res.headers.get("content-type") ?? "")) throw new FetchError("NFRA list response is not JSON");
+    catch { throw new FetchError(govcnRequestedUrl ? "GovCN list is not valid UTF-8" : "NFRA list is not valid UTF-8"); }
+    if (!/^application\/(?:[a-z0-9.+-]+\+)?json(?:\s*;|$)/i.test(res.headers.get("content-type") ?? "")) throw new FetchError(govcnRequestedUrl ? "GovCN list response is not JSON" : "NFRA list response is not JSON");
     try { data = JSON.parse(text); }
-    catch { throw new FetchError("NFRA list response is not JSON"); }
+    catch { throw new FetchError(govcnRequestedUrl ? "GovCN list response is not JSON" : "NFRA list response is not JSON"); }
   } else if (c.mode === "html_json_key" || c.mode === "html_window_var") data = embeddedJson(res.text(), source);
   else {
     try {
@@ -220,7 +270,11 @@ export async function fetchJsonList(source: SourceRow, options: JsonListFetchOpt
   options.assertActive?.();
   let items: unknown;
   let nfraCategoryId: number | null = null;
-  if (c.categorySelection) {
+  if (govcnRequestedUrl) {
+    if (!data || typeof data !== "object" || Array.isArray(data) || (data as Record<string, unknown>).code !== 200) throw new FetchError("invalid GovCN query response");
+    if (c.itemsPath !== "searchVO.catMap.bumenfile.listVO") throw new FetchError("unsupported GovCN JSON list path");
+    items = getPath(data, c.itemsPath);
+  } else if (c.categorySelection) {
     const selection = c.categorySelection;
     if (c.detail?.mode !== "nfra_json_v1") {
       throw new FetchError("invalid NFRA category response");
@@ -230,8 +284,13 @@ export async function fetchJsonList(source: SourceRow, options: JsonListFetchOpt
   } else items = c.itemsPath ? getPath(data, c.itemsPath) : c.jsonKey ? getPath(data, c.jsonKey) : data;
   if (c.itemsObjectValues && items && typeof items === "object" && !Array.isArray(items)) items = Object.values(items);
   if (!Array.isArray(items)) throw new FetchError("items path did not resolve to an array");
+  if (govcnRequestedUrl && items.length > 5) throw new FetchError("GovCN page exceeds the fixed five-row cap");
 
   const out: Candidate[] = [];
+  const rowsUndated = govcnRequestedUrl ? items.filter((item) => {
+    const date = toDate(getPath(item, "pubtime"), "epoch_ms", "+08:00");
+    return !date || !Number.isFinite(date.getTime());
+  }).length : 0;
   const seenNfraIds = new Set<number>();
   for (const item of items) {
     options.assertActive?.();
@@ -275,5 +334,5 @@ export async function fetchJsonList(source: SourceRow, options: JsonListFetchOpt
     out.push(candidate);
   }
   if (items.length > 0 && out.length === 0 && !c.requireBoolean && !c.minNumeric) throw new FetchError("no items mapped (check title/url paths)");
-  return out;
+  return { candidates: out, rawRowCount: items.length, rowsUndated };
 }

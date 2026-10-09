@@ -10,6 +10,7 @@ import { allowed, fetchDetail, fetchWebList, type DetailNeed } from "./web-list.
 import { unsupportedConfig } from "./config-keys.ts";
 import { collectWebListBackfill, usesWebListPagination } from "./web-list-pagination.ts";
 import { fetchJsonList } from "./json-list.ts";
+import { createGovcnJsonPaginationBudget, govcnCandidateInWindow, isGovcnJsonPaginationSource, readGovcnJsonPagination, readGovcnJsonPages, type GovcnJsonPaginationBudget } from "./json-list-pagination.ts";
 import { fetchXSearch, planXShards, readXSearch, shardHandle, shardQuery, SHARDABLE_SQL, tweetToCandidate, type XBacklog, type XRead } from "./x.ts";
 import { FetchError, type Candidate, type SourceRow } from "./types.ts";
 import { createNfraJsonRunBudget, nfraConfigIsSupported } from "../content/nfra-json-detail.ts";
@@ -104,6 +105,8 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
   let revised = 0;
   let found = 0;
   let nfraBudget: ReturnType<typeof createNfraJsonRunBudget> | null = null;
+  let govcnBudget: GovcnJsonPaginationBudget | null = null;
+  let govcnRunDetail: Record<string, unknown> | null = null;
   try {
     // A config entry this kind does not implement fails the run, visibly, instead of being ignored.
     const unsupported = unsupportedConfig(source.kind, source.config);
@@ -111,6 +114,11 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
     if (source.config.detail?.mode === "nfra_json_v1") {
       if (!nfraConfigIsSupported(source)) throw new FetchError("unsupported NFRA detail mode");
       nfraBudget = createNfraJsonRunBudget();
+    }
+    if (isGovcnJsonPaginationSource(source)) {
+      const pagination = readGovcnJsonPagination(source.config);
+      if (!pagination || unsupportedConfig(source.kind, source.config).length) throw new FetchError("unsupported GovCN JSON pagination mode");
+      govcnBudget = createGovcnJsonPaginationBudget(source, pagination);
     }
     let candidates: Candidate[];
     let nextCursor: Record<string, unknown> = { ...(source.cursor ?? {}) };
@@ -125,6 +133,12 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
       if (rss.notModified) detail = { notModified: true, httpStatus: 304 };
     }
     else if (source.kind === "web_list") candidates = await fetchWebList(source);
+    else if (source.kind === "json_list" && govcnBudget) {
+      const pagination = readGovcnJsonPagination(source.config);
+      if (!pagination) throw new FetchError("unsupported GovCN JSON pagination mode");
+      candidates = await readGovcnJsonPages(source, pagination, govcnBudget);
+      govcnRunDetail = { ...govcnBudget.summary() };
+    }
     else if (source.kind === "json_list") candidates = await fetchJsonList(source, nfraBudget ? { runBudget: nfraBudget.runBudget, timeoutMs: Math.min(25_000, nfraBudget.remainingMs()), assertActive: nfraBudget.assertActive } : {});
     else {
       const x = await fetchXSearch(source);
@@ -143,9 +157,11 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
     const backfillLimit = Number(source.config._aihot?.initialBackfillLimit ?? 30);
     const backfillMonths = Number(source.config._aihot?.initialBackfillMonths ?? 12);
     const initialBackfillRequirePublishedAt = source.config._aihot?.initialBackfillRequirePublishedAt === true;
-    const runAt = new Date();
-    const backfillCutoff = runAt.getTime() - backfillMonths * 30 * 86400000;
-    if (firstImport) {
+    const runAt = govcnBudget?.anchorAt ?? new Date();
+    const backfillCutoff = govcnBudget?.cutoffAt.getTime() ?? runAt.getTime() - backfillMonths * 30 * 86400000;
+    if (govcnBudget) {
+      candidates = candidates.filter((c) => govcnCandidateInWindow(c, govcnBudget!));
+    } else if (firstImport) {
       if (initialBackfillRequirePublishedAt) {
         // Keep missing/untrustworthy dates in this bounded candidate window so existing detail
         // budget can resolve them. The final gate below is after detail and timeline validation.
@@ -171,6 +187,7 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
     let detailUsed = 0;
     for (const c of candidates) {
       nfraBudget?.assertActive();
+      govcnBudget?.assertActive();
       // Listing dates the source marks unreliable are dropped; the detail page's rule decides.
       if (d?.publishedAtAuthoritative === true) c.publishedAt = null;
       const stored = known.get(c.url);
@@ -190,10 +207,17 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
         ...(nfraConfigIsSupported(source) ? { expectedExternalId: Number((c.raw as Record<string, unknown> | null)?.externalId), listAttachmentPending: !!c.attachmentDiagnostic } : {}),
       };
       if (!need.date && !need.title && !need.summary && !(need.body && (d.bodySelector || Array.isArray(d.bodyPolicies)))) continue;
+      if (govcnBudget && !govcnBudget.admitDetail(c.url)) {
+        govcnBudget.setStopReason(govcnBudget.detailTargetsUsed() >= detailBudget ? "max_detail_targets" : "max_dispatches");
+        break;
+      }
       detailUsed += 1;
       try {
-        const got = await fetchDetail(c.url, source, need, nfraBudget ? { runBudget: nfraBudget.runBudget, remainingMs: nfraBudget.remainingMs } : {});
+        const got = await fetchDetail(c.url, source, need, govcnBudget
+          ? { runBudget: govcnBudget.runBudget, remainingMs: govcnBudget.remainingMs }
+          : nfraBudget ? { runBudget: nfraBudget.runBudget, remainingMs: nfraBudget.remainingMs } : {});
         nfraBudget?.assertActive();
+        govcnBudget?.assertActive();
         if (got.title) c.title = got.title;
         if (got.summary) c.excerpt = got.summary;
         // The same Readability path as extraction, using bytes already fetched for the detail rules.
@@ -209,10 +233,21 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
         }
         if (got.attachmentDiagnostic) c.attachmentDiagnostic = got.attachmentDiagnostic;
         // A date-only listing value gives way to the detail page's time on the same day.
-        if (got.publishedAt && (!c.publishedAt || Math.abs(got.publishedAt.getTime() - c.publishedAt.getTime()) < DAY_MS)) c.publishedAt = got.publishedAt;
-      } catch {
-        // detail is best effort
+        if (!govcnBudget && got.publishedAt && (!c.publishedAt || Math.abs(got.publishedAt.getTime() - c.publishedAt.getTime()) < DAY_MS)) c.publishedAt = got.publishedAt;
+      } catch (error) {
+        if (govcnBudget) {
+          govcnBudget.setStopReason(error instanceof Error && /deadline|timeout|aborted/i.test(error.message) ? "timeout" : "detail_failure");
+          throw error;
+        }
+        // detail is best effort for legacy sources
+      } finally {
+        govcnBudget?.clearDetail();
       }
+    }
+
+    if (govcnBudget) {
+      govcnBudget.setPendingDetails(candidates.filter((c) => c.bodyStatus !== "ok" || !c.bodyText?.trim()).length);
+      govcnRunDetail = { ...govcnBudget.summary() };
     }
 
     if (firstImport && initialBackfillRequirePublishedAt) {
@@ -234,10 +269,16 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
         next_fetch_at = now() + make_interval(mins => interval_minutes)
       WHERE id = ${sourceId}`;
     await sql`UPDATE fetch_runs SET status = 'ok', finished_at = now(), found_count = ${found}, new_count = ${created},
-                detail = ${detail ? sql.json(detail as never) : null} WHERE id = ${run!.id}`;
+                detail = ${govcnRunDetail ? sql.json(govcnRunDetail as never) : detail ? sql.json(detail as never) : null} WHERE id = ${run!.id}`;
     return { sourceId, status: "ok", found, created, revised };
   } catch (error) {
     const message = String(error instanceof Error ? error.message : error).slice(0, 1000);
+    if (govcnBudget) {
+      if (govcnBudget.summary().stopReason === "max_pages_per_run") {
+        govcnBudget.setStopReason(error instanceof Error && /deadline|timeout|aborted/i.test(error.message) ? "timeout" : "run_failed");
+      }
+      govcnRunDetail = { ...govcnBudget.summary() };
+    }
     const budget = error instanceof BudgetExceededError;
     await sql`
       UPDATE sources SET last_fetch_at = now(),
@@ -247,10 +288,12 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
         next_fetch_at = now() + make_interval(mins => CASE WHEN ${budget} THEN 15 ELSE LEAST(interval_minutes * (fail_count + 2), 360) END),
         updated_at = now()
       WHERE id = ${sourceId}`;
-    await sql`UPDATE fetch_runs SET status = 'failed', finished_at = now(), found_count = ${found}, new_count = ${created}, error = ${message} WHERE id = ${run!.id}`;
+    await sql`UPDATE fetch_runs SET status = 'failed', finished_at = now(), found_count = ${found}, new_count = ${created}, error = ${message},
+      detail = ${govcnRunDetail ? sql.json(govcnRunDetail as never) : null} WHERE id = ${run!.id}`;
     return { sourceId, status: "failed", found, created, revised, error: message };
   } finally {
     nfraBudget?.dispose();
+    govcnBudget?.dispose();
   }
 }
 

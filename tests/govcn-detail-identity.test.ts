@@ -20,6 +20,8 @@ const queryBytes = readFileSync(new URL("./fixtures/govcn-detail-identity/policy
 const detailBytes = readFileSync(new URL("./fixtures/govcn-detail-identity/fiscal-policy-detail.html", import.meta.url));
 const query = JSON.parse(queryBytes.toString("utf8")) as any;
 const source = JSON.parse(readFileSync(new URL("../industry/sources.json", import.meta.url), "utf8")).sources.find((row: any) => row.id === "govcn-policy-library");
+const identityOnlyConfig = { ...source.config };
+delete identityOnlyConfig.pagination;
 const candidateRow = query.searchVO.catMap.bumenfile.listVO.find((row: any) => row.url === detailUrl);
 assert.ok(candidateRow);
 const expectedTitle = candidateRow.title as string;
@@ -111,7 +113,7 @@ test("configured regex failures are closed and cannot fall back to matching defa
     { titleRegex: "" }, { titleRegex: "[" }, { titleRegex: "x".repeat(1_001) }, { titleRegex: null },
     { publishedAtRegex: "" }, { publishedAtRegex: "(" }, { publishedAtRegex: "x".repeat(1_001) },
   ]) {
-    assert.ok(unsupportedConfig("json_list", { ...source.config, detail: { ...source.config.detail, ...rules } }).length > 0,
+    assert.ok(unsupportedConfig("json_list", { ...identityOnlyConfig, detail: { ...source.config.detail, ...rules } }).length > 0,
       `source config rejects ${JSON.stringify(rules)}`);
   }
   for (const noCapture of [
@@ -119,7 +121,7 @@ test("configured regex failures are closed and cannot fall back to matching defa
     { publishedAtRegex: "name=\"firstpublishedtime\" content=\"\\d{4}-\\d{2}-\\d{2}-\\d{2}:\\d{2}:\\d{2}\"" },
   ]) {
     assert.equal(selected({ bodySelector, ...noCapture }, defaulted).body, null, "a valid expression without group 1 fails closed");
-    assert.deepEqual(unsupportedConfig("json_list", { ...source.config, detail: { ...source.config.detail, ...noCapture } }), [],
+    assert.deepEqual(unsupportedConfig("json_list", { ...identityOnlyConfig, detail: { ...source.config.detail, ...noCapture } }), [],
       "source-config validation checks syntax/length; missing capture is caught at runtime");
   }
   assert.equal(selected({ bodySelector, titleRegex, publishedAtRegex }, html, { ...expected, title: `${expectedTitle}错` }).body, null);

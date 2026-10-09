@@ -275,7 +275,7 @@
     },
     {
       "id": "govcn-policy-library",
-      "name": "中国政府网·部门政策文件（单页试验）",
+      "name": "中国政府网·部门政策文件（有界分页试验）",
       "kind": "json_list",
       "config": {
         "url": "https://sousuo.www.gov.cn/search-gov/data?q=&sort=score&sortType=1&searchfield=title&p=1&n=5&type=gwyzcwjk",
@@ -289,6 +289,7 @@
         "externalIdPath": "id",
         "urlTemplate": "{raw:url}",
         "allowUrlPrefixes": ["https://www.gov.cn/zhengce/zhengceku/"],
+        "pagination": { "mode": "govcn_query_v1", "maxPagesPerRun": 2, "maxDispatches": 7 },
         "detail": {
           "maxFetches": 5,
           "titleRegex": "<title>(.*?)_国务院部门文件_中国政府网</title>",

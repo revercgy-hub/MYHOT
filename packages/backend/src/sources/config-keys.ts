@@ -3,6 +3,7 @@
 // articles, dates never found).
 import type { SourceRow } from "./types.ts";
 import { validateBodyPolicies, validateSelectedBodyIdentityRegexes } from "../content/selected-body.ts";
+import { validateGovcnJsonPagination } from "./json-list-pagination.ts";
 import { validateWebListPagination } from "./web-list-pagination.ts";
 
 // Rules applied in collect.ts to every kind read through collectSource.
@@ -18,7 +19,7 @@ const KEYS: Record<SourceRow["kind"], string[]> = {
   json_list: [
     ...COLLECTED, "url", "mode", "method", "headers", "bodyJson", "jsonKey", "windowVar", "itemsPath", "itemsObjectValues", "categorySelection",
     "titlePaths", "summaryPaths", "summaryIsBody", "authorPaths", "publishedAtPath", "publishedAtUnit", "publishedAtUtcOffset", "externalIdPath",
-    "urlTemplate", "urlTemplateFallback", "rawDropKeys", "requireBoolean", "minNumeric",
+    "urlTemplate", "urlTemplateFallback", "rawDropKeys", "requireBoolean", "minNumeric", "pagination",
   ],
   // X accounts are mostly read in shards, which apply only these.
   x_search: ["_aihot", "ingestNoiseFilter", "itemUrlPrefixRewrite", "query", "searchType"],
@@ -142,7 +143,8 @@ export function unsupportedConfig(kind: SourceRow["kind"], config: Record<string
   } else if (config.categorySelection !== undefined) {
     out.push("categorySelection requires detail.mode=nfra_json_v1");
   }
-  out.push(...validateWebListPagination(kind, config ?? {}));
+  if (kind === "web_list") out.push(...validateWebListPagination(kind, config ?? {}));
+  else if (Object.hasOwn(config ?? {}, "pagination")) out.push(...validateGovcnJsonPagination(kind, config ?? {}));
   return out;
 }
 

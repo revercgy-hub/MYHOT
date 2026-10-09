@@ -514,7 +514,15 @@ export async function fetchDetail(url: string, source: SourceRow, need: DetailNe
   }
   const hasSelectedBodyConfig = !!d.bodySelector || !!d.attachmentSelector || Array.isArray(d.bodyPolicies) || d.attachmentScopeSelector !== undefined;
   if (!d.pdfDirect && ((need.date && !dateInJina) || (need.title && !titleInJina) || need.summary || (need.body && hasSelectedBodyConfig))) {
-    const res = await fetcher(url, { timeoutMs: 20_000, ...(need.body && hasSelectedBodyConfig ? { maxBytes: 6 * 1024 * 1024 } : {}) });
+    const govcnJsonPagination = source.id === "govcn-policy-library" && source.kind === "json_list" && Object.hasOwn(source.config ?? {}, "pagination");
+    const remainingMs = options.remainingMs?.() ?? 20_000;
+    if (govcnJsonPagination && remainingMs <= 0) throw new Error("GovCN JSON run deadline exceeded");
+    const res = await fetcher(url, {
+      timeoutMs: govcnJsonPagination ? Math.min(20_000, remainingMs) : 20_000,
+      ...(govcnJsonPagination ? { runBudget: options.runBudget, maxRedirects: 0 } : {}),
+      ...(need.body && hasSelectedBodyConfig ? { maxBytes: 6 * 1024 * 1024 } : {}),
+    });
+    if (govcnJsonPagination && res.url !== url) throw new Error("GovCN detail response changed URL identity");
     if (res.status === 200) {
       html = res.text();
       if (need.body && /html/i.test(res.headers.get("content-type") ?? "")) {
