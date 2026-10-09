@@ -20,7 +20,7 @@ const databaseName = new URL(process.env.DATABASE_URL ?? "postgres://invalid/inv
 const scenario = process.env.P4_EXECUTOR_SCENARIO;
 const safeSegment = (value: string) => value.replace(/[^A-Za-z0-9_-]/g, "_");
 const execFile = fileURLToPath(new URL("../scripts/fiscal/p4-execute.ts", import.meta.url));
-const preloadFile = fileURLToPath(new URL("./fiscal-p4-executor-mock-preload.ts", import.meta.url));
+const preloadFile = fileURLToPath(new URL("./helpers/fiscal-p4-fake-provider-preload.ts", import.meta.url));
 
 function canonical(value: unknown): string {
   return JSON.stringify(value, (_key, nested) => nested && typeof nested === "object" && !Array.isArray(nested)
@@ -123,12 +123,30 @@ async function lowerDailyBudgetAfterNinthAttempt(): Promise<void> {
     FOR EACH ROW EXECUTE FUNCTION p4_budget_n1_lower_after_nine()`);
 }
 
+async function failAnalysisCommitOnReceiptCompletion(): Promise<void> {
+  await sql.unsafe(`
+    CREATE FUNCTION p4_fail_analysis_commit_on_complete_receipt() RETURNS trigger LANGUAGE plpgsql AS $$
+    BEGIN
+      IF NEW.service = 'deepseek' AND NEW.status = 'completed' AND NEW.subject LIKE 'article:p4prep_%' THEN
+        RAISE EXCEPTION 'mock analysis completeReceipt transaction failure';
+      END IF;
+      RETURN NEW;
+    END;
+    $$`);
+  await sql.unsafe(`
+    CREATE TRIGGER p4_fail_analysis_commit_on_complete_receipt
+    BEFORE UPDATE OF status ON receipts
+    FOR EACH ROW EXECUTE FUNCTION p4_fail_analysis_commit_on_complete_receipt()`);
+}
+
 if (process.env.P4_EXECUTOR_INTEGRATION_TEST === "true") {
   test(`P4 CLI fake-provider integration (${scenario})`, async () => {
     const driftScenarios = ["drift-revision", "drift-hash", "drift-media", "drift-source-config", "drift-provider"];
-    assert.ok(scenario === "happy" || scenario === "429" || scenario === "budget-n1" || scenario === "out-exists" || driftScenarios.includes(scenario ?? ""), "select exactly one isolated fake-provider scenario");
+    const persistenceScenarios = ["persist-analysis-commit", "persist-report-write"];
+    assert.ok(scenario === "happy" || scenario === "429" || scenario === "budget-n1" || scenario === "out-exists" || persistenceScenarios.includes(scenario ?? "") || driftScenarios.includes(scenario ?? ""), "select exactly one isolated fake-provider scenario");
     const seeded = await seedFixture();
     if (scenario === "budget-n1") await lowerDailyBudgetAfterNinthAttempt();
+    if (scenario === "persist-analysis-commit") await failAnalysisCommitOnReceiptCompletion();
     const capturePath = path.join(REPO_ROOT, ".data", "fiscal-p4-pilot", `mock-capture-${safeSegment(databaseName)}-${scenario}.json`);
     assert.equal(existsSync(capturePath), false, "never overwrite a prior test capture");
     if (scenario === "drift-revision") {
@@ -147,6 +165,7 @@ if (process.env.P4_EXECUTOR_INTEGRATION_TEST === "true") {
       "--manifest-hash", seeded.manifest.manifestHash, "--contract-hash", seeded.contractHash,
       "--source-config-hash", seeded.sourceConfigHash, "--max-requests", "10", "--confirm-execute",
       "--out", outputPath];
+    if (scenario === "persist-report-write") env.P4_FAKE_REPORT_PATH = outputPath;
 
     if (scenario?.startsWith("drift-")) {
       const driftCapture = `${capturePath}.drift`;
@@ -234,7 +253,7 @@ if (process.env.P4_EXECUTOR_INTEGRATION_TEST === "true") {
         "BEGIN READ ONLY; SELECT (SELECT count(*) FROM schema_migrations),(SELECT count(*) FROM articles),(SELECT count(*) FROM analyses),(SELECT count(*) FROM receipts WHERE status='failed'),(SELECT count(*) FROM receipt_attempts WHERE status='failed'),(SELECT count(*) FROM fetch_runs),(SELECT count(*) FROM publications); ROLLBACK;"], env);
       assert.equal(verify.code, 0, verify.stderr);
       assert.match(verify.stdout, /35,2,0,1,1,0,0/);
-    } else {
+    } else if (scenario === "budget-n1") {
       const rejected = await run(process.execPath, args, env);
       assert.notEqual(rejected.code, 0, "the lowered daily receipt budget must stop the bounded run");
       assert.match(rejected.stderr, /Budget for deepseek exhausted \(day\)/u);
@@ -259,6 +278,41 @@ if (process.env.P4_EXECUTOR_INTEGRATION_TEST === "true") {
       const retryArgs = [...args.slice(0, -2), "--out", retryOutput];
       const retried = await run(process.execPath, retryArgs, env);
       assert.notEqual(retried.code, 0, "the executor must refuse replay after a prior analysis/receipt");
+      assert.match(retried.stderr, /no replay\/retry/u);
+      const retryRequests = JSON.parse(readFileSync(retryCapture, "utf8")) as { requests: unknown[] };
+      assert.equal(retryRequests.requests.length, 0, "replay refusal must happen before any additional provider POST");
+      assert.equal(existsSync(path.resolve(REPO_ROOT, retryOutput)), false, "replay refusal must not reserve a second report path");
+    } else {
+      const rejected = await run(process.execPath, args, env);
+      assert.notEqual(rejected.code, 0, "a persistence fault must fail the bounded execution");
+      assert.doesNotMatch(rejected.stdout, /"status"\s*:\s*"completed"/u, "a failed run must not print a successful execution result");
+      assert.match(rejected.stderr, scenario === "persist-analysis-commit"
+        ? /mock analysis completeReceipt transaction failure/u
+        : /mock P4 report write failure/u);
+
+      const expectedRequests = scenario === "persist-analysis-commit" ? 5 : 10;
+      const capture = JSON.parse(readFileSync(capturePath, "utf8")) as { requests: Array<{ kind: string; path: string; model: string; authMatchesFake: boolean }> };
+      assert.equal(capture.requests.length, expectedRequests, "the fake provider responses must precede the injected persistence failure");
+      assert.ok(capture.requests.every((request) => request.path === "/chat/completions" && request.model === "deepseek-flash" && request.authMatchesFake));
+
+      const reportPath = path.resolve(REPO_ROOT, outputPath);
+      assert.equal(existsSync(reportPath), true, "the executor reserves its report path before analysis");
+      assert.equal(readFileSync(reportPath, "utf8"), "", "failed persistence must not leave a success report");
+
+      const psql = path.join(REPO_ROOT, ".data", "test-pg", "pgsql", "bin", "psql.exe");
+      const verify = await run(psql, [env.DATABASE_URL!, "-X", "-A", "-t", "-F", ",", "-v", "ON_ERROR_STOP=1", "-c",
+        "BEGIN READ ONLY; SELECT (SELECT count(*) FROM schema_migrations),(SELECT count(*) FROM articles),(SELECT count(*) FROM analyses),(SELECT count(*) FROM receipts WHERE status='completed'),(SELECT count(*) FROM receipts WHERE status='received'),(SELECT count(*) FROM receipts WHERE status IN ('failed','pending','unknown')),(SELECT count(*) FROM receipt_attempts),(SELECT count(*) FROM receipt_attempts WHERE status='received'),(SELECT count(*) FROM receipt_attempts WHERE status IN ('failed','pending','unknown')),(SELECT count(*) FROM fetch_runs),(SELECT count(*) FROM publications),(SELECT count(*) FROM selected_ledger); ROLLBACK;"], env);
+      assert.equal(verify.code, 0, verify.stderr);
+      assert.match(verify.stdout, scenario === "persist-analysis-commit"
+        ? /35,2,0,0,5,0,5,5,0,0,0,0/u
+        : /35,2,2,10,0,0,10,10,0,0,0,0/u);
+
+      const retryCapture = `${capturePath}.retry`;
+      const retryOutput = `.data/fiscal-p4-pilot/mock-result-${safeSegment(databaseName)}-${scenario}-retry.json`;
+      env.P4_FAKE_CAPTURE_PATH = retryCapture;
+      const retryArgs = [...args.slice(0, -2), "--out", retryOutput];
+      const retried = await run(process.execPath, retryArgs, env);
+      assert.notEqual(retried.code, 0, "the executor must refuse to replay after a persistence failure");
       assert.match(retried.stderr, /no replay\/retry/u);
       const retryRequests = JSON.parse(readFileSync(retryCapture, "utf8")) as { requests: unknown[] };
       assert.equal(retryRequests.requests.length, 0, "replay refusal must happen before any additional provider POST");
