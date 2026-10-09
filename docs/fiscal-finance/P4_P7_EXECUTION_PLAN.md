@@ -1,21 +1,23 @@
 # P4–P7 执行与准入计划（2026-10-03）
 
-## 当前恢复状态与可推进任务（2026-10-08）
+## 当前恢复状态与可推进任务（2026-10-09）
 
-本节是当前状态索引，覆盖并取代本文件下方编写于10月3日的旧`STATUS=`、`Gate 2 NOT_PASSED`和“12个source”判断；其余章节保留为历史记录，不回写成当时已知结论。当前branch为`feat/fiscal-finance-hot`，代码HEAD `99c3a9a3a1da91457eb2fdda81b1694d217b0511`；GitHub Check+Docker run [37744820133](https://github.com/revercgy-hub/MYHOT/actions/runs/37744820133) 对该SHA均成功。本地fresh35-migration QA亦通过typecheck、backend322/322、Web build/Web tests15/15和post-code loopback smoke30/30。正式Gate 2现为`PASSED_FOR_BOUNDED_P4_PILOT`，只限[GATE_2_REVIEW.md](GATE_2_REVIEW.md)规定的三个来源中逐篇合格文章，不是全47源准入、无人值守采集或Gate 3/4完成。当前目录47 sources、41 strict-body-ready opt-ins，均disabled且全文关闭。
+当前待交付 source/config SHA `6668c70da306473977eb55c3b6073be3d5fd535f`的fresh本地QA通过：`fiscalhot_zhejiang_finalqa_20261009_test`有35 migrations/61 tables；typecheck、backend 351/351、Web build、Web tests 15/15、浙江focus 5/5通过，P4 opt-in unset。该SHA的唯一GitHub Check run [37935221740](https://github.com/revercgy-hub/MYHOT/actions/runs/37935221740)已确认headSha精确匹配，Check job 113835474656与Docker job 113835474297均success，CI smoke通过。本机smoke未运行。来源目录48/42 strict opt-ins，全部disabled且全文关闭。Gate 2仍仅为[GATE_2_REVIEW.md](GATE_2_REVIEW.md)规定的三个来源逐篇合格文章边界，不代表全源准入、无人值守采集或Gate 3/4。
 
 ### 可无付费推进
 
 | 当前工作 | 范围和退出证据 |
 |---|---|
-| P4有界执行器failure-path QA | 已验证happy、output-exists、429/重复执行、活动会话拒绝及revision/hash/media/source-config/provider五个输入漂移场景；漂移场景fresh 35 migrations各1/1、0 POST。继续核验仍未覆盖的预算N+1/已有receipt组合、配置漂移、结果report最终写失败及receipt/analysis提交故障；不真实调用模型。该软件测试不能替代P4质量评估。 |
-| GovCN单页候选兼容与source主线 | `govcn-policy-library`是disabled、summary-only的单页候选；已保存5条JSON列表与1条政策详情pair，focused identity/test与fresh backend/Web QA通过。仍可继续核验保守字段映射、重复/修订保存证据、适配候选是否应单独收窄；不扩大到分页或90日覆盖，不标source admitted。其它必做来源继续做保存证据审查及各自批准的最小工程补证。 |
+| P4有界执行器软件故障/预算用例 | 已有happy、output-exists、429/重复执行、活动会话拒绝、revision/hash/media/source-config/provider五项输入漂移、receipt N+1/静态20-cap/第9次attempt预算由10升至20、analysis/receipt事务提交失败、最终report写失败的隔离MockAgent测试结果。各测试实际结果与限制见[P4试点状态](P4_PILOT_READINESS.md)当前段和连续handoff；漂移五项各fresh 35 migrations focused 1/1且0 POST，事务和预算故障用例均有各自fresh库记录。它们不是P4内容质量、人工Gold或付费执行通过；全局currency/token hard cap仍未验证。 |
+| 浙江监管工作分页配置 | 仅Sol批准的单一disabled entry既有HTML pagination opt-in；保存fixture/config focused 29/29与typecheck已通过，fresh full QA与精确SHA Check+Docker CI均已通过。仍未运行collector；有限两页观察不证明source admission或90日覆盖。 |
 | P4/P5准备 | 可在不调用provider的前提下复核隔离planner候选、合格负例证据、运行合同与Gold schema。正文正负例的Gold结论需领域人员人工判断；不把dry-run、selector或软件fixture说成内容质量验证。 |
-| P7可复用验收准备 | 用已存在安全workflow或fresh隔离库准备测试报告；只有实际待交付代码冻结后才将typecheck/backend/Web/smoke结果绑定其SHA。GitHub `check.yml`的push触发只匹配main，feature branch可由pull request或`workflow_dispatch`运行。 |
+| P7可复用验收准备 | 此次full QA绑定上述冻结source/config交付状态；当前CI只覆盖精确SHA `6668c70…`。本机smoke未运行；历史CI不得替代当前SHA验证。 |
 
 ### 当前延期与尚未完成的阶段
 
 真实DeepSeek请求和provider额度由用户决定暂不开展，故付费执行deferred、不追问10/20；所有真实模型开关保持关闭。OCR继续按用户决定延期；NAS/production/Staging部署、真实采集和常驻worker均未启动。人工Gold标注尚未完成，Gate 3/4未通过。完整首次90日覆盖仍属于后续P7/Gate 4及P8/P9上线准备，不是已经完成的Gate 2前置；来源主线、历史窗口与长期来源质量都不得按有限样本宣布完成。
+
+### 2026-10-03 原计划快照字段（历史；当前状态以文首为准）
 
 STATUS=P3 进行中；Gate 2 NOT_PASSED；本文件是准备/准入计划，不是阶段验收。
 BASE_HEAD=c335c71031becab5d9e7ec1c4dab90d223decd78（计划编写时恢复的代码/文档HEAD）

@@ -1,12 +1,21 @@
 # P4 精选试点只读准备器
 
-## 2026-10-09 当前恢复检查点：离线P4预算与故障测试本地通过，待Root review，付费未执行
+## 2026-10-09 当前免费软件验证状态：本地QA与精确SHA CI通过
 
-GovCN durable continuation code SHA `15e3464c0bff45af96e52514b831f2aba8fc6043` 的本地fresh full QA和GitHub Check/Docker run [37905438753](https://github.com/revercgy-hub/MYHOT/actions/runs/37905438753)均通过；该CI精确绑定此代码SHA。续页持久化只实测2次list、0 detail，没有并发collector或真实墙钟deadline证明，也没有90日/live coverage或source-admission结论。
+浙江 pagination source/config SHA `6668c70da306473977eb55c3b6073be3d5fd535f` 已包含仅该disabled entry的既有HTML pagination opt-in、保存fixture及config test。Sol scope为 `APPROVED_SCOPE`，仅批准该单entry离线配置验证，不授权collector或新的HTTP。fresh `fiscalhot_zhejiang_finalqa_20261009_test`完成35 migrations、61 tables；typecheck、backend 351/351、Web build、Web tests 15/15及浙江focus 5/5通过。P4 opt-in保持unset；source仍disabled、fulltext关闭，collector/worker/provider均未运行。此次local smoke未运行。唯一GitHub Check run [37935221740](https://github.com/revercgy-hub/MYHOT/actions/runs/37935221740)精确绑定该SHA；Check job 113835474656与Docker job 113835474297均success；CI内置smoke也通过。软件结果不代表P4内容质量、source admission、90日覆盖或Gold评估。
 
-独立免费预算N+1 integration使用fresh `fiscalhot_p4budget_n1_20261009_test`（35 migrations），focused 1/1通过：fake请求9次（5 completed、4 received），产生1 analysis，结束时report reservation为空；同一输入重跑被幂等/receipt guard拒绝，0 POST。test-only commit `e8525d46ddda64a0311b381c1b18b9f4c8045d67`上的analysis/receipt事务提交失败与final-report写失败两个focused cases均通过，并由独立只读DB/capture复核。`fiscalhot_p4persist_commit2_20261009_test`（35 migrations）结果为5 fake POST/5 received receipts/5 attempts/0 analyses/0 completed receipts，report 0B，重跑0 POST；`fiscalhot_p4persist_report2_20261009_test`（35 migrations）为10 fake POST/10 completed receipts/10 attempts/2 analyses，report 0B，重跑0 POST。两例fetch/publication/selection均0，MockAgent阻断外网。Typecheck通过；focused stdout/stderr及migration log未另存，ignored JSON artifacts在`.data/fiscal-p4-pilot/`。e8525d4仅测试变更，尚未跑full suite或CI；不可把其覆盖混入15e3464代码的full QA或run 37905438753，也不声称所有故障情形都已验证。上述测试未调用真实provider、未付费，也不构成可执行P4付费准备通过。Root的软件裁定仍为 `APPROVED_SOFTWARE_FOR_OFFLINE_QA_ONLY`，不是source admission或Gate提升；人工预算/运行决策仍未授权。
+### 已完成的 P4 离线故障与预算软件验证
 
-早期queued/pending段落保留为历史快照，以上为当前状态。真实付费和worker/provider仍未运行。
+以下均为严格MockAgent/隔离`_test`库软件验证，不调用真实provider，不构成内容质量评估或付费执行授权：
+
+- 五项输入漂移：article revision、content hash、media、source configuration、provider model。各自fresh 35-migration数据库focused 1/1，均为0 provider POST、无执行report；test-only SHA `b0a0eeb59e19c696b94e045d2d6d3dcb08a69ea1`的Check+Docker run [37743439955](https://github.com/revercgy-hub/MYHOT/actions/runs/37743439955)通过。
+- N+1/receipt预算：fresh `fiscalhot_p4budget_n1_20261009_test`完成35 migrations，fake POST 9次（5 completed、4 received），1 analysis，结束时report reservation为空；相同输入重跑0 POST。
+- 静态20-cap case：focused 1/1，replay 0。该case没有在活动运行中修改预算，不单独证明预算漂移。
+- 动态上调：以CLI max=10开始，在第9次attempt触发minute/hour/day预算由10升至20；fresh `fiscalhot_p4budget_up_drift_final_20261009_test`完成35 migrations，integration 1/1、typecheck通过。结果2 articles、2 analyses、10 receipts status=completed、10 receipt_attempts status=received、10 fake POST、report maximum 10、replay 0。首个动态harness曾hung且无receipt，进程已停止；该失败留作harness历史，不是产品缺陷。budget test-only commit `e97b02bd303116c739caeb983c00e9ba2ff7b49c`未单独跑full suite。
+- Analysis/receipt事务提交失败：fresh `fiscalhot_p4persist_commit2_20261009_test`完成35 migrations，5 fake POST、5 received receipts/5 attempts、0 analyses/0 completed receipts，report为0B；重跑0 POST。
+- Final report写失败：fresh `fiscalhot_p4persist_report2_20261009_test`完成35 migrations，10 fake POST、10 completed receipts/10 attempts、2 analyses，report为0B；重跑0 POST。上述两类失败均没有fetch/publication/selection。
+
+这些case验证有限的请求/receipt和写失败路径；未验证全局currency/token hard cap，也未建立真实模型质量、人工Gold、source质量或正式P4通过结论。P4软件裁定保持 `APPROVED_SOFTWARE_FOR_OFFLINE_QA_ONLY`。付费执行仍`DEFERRED_BY_USER`，Gold人工标签仍未完成。旧queued/pending检查点保留为历史，不再表示以上软件case待实现。
 
 ## 2026-10-09 continuation 本机QA完成，GitHub Check queued（历史快照；终态见文首）
 
