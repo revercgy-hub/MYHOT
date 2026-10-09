@@ -7,7 +7,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { test } from "node:test";
+import { after, test } from "node:test";
 import { REPO_ROOT } from "@aihot/backend/config";
 import { closeDb, sql } from "@aihot/backend/db";
 import { PROMPT_VERSIONS } from "@aihot/backend/editorial/analyze";
@@ -18,9 +18,16 @@ const sourceIds = ["mof-treasury-debt-data", "pboc-open-market"] as const;
 const sourceNames = ["Treasury QA fixture", "OMO QA fixture"] as const;
 const databaseName = new URL(process.env.DATABASE_URL ?? "postgres://invalid/invalid").pathname.slice(1);
 const scenario = process.env.P4_EXECUTOR_SCENARIO;
+let databaseClosed = false;
 const safeSegment = (value: string) => value.replace(/[^A-Za-z0-9_-]/g, "_");
 const execFile = fileURLToPath(new URL("../scripts/fiscal/p4-execute.ts", import.meta.url));
 const preloadFile = fileURLToPath(new URL("./helpers/fiscal-p4-fake-provider-preload.ts", import.meta.url));
+if (process.env.P4_EXECUTOR_INTEGRATION_TEST === "true") {
+  // Contract setup reads the selected provider before spawning the guarded child; this parent stays disabled.
+  process.env.MODEL_CALLS_ENABLED = "false";
+  process.env.DEEPSEEK_BASE_URL = "https://api.deepseek.com";
+  process.env.DEEPSEEK_API_KEY = "p4-loopback-mock-only";
+}
 
 function canonical(value: unknown): string {
   return JSON.stringify(value, (_key, nested) => nested && typeof nested === "object" && !Array.isArray(nested)
@@ -32,11 +39,21 @@ function run(command: string, args: string[], env: NodeJS.ProcessEnv): Promise<{
     const child = spawn(command, args, { cwd: REPO_ROOT, env, windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
     let stdout = "";
     let stderr = "";
+    let timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; child.kill(); }, 120_000);
     child.stdout.setEncoding("utf8").on("data", (chunk: string) => { stdout += chunk; });
     child.stderr.setEncoding("utf8").on("data", (chunk: string) => { stderr += chunk; });
-    child.once("error", reject);
-    child.once("close", (code) => resolve({ code: code ?? -1, stdout, stderr }));
+    child.once("error", (error) => { clearTimeout(timer); reject(error); });
+    child.once("close", (code) => {
+      clearTimeout(timer);
+      resolve({ code: timedOut ? -1 : code ?? -1, stdout, stderr: timedOut ? `${stderr}\nchild process exceeded the 120 second test timeout` : stderr });
+    });
   });
+}
+async function closeTestDatabase(): Promise<void> {
+  if (databaseClosed) return;
+  databaseClosed = true;
+  await closeDb();
 }
 async function seedFixture(): Promise<{ manifestPath: string; manifest: FrozenManifest; contractHash: string; sourceConfigHash: string }> {
   assert.match(databaseName, /^[A-Za-z0-9_-]+_test$/, "the executor fixture must use a disposable *_test database");
@@ -123,6 +140,28 @@ async function lowerDailyBudgetAfterNinthAttempt(): Promise<void> {
     FOR EACH ROW EXECUTE FUNCTION p4_budget_n1_lower_after_nine()`);
 }
 
+async function raiseBudgetAfterNinthAttempt(): Promise<void> {
+  await sql.unsafe(`
+    CREATE FUNCTION p4_budget_up_drift_after_nine() RETURNS trigger LANGUAGE plpgsql AS $$
+    DECLARE live_attempts integer;
+    BEGIN
+      IF NEW.service = 'deepseek' AND NEW.origin = 'live' THEN
+        SELECT count(*)::int INTO live_attempts
+        FROM receipt_attempts
+        WHERE service = NEW.service AND origin = NEW.origin AND started_at > now() - interval '1 day';
+        IF live_attempts = 9 THEN
+          UPDATE budgets SET per_minute = 20, per_hour = 20, per_day = 20 WHERE service = 'deepseek';
+        END IF;
+      END IF;
+      RETURN NEW;
+    END;
+    $$`);
+  await sql.unsafe(`
+    CREATE TRIGGER p4_budget_up_drift_after_nine
+    AFTER INSERT ON receipt_attempts
+    FOR EACH ROW EXECUTE FUNCTION p4_budget_up_drift_after_nine()`);
+}
+
 async function failAnalysisCommitOnReceiptCompletion(): Promise<void> {
   await sql.unsafe(`
     CREATE FUNCTION p4_fail_analysis_commit_on_complete_receipt() RETURNS trigger LANGUAGE plpgsql AS $$
@@ -140,12 +179,14 @@ async function failAnalysisCommitOnReceiptCompletion(): Promise<void> {
 }
 
 if (process.env.P4_EXECUTOR_INTEGRATION_TEST === "true") {
+  after(closeTestDatabase);
   test(`P4 CLI fake-provider integration (${scenario})`, async () => {
     const driftScenarios = ["drift-revision", "drift-hash", "drift-media", "drift-source-config", "drift-provider"];
     const persistenceScenarios = ["persist-analysis-commit", "persist-report-write"];
-    assert.ok(scenario === "happy" || scenario === "429" || scenario === "budget-n1" || scenario === "out-exists" || persistenceScenarios.includes(scenario ?? "") || driftScenarios.includes(scenario ?? ""), "select exactly one isolated fake-provider scenario");
+    assert.ok(scenario === "happy" || scenario === "429" || scenario === "budget-n1" || scenario === "budget-up" || scenario === "budget-up-drift" || scenario === "out-exists" || persistenceScenarios.includes(scenario ?? "") || driftScenarios.includes(scenario ?? ""), "select exactly one isolated fake-provider scenario");
     const seeded = await seedFixture();
     if (scenario === "budget-n1") await lowerDailyBudgetAfterNinthAttempt();
+    if (scenario === "budget-up-drift") await raiseBudgetAfterNinthAttempt();
     if (scenario === "persist-analysis-commit") await failAnalysisCommitOnReceiptCompletion();
     const capturePath = path.join(REPO_ROOT, ".data", "fiscal-p4-pilot", `mock-capture-${safeSegment(databaseName)}-${scenario}.json`);
     assert.equal(existsSync(capturePath), false, "never overwrite a prior test capture");
@@ -158,12 +199,29 @@ if (process.env.P4_EXECUTOR_INTEGRATION_TEST === "true") {
     } else if (scenario === "drift-source-config") {
       await sql`UPDATE sources SET config = ${sql.json({ changedAfterFreeze: true })} WHERE id = ${sourceIds[0]}`;
     }
-    await closeDb(); // The executor has an idle-connection guard; run it after fixture setup exits.
-    const env: NodeJS.ProcessEnv = { ...process.env, P4_FAKE_CAPTURE_PATH: capturePath };
+    await closeTestDatabase(); // The executor has an idle-connection guard; run it after fixture setup exits.
+    const env: NodeJS.ProcessEnv = {
+      ...process.env,
+      P4_FAKE_CAPTURE_PATH: capturePath,
+      MODEL_CALLS_ENABLED: "true",
+      COLLECT_ENABLED: "false",
+      INDEXNOW_SUBMIT_ENABLED: "false",
+      FEISHU_CONTENT_PUSH_ENABLED: "false",
+      FEISHU_INTERNAL_ENABLED: "false",
+      JINA_BODY_FALLBACK: "false",
+      PREFILTER_MODEL: "deepseek-flash",
+      SCORE_MODEL: "deepseek-flash",
+      STRUCTURE_MODEL: "deepseek-flash",
+      UNDERSTAND_MODEL: "deepseek-flash",
+      SUMMARIZE_MODEL: "deepseek-flash",
+      DEEPSEEK_BASE_URL: "https://api.deepseek.com",
+      DEEPSEEK_API_KEY: "p4-loopback-mock-only",
+    };
+    for (const name of ["LLM_BASE_URL", "LLM_API_KEY", "LLM_MODEL", "LLM_EXTRA_JSON", "ZHIPU_BASE_URL", "ZHIPU_API_KEY", "DASHSCOPE_BASE_URL", "DASHSCOPE_API_KEY", "XIAOMI_MIMO_BASE_URL", "XIAOMI_MIMO_API_KEY", "EMBEDDING_BASE_URL", "EMBEDDING_API_KEY", "SOCIALDATA_BASE_URL", "SOCIALDATA_API_KEY", "JINA_BASE_URL", "JINA_API_KEY", "DAJIALA_BASE_URL", "DAJIALA_API_KEY", "ARTIFICIAL_ANALYSIS_API_KEY", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "all_proxy", "no_proxy", "EGRESS_PROXY_URL"]) delete env[name];
     const outputPath = `.data/fiscal-p4-pilot/mock-result-${safeSegment(databaseName)}-${scenario}.json`;
     const args = ["--import", pathToFileURL(preloadFile).href, execFile, "--manifest", path.relative(REPO_ROOT, seeded.manifestPath),
       "--manifest-hash", seeded.manifest.manifestHash, "--contract-hash", seeded.contractHash,
-      "--source-config-hash", seeded.sourceConfigHash, "--max-requests", "10", "--confirm-execute",
+      "--source-config-hash", seeded.sourceConfigHash, "--max-requests", scenario === "budget-up" ? "20" : "10", "--confirm-execute",
       "--out", outputPath];
     if (scenario === "persist-report-write") env.P4_FAKE_REPORT_PATH = outputPath;
 
@@ -282,6 +340,41 @@ if (process.env.P4_EXECUTOR_INTEGRATION_TEST === "true") {
       const retryRequests = JSON.parse(readFileSync(retryCapture, "utf8")) as { requests: unknown[] };
       assert.equal(retryRequests.requests.length, 0, "replay refusal must happen before any additional provider POST");
       assert.equal(existsSync(path.resolve(REPO_ROOT, retryOutput)), false, "replay refusal must not reserve a second report path");
+    } else if (scenario === "budget-up" || scenario === "budget-up-drift") {
+      const completed = await run(process.execPath, args, env);
+      assert.equal(completed.code, 0, completed.stderr || completed.stdout);
+      const result = JSON.parse(completed.stdout) as { status: string; rows: Array<{ id: string; receiptIds: number[] }>; reportPath: string };
+      assert.equal(result.status, "completed");
+      assert.deepEqual(result.rows.map((row) => row.id), [...ids]);
+      assert.ok(result.rows.every((row) => row.receiptIds.length === 5));
+
+      const capture = JSON.parse(readFileSync(capturePath, "utf8")) as { requests: Array<{ kind: string; path: string; model: string; authMatchesFake: boolean }> };
+      assert.equal(capture.requests.length, 10, scenario === "budget-up"
+        ? "a static CLI cap of 20 still permits only the frozen two-article/five-step execution: 10 POSTs"
+        : "raising the receipt budget after attempt nine must not expand the frozen two-article/five-step execution beyond 10 POSTs");
+      assert.deepEqual(capture.requests.map((request) => request.kind), ["prefilter", "score", "score", "structure", "summarize", "prefilter", "score", "score", "structure", "summarize"]);
+      assert.ok(capture.requests.every((request) => request.path === "/chat/completions" && request.model === "deepseek-flash" && request.authMatchesFake));
+
+      const reportPath = path.resolve(REPO_ROOT, result.reportPath);
+      const report = JSON.parse(readFileSync(reportPath, "utf8")) as Record<string, unknown>;
+      const executionCap = scenario === "budget-up" ? 20 : 10;
+      assert.equal(report.maxRequests, executionCap, "the report must preserve the explicit CLI execution cap");
+      const psql = path.join(REPO_ROOT, ".data", "test-pg", "pgsql", "bin", "psql.exe");
+      const verify = await run(psql, [env.DATABASE_URL!, "-X", "-A", "-t", "-F", ",", "-v", "ON_ERROR_STOP=1", "-c",
+        "BEGIN READ ONLY; SELECT (SELECT count(*) FROM schema_migrations),(SELECT count(*) FROM articles),(SELECT count(*) FROM analyses),(SELECT count(*) FROM receipts WHERE status='completed'),(SELECT count(*) FROM receipt_attempts WHERE status='received'),(SELECT per_minute FROM budgets WHERE service='deepseek'),(SELECT per_hour FROM budgets WHERE service='deepseek'),(SELECT per_day FROM budgets WHERE service='deepseek'),(SELECT count(*) FROM fetch_runs),(SELECT count(*) FROM publications),(SELECT count(*) FROM selected_ledger); ROLLBACK;"], env);
+      assert.equal(verify.code, 0, verify.stderr);
+      assert.match(verify.stdout, /35,2,2,10,10,20,20,20,0,0,0/u);
+
+      const retryCapture = `${capturePath}.retry`;
+      const retryOutput = `.data/fiscal-p4-pilot/mock-result-${safeSegment(databaseName)}-${scenario}-retry.json`;
+      env.P4_FAKE_CAPTURE_PATH = retryCapture;
+      const retryArgs = [...args.slice(0, -2), "--out", retryOutput];
+      const retried = await run(process.execPath, retryArgs, env);
+      assert.notEqual(retried.code, 0, "a higher budget must not make an already receipted/analyzed article replayable");
+      assert.match(retried.stderr, /no replay\/retry/u);
+      const retryRequests = JSON.parse(readFileSync(retryCapture, "utf8")) as { requests: unknown[] };
+      assert.equal(retryRequests.requests.length, 0, "receipt replay must be refused before any provider POST even with budget 20");
+      assert.equal(existsSync(path.resolve(REPO_ROOT, retryOutput)), false, "replay refusal must not reserve another report path");
     } else {
       const rejected = await run(process.execPath, args, env);
       assert.notEqual(rejected.code, 0, "a persistence fault must fail the bounded execution");
