@@ -101,11 +101,34 @@ async function startActivityHolder(env: NodeJS.ProcessEnv): Promise<import("node
   return holder;
 }
 
+async function lowerDailyBudgetAfterNinthAttempt(): Promise<void> {
+  await sql.unsafe(`
+    CREATE FUNCTION p4_budget_n1_lower_after_nine() RETURNS trigger LANGUAGE plpgsql AS $$
+    DECLARE live_attempts integer;
+    BEGIN
+      IF NEW.service = 'deepseek' AND NEW.origin = 'live' THEN
+        SELECT count(*)::int INTO live_attempts
+        FROM receipt_attempts
+        WHERE service = NEW.service AND origin = NEW.origin AND started_at > now() - interval '1 day';
+        IF live_attempts = 9 THEN
+          UPDATE budgets SET per_day = 9 WHERE service = 'deepseek';
+        END IF;
+      END IF;
+      RETURN NEW;
+    END;
+    $$`);
+  await sql.unsafe(`
+    CREATE TRIGGER p4_budget_n1_lower_after_nine
+    AFTER INSERT ON receipt_attempts
+    FOR EACH ROW EXECUTE FUNCTION p4_budget_n1_lower_after_nine()`);
+}
+
 if (process.env.P4_EXECUTOR_INTEGRATION_TEST === "true") {
   test(`P4 CLI fake-provider integration (${scenario})`, async () => {
     const driftScenarios = ["drift-revision", "drift-hash", "drift-media", "drift-source-config", "drift-provider"];
-    assert.ok(scenario === "happy" || scenario === "429" || scenario === "out-exists" || driftScenarios.includes(scenario ?? ""), "select exactly one isolated fake-provider scenario");
+    assert.ok(scenario === "happy" || scenario === "429" || scenario === "budget-n1" || scenario === "out-exists" || driftScenarios.includes(scenario ?? ""), "select exactly one isolated fake-provider scenario");
     const seeded = await seedFixture();
+    if (scenario === "budget-n1") await lowerDailyBudgetAfterNinthAttempt();
     const capturePath = path.join(REPO_ROOT, ".data", "fiscal-p4-pilot", `mock-capture-${safeSegment(databaseName)}-${scenario}.json`);
     assert.equal(existsSync(capturePath), false, "never overwrite a prior test capture");
     if (scenario === "drift-revision") {
@@ -190,7 +213,7 @@ if (process.env.P4_EXECUTOR_INTEGRATION_TEST === "true") {
         "BEGIN READ ONLY; SELECT (SELECT count(*) FROM schema_migrations),(SELECT count(*) FROM articles),(SELECT count(*) FROM analyses),(SELECT count(*) FROM receipts WHERE status='completed'),(SELECT count(*) FROM receipt_attempts WHERE status='received'),(SELECT count(*) FROM fetch_runs),(SELECT count(*) FROM publications),(SELECT count(*) FROM selected_ledger); ROLLBACK;"], env);
       assert.equal(verify.code, 0, verify.stderr);
       assert.match(verify.stdout, /35,2,2,10,10,0,0,0/);
-    } else {
+    } else if (scenario === "429") {
       env.P4_FAKE_CAPTURE_PATH = capturePath;
       env.P4_FAKE_SCENARIO = "429";
       const rejected = await run(process.execPath, args, env);
@@ -211,6 +234,35 @@ if (process.env.P4_EXECUTOR_INTEGRATION_TEST === "true") {
         "BEGIN READ ONLY; SELECT (SELECT count(*) FROM schema_migrations),(SELECT count(*) FROM articles),(SELECT count(*) FROM analyses),(SELECT count(*) FROM receipts WHERE status='failed'),(SELECT count(*) FROM receipt_attempts WHERE status='failed'),(SELECT count(*) FROM fetch_runs),(SELECT count(*) FROM publications); ROLLBACK;"], env);
       assert.equal(verify.code, 0, verify.stderr);
       assert.match(verify.stdout, /35,2,0,1,1,0,0/);
+    } else {
+      const rejected = await run(process.execPath, args, env);
+      assert.notEqual(rejected.code, 0, "the lowered daily receipt budget must stop the bounded run");
+      assert.match(rejected.stderr, /Budget for deepseek exhausted \(day\)/u);
+      const capture = JSON.parse(readFileSync(capturePath, "utf8")) as { requests: Array<{ kind: string; path: string; model: string; authMatchesFake: boolean }> };
+      assert.equal(capture.requests.length, 9, "the tenth attempt must fail the receipt budget check before provider POST");
+      assert.deepEqual(capture.requests.map((request) => request.kind), ["prefilter", "score", "score", "structure", "summarize", "prefilter", "score", "score", "structure"]);
+      assert.ok(capture.requests.every((request) => request.path === "/chat/completions" && request.model === "deepseek-flash" && request.authMatchesFake));
+
+      const reportPath = path.resolve(REPO_ROOT, outputPath);
+      assert.equal(existsSync(reportPath), true, "the executor reserves its report path before the first analysis");
+      assert.equal(readFileSync(reportPath, "utf8"), "", "a budget failure before the final write leaves only the empty reserved report");
+
+      const psql = path.join(REPO_ROOT, ".data", "test-pg", "pgsql", "bin", "psql.exe");
+      const verify = await run(psql, [env.DATABASE_URL!, "-X", "-A", "-t", "-F", ",", "-v", "ON_ERROR_STOP=1", "-c",
+        "BEGIN READ ONLY; SELECT (SELECT count(*) FROM schema_migrations),(SELECT count(*) FROM articles),(SELECT count(*) FROM analyses),(SELECT count(*) FROM receipts WHERE status='completed'),(SELECT count(*) FROM receipts WHERE status='received'),(SELECT count(*) FROM receipts WHERE status IN ('failed','pending','unknown')),(SELECT count(*) FROM receipt_attempts),(SELECT count(*) FROM receipt_attempts WHERE status='received'),(SELECT count(*) FROM receipt_attempts WHERE status IN ('failed','pending','unknown')),(SELECT count(*) FROM fetch_runs),(SELECT count(*) FROM publications),(SELECT count(*) FROM selected_ledger),(SELECT per_day FROM budgets WHERE service='deepseek'); ROLLBACK;"], env);
+      assert.equal(verify.code, 0, verify.stderr);
+      assert.match(verify.stdout, /35,2,1,5,4,0,9,9,0,0,0,0,9/u);
+
+      const retryCapture = `${capturePath}.retry`;
+      const retryOutput = `.data/fiscal-p4-pilot/mock-result-${safeSegment(databaseName)}-${scenario}-retry.json`;
+      env.P4_FAKE_CAPTURE_PATH = retryCapture;
+      const retryArgs = [...args.slice(0, -2), "--out", retryOutput];
+      const retried = await run(process.execPath, retryArgs, env);
+      assert.notEqual(retried.code, 0, "the executor must refuse replay after a prior analysis/receipt");
+      assert.match(retried.stderr, /no replay\/retry/u);
+      const retryRequests = JSON.parse(readFileSync(retryCapture, "utf8")) as { requests: unknown[] };
+      assert.equal(retryRequests.requests.length, 0, "replay refusal must happen before any additional provider POST");
+      assert.equal(existsSync(path.resolve(REPO_ROOT, retryOutput)), false, "replay refusal must not reserve a second report path");
     }
   });
 }
