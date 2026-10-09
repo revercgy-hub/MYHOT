@@ -1,17 +1,80 @@
 # 项目状态
 
+## 2026-10-09 当前权威状态：续页CI绿色，P4免费软件验证已推送
+
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_SHA=e8525d46ddda64a0311b381c1b18b9f4c8045d67（test-only变更；远端与本地已核对）
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c（项目基线；不是本轮测试SHA）
+WORKSPACE=D:\AI-work\MYHOT\AIHOT；本轮六份文档完成后以最终`git log`记录文档HEAD
+STAGE=GovCN JSON durable continuation软件检查点完成；P4预算/receipt事务及report写失败software checks完成
+GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`仅限原三source固定小样；本轮未改变Gate，不代表全部source准入
+REVIEW=GovCN S1实现由Sol范围批准、Luna实施及独立QA；新增P4 test-only cases由p4_fault_qa_next独立只读复核
+BLOCKERS=真实provider付费执行按用户决定deferred；来源历史/质量、Gold labels、budget上调漂移及未覆盖P4 failure modes尚待后续非付费阶段
+COMPLETED=continuation full2 fresh QA、精确代码SHA CI；budget-n1、analysis/receipt事务提交失败、final-report写失败fake-only focused cases及typecheck
+IN_PROGRESS=当前无付费或运行任务；可恢复的免费工作为来源质量/历史覆盖、budget上调合同审查及Gold样本人工筛选
+NEXT=继续上述非付费证据工作；先核预算漂移约束和来源范围，保留人工Gold标注需求；e8525d4为test-only SHA，尚无full suite或CI
+LATEST_TESTED_CODE_SHA=15e3464c0bff45af96e52514b831f2aba8fc6043（fresh full QA及GitHub Check/Docker）
+LATEST_TESTED_RUNTIME_SHA=15e3464c0bff45af96e52514b831f2aba8fc6043（此SHA含续页实现；test-only SHA e8525d4未改变production code）
+LATEST_GREEN_CI=37905438753（success，精确headSha为15e3464c0bff45af96e52514b831f2aba8fc6043；test-only e8525d4尚无CI）
+
+续页代码SHA `15e3464c0bff45af96e52514b831f2aba8fc6043`本地独立QA：focus6 55/55，focus7 typecheck及持久化integration 1/1；fresh `fiscalhot_govcn_resume_full2_test`完成35 migrations，backend 346/346、Web build通过、Web tests 15/15。GitHub run [37905438753](https://github.com/revercgy-hub/MYHOT/actions/runs/37905438753) 对精确该SHA已完成，`check`与`docker`均success。test-only SHA `e8525d46ddda64a0311b381c1b18b9f4c8045d67`未触production files，未单独运行full suite或CI。
+
+后续独立的免费P4预算边界integration在fresh `fiscalhot_p4budget_n1_20261009_test`完成35 migrations，opt-in场景1/1：9次fake POST（5 completed+4 received）、1 analysis、report reservation为空；重跑0 POST。test-only commit `e8525d46ddda64a0311b381c1b18b9f4c8045d67`上的两个failure cases也完成focused测试并经独立只读DB/capture复核：fresh `fiscalhot_p4persist_commit2_20261009_test`为35 migrations、5 fake POST、5 received receipts/5 attempts、0 completed receipts、0 analyses，未产生fetch/publication/selection；注入analysis transaction commit失败后report为0B，重跑0 POST。fresh `fiscalhot_p4persist_report2_20261009_test`为35 migrations、10 fake POST、10 completed receipts/10 attempts、2 analyses，未产生fetch/publication/selection；注入final-report写失败后report为0B，重跑0 POST。两组均使用拦外网的MockAgent，不涉及真实provider。Typecheck通过；focused stdout/stderr与migration logs未另存，capture/result JSON保存在ignored `.data/fiscal-p4-pilot/`。e8525d4为test-only SHA，未执行full suite或CI，不归入 `15e3464` 的验证范围；不声称已验证所有failure modes。此前full1 345/346的test-isolation失败仍作为历史保留；后续正确的full2通过。续页数据库实证仅2 list/0 detail；并发collector、真实墙钟deadline与live历史覆盖未验证。当前软件裁定仅 `APPROVED_SOFTWARE_FOR_OFFLINE_QA_ONLY`，不代表source admission、Gate提升或90日覆盖；source配置48/42 strict、均disabled/fulltext-off。无付费、真实provider、worker、OCR或本机runtime操作。本机post-code smoke未运行；CI中built-site及Docker smoke通过是独立CI证据。
+
+本段为最新状态权威摘要；下方早期“queued/full pending/code not frozen”等检查点是当时真实历史快照，已被本段的最终全绿结果取代，不删除原始过程记录。
+
+## 2026-10-09 GovCN continuation checkpoint（历史快照；CI终态见文首）
+
+Source commit `15e3464c0bff45af96e52514b831f2aba8fc6043`已推送到`origin/feat/fiscal-finance-hot`且remote SHA匹配。冻结代码本机QA：focus6 broad 55/55；focus7 typecheck与fresh integration 1/1；full2 `fiscalhot_govcn_resume_full2_test`完成35 migrations、backend 346/346、Web build及Web tests 15/15通过。GitHub Check workflow run [37905438753](https://github.com/revercgy-hub/MYHOT/actions/runs/37905438753)仅派发一次；其`headSha`精确为`15e3464c0bff45af96e52514b831f2aba8fc6043`，此快照记录排队中；后续已核实run完成且`check`、`docker`均success，见本文件文首当前摘要。
+
+独立DB integration实际请求2个list、0个detail；没有验证并发collector或真实墙钟deadline。7请求/5详情仅为unit验证，不混作DB实测。续页仍不是90日覆盖或source admission证明。此阶段没有服务/preview写入、真实HTTP/provider/paid操作或smoke；docs暂不提交，等待Check终态和Root最终审阅。
+
+## 2026-10-09 最新更新：GovCN durable continuation 本地QA通过，CI待代码SHA
+
+Root接受范围修复。Frozen QA结果：focus6 broad 55/55；focus7 typecheck及fresh integration 1/1；唯一full2 fresh `fiscalhot_govcn_resume_full2_test`完成35 migrations，backend 346/346、Web build通过、Web tests 15/15。早先full1 345/346的失败是analysis全库计数导致的测试隔离问题，已由article/source关联断言修正；原失败记录保留，不归因于runtime。Source owner正在提交/推送仅5个code/test文件；当前新代码SHA尚待回报，因此未派CI。
+
+持久化测试实际覆盖为两个list请求、0 detail请求；没有并发collector验证，也没有以真实等待证明墙钟超时。focus7/focus6为离线/隔离软件验证，既有三页packet是单次source观察，不代表live coverage或90日完整。本轮不做服务/preview操作、HTTP、provider、worker、付费请求或smoke。拿到source新代码SHA后，对`revercgy-hub/MYHOT`的feature branch只派一次Check workflow，核对run的`headSha`；文档保持不提交直至CI与Root最终检查。
+
+## 2026-10-09 continuation full-suite retry status
+
+第一次完整backend运行结果为346 tests：345 pass、1 fail。失败来自新增integration test把全库analyses计数当作本case隔离断言，和其它并行test合法写入冲突；这不是runtime/provider错误。QA仅修正该test，使analysis按本case article/source关联、receipt按article ID核验。随后fresh `fiscalhot_govcn_resume_focus7_test`完成35 migrations，typecheck通过，新增integration单测1/1通过。第二次唯一backend full run当前进行中；full1失败原样保留。Full1期间没有进行Web build或Web tests。
+
+仅在Root确认full2通过并确认final code SHA后，才按明确仓库参数派发一次Check：`gh workflow run Check -R revercgy-hub/MYHOT --ref feat/fiscal-finance-hot`；目前未派发。当前S1/代码未冻结，不提交、不发新HTTP、不做本机runtime/数据库操作。
+
+## 2026-10-09 最新更新：GovCN continuation focused QA passed; full pending
+
+前一条“续页实现仍待修复与QA”保留为Lead发现的历史缺口记录；Luna已修复四项并完成focused验证。最终focused 55/55、typecheck通过，使用fresh `fiscalhot_govcn_resume_focus6_test`（35 migrations）；唯一backend full suite刚启动，结果尚未返回。复审目标包括首轮p1+p2/初次backfill reason、事务内material+queue+source cursor更新、deferred fetch_run的commit/rollback/replay、完整cursor CAS、rolling/fixed anchor、semantic drift及mode=0零HTTP拒绝。DB replay实际设置maxDispatches=2且0 details；7 dispatch/5 details只在unit coverage中，不是本DB运行结果。
+
+先前focus尝试1–5失败均归于测试fixture/log-slice/旧48h断言/hook/expectation问题，原始日志保留；不记为runtime bug。当前resume改动仍未冻结/提交，full结果未过，因此本阶段不做commit或CI。未发真实HTTP、未写preview、未运行provider/collector/worker/OCR或本机服务。S1 resume范围仍以正式审查为准；不宣称90日完整、新Gate或来源准入。来源仍48/42，全部disabled/fulltext-off。
+
+## 2026-10-09 最新更新：续页实现仍待修复与QA
+
+上一分页提交 `7372d47a1d6d71b81b735e4b8025158e672233eb` 的51/51 focused、backend 342/342、typecheck、Web 15/15及Check+Docker #37881613214均为既有绿色基线；不代表新的durable continuation改动已通过。Lead审查发现当前未冻结实现仍有四项缺口：首轮缺少p=2请求、缺少首次backfill标记、semantic identity hash未在事务内生成、完整cursor缺少CAS保护。Luna正在按审查修复并协调QA。现工作树可见 `collect.ts`、`json-list-pagination.ts`、`json-list.ts`修改及新resume测试/S1文档；这些改动未冻结、未测试为通过、未提交。
+
+本轮只更新状态文档：不提交、不派发CI、不重新读取旧HTTP证据，也不控制本机服务或数据库。S1 resume范围仍以最终审查为准；不宣称90日覆盖、新Gate、source admission或跨运行断点续传已完成。信源继续48配置/42 strict IDs且全部disabled/fulltext-off；provider、collector、worker与OCR不运行。
+
 ## 2026-10-09 最新检查点：分页软件QA与受限列表观察
 
 当前代码提交为 `7372d47a1d6d71b81b735e4b8025158e672233eb`（GovCN bounded JSON pagination）。独立QA完成：focused 51/51、typecheck、fresh 35-migration persistence 1/1、backend 342/342、Web build、Web tests 15/15；代码 Check+Docker workflow run [37881613214](https://github.com/revercgy-hub/MYHOT/actions/runs/37881613214) 对该精确SHA已完成且success。其后一次独立、Root接受的p=1/2/3只读列表batch完成：3 attempted/dispatched、0 rejected，3个精确final URL均HTTP 200，15条候选URL均不同；解析与SHA见本轮continuous handoff和ignored `.data/fiscal-qa/govcn-pagination-20261009/`。服务响应的`paramsVO.p/n`分别匹配1/5、2/5、3/5；每页`searchVO.currentPage/pageSize/totalCount/totalpage`均为0，因此不据此推断总量或terminal。该观察既非产品配置的三页运行，也非90日历史/完整性、来源质量或准入证明。
 
 响应实体字节已由独立审计重算；当前runner实际写入packet根目录的`page-1.body`至`page-3.body`，而声明的`responses/`目录为空。原始gate、manifest、marker与响应未改写、未重跑；忽略目录中的`artifact-correction-v2.json`记载路径差异及离线复核。GovCN候选保持disabled/unadmitted，配置仍48来源/42 strict IDs、全disabled/fulltext-off。付费provider、collector、worker和OCR均未运行；本机API服务操作保持禁止，post-code本地smoke未执行。
 
-CURRENT_CODE_SHA=7372d47a1d6d71b81b735e4b8025158e672233eb（已推送至`origin/feat/fiscal-finance-hot`）
-CURRENT_CHECK=37881613214（GitHub workflow_dispatch；对上述精确代码SHA，Check与Docker均success）
+CURRENT_CODE_SHA=e8525d46ddda64a0311b381c1b18b9f4c8045d67（当前test-only HEAD；N+1与故障用例）
+LATEST_TESTED_CODE_SHA=15e3464c0bff45af96e52514b831f2aba8fc6043（GovCN continuation full QA及Check/Docker green）
+LATEST_GREEN_CI=37905438753（Check+Docker success，headSha精确为`15e3464c0bff45af96e52514b831f2aba8fc6043`）
+CURRENT_CHECK=37905438753（GitHub workflow_dispatch；对15e3464，Check与Docker均success；test-only SHA e8525d4无新CI）
 CURRENT_SOURCE=48个配置/42个strict IDs；全部disabled、fulltext-off；未作source admission
-CURRENT_STAGE=GovCN分页实现、独立软件QA与一次有界三页列表观察已完成；来源仍未准入，90日/terminal/来源质量待证
+CURRENT_STAGE=GovCN durable continuation已通过独立软件QA与精确SHA CI；P4 N+1及指定事务/report failure test-only cases已focused通过并推送。来源仍未准入，90日/terminal/来源质量待证
 PAGINATION=产品模式仍每次p=1、最多2页；一次性实测batch为p=1/2/3，15行、15个不同URL，`searchVO`总量/当前页字段均为0；只限有限观察
 P4=Gate 2仍仅`PASSED_FOR_BOUNDED_P4_PILOT`；本轮分页观察不属于P4样本验收
+
+### 2026-10-08及更早状态字段归档
+
+以下字段是各自历史阶段的原始快照，可能有当时的CURRENT/NEXT/IN_PROGRESS标签；不得覆盖本文首部当前状态。重要失败与阶段详情保留在本handoff及对应历史记录。
+
+## 2026-10-09 GovCN durable continuation — scope pending
+
+新增任务是审查受控跨运行续页能力；目前仅进入范围准备，Sol 的 `govcn_resume_scope` 窄审仍待完成，source owner 正准备事实材料。`7372d47a` 仅包含每轮从p=1开始的stateless、最多2页模式；真实p=1/2/3包是单次观察，不是可恢复游标，也不证明深历史或90日覆盖。续页配置、持久状态、去重/事务/失败重放语义尚未批准或实现。本轮不做新HTTP、DB写入、provider/worker、OCR或本机API服务操作；等S1范围定稿和后续代码冻结后再安排独立QA。现有source仍48/42且全disabled/fulltext-off，来源未准入，付费执行继续延后。
 
 ## 2026-10-09 GovCN bounded JSON pagination — phase-start snapshot (superseded by latest checkpoint above)
 
@@ -20,9 +83,9 @@ P4=Gate 2仍仅`PASSED_FOR_BOUNDED_P4_PILOT`；本轮分页观察不属于P4样�
 `industry/sources.json` 当前仍为48 sources / 42 exact strict IDs，均disabled且全文关闭。NFRA adapter独立QA结果仍为backend334/334；不推测成338。上个修复SHA `bb02255051bedc3470eaf60add6723662e1df6ce` 的GitHub Check+Docker #37758646045为green；当前基线文档SHA `b9e62d7e1b9e89859954c4c38a16c22e84302488`不单独触发CI。真实付费执行继续 `DEFERRED_BY_USER`，本轮不调用官方HTTP、provider、collector或worker。本机loopback API/Web/PostgreSQL当时均已存在，health为200；本阶段禁止启动/停止服务或做smoke，preview仅可只读审计。
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=7372d47a1d6d71b81b735e4b8025158e672233eb（当前被测试的GovCN pagination代码；文档最新HEAD见提交日志）
-LATEST_TESTED_CODE_SHA=7372d47a1d6d71b81b735e4b8025158e672233eb（独立fresh QA通过；Check+Docker run37881613214 success）
-LATEST_GREEN_CI=37881613214（Check+Docker success，对应精确代码SHA `7372d47a1d6d71b81b735e4b8025158e672233eb`）
+CURRENT_SHA=e8525d46ddda64a0311b381c1b18b9f4c8045d67（test-only HEAD；budget与指定failure cases focused通过）
+LATEST_TESTED_CODE_SHA=15e3464c0bff45af96e52514b831f2aba8fc6043（continuation fresh full QA通过；Check+Docker run37905438753 success）
+LATEST_GREEN_CI=37905438753（Check+Docker success，对应精确代码SHA `15e3464c0bff45af96e52514b831f2aba8fc6043`；test-only HEAD e8525d4尚无独立CI）
 PHASE_A_CHECKPOINT_CODE_SHA=b2f479c4517d040f4b1c24b14e1407ad342bbb3a（历史Phase A组合代码与publication测试fixture修复；本机fresh `npm test` 276/276）
 PHASE_B_BASE_CODE_SHA=b2f479c4517d040f4b1c24b14e1407ad342bbb3a（Phase B批准范围工作起点；未包含Phase B实现）
 SOURCE_CONFIG_SHA=7372d47a1d6d71b81b735e4b8025158e672233eb（48项source；42个exact strict IDs＝35个地方局＋7个核心例外；所有source disabled且fulltext-off）
@@ -46,8 +109,8 @@ WORKSPACE=D:\AI-work\MYHOT\AIHOT
 STAGE=P3来源主线与有界P4 pilot准备；S1 Phase A/B受限实现与软件QA完成；本地OCR工作`OCR_DEFERRED_NOT_GATE2_BLOCKER`。
 GATE=Gate 1 PASSED；Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`，依据[2026-10-08正式Gate 2审查](GATE_2_REVIEW.md)。只准对`pboc-open-market`、`mof-treasury-debt-data`、`mof-xiamen-supervision-dynamics`中逐篇确认身份/日期/附件无未决问题且`body_status=ok`、trim非空的固定小样开展有界P4验证；不是46源全量准入、35局持续运行通过、无人值守采集或生产授权。厦门地方债`xiamen-finance-debt`明确`NOT_ADMITTED`并安全排除。35局完整来源主线及GovCN/NFRA等待办继续保留；完整90日首次回填属于P7/Gate4与P8/P9上线验证，不是Gate 2遍历全部旧页前置。
 REVIEW=Phase A代码SHA `b2f479c4517d040f4b1c24b14e1407ad342bbb3a` 已完成fresh Node24 `npm test` 276/276、typecheck、Web build、Web tests15/15、loopback smoke30/30；CI run37408474478 Check+Docker success。修复前一次full工具返回276/270/6；raw stdout/stderr未落盘，未借用旧257项日志。只读原库确认唯一未来watermark seq21来自publication测试early-release fixture app/DB clock约15ms race；fixture绑定app时钟减1秒后，fresh publication+strict-body顺序子集19/19，未来event为0。Phase A preview focused 7/7。Phase B预览valid `detailMode=direct_html_metadata_v1` 在fresh 35-migration DB focused 8/8：1 page0 dispatch、0 detail、无source/cursor或fetch_run写入，legacy unchanged；metadata transport与collector focused各10/10，见单独Phase B报告。2026-10-06冻结后fresh `myhot_oct06_phaseb_final_test` 执行35 migrations，Node24 `npm test` 296/296、exit0；typecheck、Web production build均exit0，Web tests15/15；安全loopback smoke30项通过。Smoke前后 `fiscalhot_preview_test`只读计数相同：35 migrations、3 source全disabled/fulltext false、3 articles `body_status=none/revision=1` 且body为空、3 publications，analyses/receipts/fetch_runs/selected_ledger/job_runs=0。仅本地测试stub使用模型测试开关，真实凭证/base URLs已清除，副作用flags关闭。Phase B三个DB transaction fault层按impact matrix分别核验；本地stdout/stderr/exit日志在ignored `.data/test-pg/oct06_phaseb_final_*`。Smoke 30项/exit0来自直接工具输出，没有伪造独立raw log。CI Check [37412301808](https://github.com/revercgy-hub/MYHOT/actions/runs/37412301808) 对代码SHA `b85f4e21f049571c4fc67ccb8553b8ea2f0a0b88` 成功；Linux后端296项/295通过/0失败/1 skip，Check与Docker job均通过。四川index_2 page3报告离线重算p1/p2/p3 bytes/SHA均与manifest匹配；exact GET budget 1/1/0、HTTP200、10候选无页间URL重叠、三项显示日/path-date差异；未请求详情、无collector/DB。所有预览/测试严格区分source状态与样本观察。
-LATEST_CI=最新CI对SHA 18e159be43810974dc80b2bb26d05babd6744646的显式workflow_dispatch run [37712335532](https://github.com/revercgy-hub/MYHOT/actions/runs/37712335532) success；Check+Docker均通过，typecheck、Web build/tests15/15、migration/seed、built-site smoke、backend tests及Docker smoke通过。CI只证明该软件SHA，不代表来源准入或Gate 3/4通过。
-CURRENT_TURN=2026-10-08 JSON外层charset修复已提交并推送，代码SHA 18e159be43810974dc80b2bb26d05babd6744646；fresh fiscalhot_json_charset_20261008_test执行35 migrations，typecheck、backend 314/314、Web build/tests15/15、loopback smoke通过；CI run37712335532 Check+Docker成功。修复保留显式HTTP charset及非JSON legacy sniff，仅JSON MIME跳过body内meta/encoding sniff。实际NFRA saved detail raw经patched guardedFetch loopback replay后JSON标题/UTF-8准确且bytes未变；NFRA仍未准入，JSON list/detail adapter待做。Gate 2正式review边界不变，仅允许三source逐篇合格文章固定小样P4。
+HISTORICAL_LATEST_CI_AS_OF_2026-10-08=SHA 18e159be43810974dc80b2bb26d05babd6744646的run [37712335532](https://github.com/revercgy-hub/MYHOT/actions/runs/37712335532) success；仅作NFRA decoder阶段历史，不是当前CI。
+HISTORICAL_TURN_AS_OF_2026-10-08=JSON外层charset修复及其独立QA、CI run37712335532；对应NFRA仍未准入，Gate 2审查范围当时限定三source逐篇合格文章。当前状态请读本文件顶部。
 CURRENT_SOURCE_PREPARATION=2026-10-08 GovCN/NFRA original 4-GET packet plus separate GovCN exact query/detail pair independently audited; all saved hashes, status/final URL/EOF/caps checked. GovCN query list candidate in `bumenfile` date 2026.09.28 exactly pairs to one detail page with matching title/firstpublishedtime; actual body selector `#UCAP-CONTENT .trs_editor_view` is 5635 chars/35 paragraphs, no attachments. Query snippets are summaries only; this single pair does not establish category/page completeness or admission. NFRA outer JSON is valid UTF-8 and raw list/detail title/id/date match; embedded gb2312 meta is inner HTML only. Shared decoder meta-sniff bug is fixed at code SHA 18e159be43810974dc80b2bb26d05babd6744646; focused tests and actual saved NFRA detail raw replay pass. Raw-based corrections preserve prior erroneous derived observations. NFRA nested-category/separate JSON detail support remains unimplemented; GovCN/NFRA remain on source mainline and unadmitted; no GovCN source configuration was added.
 CURRENT_P4_PREPARATION=Independent final planner/audit and read-only SQL agree on 2/2 isolated article candidates in fresh `fiscalhot_p4_preparation_20261008_test` (35 migrations): Treasury and PBOC OMO 192. Zero fetch/analysis/receipt/job/selected rows; sources disabled/fulltext-off; zero model/HTTP/queue/write activity. Provider is UNCONFIGURED; budget unreserved and amount estimate unknown. This prepares two source IDs within the approved three-source sample scope; no Xiamen supervisor article is included. It is not a P4 execution or source admission. Artifact hashes and provenance are in the continuous handoff.
 P4_MODEL=用户选择 DeepSeek V4.1 Flash；官方API model slug=`deepseek-flash`；公开文档字段与当前 OpenAI-compatible Chat Completions client静态匹配，尚无实际API/端到端验证。准备配置示例见[P4准备报告](P4_PILOT_READINESS.md)，不代表已应用或已实测。

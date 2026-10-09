@@ -1,5 +1,43 @@
 # P4 精选试点只读准备器
 
+## 2026-10-09 当前恢复检查点：离线P4预算与故障测试本地通过，待Root review，付费未执行
+
+GovCN durable continuation code SHA `15e3464c0bff45af96e52514b831f2aba8fc6043` 的本地fresh full QA和GitHub Check/Docker run [37905438753](https://github.com/revercgy-hub/MYHOT/actions/runs/37905438753)均通过；该CI精确绑定此代码SHA。续页持久化只实测2次list、0 detail，没有并发collector或真实墙钟deadline证明，也没有90日/live coverage或source-admission结论。
+
+独立免费预算N+1 integration使用fresh `fiscalhot_p4budget_n1_20261009_test`（35 migrations），focused 1/1通过：fake请求9次（5 completed、4 received），产生1 analysis，结束时report reservation为空；同一输入重跑被幂等/receipt guard拒绝，0 POST。test-only commit `e8525d46ddda64a0311b381c1b18b9f4c8045d67`上的analysis/receipt事务提交失败与final-report写失败两个focused cases均通过，并由独立只读DB/capture复核。`fiscalhot_p4persist_commit2_20261009_test`（35 migrations）结果为5 fake POST/5 received receipts/5 attempts/0 analyses/0 completed receipts，report 0B，重跑0 POST；`fiscalhot_p4persist_report2_20261009_test`（35 migrations）为10 fake POST/10 completed receipts/10 attempts/2 analyses，report 0B，重跑0 POST。两例fetch/publication/selection均0，MockAgent阻断外网。Typecheck通过；focused stdout/stderr及migration log未另存，ignored JSON artifacts在`.data/fiscal-p4-pilot/`。e8525d4仅测试变更，尚未跑full suite或CI；不可把其覆盖混入15e3464代码的full QA或run 37905438753，也不声称所有故障情形都已验证。上述测试未调用真实provider、未付费，也不构成可执行P4付费准备通过。Root的软件裁定仍为 `APPROVED_SOFTWARE_FOR_OFFLINE_QA_ONLY`，不是source admission或Gate提升；人工预算/运行决策仍未授权。
+
+早期queued/pending段落保留为历史快照，以上为当前状态。真实付费和worker/provider仍未运行。
+
+## 2026-10-09 continuation 本机QA完成，GitHub Check queued（历史快照；终态见文首）
+
+Source commit `15e3464c0bff45af96e52514b831f2aba8fc6043`已推送且remote ref匹配。本机结果：focus6 55/55、focus7 typecheck + integration 1/1、fresh full2 35 migrations / backend 346/346 / Web build / Web tests 15/15均通过。单次GitHub Check [37905438753](https://github.com/revercgy-hub/MYHOT/actions/runs/37905438753)已确认`headSha`为上述commit；此段记录生成时仍queued，后续Check与Docker均已success（见文首）。
+
+DB integration只涉及2次list、零details，未覆盖并发collector或真实wall-clock timeout；7/5仅unit。没有新HTTP、preview写入、服务操作、provider或付费调用。docs暂不提交，待CI最终结果及Root检查。
+
+## 2026-10-09 GovCN continuation 最终本地QA结果（远端CI待新代码SHA）
+
+Root已接受范围修复。focus6 broad为55/55；focus7的typecheck和fresh integration为1/1。唯一full2使用fresh `fiscalhot_govcn_resume_full2_test`，35 migrations后backend 346/346、Web build通过、Web tests 15/15。full1的单一失败属于旧analysis全库计数导致的测试隔离错误；article/source过滤修复只改QA测试，历史结果保留。
+
+DB integration只执行两个list请求、零detail；未测试并发collectors或真实wall-clock deadline。软件结果不构成live coverage或90日完整性。Source owner正提交5个code/test文件；待收到准确code SHA后，对feature branch只派一次Check并按run headSha核验。此前不提交文档；无API/preview、HTTP、paid/provider、worker或smoke操作。
+
+## 2026-10-09 continuation full-suite isolation correction
+
+Backend full1为346项、345通过/1失败；唯一失败是新integration test对全库analysis做计数，受其它测试合法写入影响，属于测试隔离断言问题，不是runtime/provider故障。QA只修改该测试：analysis按当前article/source关联统计，receipt按article ID核对。fresh `fiscalhot_govcn_resume_focus7_test`的35 migrations、typecheck、新integration 1/1均通过。唯一full2正在运行，full1失败仍保留；full1未跑Web build或Web tests。
+
+full2只有在Root明确确认通过后才收尾；之后对最终代码SHA最多dispatch一次GitHub Check，明确仓库为 `revercgy-hub/MYHOT`，feature ref为 `feat/fiscal-finance-hot`。当前不提交或dispatch CI，既有source仍未准入。
+
+## 2026-10-09 GovCN continuation 最新QA：focused通过，full pending
+
+Lead指出的首轮p2/backfill标记、事务内semantic hash、完整cursor CAS缺口现已由Luna修复。最终focused测试55/55及typecheck通过，fresh DB `fiscalhot_govcn_resume_focus6_test`迁移35项；独立唯一full suite已启动，尚无结果。fresh DB实际覆盖maxDispatches=2、0 details；7-dispatch/5-detail预算只通过unit验证。事务证据包括material、queue、source cursor更新及deferred fetch_run的COMMIT/ROLLBACK/replay；另核了rolling/fixed anchor、semantic drift和mode=0拒绝零HTTP。此前focus1–5的失败来自测试fixture、log-slice、旧48h断言、hook或expectation，不是runtime错误，历史记录保留。
+
+实现当前未冻结、未提交；full suite未完成前不提交、不派CI。没有新官方HTTP、preview写入、provider/collector/worker/OCR或本机服务操作。来源仍48/42、全disabled/fulltext-off且未准入；90日历史完整性与新Gate通过均未声称。
+
+## 2026-10-09 GovCN durable continuation 审查反馈（实现中，QA未通过）
+
+上一版GovCN无resume软件和独立QA仍是通过的基线；本次新增durable continuation实现尚未冻结。Lead review指出：首轮回填缺少p=2、没有初次backfill标记、semantic identity hash未在事务内生成、cursor CAS不完整。Luna正在修复并协调独立QA；以上均为待关闭缺口，不记录成已解决。
+
+工作树中的 `collect.ts`、`json-list-pagination.ts`、`json-list.ts`和新resume测试/S1文件是未冻结改动。没有新HTTP/DB写入、provider、collector、worker、OCR或本机服务控制；本机旧preview/历史真值不重查。现有来源仍48/42且全disabled/fulltext-off、未准入；本轮不宣称90日完整或新Gate通过。
+
 ## 2026-10-09 本轮起始状态（已由下方最新事实修正）
 
 当前工作从 `b9e62d7e1b9e89859954c4c38a16c22e84302488` 开始。GovCN JSON query pagination 的 S1 scope 为 `APPROVED_SCOPE`，不是代码/QA通过、source admission或source pass。获准实现仅对 `govcn-policy-library` 增加每次从p=1开始的stateless有界扫描：最多2页、总dispatch/detail限额和120秒deadline、无resume，并在已有run detail中始终标记partial与coverage unproven。Ignored packet `.data/fiscal-qa/govcn-pagination-20261009/` 已准备精确p=1/2/3 URL与3-dispatch、20s/request、60s total、6MiB/request、18MiB total、无redirect/retry的runner；MockAgent干跑3/3 intercepted (p=1 uses saved response; p=2/3 synthetic clones), 0 rejected。它只验证本地packet/预算路径，不是新source code QA或fresh evidence；真实GET尚未执行，需独立软件QA PASS与Lead最终接受后才运行。
@@ -23,6 +61,12 @@ EXECUTOR_STATUS=bounded executor代码SHA `57647d954ac56f4269b89adf0cc184a36b530
 Root接受的独立packet只读执行一次：p=1/2/3精确GET，3/3 HTTP 200、JSON/code 200、总实体102,489 B、15行/15个不同URL、paramsVO页码和n值匹配、dispatch 3/3/0。服务的`searchVO.currentPage/pageSize/totalCount/totalpage`均为0，不能证明total或terminal。raw实际在packet根目录`page-N.body`，不是声明的`responses/`；三份manifest basename、原始响应、one-shot marker与gate均保留，路径修正单独记在ignored `artifact-correction-v2.json`。详见continuous handoff的hash明细。
 
 这次三页观察不改变产品配置maxPagesPerRun=2，不是90日历史或来源准入。48个来源/42个strict ID仍全部disabled/fulltext-off；Gate 2边界和P4准备状态不变。未运行模型/collector/worker/OCR或DB操作；本地post-code smoke未执行。用户已延期付费provider执行。
+
+## 2026-10-09 GovCN durable continuation scope（IN_PROGRESS / S1 pending）
+
+续页能力目前只有范围审查准备：Sol 的 `govcn_resume_scope` 最小架构审查尚未结束，source owner 正准备实现相关事实。当前通过的 `7372d47a` 保持每轮从p=1开始、最多2页、无跨运行resume；此前p=1/2/3只是一次有界观察，不能当作下一运行的检查点。尚未批准持久next-page token、checkpoint提交时序、失败重放或配置漂移协议，也没有实现这类代码。
+
+本阶段没有发新HTTP、写数据库、启provider/worker/OCR，也不做本机API服务操作。待S1范围批准、实现冻结后再按独立验收安排QA；source保持48配置/42 strict ID、全部disabled/fulltext-off且未准入，付费仍`DEFERRED_BY_USER`。
 
 ## 2026-10-08 NFRA compatibility preparation (in progress)
 

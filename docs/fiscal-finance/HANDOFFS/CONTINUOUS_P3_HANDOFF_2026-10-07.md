@@ -1,5 +1,17 @@
 # 连续 P3 配置与验证交接（2026-10-07）
 
+## GovCN continuation 终态与P4免费预算回归（2026-10-09）
+
+**CODE / CI**：durable continuation source SHA `15e3464c0bff45af96e52514b831f2aba8fc6043`已推送。focus6 55/55、focus7 typecheck及fresh integration 1/1；fresh `fiscalhot_govcn_resume_full2_test`完成35 migrations，backend 346/346、Web build及Web tests 15/15。GitHub run [37905438753](https://github.com/revercgy-hub/MYHOT/actions/runs/37905438753) 精确`headSha`匹配该代码SHA，`check`和`docker`两个job均success。此前full1 345/346失败为分析计数未按测试文章隔离；修正仅在QA断言，原始失败日志保留。
+
+**PERSISTENCE LIMITS**：该resume integration真实发出2次list、0次detail；未验证真实并发collector、数据库墙钟到期或live history覆盖。7 dispatch/5 details仅unit结果。既有p1/p2/p3只读包另属有限列表观察，不得称90日完整或source admission。
+
+**FREE P4 BUDGET TEST**：后续独立测试owner报告fresh `fiscalhot_p4budget_n1_20261009_test`完成35 migrations，opt-in budget-n1 1/1：9个fake POST（5 completed+4 received），1条analysis，report reservation为空；重复运行0 POST。测试仅写在test-only SHA `e8525d46ddda64a0311b381c1b18b9f4c8045d67`，未付费/真实provider调用，未跑full suite或对应CI；不属于`15e3464` full QA或CI run 37905438753。
+
+**FOLLOW-UP TEST STATUS**：test-only HEAD `e8525d46ddda64a0311b381c1b18b9f4c8045d67`；Root授权追加的analysis/receipt事务提交失败与final-report写失败focused cases均pass，并由`p4_fault_qa_next`只读复核DB/captures。fresh `fiscalhot_p4persist_commit2_20261009_test`（35 migrations）为5 fake POST、5 received receipts/attempts、0 completed receipts、0 analyses、report 0B，重跑0 POST；fresh `fiscalhot_p4persist_report2_20261009_test`（35 migrations）为10 fake POST、10 completed receipts/attempts、2 analyses、report 0B，重跑0 POST；两个DB的fetch/publication/selection均0。Typecheck通过，focused stdout/stderr及migration logs未另存；capture/result JSON见ignored `.data/fiscal-p4-pilot/`。测试已单独commit/push，但没有full suite或新CI；不得将其覆盖说成15e3464的CI/full-suite结果，也不能推及所有failure mode。最后绿色远端CI仍为run 37905438753，精确headSha `15e3464c0bff45af96e52514b831f2aba8fc6043`。
+
+**CURRENT DECISION**：`APPROVED_SOFTWARE_FOR_OFFLINE_QA_ONLY`，不是来源准入/Gate提升。目录仍48 sources / 42 strict IDs，disabled、fulltext-off。无本机post-code smoke；远端Check中的built-site和Docker smoke通过，但两者证据范围不同。provider、付费、OCR与worker保持未运行。状态文档保持未提交，等Root最终检查。
+
 STATUS=IN_PROGRESS
 STAGE=P3 / Gate 2 remediation
 GATE=截至原2026-10-07记录时Gate 2 NOT_PASSED；2026-10-08正式review已批准`PASSED_FOR_BOUNDED_P4_PILOT`，仅限本交接末尾定义的三source逐篇合格小样
@@ -259,3 +271,47 @@ The manifest and marker are retained unchanged. The implementation wrote the thr
 A second independent offline parse in ignored `independent-audit.json` reconfirmed exact request parameters, strict UTF-8/JSON and matching bytes/hashes. Using the run start `2026-10-09T03:55:51.849Z` as the 90-day-window anchor, all 15 `pubtime` values were valid and fell within `[2026-07-11T03:55:51.849Z, 2026-10-09T03:55:51.849Z]`; `pubtimeStr` matched all 15. The values descend within and across pages, but `sort=score` means that cannot justify early stopping or a completeness claim. `ptime` differs from `pubtime` on 14/15 records; its meaning remains unknown and was not substituted.
 
 **CURRENT_CHECK**: `37881613214`, exact tested code SHA `7372d47a1d6d71b81b735e4b8025158e672233eb`, Check+Docker success.
+
+## 2026-10-09 GovCN durable continuation scope preparation
+
+**TASK**: Prepare an approved scope for durable cross-run GovCN continuation. This is a new IN_PROGRESS task and does not reopen or rerun the completed pagination software QA/live-list observation.
+
+**BASELINE**: `feat/fiscal-finance-hot` HEAD `7fa6ad8a940671171ce5c35cbad4149c9c9e13f3`, clean at recovery; previous pagination code `7372d47a1d6d71b81b735e4b8025158e672233eb`, software QA and Check+Docker run 37881613214 remain green. `PROJECT_PLAN.md`, AGENTS, README and current STATUS were reread. The existing prior preview counts remain historical evidence; this task did not repeat health or SQL checks.
+
+**SCOPE_STATUS**: Sol’s narrow `govcn_resume_scope` review is pending; source owner is preparing factual input. The existing implementation starts every run at p=1, caps at two pages, and has no durable resume. The previously accepted fresh p=1/2/3 packet is a finite observation only; it is not a cross-run cursor/checkpoint and cannot establish deep history or 90-day completeness. No resume state, transaction/checkpoint protocol, failure replay behavior, or config-drift contract is approved or implemented yet.
+
+**RUNTIME**: No new HTTP, DB write, provider, collector, worker, OCR, or local API service action in this phase. Source catalogue remains 48/42 strict, all disabled/fulltext-off and not admitted; paid provider execution remains deferred. Do not alter the completed exact live evidence or claim source admission.
+
+**NEXT**: Complete the narrow S1 review and agree the continuation invariants before implementation. After code freeze, arrange independent QA and the appropriate Check workflow for the exact new code SHA; do not run earlier code checks or live requests just to repeat the existing pagination evidence.
+
+## 2026-10-09 durable continuation implementation review update
+
+The continuation work is still `IN_PROGRESS`; the previous stateless pagination code and its QA/CI/live-list facts above remain a completed historical baseline. Lead review of the new worktree found four unresolved issues: first-run backfill does not request p=2; there is no explicit initial-backfill marker; the semantic identity hash is not generated within the transaction; and the full cursor update lacks complete compare-and-swap protection. Luna is implementing the review fixes and coordinating QA. These are findings, not claims that the implementation is already corrected.
+
+Current worktree includes uncommitted changes to `collect.ts`, `json-list-pagination.ts`, `json-list.ts`, plus a new resume test and S1 scope document. This QA owner made no source/test edits, ran no tests or workflow, and did not interact with HTTP, databases or local services. No source admission, new Gate, or 90-day-completeness result is claimed. Wait for the final S1 scope and frozen implementation before independent QA or CI.
+
+### Continuation focused-QA update (2026-10-09)
+
+Luna has applied the four Lead-requested corrections. Final focused tests passed 55/55 and typecheck passed on fresh `fiscalhot_govcn_resume_focus6_test` with 35 migrations. The independent backend full suite has started once and is pending; do not report the continuation phase as fully QA-passed until its result arrives.
+
+Focused persistence evidence covers initial p=1+p=2 and backfill reason; material, queue, and source-cursor updates in the transaction; deferred `fetch_run` COMMIT/ROLLBACK/replay; full cursor CAS; rolling/fixed anchors; semantic drift; and mode=0 rejecting before HTTP. The DB integration used `maxDispatches=2`, with 0 detail fetches. A 7-dispatch/5-detail case is unit-only, not an integration result. Earlier focus attempts 1–5 failed due test fixture/log-slice/old 48-hour assertion/hook/expectation problems; original logs are retained and those are not runtime failures.
+
+The code remains uncommitted and unfrozen; no CI was dispatched. No official HTTP, preview DB write, provider, collector, worker, OCR, or local API operation occurred. Do not claim 90-day completeness, a new Gate, or source admission. Await the single full-suite outcome and final S1 disposition before updating the checkpoint again.
+
+### Continuation full-suite retry checkpoint
+
+Backend full1 reported 345 passed / 1 failed / 346 total. The failure was an isolation mistake in the new integration test: it counted analyses across the whole database although other tests legitimately create analysis rows. This is not a runtime/provider defect; preserve the failed full1 record. QA changed only its integration assertions to query analyses associated with the case article/source and receipts by article ID. A fresh `fiscalhot_govcn_resume_focus7_test` completed 35 migrations; typecheck passed and the integration test passed 1/1. The sole full2 run is in progress. Web build and Web tests were not run during full1.
+
+After Root confirms full2 passed and identifies the final code SHA, run at most one GitHub Check using explicit repository and ref: `gh workflow run Check -R revercgy-hub/MYHOT --ref feat/fiscal-finance-hot`. No workflow has been dispatched for this continuation yet. This checkpoint remains uncommitted; no service/runtime/HTTP/DB work occurred here.
+
+### Continuation final local QA result (2026-10-09; remote check pending)
+
+Root accepted the scope repair. Final focus6 broad tests: 55/55. Focus7: typecheck passed and the fresh integration test passed 1/1. The single final full run `fiscalhot_govcn_resume_full2_test` completed 35 migrations, backend 346/346, Web build passed, and Web tests 15/15 passed. The earlier full1 was 345 passed / 1 failed / 346: its new integration test counted all database analyses while other tests legitimately inserted rows. Only the QA assertion changed to scope analyses to the article/source and receipts to article ID; keep the failed run as test-isolation history, not a runtime/provider bug.
+
+The fresh persistence evidence covers two list requests and zero detail requests. It does not test concurrent collectors or real elapsed wall-clock expiry. These are offline software tests, not live pagination/coverage evidence; the prior bounded p=1/2/3 list capture remains separate and does not demonstrate 90-day completeness. Source owner is committing/pushing only the five code/test files; the final code SHA is not available in this record yet. No CI has been dispatched for continuation. Once that SHA is confirmed, dispatch exactly once with explicit repo `revercgy-hub/MYHOT` and ref `feat/fiscal-finance-hot`, then verify the run's `headSha`. Do not commit these docs until CI and Root's final check.
+
+### Continuation source commit and remote Check (2026-10-09)
+
+Source code/tests commit `15e3464c0bff45af96e52514b831f2aba8fc6043` is pushed and the feature ref matched. Local frozen-code results are focus6 55/55, focus7 typecheck/integration 1/1, and full2 on a fresh 35-migration database with backend 346/346, Web build, Web tests 15/15. Check workflow run [37905438753](https://github.com/revercgy-hub/MYHOT/actions/runs/37905438753) was dispatched once with repository `revercgy-hub/MYHOT` and ref `feat/fiscal-finance-hot`; its reported `headSha` exactly matches `15e3464c0bff45af96e52514b831f2aba8fc6043`. It was queued when this snapshot was written; later status verification confirmed both Check and Docker success. Current status is recorded above.
+
+The fresh DB run made two list requests and zero detail requests; concurrency and real elapsed-wall-clock timeout were not tested. The seven-dispatch/five-detail assertion is unit-only. No real page/source coverage, source admission, service operation, HTTP, paid call, or preview write is implied. Shared docs remain uncommitted pending CI terminal status and Root review.
