@@ -1,15 +1,34 @@
 # 项目状态
 
+## 2026-10-09 最新检查点：分页软件QA与受限列表观察
+
+当前代码提交为 `7372d47a1d6d71b81b735e4b8025158e672233eb`（GovCN bounded JSON pagination）。独立QA完成：focused 51/51、typecheck、fresh 35-migration persistence 1/1、backend 342/342、Web build、Web tests 15/15；代码 Check+Docker workflow run [37881613214](https://github.com/revercgy-hub/MYHOT/actions/runs/37881613214) 对该精确SHA已完成且success。其后一次独立、Root接受的p=1/2/3只读列表batch完成：3 attempted/dispatched、0 rejected，3个精确final URL均HTTP 200，15条候选URL均不同；解析与SHA见本轮continuous handoff和ignored `.data/fiscal-qa/govcn-pagination-20261009/`。服务响应的`paramsVO.p/n`分别匹配1/5、2/5、3/5；每页`searchVO.currentPage/pageSize/totalCount/totalpage`均为0，因此不据此推断总量或terminal。该观察既非产品配置的三页运行，也非90日历史/完整性、来源质量或准入证明。
+
+响应实体字节已由独立审计重算；当前runner实际写入packet根目录的`page-1.body`至`page-3.body`，而声明的`responses/`目录为空。原始gate、manifest、marker与响应未改写、未重跑；忽略目录中的`artifact-correction-v2.json`记载路径差异及离线复核。GovCN候选保持disabled/unadmitted，配置仍48来源/42 strict IDs、全disabled/fulltext-off。付费provider、collector、worker和OCR均未运行；本机API服务操作保持禁止，post-code本地smoke未执行。
+
+CURRENT_CODE_SHA=7372d47a1d6d71b81b735e4b8025158e672233eb（已推送至`origin/feat/fiscal-finance-hot`）
+CURRENT_CHECK=37881613214（GitHub workflow_dispatch；对上述精确代码SHA，Check与Docker均success）
+CURRENT_SOURCE=48个配置/42个strict IDs；全部disabled、fulltext-off；未作source admission
+CURRENT_STAGE=GovCN分页实现、独立软件QA与一次有界三页列表观察已完成；来源仍未准入，90日/terminal/来源质量待证
+PAGINATION=产品模式仍每次p=1、最多2页；一次性实测batch为p=1/2/3，15行、15个不同URL，`searchVO`总量/当前页字段均为0；只限有限观察
+P4=Gate 2仍仅`PASSED_FOR_BOUNDED_P4_PILOT`；本轮分页观察不属于P4样本验收
+
+## 2026-10-09 GovCN bounded JSON pagination — phase-start snapshot (superseded by latest checkpoint above)
+
+本轮从代码/文档基线 `b9e62d7e1b9e89859954c4c38a16c22e84302488` 恢复，分支 `feat/fiscal-finance-hot`；开始时工作树仅有已授权的未跟踪审查文档，当前source实现/测试及QA状态文档均在各自owner工作树中。GovCN S1 裁定为 `APPROVED_SCOPE`，只批准实现范围，不代表实现通过、source admission、分页实测或来源质量通过。方案要求每次运行从 p=1 开始，最多两页、无持久resume，统一请求预算并始终过滤可信90日窗口；持久化状态必须明确为 partial/coverage unproven。Ignored只读GET packet ` .data/fiscal-qa/govcn-pagination-20261009/` 已由MockAgent dry-run验证预算，但真实GET仍未运行；软件QA/Lead核销完成前不得运行。
+
+`industry/sources.json` 当前仍为48 sources / 42 exact strict IDs，均disabled且全文关闭。NFRA adapter独立QA结果仍为backend334/334；不推测成338。上个修复SHA `bb02255051bedc3470eaf60add6723662e1df6ce` 的GitHub Check+Docker #37758646045为green；当前基线文档SHA `b9e62d7e1b9e89859954c4c38a16c22e84302488`不单独触发CI。真实付费执行继续 `DEFERRED_BY_USER`，本轮不调用官方HTTP、provider、collector或worker。本机loopback API/Web/PostgreSQL当时均已存在，health为200；本阶段禁止启动/停止服务或做smoke，preview仅可只读审计。
+
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=bb02255051bedc3470eaf60add6723662e1df6ce（test-only correction atop NFRA JSON-detail compatibility candidate；source remains not admitted；shared docs pending commit）
+CURRENT_SHA=b9e62d7e1b9e89859954c4c38a16c22e84302488（本轮分页实现前提交基线；分页实现与状态文档在工作树中尚未提交）
 LATEST_TESTED_CODE_SHA=bb02255051bedc3470eaf60add6723662e1df6ce（CI Check+Docker success；prior local fresh 35-migration typecheck, backend334/334, Web build/tests15/15 on implementation SHA e09d7cb; post-code preview smoke not run）
 LATEST_GREEN_CI=37758646045（Check+Docker success，exact SHA `bb02255051bedc3470eaf60add6723662e1df6ce`；NFRA implementation SHA e09d7cb run #37757946149 had one stale test assertion, corrected in test-only commit）
 PHASE_A_CHECKPOINT_CODE_SHA=b2f479c4517d040f4b1c24b14e1407ad342bbb3a（历史Phase A组合代码与publication测试fixture修复；本机fresh `npm test` 276/276）
 PHASE_B_BASE_CODE_SHA=b2f479c4517d040f4b1c24b14e1407ad342bbb3a（Phase B批准范围工作起点；未包含Phase B实现）
 SOURCE_CONFIG_SHA=e09d7cb5c2b3f4c3130e2bbe63721475b8f53cb1（48项source；NFRA为新增JSON candidate；42个exact strict IDs＝35个地方局＋7个核心例外）
-SOURCE_CONFIG_WORKTREE=同CURRENT_SHA；全部来源disabled且site/syndicate全文关闭，未seed到preview/production。GovCN/NFRA remain candidates, not source admission; bounded pair/config compatibility does not equal source pass.
-CURRENT_STAGE=2026-10-08 NFRA offline-compatibility IN_PROGRESS；冻结候选已通过独立full QA；CI #37758646045 Check+Docker成功；post-code local preview smoke未运行；preview after-count只读核验与before相同；source未准入。
-WORKSPACE_BASELINE=branch feat/fiscal-finance-hot；本轮开始时HEAD/docs SHA `4ff4b04ada90a72212b535dc4b741c723de9b98a`且worktree clean；其后NFRA implementation worktree已变更、未提交。公开仓库可见性由GitHub API核实为PUBLIC。
+SOURCE_CONFIG_WORKTREE=source owner正在准备GovCN pagination配置；目录仍48项 / 42 strict exact IDs，均disabled且site/syndicate全文关闭，未seed到preview/production。GovCN/NFRA remain candidates, not source admission; bounded pair/config compatibility does not equal source pass.
+CURRENT_STAGE=2026-10-09 GovCN JSON pagination IN_PROGRESS；仅S1 scope已APPROVED_SCOPE，source implementation与独立QA未完成；48/42所有source均disabled；真实付费DEFERRED_BY_USER。
+WORKSPACE_BASELINE=branch feat/fiscal-finance-hot；本轮开始时HEAD `b9e62d7e1b9e89859954c4c38a16c22e84302488`且worktree clean；后续仅本owner状态文档修改。公开仓库可见性已由前序GitHub核验为PUBLIC。
 IN_PROGRESS_SOURCE_CONFIG=implementation SHA `e09d7cb5c2b3f4c3130e2bbe63721475b8f53cb1` + test correction SHA `bb02255051bedc3470eaf60add6723662e1df6ce`：48项 / 42 strict exact IDs（新增disabled、fulltext-off `nfra-regulatory-dynamics`）；独立full QA已完成、未source-admitted。CI #37757946149旧版`tests/nfra-json-detail-persistence.test.ts:83`误要求环境变量`ALLOW_PRIVATE_NETWORK_FETCH=false`必须显式存在；Check workflow未设置该变量，配置默认值仍为false。修复只改该测试为检查配置默认false；无runtime/workflow改动。新SHA CI #37758646045 Check+Docker成功。post-code local smoke未运行；preview只读counts after-start与baseline相同。
 CI_TESTED_SHA=18e159be43810974dc80b2bb26d05babd6744646
 CI_TESTED_RUN=37712335532（success；Check+Docker成功；typecheck、Web build/tests15/15、migration/seed、built-site smoke、backend tests、Docker smoke通过；[GitHub Actions](https://github.com/revercgy-hub/MYHOT/actions/runs/37712335532)）

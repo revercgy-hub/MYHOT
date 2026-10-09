@@ -1,5 +1,11 @@
 # P4 精选试点只读准备器
 
+## 2026-10-09 本轮起始状态（已由下方最新事实修正）
+
+当前工作从 `b9e62d7e1b9e89859954c4c38a16c22e84302488` 开始。GovCN JSON query pagination 的 S1 scope 为 `APPROVED_SCOPE`，不是代码/QA通过、source admission或source pass。获准实现仅对 `govcn-policy-library` 增加每次从p=1开始的stateless有界扫描：最多2页、总dispatch/detail限额和120秒deadline、无resume，并在已有run detail中始终标记partial与coverage unproven。Ignored packet `.data/fiscal-qa/govcn-pagination-20261009/` 已准备精确p=1/2/3 URL与3-dispatch、20s/request、60s total、6MiB/request、18MiB total、无redirect/retry的runner；MockAgent干跑3/3 intercepted (p=1 uses saved response; p=2/3 synthetic clones), 0 rejected。它只验证本地packet/预算路径，不是新source code QA或fresh evidence；真实GET尚未执行，需独立软件QA PASS与Lead最终接受后才运行。
+
+当前目录仍48 sources / 42 exact strict IDs，全disabled且全文关闭；用户已明确真实付费执行延期。上一代码测试修复SHA `bb02255051bedc3470eaf60add6723662e1df6ce` 的Check+Docker #37758646045 green；本轮待新实现冻结后才做独立QA，并按root授权对最终新代码SHA dispatch一次GitHub Check。无provider调用、官方HTTP、collector、worker或本机API服务控制。
+
 DATE=2026-10-08（Asia/Shanghai；本节更新）
 STAGE=P4 bounded pilot preparation / model execution not started
 GATE_2=PASSED_FOR_BOUNDED_P4_PILOT（仅限Gate_2_REVIEW中的逐篇合格文章）
@@ -9,6 +15,14 @@ BUDGET=用户决定目前先不付费；20/10次数选择不再是当前阻塞�
 LATEST_SAMPLE=隔离库 fiscalhot_p4_preparation_20261008_test；Treasury 1、PBOC OMO 1；厦门监管负例另存ignored候选且尚未冻结
 GOLD=人工标签仍为null/needs_review；未形成Gold Dataset或模型质量结论
 EXECUTOR_STATUS=bounded executor代码SHA `57647d954ac56f4269b89adf0cc184a36b530ee0`；五个输入漂移集成场景test-only SHA `b0a0eeb59e19c696b94e045d2d6d3dcb08a69ea1`及CI run37743439955 Check+Docker均成功。NFRA implementation code SHA `e09d7cb5c2b3f4c3130e2bbe63721475b8f53cb1`独立fresh35-migration typecheck/backend334/334/Web build/Web15/15通过；其首次CI #37757946149旧测试误要求`ALLOW_PRIVATE_NETWORK_FETCH=false`环境字符串必须显式存在（workflow未设置；配置默认false）。Test-only修复SHA `bb02255051bedc3470eaf60add6723662e1df6ce`的Check+Docker #37758646045成功。post-code local preview smoke未运行。其它fault cases仍待覆盖，不宣称完整fail-path验收。
+
+## 2026-10-09 GovCN 分页当前事实修正
+
+上方“分页实现中”是本轮开始时的历史快照；现代码SHA为`7372d47a1d6d71b81b735e4b8025158e672233eb`，已推送。独立软件QA为focused 51/51、typecheck、fresh 35-migration persistence 1/1、backend 342/342、Web build和tests 15/15。GitHub Check+Docker run [37881613214](https://github.com/revercgy-hub/MYHOT/actions/runs/37881613214)针对该SHA最终success。Root接受的独立三页观察完成3/3 HTTP 200、15条不同URL；`searchVO`当前页/总量字段全为0，不据此宣称terminal或历史覆盖。响应实体SHA和packet根路径修正见continuous handoff。GovCN仍disabled/unadmitted，源目录48/42 strict；产品maxPagesPerRun仍为2。付费执行仍`DEFERRED_BY_USER`。
+
+Root接受的独立packet只读执行一次：p=1/2/3精确GET，3/3 HTTP 200、JSON/code 200、总实体102,489 B、15行/15个不同URL、paramsVO页码和n值匹配、dispatch 3/3/0。服务的`searchVO.currentPage/pageSize/totalCount/totalpage`均为0，不能证明total或terminal。raw实际在packet根目录`page-N.body`，不是声明的`responses/`；三份manifest basename、原始响应、one-shot marker与gate均保留，路径修正单独记在ignored `artifact-correction-v2.json`。详见continuous handoff的hash明细。
+
+这次三页观察不改变产品配置maxPagesPerRun=2，不是90日历史或来源准入。48个来源/42个strict ID仍全部disabled/fulltext-off；Gate 2边界和P4准备状态不变。未运行模型/collector/worker/OCR或DB操作；本地post-code smoke未执行。用户已延期付费provider执行。
 
 ## 2026-10-08 NFRA compatibility preparation (in progress)
 
