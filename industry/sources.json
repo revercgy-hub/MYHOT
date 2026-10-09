@@ -1060,6 +1060,7 @@
         "publishedAtUtcOffset": "+08:00",
         "allowUrlPrefixes": ["https://zj.mof.gov.cn/caizhengjiancha/"],
         "detail": { "maxFetches": 10, "titleSelector": "h2.title_con", "publishedAtRegex": "<meta\\s+name=\"PubDate\"\\s+content=\"([^\"]+)", "publishedAtUtcOffset": "+08:00", "bodySelector": ".my_doccontent" },
+        "pagination": { "mode": "mof_index_v1", "maxPagesPerRun": 2, "maxDispatches": 12, "maxPageIndex": 15, "detailMode": "direct_html_metadata_v1" },
         "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true, "requireBodyReadyForAutomaticSelection": true }
       },
       "tier": "T1", "first_party": true, "owner_entity_id": "mof", "participation_mode": "editorial", "interval_minutes": 1440,

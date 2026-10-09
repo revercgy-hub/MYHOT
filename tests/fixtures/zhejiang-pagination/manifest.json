@@ -1,0 +1,61 @@
+{
+  "fixtureSet": "zhejiang-pagination",
+  "sourceId": "mof-zhejiang-supervision-dynamics",
+  "sourceName": "财政部浙江监管局·监管工作",
+  "fixtureBytesCopiedVerbatim": true,
+  "parserConfigSource": "industry/sources.json",
+  "captureHistory": [
+    {
+      "pageIndex": 0,
+      "fixture": "page-0.html",
+      "sourceUrl": "https://zj.mof.gov.cn/caizhengjiancha/",
+      "requestedUrl": "https://zj.mof.gov.cn/caizhengjiancha/",
+      "finalUrl": "https://zj.mof.gov.cn/caizhengjiancha/",
+      "capturedAt": "2026-10-05T15:53:12.668Z",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 12644,
+      "sha256": "3a48972a67fd98701e6e861f908ef84e6840a6bf39e976eccaac010b28a1a254",
+      "originalRawPath": ".data/fiscal-qa/zhejiang-regulatory-column-20261005/zhejiang-regulatory-column.html",
+      "originalEvidenceManifest": ".data/fiscal-qa/zhejiang-regulatory-column-20261005/manifest.json",
+      "parserObservation": {
+        "candidateCount": 10,
+        "pdfCandidateCount": 1,
+        "displayDateRange": ["2026-08-17", "2026-09-30"],
+        "pagerTelemetry": { "currentPage": 0, "countPage": 16 }
+      }
+    },
+    {
+      "pageIndex": 1,
+      "fixture": "page-1.html",
+      "sourceUrl": "https://zj.mof.gov.cn/caizhengjiancha/",
+      "requestedUrl": "https://zj.mof.gov.cn/caizhengjiancha/index_1.htm",
+      "finalUrl": "https://zj.mof.gov.cn/caizhengjiancha/index_1.htm",
+      "capturedAt": "2026-10-09T12:58:52.219Z",
+      "eofAt": "2026-10-09T12:58:52.152Z",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 12469,
+      "sha256": "f0346a5b9c5e2a721f2d092b3683cdc0f324ca73a3385b67eddc0b8bed48e704",
+      "charset": "utf-8",
+      "originalRawPath": ".data/fiscal-qa/source-next-20261009/zhejiang-page2/page-2.body",
+      "originalEvidenceManifest": ".data/fiscal-qa/source-next-20261009/zhejiang-page2/manifest.json",
+      "requestLimits": { "maxDispatches": 1, "actualDispatches": 1, "redirects": 0, "retries": 0, "deadlineMs": 20000, "maxRawBytes": 2097152 },
+      "parserObservation": {
+        "candidateCount": 10,
+        "pdfCandidateCount": 0,
+        "displayDateRange": ["2026-06-16", "2026-08-11"],
+        "listDatePathTokenMismatchCount": 5
+      }
+    }
+  ],
+  "adjacentPageComparison": {
+    "identityMethod": "identityKeyForUrl(candidate.url)",
+    "exactIdentityOverlapCount": 0,
+    "displayedDateOverlap": [],
+    "page0OldestDisplayDate": "2026-08-17",
+    "page1NewestDisplayDate": "2026-08-11",
+    "displayBoundaryGapDays": 6
+  },
+  "interpretation": "Two observed pages only. Pager count/current-page scripts are telemetry, not terminal proof; this fixture does not assert source admission or complete 90-day coverage. Page-0 PDF candidate/link is preserved and remains subject to existing pending/body-readiness policy."
+}
