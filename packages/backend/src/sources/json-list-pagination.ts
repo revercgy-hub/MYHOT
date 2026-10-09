@@ -1,5 +1,7 @@
+import { randomUUID } from "node:crypto";
 import type { GuardedFetchRunBudget } from "../lib/http-fetch.ts";
 import { decideTimeline, identityKeyFor } from "../content/materials.ts";
+import { sha256, stableJson } from "../lib/ids.ts";
 import { fetchGovcnJsonPage, type JsonListPageResult } from "./json-list.ts";
 import type { Candidate, SourceRow } from "./types.ts";
 
@@ -12,10 +14,30 @@ const GOVCN_TITLE_REGEX = "<title>(.*?)_国务院部门文件_中国政府网</t
 const GOVCN_DATE_REGEX = "name=\"firstpublishedtime\" content=\"(\\d{4}-\\d{2}-\\d{2})-\\d{2}:\\d{2}:\\d{2}\"";
 
 export interface GovcnJsonPaginationConfig {
-  mode: "govcn_query_v1";
+  mode: "govcn_query_v1" | "govcn_query_resume_v1";
   maxPagesPerRun: number;
   maxDispatches: number;
 }
+
+export interface GovcnJsonResumeCursor {
+  v: 1;
+  generationId: string;
+  configHash: string;
+  anchorAt: string;
+  cutoffAt: string;
+  nextPage: number;
+  pagesCommitted: number;
+  lastPageFingerprint: string | null;
+  lastPageIdentityHashes: string[] | null;
+  state: "active" | "blocked" | "config_changed";
+  coverage: "unproven";
+  stopReason: string | null;
+  updatedAt: string;
+}
+
+export const GOVCN_JSON_RESUME_CURSOR_KEY = "govcnQueryBackfill";
+export const GOVCN_JSON_RESUME_MAX_PAGE = 200;
+const GOVCN_JSON_RESUME_DAY_MS = 86_400_000;
 
 export function hasGovcnJsonPagination(config: Record<string, any>): boolean {
   return Object.hasOwn(config, "pagination");
@@ -23,11 +45,14 @@ export function hasGovcnJsonPagination(config: Record<string, any>): boolean {
 
 export function readGovcnJsonPagination(config: Record<string, any>): GovcnJsonPaginationConfig | null {
   const value = config.pagination;
-  if (!value || typeof value !== "object" || Array.isArray(value) ||
-      Object.keys(value).length !== 3 || value.mode !== "govcn_query_v1" ||
+  if (!value || typeof value !== "object" || Array.isArray(value) || Object.keys(value).length !== 3 ||
       !Number.isSafeInteger(value.maxPagesPerRun) || value.maxPagesPerRun < 1 || value.maxPagesPerRun > 2 ||
       !Number.isSafeInteger(value.maxDispatches) || value.maxDispatches < 1 || value.maxDispatches > 12) return null;
-  return { mode: "govcn_query_v1", maxPagesPerRun: value.maxPagesPerRun, maxDispatches: value.maxDispatches };
+  if (value.mode === "govcn_query_v1") return { mode: value.mode, maxPagesPerRun: value.maxPagesPerRun, maxDispatches: value.maxDispatches };
+  if (value.mode === "govcn_query_resume_v1" && value.maxPagesPerRun === 2 && value.maxDispatches >= 2) {
+    return { mode: value.mode, maxPagesPerRun: value.maxPagesPerRun, maxDispatches: value.maxDispatches };
+  }
+  return null;
 }
 
 export function validateGovcnJsonPagination(kind: SourceRow["kind"], config: Record<string, any>): string[] {
@@ -35,7 +60,10 @@ export function validateGovcnJsonPagination(kind: SourceRow["kind"], config: Rec
   const errors: string[] = [];
   const pagination = readGovcnJsonPagination(config);
   if (kind !== "json_list") errors.push("GovCN query pagination is only supported by json_list");
-  if (!pagination) errors.push("pagination must be the exact govcn_query_v1 mode with maxPagesPerRun 1..2 and maxDispatches 1..12");
+  if (!pagination) errors.push("pagination must be the exact GovCN query mode with bounded pages and dispatches");
+  if (pagination?.mode === "govcn_query_resume_v1" && (pagination.maxPagesPerRun !== 2 || pagination.maxDispatches < 2)) {
+    errors.push("GovCN resume mode requires maxPagesPerRun=2 and maxDispatches 2..12");
+  }
   const detail = config.detail;
   const detailKeys = ["maxFetches", "titleRegex", "publishedAtRegex", "publishedAtUtcOffset", "bodySelector"];
   const backfill = config._aihot;
@@ -67,8 +95,8 @@ export function validateGovcnJsonPagination(kind: SourceRow["kind"], config: Rec
   return errors;
 }
 
-export function govcnJsonPageUrl(configuredUrl: string, page: number): string {
-  if (configuredUrl !== GOVCN_LIST_URL || !Number.isSafeInteger(page) || page < 1 || page > 2) throw new Error("invalid GovCN JSON page identity");
+export function govcnJsonPageUrl(configuredUrl: string, page: number, resume = false): string {
+  if (configuredUrl !== GOVCN_LIST_URL || !Number.isSafeInteger(page) || page < 1 || page > (resume ? GOVCN_JSON_RESUME_MAX_PAGE : 2)) throw new Error("invalid GovCN JSON page identity");
   const url = new URL(configuredUrl);
   const pageValues = url.searchParams.getAll("p");
   if (pageValues.length !== 1 || pageValues[0] !== "1") throw new Error("invalid GovCN JSON page query");
@@ -77,7 +105,7 @@ export function govcnJsonPageUrl(configuredUrl: string, page: number): string {
 }
 
 export interface GovcnJsonPaginationSummary {
-  mode: "govcn_query_v1";
+  mode: "govcn_query_v1" | "govcn_query_resume_v1";
   anchorAt: string;
   cutoffAt: string;
   pagesFetched: number;
@@ -94,7 +122,7 @@ export interface GovcnJsonPaginationSummary {
   coverage: "unproven";
 }
 
-export function createGovcnJsonPaginationBudget(source: SourceRow, pagination: GovcnJsonPaginationConfig) {
+export function createGovcnJsonPaginationBudget(source: SourceRow, pagination: GovcnJsonPaginationConfig, listPages?: number[]) {
   const controller = new AbortController();
   const startedAt = Date.now();
   const deadlineAt = startedAt + GOVCN_JSON_PAGINATION_DEADLINE_MS;
@@ -113,6 +141,7 @@ export function createGovcnJsonPaginationBudget(source: SourceRow, pagination: G
   let rowsOutsideWindow = 0;
   let pendingDetails = 0;
   let stopReason = "max_pages_per_run";
+  let permittedPages = listPages ? new Set(listPages) : null;
   const anchor = new Date(startedAt);
   const cutoff = new Date(startedAt - 90 * 86_400_000);
 
@@ -131,7 +160,7 @@ export function createGovcnJsonPaginationBudget(source: SourceRow, pagination: G
       if (detailTarget) {
         admitted = requestUrl === detailTarget;
       } else if (page !== null) {
-        admitted = requestUrl === govcnJsonPageUrl(String(source.config.url), page);
+        admitted = requestUrl === govcnJsonPageUrl(String(source.config.url), page, pagination.mode === "govcn_query_resume_v1");
       }
       if (!admitted || dispatched.has(requestUrl)) throw new Error("GovCN JSON dispatch target rejected");
       dispatches++;
@@ -152,11 +181,23 @@ export function createGovcnJsonPaginationBudget(source: SourceRow, pagination: G
     canDispatch: () => dispatches < pagination.maxDispatches && Date.now() < deadlineAt,
     setPage(nextPage: number) {
       assertActive();
-      if (!Number.isSafeInteger(nextPage) || nextPage < 1 || nextPage > pagination.maxPagesPerRun || detailTarget !== null) throw new Error("GovCN JSON page admission rejected");
+      const maxPage = pagination.mode === "govcn_query_resume_v1" ? GOVCN_JSON_RESUME_MAX_PAGE : pagination.maxPagesPerRun;
+      if (!Number.isSafeInteger(nextPage) || nextPage < 1 || nextPage > maxPage || pagesFetched >= pagination.maxPagesPerRun ||
+          pagination.mode === "govcn_query_resume_v1" && permittedPages === null ||
+          permittedPages && !permittedPages.has(nextPage) || detailTarget !== null) throw new Error("GovCN JSON page admission rejected");
       page = nextPage;
     },
     pageFetched() { pagesFetched++; },
     setUniqueCandidates(value: number) { uniqueCandidates = value; },
+    setListPages(pages: number[]) {
+      assertActive();
+      if (dispatches !== 0 || pages.length < 1 || pages.length > pagination.maxPagesPerRun || new Set(pages).size !== pages.length ||
+          pages.some((value) => !Number.isSafeInteger(value) || value < 1 || value > (pagination.mode === "govcn_query_resume_v1" ? GOVCN_JSON_RESUME_MAX_PAGE : pagination.maxPagesPerRun)) ||
+          pagination.mode === "govcn_query_resume_v1" && (pages[0] !== 1 || pages.length === 2 && pages[1] <= 1)) {
+        throw new Error("GovCN JSON list target set rejected");
+      }
+      permittedPages = new Set(pages);
+    },
     addRowsUndated(value: number) { rowsUndated += value; },
     addRowsOutsideWindow(value: number) { rowsOutsideWindow += value; },
     admitDetail(url: string): boolean {
@@ -177,7 +218,7 @@ export function createGovcnJsonPaginationBudget(source: SourceRow, pagination: G
     setStopReason(value: string) { stopReason = value; },
     summary(): GovcnJsonPaginationSummary {
       return {
-        mode: "govcn_query_v1", anchorAt: anchor.toISOString(), cutoffAt: cutoff.toISOString(), pagesFetched,
+        mode: pagination.mode, anchorAt: anchor.toISOString(), cutoffAt: cutoff.toISOString(), pagesFetched,
         uniqueCandidates, dispatchesUsed: dispatches, maxDispatches: pagination.maxDispatches,
         detailTargetsUsed: detailTargets, maxDetailTargets: Number(source.config.detail.maxFetches),
         rowsUndated, rowsOutsideWindow, pendingDetails, stopReason, partial: true, coverage: "unproven",
@@ -188,6 +229,68 @@ export function createGovcnJsonPaginationBudget(source: SourceRow, pagination: G
 }
 
 export type GovcnJsonPaginationBudget = ReturnType<typeof createGovcnJsonPaginationBudget>;
+
+export function govcnJsonResumeConfigHash(source: SourceRow): string {
+  return sha256(stableJson({
+    id: source.id,
+    kind: source.kind,
+    config: source.config,
+    tier: source.tier,
+    participation_mode: source.participation_mode,
+    first_party: source.first_party,
+  }));
+}
+
+export function newGovcnJsonResumeCursor(source: SourceRow, now = new Date()): GovcnJsonResumeCursor {
+  const anchorAt = now.toISOString();
+  return {
+    v: 1,
+    generationId: randomUUID(),
+    configHash: govcnJsonResumeConfigHash(source),
+    anchorAt,
+    cutoffAt: new Date(now.getTime() - 90 * GOVCN_JSON_RESUME_DAY_MS).toISOString(),
+    nextPage: 1,
+    pagesCommitted: 0,
+    lastPageFingerprint: null,
+    lastPageIdentityHashes: null,
+    state: "active",
+    coverage: "unproven",
+    stopReason: null,
+    updatedAt: anchorAt,
+  };
+}
+
+export function isGovcnJsonResumeCursor(value: unknown, now = new Date()): value is GovcnJsonResumeCursor {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const cursor = value as Record<string, unknown>;
+  const allowed = ["v", "generationId", "configHash", "anchorAt", "cutoffAt", "nextPage", "pagesCommitted", "lastPageFingerprint", "lastPageIdentityHashes", "state", "coverage", "stopReason", "updatedAt"];
+  if (Object.keys(cursor).some((key) => !allowed.includes(key))) return false;
+  const anchor = typeof cursor.anchorAt === "string" ? Date.parse(cursor.anchorAt) : NaN;
+  const cutoff = typeof cursor.cutoffAt === "string" ? Date.parse(cursor.cutoffAt) : NaN;
+  const updated = typeof cursor.updatedAt === "string" ? Date.parse(cursor.updatedAt) : NaN;
+  const generationId = typeof cursor.generationId === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(cursor.generationId);
+  const hash = typeof cursor.configHash === "string" && /^[0-9a-f]{64}$/i.test(cursor.configHash);
+  const validState = cursor.state === "active" || cursor.state === "blocked" || cursor.state === "config_changed";
+  const validProgress = Number.isSafeInteger(cursor.pagesCommitted) && Number(cursor.pagesCommitted) >= 0 && Number(cursor.pagesCommitted) <= GOVCN_JSON_RESUME_MAX_PAGE &&
+    Number.isSafeInteger(cursor.nextPage) && Number(cursor.nextPage) === Number(cursor.pagesCommitted) + 1 && Number(cursor.nextPage) <= GOVCN_JSON_RESUME_MAX_PAGE + 1;
+  const noPage = cursor.pagesCommitted === 0 && cursor.lastPageFingerprint === null && cursor.lastPageIdentityHashes === null;
+  const hasPage = Number(cursor.pagesCommitted) > 0 && typeof cursor.lastPageFingerprint === "string" && /^[0-9a-f]{64}$/i.test(cursor.lastPageFingerprint) &&
+    Array.isArray(cursor.lastPageIdentityHashes) && cursor.lastPageIdentityHashes.length > 0 && cursor.lastPageIdentityHashes.length <= GOVCN_JSON_PAGE_SIZE &&
+    cursor.lastPageIdentityHashes.every((entry) => typeof entry === "string" && /^[0-9a-f]{64}$/i.test(entry)) &&
+    new Set(cursor.lastPageIdentityHashes).size === cursor.lastPageIdentityHashes.length &&
+    cursor.lastPageIdentityHashes.every((entry, index, all) => index === 0 || String(all[index - 1]) < String(entry));
+  return cursor.v === 1 && generationId && hash &&
+    Number.isFinite(anchor) && Number.isFinite(cutoff) && Number.isFinite(updated) &&
+    new Date(cutoff).toISOString() === new Date(anchor - 90 * GOVCN_JSON_RESUME_DAY_MS).toISOString() &&
+    new Date(anchor).toISOString() === cursor.anchorAt && new Date(cutoff).toISOString() === cursor.cutoffAt && new Date(updated).toISOString() === cursor.updatedAt &&
+    anchor <= now.getTime() && updated <= now.getTime() && updated >= anchor &&
+    validProgress && (noPage || hasPage) && validState && cursor.coverage === "unproven" &&
+    (cursor.stopReason === null || typeof cursor.stopReason === "string" && cursor.stopReason.length <= 100);
+}
+
+export function validateGovcnJsonResumeCursor(value: unknown, source: SourceRow, now = new Date()): value is GovcnJsonResumeCursor {
+  return isGovcnJsonResumeCursor(value, now) && value.configHash === govcnJsonResumeConfigHash(source);
+}
 
 export async function readGovcnJsonPages(source: SourceRow, pagination: GovcnJsonPaginationConfig, budget: GovcnJsonPaginationBudget): Promise<Candidate[]> {
   const candidates: Candidate[] = [];
@@ -235,6 +338,10 @@ export async function readGovcnJsonPages(source: SourceRow, pagination: GovcnJso
 
 export function isGovcnJsonPaginationSource(source: Pick<SourceRow, "id" | "kind" | "config">): boolean {
   return source.id === GOVCN_SOURCE_ID && source.kind === "json_list" && hasGovcnJsonPagination(source.config);
+}
+
+export function isGovcnJsonResumeSource(source: Pick<SourceRow, "id" | "kind" | "config">): boolean {
+  return isGovcnJsonPaginationSource(source) && readGovcnJsonPagination(source.config)?.mode === "govcn_query_resume_v1";
 }
 
 export function govcnCandidateInWindow(candidate: Candidate, budget: GovcnJsonPaginationBudget): boolean {

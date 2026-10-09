@@ -1,7 +1,8 @@
 // Collection run for one source: fetch listing → filter → store material → enqueue processing.
 // A failed fetch never advances the success cursor; the source's health reflects consecutive failures.
-import { sql } from "../db.ts";
+import { sql, type Tx } from "../db.ts";
 import { decideTimeline, identityKeyFor, upsertMaterial } from "../content/materials.ts";
+import { sha256, stableJson } from "../lib/ids.ts";
 import { enqueue, QUEUES } from "../jobs/queue.ts";
 import { queueProcessing } from "../jobs/content.ts";
 import { BudgetExceededError } from "../providers/receipts.ts";
@@ -9,8 +10,8 @@ import { fetchRss } from "./rss.ts";
 import { allowed, fetchDetail, fetchWebList, type DetailNeed } from "./web-list.ts";
 import { unsupportedConfig } from "./config-keys.ts";
 import { collectWebListBackfill, usesWebListPagination } from "./web-list-pagination.ts";
-import { fetchJsonList } from "./json-list.ts";
-import { createGovcnJsonPaginationBudget, govcnCandidateInWindow, isGovcnJsonPaginationSource, readGovcnJsonPagination, readGovcnJsonPages, type GovcnJsonPaginationBudget } from "./json-list-pagination.ts";
+import { fetchGovcnJsonPage, fetchJsonList } from "./json-list.ts";
+import { createGovcnJsonPaginationBudget, govcnCandidateInWindow, govcnJsonResumeConfigHash, isGovcnJsonPaginationSource, isGovcnJsonResumeCursor, isGovcnJsonResumeSource, newGovcnJsonResumeCursor, readGovcnJsonPagination, readGovcnJsonPages, GOVCN_JSON_RESUME_CURSOR_KEY, GOVCN_JSON_RESUME_MAX_PAGE, type GovcnJsonPaginationBudget, type GovcnJsonResumeCursor } from "./json-list-pagination.ts";
 import { fetchXSearch, planXShards, readXSearch, shardHandle, shardQuery, SHARDABLE_SQL, tweetToCandidate, type XBacklog, type XRead } from "./x.ts";
 import { FetchError, type Candidate, type SourceRow } from "./types.ts";
 import { createNfraJsonRunBudget, nfraConfigIsSupported } from "../content/nfra-json-detail.ts";
@@ -25,6 +26,7 @@ export interface CollectResult {
 }
 
 const MAX_ITEMS_PER_RUN = 60;
+const GOVCN_RESUME_DAY_MS = 86_400_000;
 
 export function noiseFiltered(c: Candidate, source: SourceRow): boolean {
   const f = source.config.ingestNoiseFilter;
@@ -84,10 +86,579 @@ async function store(sourceId: string, candidates: Candidate[], backfill: string
   return { created, revised };
 }
 
+type GovcnResumeWorkItem = { candidate: Candidate; backfill: "first-import" | null };
+type GovcnResumeTxCounts = { created: number; revised: number };
+
+function govcnResumeWindow(candidate: Candidate, anchorAt: Date, cutoffAt: Date): { candidate: Candidate | null; undated: number; outside: number } {
+  const claimed = candidate.publishedAt instanceof Date ? candidate.publishedAt : null;
+  const trusted = decideTimeline(claimed, anchorAt, "first-import").publishedAt;
+  if (!trusted) return { candidate: null, undated: 1, outside: 0 };
+  if (trusted.getTime() < cutoffAt.getTime() || trusted.getTime() > anchorAt.getTime()) return { candidate: null, undated: 0, outside: 1 };
+  return { candidate: { ...candidate, publishedAt: trusted }, undated: 0, outside: 0 };
+}
+
+function govcnMappedPageIdentities(sourceId: string, candidates: Candidate[]): { fingerprint: string; hashes: string[] } {
+  const identities = [...new Set(candidates.map((candidate) => identityKeyFor({ ...candidate, sourceId, via: "fetch" })))].sort();
+  return { fingerprint: sha256(stableJson(identities)), hashes: identities.map((identity) => sha256(identity)).sort() };
+}
+
+function govcnResumeCursorMatches(value: unknown, expected: GovcnJsonResumeCursor): boolean {
+  return isGovcnJsonResumeCursor(value) && stableJson(value) === stableJson(expected);
+}
+
+function govcnResumeRunDetail(input: {
+  cursor: GovcnJsonResumeCursor | null;
+  pollAnchorAt: Date;
+  pollCutoffAt: Date;
+  continuationTarget: number;
+  pagesFetched: number;
+  pagesCommittedThisRun: number;
+  dispatchesUsed: number;
+  maxDispatches: number;
+  detailTargetsUsed: number;
+  maxDetailTargets: number;
+  pendingDetails: number;
+  rowsUndated: number;
+  rowsOutsideWindow: number;
+  found: number;
+  created: number;
+  revised: number;
+  stopReason: string;
+  replayRefetched: boolean;
+}): Record<string, unknown> {
+  return {
+    mode: "govcn_query_resume_v1",
+    generationId: input.cursor?.generationId ?? null,
+    anchorAt: input.cursor?.anchorAt ?? null,
+    cutoffAt: input.cursor?.cutoffAt ?? null,
+    pollAnchorAt: input.pollAnchorAt.toISOString(),
+    pollCutoffAt: new Date(input.pollCutoffAt).toISOString(),
+    continuationTarget: input.continuationTarget,
+    pagesFetched: input.pagesFetched,
+    pagesCommitted: input.cursor?.pagesCommitted ?? 0,
+    pagesCommittedThisRun: input.pagesCommittedThisRun,
+    nextPageCommitted: input.cursor?.nextPage ?? 1,
+    dispatchesUsed: input.dispatchesUsed,
+    maxDispatches: input.maxDispatches,
+    detailTargetsUsed: input.detailTargetsUsed,
+    maxDetailTargets: input.maxDetailTargets,
+    pendingDetails: input.pendingDetails,
+    rowsUndated: input.rowsUndated,
+    rowsOutsideWindow: input.rowsOutsideWindow,
+    found: input.found,
+    created: input.created,
+    revised: input.revised,
+    replayRefetched: input.replayRefetched,
+    snapshotConsistency: "unproven",
+    stopReason: input.stopReason,
+    partial: true,
+    coverage: "unproven",
+  };
+}
+
+async function withGovcnResumeTransaction<T>(
+  reserved: Awaited<ReturnType<typeof sql.reserve>>,
+  budget: GovcnJsonPaginationBudget,
+  run: (tx: Tx) => Promise<T>,
+): Promise<T> {
+  await reserved`BEGIN`;
+  try {
+    budget.assertActive();
+    const tx = reserved as unknown as Tx;
+    const remaining = Math.max(1, Math.floor(budget.remainingMs()));
+    await tx`SELECT set_config('statement_timeout', ${`${remaining}ms`}, true)`;
+    const result = await run(tx);
+    budget.assertActive();
+    const commitRemaining = Math.max(1, Math.floor(budget.remainingMs()));
+    await tx`SELECT set_config('statement_timeout', ${`${commitRemaining}ms`}, true)`;
+    budget.assertActive();
+    await reserved`COMMIT`;
+    return result;
+  } catch (error) {
+    try { await reserved`ROLLBACK`; } catch { /* connection release is the final rollback guard */ }
+    throw error;
+  }
+}
+
+async function govcnSourceUnderLock(db: Awaited<ReturnType<typeof sql.reserve>>, sourceId: string): Promise<SourceRow | null> {
+  const [row] = await db<SourceRow[]>`SELECT id, name, kind, config, tier, participation_mode, first_party, interval_minutes,
+      enabled, cursor, fail_count FROM sources WHERE id = ${sourceId}`;
+  return row ?? null;
+}
+
+async function saveGovcnResumeMaterials(
+  tx: Tx,
+  sourceId: string,
+  rows: GovcnResumeWorkItem[],
+): Promise<GovcnResumeTxCounts> {
+  let created = 0;
+  let revised = 0;
+  const seen = new Set<string>();
+  for (const { candidate, backfill } of rows) {
+    const material = { ...candidate, sourceId, via: "fetch" as const, backfill };
+    const key = identityKeyFor(material);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const saved = await upsertMaterial(material, tx);
+    if (saved.created) created += 1;
+    if (saved.revised) revised += 1;
+    if (saved.created || saved.revised) await queueProcessing(saved.articleId, { db: tx });
+  }
+  return { created, revised };
+}
+
+class GovcnResumeConfigChangedError extends Error {}
+class GovcnResumeCursorChangedError extends Error {}
+class GovcnResumePageBlockedError extends Error {
+  readonly reason: string;
+  constructor(reason: string, message: string) { super(message); this.reason = reason; }
+}
+
+async function collectGovcnJsonResume(sourceId: string, opts: { force?: boolean }): Promise<CollectResult> {
+  const reserved = await sql.reserve();
+  const lockKey = `govcn-json-resume:${sourceId}`;
+  let locked = false;
+  let runId: number | null = null;
+  let source: SourceRow | null = null;
+  let cursor: GovcnJsonResumeCursor | null = null;
+  let pagination: ReturnType<typeof readGovcnJsonPagination> = null;
+  let budget: GovcnJsonPaginationBudget | null = null;
+  let found = 0;
+  let created = 0;
+  let revised = 0;
+  let pagesFetched = 0;
+  let pagesCommittedThisRun = 0;
+  let detailTargetsUsed = 0;
+  let pendingDetails = 0;
+  let rowsUndated = 0;
+  let rowsOutsideWindow = 0;
+  let stopReason = "starting";
+  let continuationTarget = 1;
+  let blockedFreshnessOnly = false;
+  let replayRefetched = false;
+  let pollWork: GovcnResumeWorkItem[] = [];
+  let pollRawRows = 0;
+  let pollCommitted = false;
+  const runAt = new Date();
+  const pollCutoff = new Date(runAt.getTime() - GOVCN_RESUME_DAY_MS * 90);
+
+  const runDetail = () => govcnResumeRunDetail({
+    cursor, pollAnchorAt: runAt, pollCutoffAt: pollCutoff, continuationTarget, pagesFetched, pagesCommittedThisRun,
+    dispatchesUsed: budget?.dispatchesUsed() ?? 0, maxDispatches: pagination?.maxDispatches ?? 0,
+    detailTargetsUsed, maxDetailTargets: Number(source?.config.detail?.maxFetches ?? 0), pendingDetails, rowsUndated, rowsOutsideWindow, found, created, revised, stopReason, replayRefetched,
+  });
+  const finishRun = async (status: "ok" | "failed", error: string | null = null) => {
+    if (runId === null) return;
+    const detail = runDetail();
+    await reserved`UPDATE fetch_runs SET status = ${status}, finished_at = now(), found_count = ${found}, new_count = ${created},
+      error = ${error}, detail = ${sql.json(detail as never)} WHERE id = ${runId}`;
+  };
+  const failHealth = async (error: unknown) => {
+    const message = String(error instanceof Error ? error.message : error).slice(0, 1000);
+    await reserved`UPDATE sources SET last_fetch_at = now(), fail_count = fail_count + 1, last_error = ${message},
+      health = CASE WHEN fail_count + 1 >= 5 THEN 'failing' ELSE 'degraded' END,
+      next_fetch_at = now() + make_interval(mins => LEAST(interval_minutes * (fail_count + 2), 360)), updated_at = now() WHERE id = ${sourceId}`;
+    await finishRun("failed", message);
+  };
+  const updateBlocked = async (state: "blocked" | "config_changed", reason: string) => {
+    if (!source || !cursor || !budget) return;
+    let changedCursor: GovcnJsonResumeCursor | null = null;
+    await withGovcnResumeTransaction(reserved, budget, async (tx) => {
+      const [row] = await tx<Array<Pick<SourceRow, "config" | "kind" | "cursor">>>`
+        SELECT config, kind, cursor FROM sources WHERE id = ${sourceId} FOR UPDATE`;
+      if (!row) throw new GovcnResumeCursorChangedError("GovCN source disappeared before cursor hold");
+      const persisted = row.cursor?.[GOVCN_JSON_RESUME_CURSOR_KEY];
+      if (!govcnResumeCursorMatches(persisted, cursor!)) throw new GovcnResumeCursorChangedError("GovCN resume cursor changed before cursor hold");
+      const changed: GovcnJsonResumeCursor = { ...persisted, state, stopReason: reason, updatedAt: new Date().toISOString() };
+      changedCursor = changed;
+      const merged = { ...(row.cursor ?? {}), [GOVCN_JSON_RESUME_CURSOR_KEY]: changed };
+      await tx`UPDATE sources SET cursor = ${tx.json(merged as never)}, updated_at = now() WHERE id = ${sourceId}`;
+      const detail = govcnResumeRunDetail({
+        cursor: changed, pollAnchorAt: runAt, pollCutoffAt: pollCutoff, continuationTarget, pagesFetched, pagesCommittedThisRun,
+        dispatchesUsed: budget!.dispatchesUsed(), maxDispatches: pagination!.maxDispatches,
+        detailTargetsUsed, maxDetailTargets: Number(source!.config.detail.maxFetches), pendingDetails, rowsUndated, rowsOutsideWindow, found, created, revised, stopReason: reason, replayRefetched,
+      });
+      await tx`UPDATE fetch_runs SET found_count = ${found}, new_count = ${created}, detail = ${tx.json(detail as never)} WHERE id = ${runId}`;
+    });
+    if (changedCursor) cursor = changedCursor;
+    stopReason = reason;
+  };
+  const assertCurrent = async (expectedNextPage: number, allowBlocked = false) => {
+    if (!source || !cursor || !budget) throw new GovcnResumeCursorChangedError("GovCN resume state is unavailable");
+    const [latest] = await withGovcnResumeTransaction(reserved, budget, (tx) => tx<SourceRow[]>`
+      SELECT id, name, kind, config, tier, participation_mode, first_party, interval_minutes, enabled, cursor, fail_count
+      FROM sources WHERE id = ${sourceId}`);
+    if (!latest || govcnJsonResumeConfigHash(latest) !== cursor.configHash) throw new GovcnResumeConfigChangedError("GovCN source config changed before dispatch");
+    const persisted = latest.cursor?.[GOVCN_JSON_RESUME_CURSOR_KEY];
+    if (!govcnResumeCursorMatches(persisted, cursor) || cursor.nextPage !== expectedNextPage ||
+        persisted.state !== "active" && !(allowBlocked && persisted.state === "blocked")) {
+      throw new GovcnResumeCursorChangedError("GovCN resume cursor changed before dispatch");
+    }
+  };
+  const selectWindow = (candidates: Candidate[], anchor: Date, cutoff: Date, backfill: "first-import" | null): GovcnResumeWorkItem[] => {
+    const output: GovcnResumeWorkItem[] = [];
+    const seen = new Set<string>();
+    for (const original of candidates) {
+      const identity = identityKeyFor({ ...original, sourceId, via: "fetch" });
+      if (seen.has(identity)) continue;
+      seen.add(identity);
+      if (!allowed(original.url, source!) || noiseFiltered(original, source!)) continue;
+      const rewritten = rewriteUrl(original, source!);
+      const result = govcnResumeWindow(rewritten, anchor, cutoff);
+      rowsUndated += result.undated;
+      rowsOutsideWindow += result.outside;
+      if (result.candidate) output.push({ candidate: result.candidate, backfill });
+    }
+    return output;
+  };
+  const enrichDetails = async (rows: GovcnResumeWorkItem[], forceUrls: ReadonlySet<string> = new Set()) => {
+    if (!source || !budget) return;
+    const urls = [...new Set(rows.map(({ candidate }) => candidate.url))];
+    const knownRows = urls.length ? await withGovcnResumeTransaction(reserved, budget, (tx) =>
+      tx<{ url: string; title: string }[]>`SELECT url, title FROM articles WHERE url IN ${tx(urls)}`) : [];
+    const known = new Map(knownRows.map((row) => [row.url, row.title]));
+    const maxDetails = Number(source.config.detail?.maxFetches ?? 0);
+    for (const { candidate } of rows) {
+      budget.assertActive();
+      const storedTitle = known.get(candidate.url);
+      if (storedTitle !== undefined) candidate.title = storedTitle;
+      if (storedTitle !== undefined && !forceUrls.has(candidate.url)) {
+        continue;
+      }
+      if (detailTargetsUsed >= maxDetails) continue;
+      const detail = source.config.detail;
+      if (!detail) continue;
+      const need: DetailNeed = {
+        date: !candidate.publishedAt,
+        title: !!(detail.titleSelector || detail.titleRegex) && (detail.titleAuthoritative === true || needsTitle(candidate.title)),
+        summary: !!detail.summarySelector && !candidate.excerpt,
+        body: source.participation_mode === "editorial" && !candidate.bodyText && (!candidate.bodyStatus || candidate.bodyStatus === "pending"),
+        expectedTitle: candidate.title,
+        expectedPublishedAt: candidate.publishedAt ?? null,
+      };
+      if (!need.date && !need.title && !need.summary && !(need.body && (detail.bodySelector || Array.isArray(detail.bodyPolicies)))) continue;
+      if (!budget.admitDetail(candidate.url)) {
+        budget.setStopReason(budget.detailTargetsUsed() >= maxDetails ? "max_detail_targets" : "max_dispatches");
+        continue;
+      }
+      detailTargetsUsed++;
+      await assertCurrent(continuationTarget, blockedFreshnessOnly);
+      const got = await fetchDetail(candidate.url, source, need, { runBudget: budget.runBudget, remainingMs: budget.remainingMs });
+      budget.assertActive();
+      if (got.title) candidate.title = got.title;
+      if (got.summary) candidate.excerpt = got.summary;
+      if (got.body) {
+        candidate.bodyHtml = got.body.html;
+        candidate.bodyText = got.body.text;
+        candidate.bodyStatus = "ok";
+        if (detail.bodySelector || detail.bodyPolicies || detail.attachmentScopeSelector !== undefined || detail.attachmentSelector || detail.pdfDirect === true) {
+          candidate.clearAttachmentDiagnostic = true;
+        }
+        if (!candidate.media?.length) candidate.media = got.body.images;
+      }
+      if (got.attachmentDiagnostic) candidate.attachmentDiagnostic = got.attachmentDiagnostic;
+    }
+    pendingDetails = rows.filter(({ candidate }) => candidate.bodyStatus !== "ok" || !candidate.bodyText?.trim()).length;
+    budget.setPendingDetails(pendingDetails);
+  };
+  const commitFreshPoll = async (rows: GovcnResumeWorkItem[], rawRows: number) => {
+    if (!source || !cursor || !budget || runId === null) throw new GovcnResumeCursorChangedError("GovCN run disappeared before freshness commit");
+    const counts = await withGovcnResumeTransaction(reserved, budget, async (tx) => {
+      const [row] = await tx<Array<{ config: Record<string, unknown>; kind: SourceRow["kind"]; tier: SourceRow["tier"]; participation_mode: SourceRow["participation_mode"]; first_party: boolean; cursor: Record<string, unknown> | null }>>`
+        SELECT config, kind, tier, participation_mode, first_party, cursor FROM sources WHERE id = ${sourceId} FOR UPDATE`;
+      if (!row) throw new GovcnResumeCursorChangedError("GovCN source disappeared before freshness commit");
+      const latest = { ...source!, config: row.config, kind: row.kind, tier: row.tier, participation_mode: row.participation_mode, first_party: row.first_party };
+      if (govcnJsonResumeConfigHash(latest) !== cursor!.configHash) throw new GovcnResumeConfigChangedError("GovCN source config changed before freshness commit");
+      const persisted = row.cursor?.[GOVCN_JSON_RESUME_CURSOR_KEY];
+      if (!govcnResumeCursorMatches(persisted, cursor!)) {
+        throw new GovcnResumeCursorChangedError("GovCN resume cursor changed before freshness commit");
+      }
+      const persistedCursor = persisted as GovcnJsonResumeCursor;
+      if (persistedCursor.nextPage !== cursor!.nextPage || persistedCursor.state !== "active" && persistedCursor.state !== "blocked") {
+        throw new GovcnResumeCursorChangedError("GovCN resume cursor changed before freshness commit");
+      }
+      const stored = await saveGovcnResumeMaterials(tx, sourceId, rows.map((item) => ({ ...item, backfill: null })));
+      const now = new Date().toISOString();
+      const sourceCursor = { ...(row.cursor ?? {}), initializedAt: (row.cursor as Record<string, unknown> | null)?.initializedAt ?? now, lastOkAt: now };
+      const detail = govcnResumeRunDetail({
+        cursor, pollAnchorAt: runAt, pollCutoffAt: pollCutoff, continuationTarget, pagesFetched, pagesCommittedThisRun,
+        dispatchesUsed: budget!.dispatchesUsed(), maxDispatches: pagination!.maxDispatches,
+        detailTargetsUsed, maxDetailTargets: Number(source!.config.detail.maxFetches), pendingDetails, rowsUndated, rowsOutsideWindow, found: found + rawRows,
+        created: created + stored.created, revised: revised + stored.revised, stopReason, replayRefetched,
+      });
+      await tx`UPDATE sources SET last_fetch_at = now(), last_ok_at = now(), fail_count = 0, last_error = NULL, health = 'ok',
+        cursor = ${tx.json(sourceCursor as never)}, updated_at = now(), next_fetch_at = now() + make_interval(mins => interval_minutes) WHERE id = ${sourceId}`;
+      await tx`UPDATE fetch_runs SET found_count = found_count + ${rawRows}, new_count = new_count + ${stored.created},
+        detail = ${tx.json(detail as never)} WHERE id = ${runId}`;
+      return stored;
+    });
+    found += rawRows;
+    created += counts.created;
+    revised += counts.revised;
+    pollCommitted = true;
+  };
+  const commitHistoryPage = async (rows: GovcnResumeWorkItem[], rawRows: number, fingerprint: string, hashes: string[]) => {
+    if (!source || !cursor || !budget || runId === null) throw new GovcnResumeCursorChangedError("GovCN run disappeared before history commit");
+    const result = await withGovcnResumeTransaction(reserved, budget, async (tx) => {
+      const [row] = await tx<Array<{ config: Record<string, unknown>; kind: SourceRow["kind"]; tier: SourceRow["tier"]; participation_mode: SourceRow["participation_mode"]; first_party: boolean; cursor: Record<string, unknown> | null }>>`
+        SELECT config, kind, tier, participation_mode, first_party, cursor FROM sources WHERE id = ${sourceId} FOR UPDATE`;
+      if (!row) throw new GovcnResumeCursorChangedError("GovCN source disappeared before history commit");
+      const latest = { ...source!, config: row.config, kind: row.kind, tier: row.tier, participation_mode: row.participation_mode, first_party: row.first_party };
+      if (govcnJsonResumeConfigHash(latest) !== cursor!.configHash) throw new GovcnResumeConfigChangedError("GovCN source config changed before history commit");
+      const persisted = row.cursor?.[GOVCN_JSON_RESUME_CURSOR_KEY];
+      if (!govcnResumeCursorMatches(persisted, cursor!)) {
+        throw new GovcnResumeCursorChangedError("GovCN resume cursor changed before history commit");
+      }
+      const persistedCursor = persisted as GovcnJsonResumeCursor;
+      if (persistedCursor.nextPage !== continuationTarget || persistedCursor.state !== "active") throw new GovcnResumeCursorChangedError("GovCN resume cursor changed before history commit");
+      const stored = await saveGovcnResumeMaterials(tx, sourceId, rows);
+      const now = new Date().toISOString();
+      const nextPage = continuationTarget + 1;
+      const pageCap = continuationTarget >= GOVCN_JSON_RESUME_MAX_PAGE;
+      const updated: GovcnJsonResumeCursor = {
+        ...persistedCursor,
+        nextPage,
+        pagesCommitted: continuationTarget,
+        lastPageFingerprint: fingerprint,
+        lastPageIdentityHashes: hashes,
+        state: pageCap ? "blocked" : "active",
+        stopReason: pageCap ? "page_cap" : null,
+        updatedAt: now,
+      };
+      const sourceCursor = {
+        ...(row.cursor ?? {}),
+        initializedAt: (row.cursor as Record<string, unknown> | null)?.initializedAt ?? now,
+        lastOkAt: now,
+        [GOVCN_JSON_RESUME_CURSOR_KEY]: updated,
+      };
+      const detail = govcnResumeRunDetail({
+        cursor: updated, pollAnchorAt: runAt, pollCutoffAt: pollCutoff, continuationTarget, pagesFetched,
+        pagesCommittedThisRun: pagesCommittedThisRun + 1, dispatchesUsed: budget!.dispatchesUsed(), maxDispatches: pagination!.maxDispatches,
+        detailTargetsUsed, maxDetailTargets: Number(source!.config.detail.maxFetches), pendingDetails, rowsUndated, rowsOutsideWindow, found: found + rawRows,
+        created: created + stored.created, revised: revised + stored.revised,
+        stopReason: pageCap ? "page_cap" : "max_pages_per_run", replayRefetched,
+      });
+      await tx`UPDATE sources SET last_fetch_at = now(), last_ok_at = now(), fail_count = 0, last_error = NULL, health = 'ok',
+        cursor = ${tx.json(sourceCursor as never)}, updated_at = now(), next_fetch_at = now() + make_interval(mins => interval_minutes) WHERE id = ${sourceId}`;
+      await tx`UPDATE fetch_runs SET found_count = found_count + ${rawRows}, new_count = new_count + ${stored.created},
+        detail = ${tx.json(detail as never)} WHERE id = ${runId}`;
+      return { stored, updated };
+    });
+    cursor = result.updated;
+    stopReason = continuationTarget >= GOVCN_JSON_RESUME_MAX_PAGE ? "page_cap" : "max_pages_per_run";
+    found += rawRows;
+    created += result.stored.created;
+    revised += result.stored.revised;
+    pagesCommittedThisRun++;
+  };
+  const failPageCheck = async (reason: string, message: string): Promise<never> => {
+    stopReason = reason;
+    await updateBlocked("blocked", reason);
+    throw new GovcnResumePageBlockedError(reason, message);
+  };
+
+  try {
+    const [lock] = await reserved<{ locked: boolean }[]>`SELECT pg_try_advisory_lock(hashtext(${lockKey})) AS locked`;
+    locked = !!lock?.locked;
+    if (!locked) return { sourceId, status: "skipped", found: 0, created: 0, revised: 0, error: "concurrent_run" };
+    source = await govcnSourceUnderLock(reserved, sourceId);
+    if (!source) return { sourceId, status: "skipped", found: 0, created: 0, revised: 0, error: "missing" };
+    if (!source.enabled && !opts.force) return { sourceId, status: "skipped", found: 0, created: 0, revised: 0, error: "paused" };
+    const errors = unsupportedConfig(source.kind, source.config);
+    pagination = readGovcnJsonPagination(source.config);
+    const hasResumeCursor = Object.hasOwn(source.cursor ?? {}, GOVCN_JSON_RESUME_CURSOR_KEY);
+    const resumeConfigValid = isGovcnJsonResumeSource(source) && pagination?.mode === "govcn_query_resume_v1" && errors.length === 0;
+    if (!resumeConfigValid && !hasResumeCursor) {
+      return { sourceId, status: "failed", found: 0, created: 0, revised: 0, error: `unsupported GovCN resume config: ${errors.join(",")}` };
+    }
+    // Once a durable generation exists, changing/removing the opt-in mode must not fall through
+    // to the stateless collector and bypass its checkpoint. A temporary bounded budget is only
+    // used to time-limit the config_changed transaction; no request is admitted on this path.
+    pagination ??= { mode: "govcn_query_resume_v1", maxPagesPerRun: 2, maxDispatches: 7 };
+    budget = createGovcnJsonPaginationBudget(source, pagination);
+    const [run] = await reserved<{ id: number }[]>`INSERT INTO fetch_runs (source_id) VALUES (${sourceId}) RETURNING id`;
+    runId = run!.id;
+    continuationTarget = 1;
+
+    const storedCursor = source.cursor?.[GOVCN_JSON_RESUME_CURSOR_KEY] as unknown;
+    if (!resumeConfigValid) {
+      if (!isGovcnJsonResumeCursor(storedCursor, runAt)) throw new Error("invalid GovCN resume cursor after source config change; explicit review required");
+      cursor = storedCursor;
+      await updateBlocked("config_changed", "config_changed");
+      stopReason = "config_changed";
+      await finishRun("failed", "GovCN resume config changed; explicit review required");
+      return { sourceId, status: "failed", found, created, revised, error: "config_changed" };
+    }
+    if (storedCursor === undefined) {
+      const initial = newGovcnJsonResumeCursor(source, runAt);
+      await withGovcnResumeTransaction(reserved, budget, async (tx) => {
+      const [row] = await tx<Array<{ config: Record<string, unknown>; kind: SourceRow["kind"]; tier: SourceRow["tier"]; participation_mode: SourceRow["participation_mode"]; first_party: boolean; cursor: Record<string, unknown> | null }>>`
+        SELECT config, kind, tier, participation_mode, first_party, cursor FROM sources WHERE id = ${sourceId} FOR UPDATE`;
+        if (!row) throw new GovcnResumeCursorChangedError("GovCN source disappeared during generation initialization");
+        const latest = { ...source!, config: row.config, kind: row.kind, tier: row.tier, participation_mode: row.participation_mode, first_party: row.first_party };
+        if (govcnJsonResumeConfigHash(latest) !== initial.configHash || Object.hasOwn(row.cursor ?? {}, GOVCN_JSON_RESUME_CURSOR_KEY)) {
+          throw new GovcnResumeConfigChangedError("GovCN source config or cursor changed during generation initialization");
+        }
+        const merged = { ...(row.cursor ?? {}), [GOVCN_JSON_RESUME_CURSOR_KEY]: initial };
+        await tx`UPDATE sources SET cursor = ${tx.json(merged as never)}, updated_at = now() WHERE id = ${sourceId}`;
+      });
+      const [reloaded] = await withGovcnResumeTransaction(reserved, budget, (tx) => tx<SourceRow[]>`
+        SELECT id, name, kind, config, tier, participation_mode, first_party, interval_minutes, enabled, cursor, fail_count
+        FROM sources WHERE id = ${sourceId}`);
+      source = reloaded ?? null;
+      cursor = initial;
+    } else {
+      if (!isGovcnJsonResumeCursor(storedCursor, runAt)) throw new Error("invalid GovCN resume cursor; explicit review required");
+      cursor = storedCursor;
+      if (cursor.configHash !== govcnJsonResumeConfigHash(source)) {
+        await updateBlocked("config_changed", "config_changed");
+        throw new GovcnResumeConfigChangedError("GovCN resume config changed; explicit review required");
+      }
+      blockedFreshnessOnly = cursor.state === "blocked" && ["empty_page", "repeated_page", "no_new_identity", "page_cap"].includes(cursor.stopReason ?? "");
+      if (cursor.state !== "active" && !blockedFreshnessOnly) throw new Error(`GovCN resume generation is ${cursor.state}; explicit review required`);
+    }
+    if (!cursor) throw new GovcnResumeCursorChangedError("GovCN resume cursor initialization failed");
+    continuationTarget = cursor.nextPage;
+    if (cursor.nextPage > GOVCN_JSON_RESUME_MAX_PAGE && !blockedFreshnessOnly) {
+      await updateBlocked("blocked", "page_cap");
+      stopReason = "page_cap";
+      await finishRun("failed", "GovCN history page cap reached; explicit review required");
+      return { sourceId, status: "failed", found, created, revised, error: "page_cap" };
+    }
+    budget.setListPages(blockedFreshnessOnly ? [1] : continuationTarget === 1 ? [1, 2] : [1, continuationTarget]);
+    replayRefetched = cursor.pagesCommitted > 0;
+    stopReason = "max_pages_per_run";
+
+    await assertCurrent(continuationTarget, blockedFreshnessOnly);
+    budget.setPage(1);
+    const pollResult = await fetchGovcnJsonPage(source!, 1, {
+      runBudget: budget.runBudget, timeoutMs: Math.min(25_000, budget.remainingMs()), assertActive: budget.assertActive,
+    });
+    budget.pageFetched();
+    pagesFetched++;
+    pollRawRows = pollResult.rawRowCount;
+    const currentRows = selectWindow(pollResult.candidates, budget.anchorAt, budget.cutoffAt, null);
+    pollWork = currentRows;
+    found += 0;
+
+    if (blockedFreshnessOnly) {
+      await enrichDetails(currentRows);
+      stopReason = cursor.stopReason ?? "blocked";
+      await commitFreshPoll(currentRows, pollRawRows);
+      await finishRun("ok");
+      return { sourceId, status: "ok", found, created, revised };
+    }
+
+    const historyAnchor = new Date(cursor.anchorAt);
+    const historyCutoff = new Date(cursor.cutoffAt);
+    if (continuationTarget === 1) {
+      // Commit the first observation before requesting p2. Items in both windows are one
+      // material and carry the generation's first-import semantics.
+      const firstPageIdentity = govcnMappedPageIdentities(sourceId, pollResult.candidates);
+      if (pollResult.rawRowCount === 0 || firstPageIdentity.hashes.length === 0) return await failPageCheck("empty_page", "GovCN first history page was empty");
+      const pageOneHistoryRows = selectWindow(pollResult.candidates, historyAnchor, historyCutoff, "first-import");
+      const combinedByIdentity = new Map<string, GovcnResumeWorkItem>();
+      for (const item of currentRows) combinedByIdentity.set(identityKeyFor({ ...item.candidate, sourceId, via: "fetch" }), item);
+      for (const item of pageOneHistoryRows) {
+        const key = identityKeyFor({ ...item.candidate, sourceId, via: "fetch" });
+        const existing = combinedByIdentity.get(key);
+        if (existing) existing.backfill = "first-import";
+        else combinedByIdentity.set(key, item);
+      }
+      const firstPageRows = [...combinedByIdentity.values()];
+      const firstPageUrls = [...new Set(firstPageRows.map(({ candidate }) => candidate.url))];
+      const preexisting = firstPageUrls.length ? await withGovcnResumeTransaction(reserved, budget, (tx) =>
+        tx<{ url: string }[]>`SELECT url FROM articles WHERE url IN ${tx(firstPageUrls)}`) : [];
+      const firstRunDetailUrls = new Set(firstPageRows.filter(({ candidate }) => !preexisting.some((row) => row.url === candidate.url))
+        .map(({ candidate }) => candidate.url));
+      pendingDetails = firstPageRows.filter(({ candidate }) => candidate.bodyStatus !== "ok" || !candidate.bodyText?.trim()).length;
+      budget.setPendingDetails(pendingDetails);
+      await commitHistoryPage(firstPageRows, pollRawRows, firstPageIdentity.fingerprint, firstPageIdentity.hashes);
+      pollCommitted = true;
+
+      // The p1 commit advances the durable cursor to p2. Dispatch p2 before spending the
+      // remaining time on details so detail latency cannot starve history continuation.
+      continuationTarget = cursor!.nextPage;
+      await assertCurrent(continuationTarget);
+      budget.setPage(continuationTarget);
+      const secondPage = await fetchGovcnJsonPage(source!, continuationTarget, {
+        runBudget: budget.runBudget, timeoutMs: Math.min(25_000, budget.remainingMs()), assertActive: budget.assertActive,
+      });
+      budget.pageFetched();
+      pagesFetched++;
+      const pageIdentity = govcnMappedPageIdentities(sourceId, secondPage.candidates);
+      if (secondPage.rawRowCount === 0 || pageIdentity.hashes.length === 0) return await failPageCheck("empty_page", "GovCN continuation page was empty");
+      if (cursor!.lastPageFingerprint === pageIdentity.fingerprint) return await failPageCheck("repeated_page", "GovCN continuation repeated the prior page identity fingerprint");
+      const prior = new Set(cursor!.lastPageIdentityHashes ?? []);
+      if (prior.size > 0 && !pageIdentity.hashes.some((hash) => !prior.has(hash))) {
+        return await failPageCheck("no_new_identity", "GovCN continuation page has no identity beyond the prior committed page");
+      }
+      const pageTwoHistoryRows = selectWindow(secondPage.candidates, historyAnchor, historyCutoff, "first-import");
+      const currentKeys = new Set(firstPageRows.map(({ candidate }) => identityKeyFor({ ...candidate, sourceId, via: "fetch" })));
+      const historyUniqueRows = pageTwoHistoryRows.filter(({ candidate }) => !currentKeys.has(identityKeyFor({ ...candidate, sourceId, via: "fetch" })));
+      const pageTwoRows = [...firstPageRows, ...historyUniqueRows];
+      await enrichDetails(pageTwoRows, firstRunDetailUrls);
+      // Any p1 detail enrichment is re-upserted atomically with p2, while the p1 material and
+      // checkpoint remain safe if p2 itself fails.
+      await commitHistoryPage(pageTwoRows, secondPage.rawRowCount, pageIdentity.fingerprint, pageIdentity.hashes);
+    } else {
+      await assertCurrent(continuationTarget);
+      budget.setPage(continuationTarget);
+      const historyResult = await fetchGovcnJsonPage(source!, continuationTarget, {
+        runBudget: budget.runBudget, timeoutMs: Math.min(25_000, budget.remainingMs()), assertActive: budget.assertActive,
+      });
+      budget.pageFetched();
+      pagesFetched++;
+      const pageIdentity = govcnMappedPageIdentities(sourceId, historyResult.candidates);
+      if (historyResult.rawRowCount === 0 || pageIdentity.hashes.length === 0) return await failPageCheck("empty_page", "GovCN continuation page was empty");
+      if (cursor.lastPageFingerprint === pageIdentity.fingerprint) return await failPageCheck("repeated_page", "GovCN continuation repeated the prior page identity fingerprint");
+      const prior = new Set(cursor.lastPageIdentityHashes ?? []);
+      if (prior.size > 0 && !pageIdentity.hashes.some((hash) => !prior.has(hash))) {
+        return await failPageCheck("no_new_identity", "GovCN continuation page has no identity beyond the prior committed page");
+      }
+      const historyRows = selectWindow(historyResult.candidates, historyAnchor, historyCutoff, "first-import");
+      const currentKeys = new Set(currentRows.map(({ candidate }) => identityKeyFor({ ...candidate, sourceId, via: "fetch" })));
+      const historyUniqueRows = historyRows.filter(({ candidate }) => !currentKeys.has(identityKeyFor({ ...candidate, sourceId, via: "fetch" })));
+      const combined = [...currentRows, ...historyUniqueRows];
+      await enrichDetails(combined);
+      // Current-window discoveries remain committed even if a later history page cannot advance.
+      await commitFreshPoll(currentRows, pollRawRows);
+      await commitHistoryPage(historyUniqueRows, historyResult.rawRowCount, pageIdentity.fingerprint, pageIdentity.hashes);
+    }
+    if (cursor.nextPage > GOVCN_JSON_RESUME_MAX_PAGE || cursor.state === "blocked") stopReason = "page_cap";
+    else stopReason = "max_pages_per_run";
+    await finishRun("ok");
+    return { sourceId, status: "ok", found, created, revised };
+  } catch (error) {
+    const message = String(error instanceof Error ? error.message : error).slice(0, 1000);
+    stopReason = error instanceof GovcnResumePageBlockedError ? error.reason : error instanceof GovcnResumeConfigChangedError ? "config_changed" : error instanceof GovcnResumeCursorChangedError ? "cursor_changed" :
+      error instanceof Error && /deadline|timeout|aborted/i.test(error.message) ? "timeout" : "run_failed";
+    if (error instanceof GovcnResumeConfigChangedError && cursor) {
+      try { await updateBlocked("config_changed", "config_changed"); } catch { /* retain original run error */ }
+    }
+    // If p1 was fetched but its continuation failed, preserve rolling-window discoveries without
+    // changing the generation cursor. They remain pending for the ordinary extraction path.
+    if (cursor && budget && continuationTarget > 1 && !pollCommitted && pollWork.length) {
+      try { await commitFreshPoll(pollWork, pollRawRows); } catch { /* no cursor advancement; next run replays safely */ }
+    }
+    if (runId !== null) await failHealth(error);
+    return { sourceId, status: runId === null ? "skipped" : "failed", found, created, revised, error: message };
+  } finally {
+    budget?.dispose();
+    if (locked) {
+      try { await reserved`SELECT pg_advisory_unlock(hashtext(${lockKey}))`; } catch { /* release also drops session lock */ }
+    }
+    reserved.release();
+  }
+}
+
 export async function collectSource(sourceId: string, opts: { force?: boolean } = {}): Promise<CollectResult> {
   const source = await loadSource(sourceId);
   if (!source) return { sourceId, status: "skipped", found: 0, created: 0, revised: 0, error: "missing" };
   if (!source.enabled && !opts.force) return { sourceId, status: "skipped", found: 0, created: 0, revised: 0, error: "paused" };
+  if (isGovcnJsonResumeSource(source) || Object.hasOwn(source.cursor ?? {}, GOVCN_JSON_RESUME_CURSOR_KEY)) {
+    return collectGovcnJsonResume(sourceId, opts);
+  }
   if (usesWebListPagination(source)) {
     return collectWebListBackfill(sourceId, {
       force: opts.force,

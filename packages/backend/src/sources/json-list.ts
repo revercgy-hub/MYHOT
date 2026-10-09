@@ -182,11 +182,13 @@ function govcnPageUrl(source: SourceRow, page: number): string {
   const p = source.config.pagination;
   const c = source.config;
   const detail = c.detail;
+  const resume = p?.mode === "govcn_query_resume_v1" && p.maxPagesPerRun === 2 && Number.isSafeInteger(p.maxDispatches) && p.maxDispatches >= 2 && p.maxDispatches <= 12;
+  const stateless = p?.mode === "govcn_query_v1" && Number.isSafeInteger(p.maxPagesPerRun) && p.maxPagesPerRun >= 1 && p.maxPagesPerRun <= 2 &&
+    Number.isSafeInteger(p.maxDispatches) && p.maxDispatches >= 1 && p.maxDispatches <= 12;
+  const maxPage = resume ? 200 : stateless ? p.maxPagesPerRun : 0;
   const configKeys = ["url", "itemsPath", "titlePaths", "summaryPaths", "summaryIsBody", "publishedAtPath", "publishedAtUnit", "publishedAtUtcOffset", "externalIdPath", "urlTemplate", "allowUrlPrefixes", "detail", "_aihot", "pagination"];
-  if (source.id !== "govcn-policy-library" || source.kind !== "json_list" || page < 1 || page > 2 || !Number.isSafeInteger(page) ||
-      source.config.url !== GOVCN_LIST_URL || p?.mode !== "govcn_query_v1" || Object.keys(p).length !== 3 ||
-      !Number.isSafeInteger(p.maxPagesPerRun) || p.maxPagesPerRun < page || p.maxPagesPerRun > 2 ||
-      !Number.isSafeInteger(p.maxDispatches) || p.maxDispatches < 1 || p.maxDispatches > 12 ||
+  if (source.id !== "govcn-policy-library" || source.kind !== "json_list" || page < 1 || page > maxPage || !Number.isSafeInteger(page) ||
+      source.config.url !== GOVCN_LIST_URL || !(resume || stateless) || Object.keys(p).length !== 3 ||
       Object.keys(c).some((key) => !configKeys.includes(key)) ||
       c.itemsPath !== "searchVO.catMap.bumenfile.listVO" || JSON.stringify(c.titlePaths) !== JSON.stringify(["title"]) ||
       JSON.stringify(c.summaryPaths) !== JSON.stringify(["summary"]) || c.summaryIsBody !== false || c.publishedAtPath !== "pubtime" ||
@@ -213,7 +215,13 @@ export async function fetchGovcnJsonPage(source: SourceRow, page: number, option
 
 export async function fetchJsonList(source: SourceRow, options: JsonListFetchOptions = {}): Promise<Candidate[]> {
   if (Object.hasOwn(source.config ?? {}, "pagination")) {
-    if (source.config.pagination?.mode !== "govcn_query_v1") throw new FetchError("unsupported JSON pagination mode");
+    const pagination = source.config.pagination;
+    if (!pagination || typeof pagination !== "object" || Array.isArray(pagination) ||
+        !((pagination.mode === "govcn_query_v1" && Number.isSafeInteger(pagination.maxPagesPerRun) && pagination.maxPagesPerRun >= 1 && pagination.maxPagesPerRun <= 2 &&
+            Number.isSafeInteger(pagination.maxDispatches) && pagination.maxDispatches >= 1 && pagination.maxDispatches <= 12) ||
+          (pagination.mode === "govcn_query_resume_v1" && pagination.maxPagesPerRun === 2 && Number.isSafeInteger(pagination.maxDispatches) && pagination.maxDispatches >= 2 && pagination.maxDispatches <= 12))) {
+      throw new FetchError("unsupported JSON pagination mode");
+    }
     return (await fetchGovcnJsonPage(source, 1, options)).candidates;
   }
   return (await fetchJsonListPageInternal(source, options)).candidates;
