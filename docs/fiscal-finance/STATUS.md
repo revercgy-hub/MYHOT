@@ -1,23 +1,24 @@
 # 项目状态
 
-## 2026-10-09 当前权威状态：浙江full QA与精确SHA CI通过
+## 2026-10-09 当前权威状态：Gold review packet质量交接完成
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=6668c70da306473977eb55c3b6073be3d5fd535f（source/config commit；local full QA与唯一精确SHA Check run均通过）
-RECOVERY_SHA=2cb5610ed16098d104821173632fa68066ebcde6（本轮恢复起点；恢复时工作树clean）
+CURRENT_SHA=2664e1fa817d9f1242fc9b227d3bbcde6b1b8d66（本阶段软件QA/CI对应的packet exporter tested-code SHA）
+RECOVERY_SHA=2156dd23b0180cd1ee821d45658b1a87c4bf03b9（本轮实际恢复起点；当时工作树clean）
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c（项目基线；不是本轮测试SHA）
-WORKSPACE=D:\AI-work\MYHOT\AIHOT；本轮最终更新六份状态/范围文档
-STAGE=GovCN durable continuation保留为已完成基线；P4预算漂移focused验证完成，浙江冻结配置fresh full QA与精确SHA CI通过
+WORKSPACE=D:\AI-work\MYHOT\AIHOT；本轮更新本状态、连续P3 handoff、P5 readiness和SOURCE_MATRIX
+STAGE=浙江分页配置QA与精确SHA CI已完成；单条page-2日期疑点的获批详情GET已核验；Gold packet v3通过focused/fresh full QA及精确SHA Check+Docker
 GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`仅限原三source固定小样；本轮未改变Gate，不代表全部source准入
-REVIEW=浙江 `mof-zhejiang-supervision-dynamics` 最小分页范围由Sol裁定 `APPROVED_SCOPE`，配置已按范围冻结；source仍disabled、fulltext严格关闭，不授权collector/新HTTP/DB/worker/model/付费运行
+REVIEW=浙江 `mof-zhejiang-supervision-dynamics` 最小分页范围由Sol裁定 `APPROVED_SCOPE`，配置已按范围冻结；单条详情核验完成且未扩大到其他疑点；source仍disabled、fulltext严格关闭，不授权collector/额外HTTP/DB/worker/model/付费运行
 BLOCKERS=付费provider执行按用户决定deferred；source分页/90日覆盖与Gold人工标签仍未完成
-COMPLETED=预算静态20-cap与第9次attempt动态上调case在fresh隔离库验证通过；浙江候选已完成有限保存响应offline audit与单次page 2观察，但未证明source质量/覆盖
-IN_PROGRESS=本轮本地QA与精确SHA CI均已完成；下一项免费来源覆盖工作尚未启动。source仍disabled，collector未运行，local smoke未运行。
-NEXT=继续免费来源证据覆盖、逐篇日期与正文核验及Gold样本准备；任何新增HTTP仍按原核准范围执行。预算standalone通过结果不借入本次full QA且不重跑。RECOVERY_SHA `2cb5610`、P4测试SHA `e97b02b`、当前source/runtime SHA `6668c70`及续页历史runtime SHA `15e3464`分列
-LATEST_TESTED_CODE_SHA=6668c70da306473977eb55c3b6073be3d5fd535f（fresh full local QA通过；精确SHA Check+Docker run 37935221740通过）
+COMPLETED=预算静态20-cap与第9次attempt动态上调case在fresh隔离库验证通过；单条page-2 URL日期疑点已由获批详情GET确认其PubDate与列表同为8月11日，但不推断来源级规则；Gold packet v3含人工确认字段、复用validator、独占防覆盖输出且不显示proposal内容，focused6/6、typecheck及fresh full QA 357/357通过
+IN_PROGRESS=本轮软件QA与精确SHA CI均已完成；后续免费来源事实/正文质量核验与人工Gold标注仍待开展。8条humanAnnotation仍null/needs_review；source仍disabled，collector未运行，local smoke未运行。
+NEXT=继续免费来源事实/正文质量核验，保持剩余日期疑点为unknown；由目标读者确认Gold每条decision、event group、split与annotator。source与Gold后续工作不由本次P5 exporter/单条详情样本视为完成。预算standalone结果不借入浙江full QA且不重跑。恢复SHA `2156dd2`、当前HEAD `2664e1f`、runtime/source SHA `6668c70`、P4测试SHA `e97b02b`及续页历史runtime SHA `15e3464`分列
+LATEST_TESTED_CODE_SHA=2664e1fa817d9f1242fc9b227d3bbcde6b1b8d66（fresh full local QA backend357/357、0 skip；typecheck/Web build/Web15/15通过；Check+Docker run 37942455582 exact headSha success）
 LATEST_TESTED_RUNTIME_SHA=6668c70da306473977eb55c3b6073be3d5fd535f（含当前Zhejiang source config；packages runtime实现未变）
-LATEST_GREEN_CI=37935221740（Check+Docker均success；headSha精确为6668c70da306473977eb55c3b6073be3d5fd535f）
-CURRENT_CI=37935221740（completed/success；Check job 113835474656、Docker job 113835474297均success，headSha精确匹配）
+LATEST_GREEN_CI=37942455582（Check+Docker均success；headSha精确为2664e1fa817d9f1242fc9b227d3bbcde6b1b8d66）
+CURRENT_CI=37942455582（completed/success；Check job 113860048428、Docker job 113860048000均success，headSha精确匹配）
+P5_PACKET_FINAL_QA=2664e1fa817d9f1242fc9b227d3bbcde6b1b8d66（fresh DB `gold_packet_qa_corrected_20261009_test`，35 migrations；backend 357/357、0 skip，typecheck、Web build、Web tests 15/15 PASS；fake-only paths，外部模型调用和source body extraction均0）
 LATEST_TESTED_TEST_ONLY_SHA=e97b02bd303116c739caeb983c00e9ba2ff7b49c（P4 budget upward-drift standalone fresh integration 1/1及typecheck通过；budget结果不借入浙江full QA）
 ZHEJIANG_FOCUSED_QA_WORKTREE_BASE=e97b02bd303116c739caeb983c00e9ba2ff7b49c（浙江冻结config/fixture工作树：typecheck与focused offline 29/29通过）
 ZHEJIANG_FINAL_QA=6668c70da306473977eb55c3b6073be3d5fd535f（fresh DB `fiscalhot_zhejiang_finalqa_20261009_test`、35 migrations/61 tables；backend 351/351、typecheck、Web build、Web tests 15/15、浙江focus 5/5 PASS；P4 opt-in unset）

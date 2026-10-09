@@ -69,3 +69,19 @@ node scripts/fiscal/gold-dataset.ts validate docs/fiscal-finance/gold/metadata-t
 **BLOCKERS**：缺少指定人工标注者及其标签、事件group和split确认；还需经单独授权整理出正文齐全的现有Gold JSONL格式，后续才可评测。
 
 **NEXT**：Root/QA只读审查本工具和候选证据；由目标读者逐条确认当前8条是否作为样本及标签/group/split；再按用户认可的分层增补到足以支撑有意义评估的规模。所有pending labels清零并复核事件组泄漏前，不运行模型评测、校准或门槛修改。Gate 2未通过前本报告仅限P5安全准备，不开启P4生产模型或任何worker。
+
+## 2026-10-09 Gold人工审阅packet导出准备
+
+经Root单独授权，为既有8条metadata draft增加了一个离线Markdown packet导出器：`scripts/fiscal/gold-review-packet.ts`，测试在`tests/fiscal-gold-review-packet.test.ts`。冻结版V3代码提交为`2664e1fa817d9f1242fc9b227d3bbcde6b1b8d66`，已推送。实现由并行actor完成；本阶段调度metadata为GPT-6 Luna / high，未调用项目provider或读取正文。V3 ignored preview为`.data/fiscal-qa/p5-gold-review-packet-20261009-v3.md`。
+
+packet列出标题、来源ID/类型、来源材料名、发布日期、文章ID或诊断ID、HTTP(S)原文链接、正文状态及已有hash；不会打开正文引用或复制正文，也不写回metadata。V3添加了与validator合同对应的`humanAnnotation.confirmedBy`和`confirmedAt`人工填写项。它还留空Gold decision（`select`/`reject`/`either`）、标注理由、event group确认/修订、development/holdout确认。V2曾显示proposal decision/rationale；冻结版V3保留input metadata中的proposal，但不显示其具体内容以减少锚定。缺正文候选继续保持不可评测状态。
+
+独立owner报告冻结版V3专测6/6、`npm run typecheck`和`git diff --check`均通过；本报告owner没有重跑这些检查。V3复用validator、补全`confirmedBy`/`confirmedAt`人工输入，输出通过`wx`独占新建避免覆盖；测试临时目录位于`os.tmpdir()`且匹配专用前缀后才递归清理。V3不显示proposal decision/rationale，输入metadata保持不变。独立fresh full QA在`gold_packet_qa_corrected_20261009_test`完成35 migrations，backend 357/357、0 skip、exit 0；typecheck、Web build、Web tests 15/15通过。该轮preflight限定fake provider路径、无真实凭据/endpoint/proxy，P4 opt-in unset、副作用开关关闭；外部模型调用和source body extraction均0。首轮错误配置`MODEL_CALLS_ENABLED=false`导致25个model-disabled fixture failures；这是runner配置无效轮，保留原记录，不作产品失败。复用失败DB的中断轮输出不完整，日志被corrected同名输出覆盖，明确记录该历史缺口。单次GitHub Check run [37942455582](https://github.com/revercgy-hub/MYHOT/actions/runs/37942455582)对精确SHA `2664e1fa817d9f1242fc9b227d3bbcde6b1b8d66`成功，Check和Docker均pass；文档仍未包含在该CI中。8条`humanAnnotation`仍全部`decision=null/status=needs_review`；packet没有确认任何标签、事件组或split。因此P5仍`NOT_STARTED`，实际评测与校准仍`NOT_RUN`，Gate 3未通过，样本规模/覆盖不足的问题不变。任何标签或分组确认必须来自人工；不得从proposal推导Gold。
+
+**MODEL**：GPT-6 Luna / high（按Root确认的spawn metadata记录）；未调用项目provider。
+
+**FILES**：并行实现owner新增`gold-review-packet.ts`和`fiscal-gold-review-packet.test.ts`，提交`2664e1fa817d9f1242fc9b227d3bbcde6b1b8d66`已推送，并创建ignored V3 preview；本报告仅记录，不更改其文件。
+
+**BLOCKERS**：仍需目标读者逐条确认8个候选是否纳入及decision、event group与split。此packet只是可填写的审阅材料，不扩充样本、不完成标注、不触发Gold JSONL assembly或模型评测。
+
+**NEXT**：由目标读者确认8个候选的decision、event group、split、`confirmedBy`和`confirmedAt`；再依据认可分层补充样本。Gate 3评估、校准和门槛调整仍需另行授权，阈值保持不变。
