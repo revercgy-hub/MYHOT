@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
+import { requiresBodyReadinessHold } from "@aihot/backend/content/body-readiness";
 import { extractSelectedArticleEnvelope, extractSelectedBody } from "@aihot/backend/content/selected-body";
 import { unsupportedConfig } from "@aihot/backend/sources/config-keys";
 
@@ -95,4 +97,39 @@ test("PDF source config fields are explicit, paired, and require HTTPS source pr
   assert.deepEqual(unsupportedConfig("rss", { allowUrlPrefixes: ["https://official.example/"], detail: envelopeConfig }), ["PDF body config is only supported by web_list"]);
   assert.deepEqual(unsupportedConfig("web_list", { detail: { articleSelector: ".article" } }), ["detail.articleSelector requires detail.bodySelector and detail.attachmentSelector"]);
   assert.deepEqual(unsupportedConfig("web_list", { allowUrlPrefixes: ["https://official.example/"], detail: { pdfDirect: true, bodySelector: ".body" } }), ["detail.pdfDirect cannot be combined with HTML selectors"]);
+});
+
+test("Xiamen debt config verifies saved title/date identity while keeping its PDF body pending", () => {
+  const entry = (JSON.parse(readFileSync(new globalThis.URL("../industry/sources.json", import.meta.url), "utf8")) as {
+    sources: Array<{ id: string; kind: string; enabled: boolean; site_fulltext: boolean; syndicate_fulltext: boolean; config: Record<string, any> }>;
+  }).sources.find((source) => source.id === "xiamen-finance-debt");
+  assert.ok(entry);
+  assert.equal(entry.enabled, false);
+  assert.equal(entry.site_fulltext, false);
+  assert.equal(entry.syndicate_fulltext, false);
+  assert.equal(entry.kind, "web_list");
+  assert.deepEqual(unsupportedConfig("web_list", entry.config), []);
+
+  // This compact fixture copies the identity/body/attachment structure from the saved official
+  // detail response; the source remains strict because its short notice has an unprocessed PDF.
+  const url = "https://cz.xm.gov.cn/zwxx/czsj/dfzxx/202609/t20260911_3016829.htm";
+  const title = "2026年厦门市政府专项债券（十六期）招标结果公告";
+  const fixture = `<div class="article_component">
+    <div class="article_title_group"><div class="article_title text_align_center" id="font_title">${title}</div></div>
+    <span class="article_time">时间：2026-09-11 16:02</span>
+    <div class="article_area"><div class="article_content_01"><div class="TRS_Editor"><div class="Custom_UnionStyle"><p>　　${title}。</p></div></div></div></div>
+    <div class="article_attachment"><a href="./P020260911578215495483.pdf" title="2026年厦门市政府专项债券(十六期)招标结果公告.pdf">2026年厦门市政府专项债券(十六期)招标结果公告.pdf</a></div>
+  </div>`;
+  const result = extractSelectedBody(fixture, url, {
+    ...entry.config.detail,
+    publishedAtUtcOffset: entry.config.publishedAtUtcOffset,
+  }, { title, publishedAt: new Date("2026-09-11T00:00:00.000Z") });
+
+  assert.equal(result.reason, "attachments_unprocessed");
+  assert.equal(result.body, null);
+  assert.deepEqual(result.attachments, [{
+    url: "https://cz.xm.gov.cn/zwxx/czsj/dfzxx/202609/P020260911578215495483.pdf",
+    title: "2026年厦门市政府专项债券(十六期)招标结果公告.pdf",
+  }]);
+  assert.equal(requiresBodyReadinessHold(entry.config, "unconfirmed", null), true);
 });
