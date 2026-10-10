@@ -65,7 +65,9 @@
           "bodySelector": ".Custom_UnionStyle",
           "titleRegex": "<div class=\"article_title text_align_center\" id=\"font_title\">([^<]+)</div>",
           "publishedAtRegex": "<span class=\"article_time\">\\s*时间：([^<]+)</span>",
-          "attachmentScopeSelector": ".article_component"
+          "articleSelector": ".article_component",
+          "attachmentSelector": ".article_attachment",
+          "attachmentMode": "required"
         },
         "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true, "requireBodyReadyForAutomaticSelection": true }
       },

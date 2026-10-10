@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { requiresBodyReadinessHold } from "@aihot/backend/content/body-readiness";
 import { extractSelectedArticleEnvelope, extractSelectedBody } from "@aihot/backend/content/selected-body";
+import { extractConfiguredHtmlBody } from "@aihot/backend/content/pdf-body";
+import type { GuardedResponse } from "@aihot/backend/lib/http-fetch";
 import { unsupportedConfig } from "@aihot/backend/sources/config-keys";
 
 const URL = "https://www.pbc.gov.cn/notice.html";
@@ -16,6 +18,37 @@ const omo = (articleTitle = title, date = "2026-09-29") => `<html><head>
 
 const config = { bodySelector: "#zoom", allowShortBody: true };
 const expected = { title, publishedAt: expectedDate };
+
+function pdfFixture(lines: string[]): Buffer {
+  const stream = ["BT", "/F1 12 Tf", "50 760 Td", ...lines.flatMap((line, index) => [
+    index === 0 ? `(${line}) Tj` : `0 -18 Td (${line}) Tj`,
+  ]), "ET"].join("\n");
+  const streamBytes = Buffer.from(stream, "ascii");
+  const objects = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>",
+    `<< /Length ${streamBytes.length} >>\nstream\n${stream}\nendstream`,
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+  ];
+  const chunks = [Buffer.from("%PDF-1.4\n", "ascii")];
+  const offsets = [0];
+  let position = chunks[0]!.length;
+  for (let index = 0; index < objects.length; index++) {
+    offsets.push(position);
+    const chunk = Buffer.from(`${index + 1} 0 obj\n${objects[index]}\nendobj\n`, "ascii");
+    chunks.push(chunk);
+    position += chunk.length;
+  }
+  const xref = `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.slice(1).map((offset) => `${String(offset).padStart(10, "0")} 00000 n \n`).join("")}trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${position}\n%%EOF\n`;
+  chunks.push(Buffer.from(xref, "ascii"));
+  return Buffer.concat(chunks);
+}
+
+function pdfResponse(url: string, body: Buffer): GuardedResponse {
+  const headers = new Headers({ "content-type": "application/pdf" });
+  return { url, status: 200, headers, body, text: () => body.toString("utf8") };
+}
 
 test("verified short structured bodies preserve table columns, empty cells, and units", () => {
   const result = extractSelectedBody(omo(), URL, config, expected);
@@ -99,7 +132,7 @@ test("PDF source config fields are explicit, paired, and require HTTPS source pr
   assert.deepEqual(unsupportedConfig("web_list", { allowUrlPrefixes: ["https://official.example/"], detail: { pdfDirect: true, bodySelector: ".body" } }), ["detail.pdfDirect cannot be combined with HTML selectors"]);
 });
 
-test("Xiamen debt config verifies saved title/date identity while keeping its PDF body pending", () => {
+test("Xiamen debt config sends its required article PDF through the shared text extractor", async () => {
   const entry = (JSON.parse(readFileSync(new globalThis.URL("../industry/sources.json", import.meta.url), "utf8")) as {
     sources: Array<{ id: string; kind: string; enabled: boolean; site_fulltext: boolean; syndicate_fulltext: boolean; config: Record<string, any> }>;
   }).sources.find((source) => source.id === "xiamen-finance-debt");
@@ -109,27 +142,46 @@ test("Xiamen debt config verifies saved title/date identity while keeping its PD
   assert.equal(entry.syndicate_fulltext, false);
   assert.equal(entry.kind, "web_list");
   assert.deepEqual(unsupportedConfig("web_list", entry.config), []);
+  assert.deepEqual(entry.config.allowUrlPrefixes, ["https://cz.xm.gov.cn/zwxx/czsj/dfzxx/"]);
+  assert.deepEqual(entry.config.detail, {
+    bodySelector: ".Custom_UnionStyle",
+    titleRegex: "<div class=\"article_title text_align_center\" id=\"font_title\">([^<]+)</div>",
+    publishedAtRegex: "<span class=\"article_time\">\\s*时间：([^<]+)</span>",
+    articleSelector: ".article_component",
+    attachmentSelector: ".article_attachment",
+    attachmentMode: "required",
+  });
 
-  // This compact fixture copies the identity/body/attachment structure from the saved official
-  // detail response; the source remains strict because its short notice has an unprocessed PDF.
+  // This fixture copies the identity/body/attachment structure from the saved official detail.
   const url = "https://cz.xm.gov.cn/zwxx/czsj/dfzxx/202609/t20260911_3016829.htm";
   const title = "2026年厦门市政府专项债券（十六期）招标结果公告";
   const fixture = `<div class="article_component">
     <div class="article_title_group"><div class="article_title text_align_center" id="font_title">${title}</div></div>
     <span class="article_time">时间：2026-09-11 16:02</span>
     <div class="article_area"><div class="article_content_01"><div class="TRS_Editor"><div class="Custom_UnionStyle"><p>　　${title}。</p></div></div></div></div>
-    <div class="article_attachment"><a href="./P020260911578215495483.pdf" title="2026年厦门市政府专项债券(十六期)招标结果公告.pdf">2026年厦门市政府专项债券(十六期)招标结果公告.pdf</a></div>
+    <div class="article_attachment"><div class="title_base">附件下载</div><div class="list_base list_base_date_02"><ul><li><a href="./P020260911578215495483.pdf" title="2026年厦门市政府专项债券(十六期)招标结果公告.pdf">2026年厦门市政府专项债券(十六期)招标结果公告.pdf</a></li></ul></div></div>
   </div>`;
-  const result = extractSelectedBody(fixture, url, {
+  const expectedArticle = { title, publishedAt: new Date("2026-09-11T00:00:00.000Z") };
+  const fetcher = async (pdfUrl: string) => pdfResponse(pdfUrl, pdfFixture(["TENDER RESULT", "ISSUE XVI", "TOTAL 100"]));
+  const result = await extractConfiguredHtmlBody(fixture, url, {
     ...entry.config.detail,
     publishedAtUtcOffset: entry.config.publishedAtUtcOffset,
-  }, { title, publishedAt: new Date("2026-09-11T00:00:00.000Z") });
+  }, expectedArticle, entry.config.allowUrlPrefixes, fetcher);
 
-  assert.equal(result.reason, "attachments_unprocessed");
-  assert.equal(result.body, null);
-  assert.deepEqual(result.attachments, [{
-    url: "https://cz.xm.gov.cn/zwxx/czsj/dfzxx/202609/P020260911578215495483.pdf",
-    title: "2026年厦门市政府专项债券(十六期)招标结果公告.pdf",
-  }]);
+  assert.equal(result.reason, null);
+  assert.match(result.body!.text, /HTML 通知正文/);
+  assert.match(result.body!.text, /PDF 原文/);
+  assert.match(result.body!.text, /TENDER RESULT/);
+  assert.match(result.body!.text, /ISSUE XVI/);
+  assert.match(result.body!.text, /P020260911578215495483\.pdf/);
+  assert.equal(result.attachments, undefined);
+
+  const emptyPage = await extractConfiguredHtmlBody(fixture, url, {
+    ...entry.config.detail,
+    publishedAtUtcOffset: entry.config.publishedAtUtcOffset,
+  }, expectedArticle, entry.config.allowUrlPrefixes, async (pdfUrl: string) => pdfResponse(pdfUrl, pdfFixture([])));
+  assert.equal(emptyPage.reason, "pdf_page_no_text");
+  assert.equal(emptyPage.body, null);
+  assert.equal(emptyPage.attachments?.length, 1);
   assert.equal(requiresBodyReadinessHold(entry.config, "unconfirmed", null), true);
 });
