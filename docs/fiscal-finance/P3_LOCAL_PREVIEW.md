@@ -10,11 +10,13 @@ Root批准在AD-012既有seed/publication范围内增加三条正例、保留旧
 
 冻结内容随后提交为`7bab896d029016f32d1ad3bf3c8bd7ac01eef3f2`；GitHub workflow run `38027644649` 对精确headSha的Check与Docker均success。CI built-site smoke不替代下文未执行的本机live GET。
 
-本轮没有页面请求（GET=0）：Web监听`127.0.0.1:3000`，API `127.0.0.1:3001`未监听；未启动或重启服务。故live root/item页面可见性和HTTP noindex header均未验证，后续须由用户手动启动API后再核验。构建和静态代码检查不替代live验证。
+本轮没有页面请求（GET=0）：最新独立只读检查确认Web `127.0.0.1:3000`与API `127.0.0.1:3001`均无listener；没有启动或重启服务。故live root/item页面可见性和HTTP noindex header均未验证。后续若要核验，须由用户在两个独立PowerShell窗口手动启动API和Web后再安排有限loopback GET；旧记录中“Web仍在监听”的事实已过期。
+
+2026-10-10新增的根布局护栏在root metadata loader成功、失败时均为本地预览head保留`noindex, nofollow`，并通过`/all`叶路由metadata覆盖与root API fallback测试。冻结工作树QA的cache focused 10/10、Web tests 16/16、typecheck与Web build通过；组合代码SHA `3de96df641b08c817ba2dfea032ca9254399e66d`的GitHub Check/Docker run `38036049523`对精确headSha完成并成功。该软件QA不替代上段未执行的本机HTTP检查。
 
 ### 用户手动启动本地 API（可选）
 
-当前 Web 已在 `127.0.0.1:3000` 监听。若要继续 live 页面核验，只在另一个 PowerShell 窗口、仓库根目录手动运行下列命令；不要再次启动 Web。`npm run dev:api`会在存在时读取 `.env`，下面显式设置的环境变量优先覆盖同名值；不要打印或复制 `.env`、密钥。
+当前 API 与 Web 均未运行。若用户决定继续 live 页面核验，请在两个独立 PowerShell 窗口、仓库根目录分别手动运行 API 与 Web 命令；先启动 API，再启动 Web。遵守`LOCAL_DEVELOPMENT.md`中的安全设置，不打印或复制`.env`、密钥。下面的API变量显式关闭副作用开关，并固定到隔离的loopback preview DB。
 
 ```powershell
 $env:NODE_ENV = "development"
@@ -33,7 +35,18 @@ $env:ALLOW_PRIVATE_NETWORK_FETCH = "false"
 npm run dev:api
 ```
 
-该命令仅供用户自行决定后执行；本轮没有运行它。API就绪后才能单独安排有限loopback页面GET及noindex核验。GitHub CI内置的built-site smoke是独立的CI检查，不代表本机 live 页面已验证。
+在另一个PowerShell窗口以loopback安全配置启动Web：
+
+```powershell
+$env:NODE_ENV = "development"
+$env:LOCAL_PREVIEW_ENABLED = "true"
+$env:SITE_URL = "http://127.0.0.1:3000"
+$env:API_BASE_URL = "http://127.0.0.1:3001"
+$env:WEB_HOST = "127.0.0.1"
+npm run dev:web
+```
+
+以上命令仅供用户自行决定后执行；本轮没有运行它们。两服务就绪后才能单独安排有限loopback页面GET及noindex核验。GitHub CI内置的built-site smoke是独立的CI检查，不代表本机 live 页面已验证。
 
 这些内容的来源字段带Luna辅助摘要及输入/body hash provenance，但`siteProviderCalls=0`、receipts=0、无analysis、score=null、selected=false，源body不写入预览库；`humanGold=false`、system clustering=`NOT_RUN`。摘要在页面使用“编辑摘要 · 开发样本”标记，未精选声明不变。该Luna识别不等于应用真实provider执行、独立人工Gold、正式P4质量通过或Gate变化；source仍disabled，全文和索引保持关闭。
 

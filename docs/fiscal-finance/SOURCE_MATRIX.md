@@ -1,5 +1,11 @@
 # 官方信源验证矩阵
 
+## 2026-10-10 浙江监管工作 page 2 日期与厦门地方债正文识别增量
+
+浙江保存 page 2 中四条 URL 路径日期 token 与列表日期不同的文章，经本轮四次精确详情 GET 后，标题、详情 `PubDate`、页面可见日期与列表中国日期逐条匹配；正文抽取分别为1,390、1,264、2,312、1,203字符，均未发现附件。四份响应 raw/hash 与 manifest 已复核。第五条 2026-08-04 token 的旧核验仍属于10/09材料：列表/详情日为8/11。本次仅新增四次 GET；这些样本不证明来源级日期规则、完整历史/90日覆盖、跨周期稳定或来源准入。明细见[本轮交接](HANDOFFS/CONTENT_PREVIEW_SOURCE_GUARDS_2026-10-10.md)及下方历史分页记录。
+
+厦门地方债 `xiamen-finance-debt` 的保存详情现在通过精确标题、日期规则验证身份；附件范围为 `.article_component`。唯一保存样本识别到一个 PDF，helper 返回 `attachments_unprocessed`、body null，严格自动精选 hold 为 true。source 继续 disabled/fulltext-off，旧205字符假正文未修改；无附件请求。
+
 ## 2026-10-10 预算司近期样本窗口单次列表核对（有限观察；网络路径未记录）
 
 `source_saved_quality_oct10`按获批cap只向预算司官方动态列表`https://yss.mof.gov.cn/gongzuodongtai/`发出唯一GET：2026-10-10 02:28:16 UTC，HTTP 200，final URL精确匹配；attempted/dispatched/rejected为1/1/0。保存packet在`.data/fiscal-qa/mof-budget-window-20261010/`：`list.raw`是`Content-Encoding: gzip`响应解压后的entity（12,368 B，SHA-256 `4456c71613c83c0de91a7d3285f93f617c3ddf8b2ef04ffdf89d9a2b1810b148`），manifest为`manifest.json`。因此该hash对应已解码entity，不是gzip wire bytes；与旧保存列表内容相同，未重新抓取比较。独立QA确认saved raw/hash与manifest一致，当前source config hash/raw经`fromHtml`/`allowed`离线重解析10条逐项相符，窗口合格数0、selected为null、详情数0；marker在运行开始前约2ms、dispatch 1/1/0、总时长240ms、official final URL exact。

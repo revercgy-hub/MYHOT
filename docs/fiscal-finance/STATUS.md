@@ -1,22 +1,23 @@
 # 项目状态
 
-## 2026-10-10 当前权威状态：Luna辅助预览已写入隔离库；live页面待API服务
+## 2026-10-10 当前权威状态：内容预览与来源护栏
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=7bab896d029016f32d1ad3bf3c8bd7ac01eef3f2（本阶段预览代码SHA、文档交接提交前的HEAD；文档提交SHA另由git log核实）
-RECOVERY_SHA=199e85717e1b9acaaa0888328a9cbfb62c6723d7（本轮实际恢复起点；当时工作树clean）
-BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c（项目基线；不是本轮测试SHA）
-WORKSPACE=D:\AI-work\MYHOT\AIHOT；本轮只更新STATUS、P3_LOCAL_PREVIEW与Luna-assisted preview handoff
-STAGE=用户授权的Luna内容识别、本地预览软件QA及精确隔离库seed已完成；代码SHA `7bab896d029016f32d1ad3bf3c8bd7ac01eef3f2`的CI run `38027644649` Check/Docker success；页面live核验因API未监听而未发起GET；正式provider执行和P4质量评估未运行
-GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`仅限原三source固定小样；本轮未改变Gate，不代表全部source准入
-REVIEW=用户授权gpt-6-luna/high对四份saved official body做codex_agent_assisted识别，独立body-blind复核保留分歧；这是模型辅助编辑审阅，不是app provider/receipt执行或人工Gold。system cluster未运行、Gold未填写；内容仍未经正式模型精选且Gate未变。来源disabled/fulltext-off
-BLOCKERS=真实provider/付费执行按用户决定deferred；8条Gold人工标签及分组/split尚待领域人员确认；来源级质量与覆盖仍未证明
-COMPLETED=P4质量审阅工具：冻结工作树runtime HEAD `1f30ee1`独立fresh QA backend362/362、focused5/5、typecheck、Web build/Web15；同内容提交`0b372dae2202c42ddc52535454c239bc8e592856`的CI run `38016328910` Check+Docker success。P4结果sidecar：冻结运行HEAD `6a808c7`、两目标文件起止SHA稳定、pre业务计数/真实P4执行均0，fresh35 migrations、typecheck、focused8/8、backend370/370（0 fail/skip）、Web build/Web15全exit0；同内容commit `0b3cec2b2d155ee57adb908fc477f0737b556ad9`的CI run `38016781363` Check+Docker success。Synthetic CLI template与draft ledger均exit0；草稿一条记录保持四维/审阅人/时间全空，DRAFT_INCOMPLETE、pending1、issues0、systemClustering NOT_RUN。Luna预览：会话授权的4篇saved-body识别及盲评完成；冻结工作树HEAD `199e857` QA（35 migrations、pre业务0、backend370/370、focused4/4、typecheck、Web build/Web15）通过；精确seed原3 unchanged、新3 created且baseline/provenance核对通过；代码`7bab896d029016f32d1ad3bf3c8bd7ac01eef3f2`的CI run `38027644649` Check/Docker success。旧Gold packet `357/357`只属于SHA `2664e1f`；预算静态20-cap与动态上调case分别独立验证。
-IN_PROGRESS=API未监听，导致本机live页面GET=0，root/item可见性与HTTP noindex尚未验证；等待用户手动启动API后核验。正式provider P4执行未运行且付费`DEFERRED_BY_USER`；8条humanAnnotation仍null/needs_review，decision、event group、split及annotator/时间待领域人员。来源级质量与覆盖未证明；source disabled/fulltext-off。
-SOURCE_AUDIT=预算司官方动态列表唯一GET获独立QA接受：saved raw/hash一致，离线重解析10行逐项匹配当前source config，近90日候选0、selected为null、详情请求0。request headers未保存且当次EGRESS_PROXY_URL未知，网络路径不能归因；见SOURCE_MATRIX与本handoff。
-LUNA_CONTENT_RECOGNITION=基于两隔离_test DB inventory只读复算4份body identity/contentHash；输入`.data/fiscal-qa/luna-content-20261010/input.json` SHA-256 `d7d872208e029dda9108c684a183b148e57da18f825d9dd26677efe6821e585c`。识别结果和metadata audit及blind second-review存同目录。识别样本为OMO192、2026年8月地方债、厦门央企国资收益审核、网安宣传负例BLOCK；两次评分明确对应为OMO69/69、地方债81/85、厦门56/70、网安28/32，厦门分歧保留、不平均作校准或改阈值。`siteProviderCalls=0`、receipts=0、`humanGold=false`、`cluster=NOT_RUN`。
-NEXT=live页面验证需用户手动启动API后再安排，不自行操作服务；noindex HTTP行为仍待live核验。付费provider/Gate/Gold和来源质量未完成。
-LATEST_TESTED_CODE_SHA=7bab896d029016f32d1ad3bf3c8bd7ac01eef3f2（Check+Docker CI run 38027644649 exact headSha success；本机QA在冻结工作树HEAD 199e857运行，随后提交此代码SHA）
+CURRENT_SHA=3de96df641b08c817ba2dfea032ca9254399e66d；已推送至origin；Check/Docker run [38036049523](https://github.com/revercgy-hub/MYHOT/actions/runs/38036049523)对精确headSha成功
+RECOVERY_SHA=d81f71f93e8b43a7dfa41e064c8e63c54851c9ce（本轮代码工作开始前的clean HEAD）
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+WORKSPACE=D:\AI-work\MYHOT\AIHOT；本轮更新HANDOFF、STATUS、来源矩阵与本地预览说明
+STAGE=预览root noindex护栏、厦门地方债身份/附件待解析配置、浙江监管工作page2四条单篇日期核验均完成。source仍disabled/fulltext-off；没有source admission或Gate变化
+GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`仅限正式review定义的三个source固定小样；本轮权限未改变
+REVIEW=派发使用GPT-6 Luna/high。Luna对四篇saved official body的辅助识别及盲评见[上一handoff](HANDOFFS/LUNA_ASSISTED_CONTENT_PREVIEW_2026-10-10.md)；这不是项目provider执行或人工Gold
+COMPLETED=上一阶段六条固定preview样本已seed，原3条不变、新3条创建，所有source仍disabled；本轮Web tests 16/16、cache focused 10/10、selected-body focused 9/9、typecheck、Web build、GitHub Check/Docker全部通过。来源细节见[本轮handoff](HANDOFFS/CONTENT_PREVIEW_SOURCE_GUARDS_2026-10-10.md)
+IN_PROGRESS=本机live页面与HTTP noindex尚未核验；最新独立只读检查时API 3001和Web 3000均无listener。8条Gold人工标签、事件分组与dev/holdout切分待领域人员；35局来源质量与完整覆盖仍未证明；付费provider按用户决定deferred
+SOURCE_AUDIT=浙江page2四条本轮详情与一条10/09既存详情均支持各自列表日，证据限五篇；厦门债务保存样本识别PDF并保持`attachments_unprocessed`/strict hold，未请求附件。详见本轮handoff与SOURCE_MATRIX
+NEXT=本阶段交付已完成。若后续要live页面核验，用户手动分别启动API和Web后再做有限loopback GET；不自行启停服务。付费provider/OCR不在本轮待办
+LATEST_TESTED_CODE_SHA=3de96df641b08c817ba2dfea032ca9254399e66d；GitHub Check与Docker run 38036049523成功
+
+## 历史阶段记录
+
 P4_QUALITY_REVIEW_QA=冻结工作树（运行时HEAD `1f30ee1`；该实现随后提交为`0b372dae2202c42ddc52535454c239bc8e592856`）：fresh 35 migrations，backend 362/362、typecheck、focused5/5、Web build/Web15/15 PASS；无新SHA测试主张
 P4_QUALITY_REVIEW_RESULTS_QA=冻结内容在运行HEAD `6a808c7`独立fresh DB `p4_quality_results_20261010_test`（35 migrations；两目标文件起止SHA稳定；pre业务计数0、真实P4执行0）通过typecheck/focused8/8/backend370/370（0 fail/skip）/Web build/Web15，全部exit0；日志`.data/fiscal-qa/p4-quality-results-qa-20261010/`。同内容commit/push `0b3cec2b2d155ee57adb908fc477f0737b556ad9`的CI run 38016781363 exact headSha Check+Docker均success。synthetic template/draft ledger CLI均exit0，草稿1条全空人工字段，DRAFT_INCOMPLETE/pending1/issues0/systemClustering NOT_RUN
 LATEST_TESTED_RUNTIME_SHA=6668c70da306473977eb55c3b6073be3d5fd535f（含当前Zhejiang source config；packages runtime实现未变）
