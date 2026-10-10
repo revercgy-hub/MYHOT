@@ -1,5 +1,11 @@
 # 连续 P3 配置与验证交接（2026-10-07）
 
+## 2026-10-10 人工review结果sidecar交接（软件QA/CI完成）
+
+`scripts/fiscal/p4-quality-review-results.ts`提供offline `template`与`validate`命令，分别从execution report及article-analysis metadata生成人工JSON模板，并将填写结果校验为issue ledger。`fiscal-p4-quality-review-results/v1`要求每条结果严格绑定runHash、articleId、sourceId、revision、contentHash与analysisId；review有facts/contentType/taxonomy/scoring四维空值模板和reviewer/含时区真日期的reviewedAt。只输出白名单；`DRAFT_INCOMPLETE`保留已有审阅字段但issues为空，`REVIEW_COMPLETE`只代表表单填齐。非白名单、Gold/metrics/threshold/Gate和system clustering声明均被排除。
+
+独立fresh DB `p4_quality_results_20261010_test`完成35 migrations，冻结运行HEAD `6a808c7`；sidecar目标文件起止SHA稳定、pre业务计数0、真实P4执行0。typecheck、focused 8/8、backend 370/370（0 fail/skip）、Web build与Web 15/15全部exit 0，日志在`.data/fiscal-qa/p4-quality-results-qa-20261010/`。相同冻结内容随后commit/push为`0b3cec2b2d155ee57adb908fc477f0737b556ad9`。ignored synthetic `results-template.json`与`draft-issue-ledger.json`实际CLI均exit 0；1条审阅的四维判断/理由、reviewer/时间全null，输出`DRAFT_INCOMPLETE`、pending1、issues0、systemClustering `NOT_RUN`。该SHA CI run [38016781363](https://github.com/revercgy-hub/MYHOT/actions/runs/38016781363)已完成且headSha精确匹配，Check job 114108703432与Docker job 114108703289均success，Check内typecheck、Web build/tests、migrate+seed、built-site smoke、backend tests success，Docker compose build+smoke success。前阶段0b372da工具QA与CI run 38016328910不可借作sidecar证据。真实provider/内容质量未运行，Gold仍待领域标注；本节记录本阶段交接事实，后续新增工作另起交接。
+
 ## 2026-10-10 恢复与P4只读质量交接（进行中）
 
 **TASK**：从 `feat/fiscal-finance-hot` 的干净HEAD `1f30ee1ea059dfc2f758a1e4ebecf29c2c4f391a` 恢复文档状态，继续用户要求的免费P4工作。真实模型执行仍按用户决定 `DEFERRED_BY_USER`，runtime/services操作仍禁止。
@@ -18,7 +24,7 @@
 
 **CI**：GitHub Actions run [38016328910](https://github.com/revercgy-hub/MYHOT/actions/runs/38016328910)由本轮唯一获准dispatch产生，branch `feat/fiscal-finance-hot`，精确`headSha=0b372dae2202c42ddc52535454c239bc8e592856`；Check job 114107294320与Docker job 114107294619均completed/success。Check中的typecheck、Web build/tests、migrate+seed、built-site smoke、backend tests均success；Docker build+smoke success。此次CI只证明该代码SHA的CI结果，不证明P4真实模型输出/质量、Gold或source通过。
 
-**NEXT**：人工JSON sidecar结构化衔接工具正在独立开发；不将其工作或后续QA混入SHA `0b372da`及本轮证据。真实模型执行/内容质量仍deferred/not run，8条Gold标签待领域人员逐条确认。预算司历史0-body仍unknown，不请求旧URL；福建PDF继续hold，不据此宣称来源通过。本handoff owner只更新这四份文档，不改工具。不得推断P4内容质量通过。
+**NEXT**：来源agent正在规划预算司近期样本有限2-GET方案，尚未执行或产生样本结果；按后续授权与实际证据另记。真实模型执行/内容质量仍deferred/not run，8条Gold标签待领域人员逐条确认。预算司历史0-body仍unknown，不请求旧URL；福建PDF继续hold，不据此宣称来源通过。不得推断P4内容质量通过。
 
 ## GovCN continuation 终态与P4免费预算回归（2026-10-09）
 

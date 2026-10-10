@@ -1,24 +1,25 @@
 # 项目状态
 
-## 2026-10-10 当前权威状态：P4免费质量核验进行中
+## 2026-10-10 当前权威状态：离线review工具已交接；真实内容质量未运行
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=0b372dae2202c42ddc52535454c239bc8e592856（本阶段P4质量审阅工具代码SHA及文档提交前HEAD）
+CURRENT_SHA=0b3cec2b2d155ee57adb908fc477f0737b556ad9（本阶段sidecar code SHA及文档提交前HEAD）
 RECOVERY_SHA=1f30ee1ea059dfc2f758a1e4ebecf29c2c4f391a（本轮实际恢复起点；当时工作树clean）
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c（项目基线；不是本轮测试SHA）
-WORKSPACE=D:\AI-work\MYHOT\AIHOT；本轮仅更新本状态、连续P3 handoff、P4 readiness与SOURCE_MATRIX
-STAGE=P4免费软件/内容质量核验继续进行；真实模型执行延期
+WORKSPACE=D:\AI-work\MYHOT\AIHOT；本阶段仅更新本状态、连续P3 handoff与P4 readiness；SOURCE_MATRIX沿用前阶段
+STAGE=P4离线人工review与结果sidecar的软件QA/CI均已完成；真实模型执行与内容质量仍未运行
 GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`仅限原三source固定小样；本轮未改变Gate，不代表全部source准入
 REVIEW=新增离线P4质量审阅工具通过独立fresh QA（35 migrations、backend 362/362、typecheck、focused 5/5、Web build与15/15）；无真实模型质量结论。福建保存pair题名/日期相符、Readability 421字符，两条PDF正文未知；预算司2025零正文详情raw未保存，确切原因unknown。来源disabled/fulltext-off
 BLOCKERS=真实provider/付费执行按用户决定deferred；8条Gold人工标签及分组/split尚待领域人员确认；来源级质量与覆盖仍未证明
-COMPLETED=P4审阅工具冻结工作树在运行时HEAD `1f30ee1`上通过独立fresh `p4_quality_review_20261010_test` QA：35 migrations、backend 362/362、typecheck、P4 focused 5/5、Web build与15/15；相同冻结实现随后由代码owner提交/推送为 `0b372dae2202c42ddc52535454c239bc8e592856`。旧Gold packet QA `357/357`只属于SHA `2664e1f`，不借为本工具结果；预算静态20-cap与动态上调case分别独立验证
-IN_PROGRESS=P4审阅工具software QA与当前SHA CI已完成；真实模型/内容质量仍NOT_RUN、付费DEFERRED，8条humanAnnotation仍null/needs_review。曾复用旧Gold packet环境所得357/357报告因证据范围陈旧被Root拒绝；本工具QA采用10/10 fresh `p4_quality_review_20261010_test` 的362/362结果。独立QA是在代码提交前、运行时HEAD `1f30ee1`验证冻结工作树，随后代码提交SHA为`0b372da`；run `38016328910`精确head SHA `0b372dae2202c42ddc52535454c239bc8e592856`，Check job 114107294320与Docker job 114107294619均completed/success。福建pair离线核验仅是单篇有限样本；source仍disabled，collector未运行，本轮未做local smoke。
-NEXT=不将software QA/CI解释为P4内容质量通过。人工填写JSON sidecar的结构化衔接工具正在独立开发，不属于SHA `0b372da`或本轮CI证据。保留预算司0-body原因为unknown，不请求已知2025旧URL；March 26 saved pair在2026-07-12—10-10参考窗口外，不作本轮覆盖证据。福建PDF继续hold。未知日期语义继续保持unknown。由领域人员确认Gold每条decision、event group、split与annotator。RECOVERY_SHA `1f30ee1`、当前code SHA/doc-commit前HEAD `0b372da`、当前精确SHA CI run `38016328910`、source/runtime SHA `6668c70`、P4测试SHA `e97b02b`及续页历史runtime SHA `15e3464`分列。
-LATEST_TESTED_CODE_SHA=0b372dae2202c42ddc52535454c239bc8e592856（精确SHA CI run 38016328910 Check+Docker success；本机QA在运行时HEAD `1f30ee1`上的冻结working tree执行并通过，验证内容随后提交为此SHA）
+COMPLETED=P4质量审阅工具：冻结工作树runtime HEAD `1f30ee1`独立fresh QA backend362/362、focused5/5、typecheck、Web build/Web15；同内容提交`0b372dae2202c42ddc52535454c239bc8e592856`的CI run `38016328910` Check+Docker success。P4结果sidecar：冻结运行HEAD `6a808c7`、两目标文件起止SHA稳定、pre业务计数/真实P4执行均0，fresh35 migrations、typecheck、focused8/8、backend370/370（0 fail/skip）、Web build/Web15全exit0；同内容commit `0b3cec2b2d155ee57adb908fc477f0737b556ad9`的CI run `38016781363` Check+Docker success。Synthetic CLI template与draft ledger均exit0；草稿一条记录保持四维/审阅人/时间全空，DRAFT_INCOMPLETE、pending1、issues0、systemClustering NOT_RUN。旧Gold packet `357/357`只属于SHA `2664e1f`；预算静态20-cap与动态上调case分别独立验证。
+IN_PROGRESS=真实模型执行与P4内容质量NOT_RUN、付费DEFERRED_BY_USER；8条humanAnnotation仍null/needs_review，领域人员尚未确定decision、event group、split及annotator/时间。来源级质量与覆盖仍未证明；来源继续disabled/fulltext-off，collector未运行。
+NEXT=来源agent正在规划预算司近期样本的有限2-GET方案，尚未作为本轮执行或结果记录。真实模型/内容质量仍待后续获批运行，Gold标签待领域人员逐条确认。预算司历史0-body原因unknown且不请求2025旧URL；福建PDF继续hold，March 26 pair在90日参考窗口外。P4 sidecar仅记录人工审核结果，不自动导入Gold、计算质量指标、改变阈值或Gate；前阶段SHA `0b372da`/CI `38016328910`与sidecar SHA `0b3cec2`/CI `38016781363`分列。
+LATEST_TESTED_CODE_SHA=0b3cec2b2d155ee57adb908fc477f0737b556ad9（Check+Docker CI run 38016781363 exact headSha success；本机独立QA在运行时HEAD `6a808c7`上的冻结working tree执行并通过，验证内容随后提交为此SHA）
 P4_QUALITY_REVIEW_QA=冻结工作树（运行时HEAD `1f30ee1`；该实现随后提交为`0b372dae2202c42ddc52535454c239bc8e592856`）：fresh 35 migrations，backend 362/362、typecheck、focused5/5、Web build/Web15/15 PASS；无新SHA测试主张
+P4_QUALITY_REVIEW_RESULTS_QA=冻结内容在运行HEAD `6a808c7`独立fresh DB `p4_quality_results_20261010_test`（35 migrations；两目标文件起止SHA稳定；pre业务计数0、真实P4执行0）通过typecheck/focused8/8/backend370/370（0 fail/skip）/Web build/Web15，全部exit0；日志`.data/fiscal-qa/p4-quality-results-qa-20261010/`。同内容commit/push `0b3cec2b2d155ee57adb908fc477f0737b556ad9`的CI run 38016781363 exact headSha Check+Docker均success。synthetic template/draft ledger CLI均exit0，草稿1条全空人工字段，DRAFT_INCOMPLETE/pending1/issues0/systemClustering NOT_RUN
 LATEST_TESTED_RUNTIME_SHA=6668c70da306473977eb55c3b6073be3d5fd535f（含当前Zhejiang source config；packages runtime实现未变）
-LATEST_GREEN_CI=38016328910（Check+Docker均success；headSha精确为0b372dae2202c42ddc52535454c239bc8e592856；前一历史绿灯37942455582对应2664e1f）
-CURRENT_CI=38016328910（`check.yml`已对分支`feat/fiscal-finance-hot`单次dispatch；headSha精确为`0b372dae2202c42ddc52535454c239bc8e592856`；Check job 114107294320与Docker job 114107294619均completed/success；Check包含typecheck、Web build/tests、migrate+seed、built-site smoke及backend tests；Docker build+smoke成功）
+LATEST_GREEN_CI=38016781363（Check+Docker均success；headSha精确为0b3cec2b2d155ee57adb908fc477f0737b556ad9；前一阶段run 38016328910对应0b372da）
+CURRENT_CI=38016781363（`check.yml`对分支`feat/fiscal-finance-hot`单次dispatch；headSha精确为sidecar `0b3cec2b2d155ee57adb908fc477f0737b556ad9`；Check job 114108703432与Docker job 114108703289均completed/success；Check typecheck、Web build/tests、migrate+seed、built-site smoke、backend tests均success，Docker compose build+smoke success）
 P5_PACKET_FINAL_QA=2664e1fa817d9f1242fc9b227d3bbcde6b1b8d66（fresh DB `gold_packet_qa_corrected_20261009_test`，35 migrations；backend 357/357、0 skip，typecheck、Web build、Web tests 15/15 PASS；fake-only paths，外部模型调用和source body extraction均0）
 LATEST_TESTED_TEST_ONLY_SHA=e97b02bd303116c739caeb983c00e9ba2ff7b49c（P4 budget upward-drift standalone fresh integration 1/1及typecheck通过；budget结果不借入浙江full QA）
 ZHEJIANG_FOCUSED_QA_WORKTREE_BASE=e97b02bd303116c739caeb983c00e9ba2ff7b49c（浙江冻结config/fixture工作树：typecheck与focused offline 29/29通过）
