@@ -1,5 +1,17 @@
 # 官方信源验证矩阵
 
+## 2026-10-10 只读saved-source质量增量
+
+本次只核对保存材料，未发HTTP、访问数据库、运行collector或调用模型。当前来源目录48项/42个strict body-ready IDs；全disabled，站内与转发全文许可均关闭。Gate 2只对正式review所列三个核心来源逐篇合格文章的bounded P4 pilot有效，不代表全目录source admission。
+
+**福建省财政厅保存pair**：保存列表162,578 B（SHA-256 `e2a196ec81befeda11507b1a390e523dcaab035df4698b9fef6e8be462df9eae`），详情58,013 B（SHA-256 `dc528c4ebe8d132ef3199de89e837f558e52ee7e5af006731ae5af225d1d8d29`），两份manifest均记录HTTP 200 HTML。《福建省财政厅处罚事项告知书送达公告》的列表日期与详情 `ArticleTitle`/`PubDate` 对齐；Readability正文421字符。本pair未显示标题、日期或正文解析错误。列表共5项（3 HTML、2 PDF）；两条PDF机器正文能力未知，继续hold，不因本pair而排除PDF或宣称source通过。现有严格正文就绪配置未改，source仍disabled、全文关闭。
+
+**预算司保存材料边界**：历史2025-06-25详情 `https://yss.mof.gov.cn/gongzuodongtai/202506/t20250625_3966523.htm` 的保存原始详情HTML缺失，因此既有preview的0-body确切原因仍unknown。不得臆测selector错误或降低长度/身份阈值；本轮未请求该旧URL。保存的2026-03-26预算司列表/详情pair经离线 `readable()` 为2,272字符，但落在本次按参考窗口2026-07-12至2026-10-10界定的90日范围之外，不作为本轮活跃样本覆盖证据，也不能解释2025样本的0-body。该窗口只是审计取样边界，不是新建或推进任何执行generation anchor。
+
+以上是有限saved-material观察。预算司2025样本的诊断仍待可用历史raw或未来另获授权的证据；不触网、不读preview数据库、不启动服务。福建pair与预算司既有证据均不证明来源级质量、完整覆盖、source admission或Gate变化。
+
+下方未标日期的早期概述按其形成时状态保留（包括当时32项来源及Gate 2未通过的文字），不代表当前目录/阶段；当前配置和Gate状态以本节与[项目状态](STATUS.md)为准。
+
 本矩阵区分页面结构、只读 preview 与隔离数据库验证。原九个 HTML 来源的 `previewSource` 和一个 JSON 来源的 `fetchJsonList` 是早期 dry-run 阶段，并不代表采集器写库。随后三源在隔离 `_test` 数据库做30篇backfill两轮验证，最新正文汇总29 `ok`、1 `unconfirmed`、0 `pending`，30个 `content.extract-body` jobs未消费，详见 `P3_INGEST_VALIDATION.md`。另对 `pboc-open-market` 第191号和第192号分别完成单篇受控两轮验证；9/30又以第192号提供一次跨日首页变化证据，分别见 [P3_OMO_VALIDATION.md](P3_OMO_VALIDATION.md) 与 [P3_OMO_FRESHNESS_2026-09-30.md](P3_OMO_FRESHNESS_2026-09-30.md)。区域两源已完成固定URL隔离写入/正文核验，以及两页相邻历史页只读验证，详见 [P3_REGIONAL_COLLECTOR_VALIDATION.md](P3_REGIONAL_COLLECTOR_VALIDATION.md)、[P3_REGIONAL_BODY_VALIDATION.md](P3_REGIONAL_BODY_VALIDATION.md) 与 [P3_REGIONAL_PAGING_VALIDATION.md](P3_REGIONAL_PAGING_VALIDATION.md)。这些证据均有明确单篇/单日/分页边界，不自动构成来源整体稳定或 Gate 2。当前工作树 `industry/sources.json` 有32个来源（31个HTML、1个JSON），全部 `enabled=false`，两项全文许可均关闭；地方监管局配置中精确14个 strict body-ready opt-in ID。新增大连、宁波、深圳、青岛、甘肃五项的配置和严格ID回归尚处同一待冻结工作批次，未运行最终full QA或CI；preview数据库仍仅有原3条disabled source，JSON尚未seed入库。新保存证据及限制见[P3剩余来源缺口](P3_REMAINING_SOURCE_GAPS_2026-10-07.md)和[逐局覆盖矩阵](REGIONAL_BUREAU_COVERAGE_MATRIX.md)。Gate 2仍 `NOT_PASSED`。
 
 ## P3 新增：财政部各地监管局动态（2026-09-29）

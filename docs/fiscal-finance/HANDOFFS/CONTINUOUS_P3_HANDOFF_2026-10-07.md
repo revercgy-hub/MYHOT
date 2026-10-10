@@ -1,5 +1,25 @@
 # 连续 P3 配置与验证交接（2026-10-07）
 
+## 2026-10-10 恢复与P4只读质量交接（进行中）
+
+**TASK**：从 `feat/fiscal-finance-hot` 的干净HEAD `1f30ee1ea059dfc2f758a1e4ebecf29c2c4f391a` 恢复文档状态，继续用户要求的免费P4工作。真实模型执行仍按用户决定 `DEFERRED_BY_USER`，runtime/services操作仍禁止。
+
+**MODEL**：GPT-6 Luna High（本次文档代理）。
+
+**FILES_CHANGED**：仅本 `HANDOFFS/CONTINUOUS_P3_HANDOFF_2026-10-07.md`、`docs/fiscal-finance/STATUS.md` 与 `docs/fiscal-finance/P4_PILOT_READINESS.md`、`docs/fiscal-finance/SOURCE_MATRIX.md`；本次恢复前工作树干净。未改P4/P7执行计划、源配置或运行代码。
+
+**TESTS_RUN**：只读读取 `AGENTS.md`、`README.md`、`PROJECT_PLAN.md`、`STATUS.md`、本handoff、`P4_P7_EXECUTION_PLAN.md`、`P4_PILOT_READINESS.md`、`SOURCE_MATRIX.md`及Git status/log。本机未运行tests、HTTP、数据库或服务操作；本轮另获授权，仅dispatch一次origin `check.yml`并读取该run终态，不触发provider、collector或worker。文档执行 `git diff --check`。
+
+**RESULT**：当前文档恢复SHA为 `1f30ee1ea059dfc2f758a1e4ebecf29c2c4f391a`；此前packet exporter软件基线SHA `2664e1fa817d9f1242fc9b227d3bbcde6b1b8d66`的本机fresh QA backend 357/357且Web 15/15通过，精确SHA Check+Docker run [37942455582](https://github.com/revercgy-hub/MYHOT/actions/runs/37942455582)已success。浙江source SHA `6668c70da306473977eb55c3b6073be3d5fd535f`的旧run [37935221740](https://github.com/revercgy-hub/MYHOT/actions/runs/37935221740)也已success，不再标为进行中。P4工具审计发现当前execution report及Gold packet没有中文标题/摘要、类型、topic/category、分项评分或fact frame；这是补充人工质量审阅视图的缺口，不是executor/packet重复工作。Root已批准仅新增离线脚本 `scripts/fiscal/p4-quality-review.ts` 与专测，使用redacted article/analysis metadata并强绑定article/source/revision/contentHash/analysisId，白名单展示短输出/评分/fact frames及空白人工审查栏；不读DB/body/receipt response/key，不调用模型、不写回或代做聚类/Gold。工具owner报告实现冻结、typecheck与focused 5/5、diff check通过。曾复用旧Gold packet QA环境得到357/357的报告因环境/证据范围陈旧已被Root拒绝；不得将其归为本工具QA结果。随后新fresh `p4_quality_review_20261010_test`独立QA完成：35 migrations、backend 362/362（0失败/跳过）、typecheck、P4 focused 5/5、Web build及Web tests 15/15通过，日志位于ignored `.data/fiscal-qa/p4-quality-review-qa-20261010/`。该fresh QA在运行时HEAD `1f30ee1`上针对冻结working tree执行，验证内容随后由owner提交并push为代码SHA `0b372dae2202c42ddc52535454c239bc8e592856`。Producer/reviewer共享schema版本，article ID映射与source ID/revision/contentHash/analysis ID逐项一致并强校验；输出白名单与空白人工栏，不含正文/bodyRef/receipt响应/凭证，不读数据库、不调用模型或写Gold。full-suite环境日志的一条BASE_URL正则误报已独立核验排除：provider凭证/endpoint/model变量和代理变量均0，凭证目录不存在，P4 executor integration opt-in未启用。Saved-source审计检查福建省财政厅一组已保存列表/详情HTML：列表162,578 B、SHA-256 `e2a196ec81befeda11507b1a390e523dcaab035df4698b9fef6e8be462df9eae`；详情58,013 B、SHA-256 `dc528c4ebe8d132ef3199de89e837f558e52ee7e5af006731ae5af225d1d8d29`，manifest均记录HTTP 200 HTML。《福建省财政厅处罚事项告知书送达公告》的列表日期、详情标题和PubDate一致，Readability正文421字符，当前pair未见标题、日期或正文解析错误。列表有5项（3 HTML、2 PDF）；两条PDF正文能力未知，不能据此判源通过或直接排除。source disabled、全文关闭，本轮未发HTTP/查DB/调用模型。
+
+**RISKS**：不要把历史测试SHA/CI当成本次恢复HEAD的测试；用户的付费延期不构成请求真实模型的授权。P4/P7计划及readiness有多个带旧日期的阶段快照，须识别其历史属性，避免与已完成的预算、事务/report故障用例重复。福建pair和一次正文长度观察不代表全源准确性或覆盖；两条PDF的机器正文仍未知。预算司2025-06-25样本原始详情HTML没有保存，preview的0-body原因unknown，不能猜测规则或为它请求旧URL；2026-03-26 saved pair正文2,272字符但在本次2026-07-12至10-10参考90日窗口之外。source继续disabled/fulltext-off；禁止runtime/services操作。
+
+**BLOCKERS**：8条Gold `humanAnnotation`仍为null/`needs_review`，decision、event group、development/holdout split及确认者/时间需要领域人员决定；来源级正文/日期/覆盖仍不能从有限样本外推；预算司该0-body历史样本诊断受缺失raw阻塞。首次付费前还须按既有Gate约束冻结合格厦门业务活动负例及其后续独立执行边界，但付费当前已延期，不作为免费软件验证的阻塞。P4离线审阅工具软件QA已通过；fresh QA不解除8条Gold标签和真实模型内容质量仍未运行的边界。真实模型执行仍deferred。
+
+**CI**：GitHub Actions run [38016328910](https://github.com/revercgy-hub/MYHOT/actions/runs/38016328910)由本轮唯一获准dispatch产生，branch `feat/fiscal-finance-hot`，精确`headSha=0b372dae2202c42ddc52535454c239bc8e592856`；Check job 114107294320与Docker job 114107294619均completed/success。Check中的typecheck、Web build/tests、migrate+seed、built-site smoke、backend tests均success；Docker build+smoke success。此次CI只证明该代码SHA的CI结果，不证明P4真实模型输出/质量、Gold或source通过。
+
+**NEXT**：人工JSON sidecar结构化衔接工具正在独立开发；不将其工作或后续QA混入SHA `0b372da`及本轮证据。真实模型执行/内容质量仍deferred/not run，8条Gold标签待领域人员逐条确认。预算司历史0-body仍unknown，不请求旧URL；福建PDF继续hold，不据此宣称来源通过。本handoff owner只更新这四份文档，不改工具。不得推断P4内容质量通过。
+
 ## GovCN continuation 终态与P4免费预算回归（2026-10-09）
 
 **CODE / CI**：durable continuation source SHA `15e3464c0bff45af96e52514b831f2aba8fc6043`已推送。focus6 55/55、focus7 typecheck及fresh integration 1/1；fresh `fiscalhot_govcn_resume_full2_test`完成35 migrations，backend 346/346、Web build及Web tests 15/15。GitHub run [37905438753](https://github.com/revercgy-hub/MYHOT/actions/runs/37905438753) 精确`headSha`匹配该代码SHA，`check`和`docker`两个job均success。此前full1 345/346失败为分析计数未按测试文章隔离；修正仅在QA断言，原始失败日志保留。
