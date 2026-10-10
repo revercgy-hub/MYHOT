@@ -83,7 +83,7 @@ function SiteShell({ changelogVersion, localPreview, children }: { changelogVers
         <div className="mx-auto w-full max-w-[640px] px-4 lg:max-w-[var(--page-max-wide)] lg:px-0">
           {localPreview && (
             <aside className="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-control border border-accent/30 bg-accent/5 px-3.5 py-2.5 text-[13px] text-ink-2" aria-label="开发样本预览">
-              <span><strong className="font-semibold text-accent">开发样本预览</strong> · 人工摘要 · 未经模型精选</span>
+              <span><strong className="font-semibold text-accent">开发样本预览</strong> · 编辑摘要 · 未经正式模型精选</span>
               <Link to="/all" className="font-medium text-accent hover:underline">查看全部动态中的样本</Link>
             </aside>
           )}

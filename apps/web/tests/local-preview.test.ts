@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { resolveLocalPreviewEnabled } from "../app/lib/local-preview.server.ts";
+import { isLocalPreviewArticleId, resolveLocalPreviewEnabled } from "../app/lib/local-preview.server.ts";
 import { assertLocalPreviewIds, prepareLocalPreviewSeedEnvironment } from "../../../scripts/lib/local-preview-safety.ts";
 
 const safeWebEnv = {
@@ -52,7 +52,16 @@ test("local preview seed refuses production, development auth and any enabled si
 });
 
 test("local preview namespace requires an exact sample allow-list", () => {
-  const allowed = ["local-preview-pboc-omo-191", "local-preview-mof-budget-qa"];
+  const allowed = [
+    "local-preview-pboc-omo-191",
+    "local-preview-mof-budget-qa",
+    "local-preview-pboc-xiamen-payment",
+    "local-preview-pboc-omo-192",
+    "local-preview-mof-debt-202608",
+    "local-preview-mof-xiamen-capital-review",
+  ];
   assert.doesNotThrow(() => assertLocalPreviewIds(allowed, allowed));
   assert.throws(() => assertLocalPreviewIds(["local-preview-unknown"], allowed), /outside the fixed sample allow-list/);
+  for (const id of allowed) assert.equal(isLocalPreviewArticleId(id), true, `${id} should receive preview labeling`);
+  assert.equal(isLocalPreviewArticleId("local-preview-unknown"), false);
 });
