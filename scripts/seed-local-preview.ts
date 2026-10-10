@@ -98,6 +98,75 @@ const samples = [
       inputRecordId: "tlssno3ict5uydo34hfjo23tx",
     },
   },
+  {
+    id: "local-preview-mof-zhejiang-real-funds",
+    source: { id: "local-preview-mof-zhejiang-real-funds-source", name: "财政部浙江监管局" },
+    originalSourceId: "mof-zhejiang-supervision-dynamics",
+    title: "财政部浙江监管局：以扩围为契机 构建中央预算单位实有资金全链条监控新格局",
+    publishedAt: new Date("2026-07-21T00:00:00+08:00"),
+    url: "https://zj.mof.gov.cn/caizhengjiancha/202607/t20260707_3993052.htm",
+    category: "local-practice",
+    tags: ["地方实践", "预算管理", "智能监管"],
+    summary: "【开发预览·编辑摘要；未经正式模型精选】浙江监管局以扩围为契机，将新增中央预算单位纳入实有资金动态监控；通过银行账户年检核准账户信息，结合机器筛查、人工核查及账户、内控和预算审核协同，覆盖资金监管全流程。",
+    editorialAssistant: {
+      requestedModel: "gpt-6-luna",
+      requestedReasoningEffort: "high",
+      actualModel: "unverified",
+      listDateLocal: "2026-07-21",
+      pubDateLocal: "2026-07-21",
+      visibleDateLocal: "2026-07-21",
+      responseBytes: 17928,
+      responseSha256: "f193ebdf351bd587b624a29c3920edcbb8c7e8db5e949f00e75dd8ce1ce890d3",
+      extractedBodyChars: 1264,
+      extractedBodyTextSha256: "b8c48e8ace7746a03a98d7e7250b4d0db962ba0d7611c523a0164046d48793f1",
+    },
+  },
+  {
+    id: "local-preview-mof-zhejiang-transfer-performance",
+    source: { id: "local-preview-mof-zhejiang-transfer-performance-source", name: "财政部浙江监管局" },
+    originalSourceId: "mof-zhejiang-supervision-dynamics",
+    title: "财政部浙江监管局：突出重点 扎实开展中央对地方转移支付绩效自评抽查复核工作",
+    publishedAt: new Date("2026-07-29T00:00:00+08:00"),
+    url: "https://zj.mof.gov.cn/caizhengjiancha/202607/t20260723_3994178.htm",
+    category: "fiscal-policy",
+    tags: ["地方实践", "转移支付", "预算绩效"],
+    summary: "【开发预览·编辑摘要；未经正式模型精选】浙江监管局对全省中央转移支付绩效自评开展书面复核，并赴项目现场核查资金分配、实施内容和绩效产出；针对发现的问题提出整改要求，反馈主管部门并推动后续年度改进。",
+    editorialAssistant: {
+      requestedModel: "gpt-6-luna",
+      requestedReasoningEffort: "high",
+      actualModel: "unverified",
+      listDateLocal: "2026-07-29",
+      pubDateLocal: "2026-07-29",
+      visibleDateLocal: "2026-07-29",
+      responseBytes: 18328,
+      responseSha256: "56f6847c2579ca240ed180c8f981e6bdb02df05395d319f0b553dd42d2b06917",
+      extractedBodyChars: 1390,
+      extractedBodyTextSha256: "82689ef56b910111bd749e05101f592d1b3dcdfb6713ee22b01099d4a91b2464",
+    },
+  },
+  {
+    id: "local-preview-mof-zhejiang-fiscal-supervision-202608",
+    source: { id: "local-preview-mof-zhejiang-fiscal-supervision-202608-source", name: "财政部浙江监管局" },
+    originalSourceId: "mof-zhejiang-supervision-dynamics",
+    title: "财政部浙江监管局：加大财政监管力度 坚定扛好守土尽责的政治担当",
+    publishedAt: new Date("2026-08-11T00:00:00+08:00"),
+    url: "https://zj.mof.gov.cn/caizhengjiancha/202608/t20260804_3994854.htm",
+    category: "local-practice",
+    tags: ["地方实践", "政府债务", "预算绩效", "金融风险"],
+    summary: "【开发预览·编辑摘要；未经正式模型精选】浙江监管局报告对百余个超长期特别国债项目开展现场核查，转移支付监管发现并督改72个问题；对4项转移支付资金开展绩效自评抽查、深入9地现场复核并督改139个问题。另对40家在浙央属金融企业开展呆账核销备案全覆盖监管，并探索加强资产评估机构检查。",
+    editorialAssistant: {
+      requestedModel: "gpt-6-luna",
+      requestedReasoningEffort: "high",
+      actualModel: "unverified",
+      listDateLocal: "2026-08-11",
+      pubDateLocal: "2026-08-11",
+      visibleDateLocal: "2026-08-11",
+      responseBytes: 24425,
+      responseSha256: "f09c49b26bc8fdff80da29cb65926fcb949cae10462c69bc6c980e049ca3942e",
+      extractedBodyChars: 3378,
+      extractedBodyTextSha256: "cf5d5554935c9d78f51bb1e45e8876e8ce3e7c25f1204c200ce8c7084d583ac7",
+    },
+  },
 ] as const;
 const previewArticleIds = samples.map((sample) => sample.id);
 const previewSourceIds = samples.map((sample) => sample.source.id);
@@ -153,6 +222,7 @@ try {
     await sql.begin(async (tx) => {
       const originalSourceId = "originalSourceId" in sample ? sample.originalSourceId : undefined;
       const luna = "luna" in sample ? sample.luna : undefined;
+      const editorialAssistant = "editorialAssistant" in sample ? sample.editorialAssistant : undefined;
       const sourceConfig = originalSourceId
         ? { localPreviewSample: true, referenceSourceId: originalSourceId }
         : { localPreviewSample: true };
@@ -194,6 +264,24 @@ try {
           mode: "codex_agent_assisted",
           providerPipelineExecuted: false,
           providerReceipts: 0,
+        } : editorialAssistant ? {
+          provenance: "AD-012 local development sample",
+          summaryOrigin: "agent_assisted_editorial",
+          originalBodyStored: false,
+          referenceSourceId: originalSourceId,
+          requestedModel: editorialAssistant.requestedModel,
+          requestedReasoningEffort: editorialAssistant.requestedReasoningEffort,
+          actualModel: editorialAssistant.actualModel,
+          listDateLocal: editorialAssistant.listDateLocal,
+          pubDateLocal: editorialAssistant.pubDateLocal,
+          visibleDateLocal: editorialAssistant.visibleDateLocal,
+          officialResponseBytes: editorialAssistant.responseBytes,
+          officialResponseSha256: editorialAssistant.responseSha256,
+          extractedBodyChars: editorialAssistant.extractedBodyChars,
+          extractedBodyTextSha256: editorialAssistant.extractedBodyTextSha256,
+          providerPipelineExecuted: false,
+          providerReceipts: 0,
+          humanGold: false,
         } : { provenance: "AD-012 local development sample", summaryOrigin: "manual", originalBodyStored: false },
         via: "import",
       } as const;
@@ -229,10 +317,14 @@ try {
       };
       const overrideReason = luna
         ? "AD-012 local preview; Luna-assisted editorial summary; not human Gold or formal P4 model selection"
-        : "AD-012 local preview; manually written summary";
+        : editorialAssistant
+          ? "AD-012 local preview; agent-assisted editorial summary; not human Gold or formal P4 model selection"
+          : "AD-012 local preview; manually written summary";
       const auditReason = luna
         ? "AD-012 local development sample; Luna-assisted editorial summary; not human Gold or formal P4 model selection"
-        : "AD-012 local development sample; manual summary; not model selected";
+        : editorialAssistant
+          ? "AD-012 local development sample; agent-assisted editorial summary; not human Gold or formal P4 model selection"
+          : "AD-012 local development sample; manual summary; not model selected";
       const [override] = await tx<{ fields: Record<string, unknown>; visibility: string | null; reason: string | null; version: number; updated_by: string | null }[]>`
         SELECT fields, visibility, reason, version, updated_by FROM editorial_overrides WHERE article_id = ${sample.id}`;
       if (override) {
@@ -270,7 +362,9 @@ try {
         INSERT INTO audit_log (actor, action, subject, reason, after)
         SELECT ${previewActor}, 'content.override', ${`content:${sample.id}`}, ${auditReason}, ${tx.json(luna
           ? { preview: true, selected: false, summaryOrigin: "luna_agent_assisted" }
-          : { preview: true, selected: false })}
+          : editorialAssistant
+            ? { preview: true, selected: false, summaryOrigin: "agent_assisted_editorial", humanGold: false }
+            : { preview: true, selected: false })}
         WHERE NOT EXISTS (SELECT 1 FROM audit_log WHERE actor = ${previewActor} AND subject = ${`content:${sample.id}`} AND action = 'content.override')`;
       changed.push(`${sample.id}:${result.created ? "created" : result.revised ? "revised" : "unchanged"}`);
     });

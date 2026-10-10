@@ -59,6 +59,9 @@ test("local preview namespace requires an exact sample allow-list", () => {
     "local-preview-pboc-omo-192",
     "local-preview-mof-debt-202608",
     "local-preview-mof-xiamen-capital-review",
+    "local-preview-mof-zhejiang-real-funds",
+    "local-preview-mof-zhejiang-transfer-performance",
+    "local-preview-mof-zhejiang-fiscal-supervision-202608",
   ];
   assert.doesNotThrow(() => assertLocalPreviewIds(allowed, allowed));
   assert.throws(() => assertLocalPreviewIds(["local-preview-unknown"], allowed), /outside the fixed sample allow-list/);

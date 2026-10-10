@@ -44,6 +44,9 @@ const LOCAL_PREVIEW_ARTICLE_IDS = new Set([
   "local-preview-pboc-omo-192",
   "local-preview-mof-debt-202608",
   "local-preview-mof-xiamen-capital-review",
+  "local-preview-mof-zhejiang-real-funds",
+  "local-preview-mof-zhejiang-transfer-performance",
+  "local-preview-mof-zhejiang-fiscal-supervision-202608",
 ]);
 
 export function isLocalPreviewArticleId(id: string): boolean {
