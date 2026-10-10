@@ -1,8 +1,18 @@
 # 本地页面内容预览
 
+## 2026-10-10 后续候选状态：三条浙江编辑摘要（尚未seed）
+
+后续代码SHA `3385ef05ebf448a0bd9d68daf748d03b24b34440`在seed定义与预览server/test allow-list中加入三条浙江监管工作候选，旧六条样本ID保留。新ID为`local-preview-mof-zhejiang-real-funds`、`local-preview-mof-zhejiang-transfer-performance`、`local-preview-mof-zhejiang-fiscal-supervision-202608`。三个样本日期为2026-07-21、2026-07-29、2026-08-11，均在2026-10-10前90天内；更早的7月9日和6月30日候选因超出范围被排除。当前代码因此定义九条可识别sample，但本机没有seed或数据库读取，本机当前实际篇数未知；先前六条seed结果仅为上一轮历史审计，不推断仍是现状。
+
+owner与QA从三份保存详情raw复核题名、日期和摘要事实。用当前`extractSelectedBody` helper重算的body长度/SHA见[本轮交接](HANDOFFS/CONTENT_PREVIEW_ZHEJIANG_AND_XIAMEN_PDF_2026-10-10.md)。summary均标“开发预览·编辑摘要；未经正式模型精选”；provenance的requested model为`gpt-6-luna/high`，actual model ID为`unverified`。human Gold、正式模型精选、事件聚类、project provider receipts均未发生。
+
+集中QA完成selected-body focused 9/9、typecheck、Web build、Web tests 16/16。用户已表示手动恢复服务并手动运行CI；其后一次只读检查仍观察到本机API、Web、PostgreSQL均无listener，且GitHub Actions列表无本轮SHA的run。没有运行本机seed、查询数据库或live页面GET。因此新三条尚未入库，六条历史seed和live root/item呈现均未按当前状态复核。记录是该次快照；收到用户实际启动/运行结果后再追加更新。
+
+## 2026-10-10 前序记录：六条preview seed曾通过隔离库审计
+
 历史快照日期：2026-09-29。以下“页面入口与样本”及后续各节描述当时独立开发预览库的三篇人工样本；它们不是2026-10-10六篇seed当前状态的页面核验结果，也不代表模型精选、Gate 2通过或正式发布内容。
 
-## 2026-10-10 Luna辅助识别内容的预览扩展示意（seed已核验；live页面待API）
+## 2026-10-10 前序检查点：Luna辅助识别内容预览扩展（六条seed历史结果；live页面待API）
 
 用户已授权用Luna模型辅助识别保存的官方正文。对四条来自两个隔离`_test`库的body做只读identity/contentHash复核后，gpt-6-luna/high（`codex_agent_assisted`）及独立body-blind第二识别记录为：OMO第192号、2026年8月地方债发行/余额、厦门监管局中央企业国有资本收益审核三条正例；网络安全宣传为负例`BLOCK`，不加入预览。双评明确对应为：OMO第192号69/69，2026年8月地方债81/85，厦门央企国资收益审核56/70，网安宣传28/32；厦门评审分歧保留，不取平均，不用于校准、改门槛或声称质量通过。输入JSON见`.data/fiscal-qa/luna-content-20261010/input.json`（SHA-256 `d7d872208e029dda9108c684a183b148e57da18f825d9dd26677efe6821e585c`），模型识别、metadata audit、second recognition文件在同目录。
 
@@ -14,9 +24,19 @@ Root批准在AD-012既有seed/publication范围内增加三条正例、保留旧
 
 2026-10-10新增的根布局护栏在root metadata loader成功、失败时均为本地预览head保留`noindex, nofollow`，并通过`/all`叶路由metadata覆盖与root API fallback测试。冻结工作树QA的cache focused 10/10、Web tests 16/16、typecheck与Web build通过；组合代码SHA `3de96df641b08c817ba2dfea032ca9254399e66d`的GitHub Check/Docker run `38036049523`对精确headSha完成并成功。该软件QA不替代上段未执行的本机HTTP检查。
 
-### 用户手动启动本地 API（可选）
+### 用户手动启动本地预览数据库、API与Web（可选）
 
-当前 API 与 Web 均未运行。若用户决定继续 live 页面核验，请在两个独立 PowerShell 窗口、仓库根目录分别手动运行 API 与 Web 命令；先启动 API，再启动 Web。遵守`LOCAL_DEVELOPMENT.md`中的安全设置，不打印或复制`.env`、密钥。下面的API变量显式关闭副作用开关，并固定到隔离的loopback preview DB。
+若用户决定继续 live 页面核验，请先在仓库根目录的 PowerShell 窗口启动已存在的隔离 PostgreSQL 实例，再在另两个独立窗口手动启动 API 与 Web；先数据库、再 API、最后 Web。以下命令使用当前机器实际存在的 EDB PostgreSQL 17.11 便携实例，不创建或初始化数据目录，也不启动 worker。执行前应确认仓库根目录正确；不要打印或复制`.env`、密钥，也不要改用部署用 Compose。API变量显式关闭副作用开关，并固定到隔离的loopback preview DB。
+
+```powershell
+$aihotRepoRoot = (Get-Location).Path
+$previewPgCtl = Join-Path $aihotRepoRoot ".data\test-pg\pgsql\bin\pg_ctl.exe"
+$previewPgData = Join-Path $aihotRepoRoot ".data\test-pg\cluster"
+$previewPgLog = Join-Path $aihotRepoRoot ".data\test-pg\preview-postgres-manual.log"
+& $previewPgCtl -D $previewPgData -l $previewPgLog -o "-h 127.0.0.1 -p 5432" -w start
+```
+
+这仅启动绑定`127.0.0.1:5432`的本地预览数据库；不要启动其他数据库实例。数据库就绪后再按下面配置启动 API 和 Web。
 
 ```powershell
 $env:NODE_ENV = "development"
@@ -46,7 +66,7 @@ $env:WEB_HOST = "127.0.0.1"
 npm run dev:web
 ```
 
-以上命令仅供用户自行决定后执行；本轮没有运行它们。两服务就绪后才能单独安排有限loopback页面GET及noindex核验。GitHub CI内置的built-site smoke是独立的CI检查，不代表本机 live 页面已验证。
+以上命令仅供用户自行决定后执行；本轮没有运行它们。数据库、API和Web就绪后才能单独安排有限loopback页面GET及noindex核验。GitHub CI内置的built-site smoke是独立的CI检查，不代表本机 live 页面已验证。
 
 这些内容的来源字段带Luna辅助摘要及输入/body hash provenance，但`siteProviderCalls=0`、receipts=0、无analysis、score=null、selected=false，源body不写入预览库；`humanGold=false`、system clustering=`NOT_RUN`。摘要在页面使用“编辑摘要 · 开发样本”标记，未精选声明不变。该Luna识别不等于应用真实provider执行、独立人工Gold、正式P4质量通过或Gate变化；source仍disabled，全文和索引保持关闭。
 

@@ -1,6 +1,23 @@
 # 项目状态
 
-## 2026-10-10 当前权威状态：内容预览与来源护栏
+## 2026-10-10 当前权威检查点：浙江三条预览候选与厦门PDF边界
+
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_CODE_SHA=3385ef05ebf448a0bd9d68daf748d03b24b34440；代码提交已推送至`origin/feat/fiscal-finance-hot`
+BASE_SHA=3879e4fca78bd29d0c108d27b255e8c26a068d96
+WORKTREE=代码SHA 3385ef0时干净；本文档另作docs-only提交，不改动该代码SHA
+STAGE=P3来源主线及开发预览维护；Gate 2未变化
+GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`，仅按[正式review](GATE_2_REVIEW.md)定义的三个source逐篇限定小样；本轮不扩大source/P4授权
+COMPLETED=准备浙江监管工作三篇90日窗口内的agent-assisted编辑摘要候选；预览代码allow-list包含旧六条与新三条。离线核对3份saved detail的题名、列表/详情/可见日期、body facts与当前extractSelectedBody hash。厦门债务详情包络精准要求PDF并由共享通用文本PDF解析器处理。
+LOCAL_QA=Node v24.16.0：`node --test tests/selected-body.test.ts` 9/9、`npm run typecheck` exit0、`npm run build -w @aihot/web` exit0、`node --test "apps/web/tests/*.test.ts"` 16/16、`git diff --check`通过。未运行backend full suite或smoke；更正后的三条summary/hash literals在结构QA后独立用同样saved raw/helper复算。
+LOCAL_SEED=本轮NOT_RUN；用户表示手动恢复服务后的一次只读观察仍显示`127.0.0.1:3000/3001/5432`均无listener。未启动/停止服务、查询preview DB、seed或发live GET；旧六条历史seed状态没有本轮确认，新增三条未seed。该结论是该次快照，代码清单不代表数据库现状。
+CONTENT=三条摘要均标“开发预览·编辑摘要；未经正式模型精选”；provenance只记requested`gpt-6-luna/high`，actual model unverified；`humanGold=false`，非项目provider/P4结果。
+SOURCE=xiamen-finance-debt和mof-zhejiang-supervision-dynamics均保持disabled，`site_fulltext=false`、`syndicate_fulltext=false`。厦门保存HTML离线匹配唯一附件；mock验证有效文本PDF路径与空白PDF `pdf_page_no_text`/body null/附件诊断/严格hold。既有真实PDF结果仍是`pdf_page_no_text`，不表示真实附件成功，source仍`NOT_ADMITTED`。
+CI=手动运行待用户操作；截至只读检查，`gh run list`无本轮SHA的run。此前dispatch返回HTTP 403 `Must have admin rights to Repository`，不绕过该权限，也不把旧SHA绿色CI挪作本轮证据。
+IN_PROGRESS=本机服务恢复后的监听复核、preview DB读前写后核验、live页面/HTTP robots及当前SHA CI仍未完成；完整来源质量与90日覆盖仍未证明；8条Gold人工标签、事件分组与dev/holdout切分待领域人员；付费provider按用户决定deferred。
+NEXT=用户实际启动服务后，由Lead安排只读确认，再按精确隔离DB身份和读前计数决定是否执行已批准的一次固定seed及写后只读审计；用户手动运行CI后只读记录精确head SHA/run。新交接见[内容预览与厦门PDF交接](HANDOFFS/CONTENT_PREVIEW_ZHEJIANG_AND_XIAMEN_PDF_2026-10-10.md)。
+
+## 2026-10-10 前序状态快照：内容预览与来源护栏（后续状态见上方当前检查点）
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
 CURRENT_SHA=3de96df641b08c817ba2dfea032ca9254399e66d；已推送至origin；Check/Docker run [38036049523](https://github.com/revercgy-hub/MYHOT/actions/runs/38036049523)对精确headSha成功

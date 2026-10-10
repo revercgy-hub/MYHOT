@@ -2,6 +2,8 @@
 
 ## 最新阶段状态
 
+最新交接为[2026-10-10浙江三条预览与厦门债务PDF护栏检查点](CONTENT_PREVIEW_ZHEJIANG_AND_XIAMEN_PDF_2026-10-10.md)，代码SHA `3385ef05ebf448a0bd9d68daf748d03b24b34440`。它记录三条浙江预览候选及事实复核、厦门真实PDF仍`pdf_page_no_text`且source disabled、当前精确SHA的CI和本机seed/live验收状态；请以文内时间点和边界为准。用户手动恢复服务后的验收结果如有更新，追加到该交接及[STATUS](../STATUS.md)，不覆盖历史证据。
+
 最新来源/QA交接是[2026-10-08连续P3恢复检查点](CONTINUOUS_P3_HANDOFF_2026-10-07.md)，当前代码SHA `edd0644ddcdee42de03eb21ad4704108f08000a5`、46来源/40 strict IDs、fresh 35-migration全套QA及同SHA CI run37709884742通过。正式Gate状态由[2026-10-08 Gate 2审查](../GATE_2_REVIEW.md)确定为`PASSED_FOR_BOUNDED_P4_PILOT`，仅限三个source中逐篇合格的固定小样；不等于46源准入、35局持续运行或无人值守采集。厦门财债`xiamen-finance-debt`仍`NOT_ADMITTED`。详见[STATUS](../STATUS.md)、[连续P3交接](CONTINUOUS_P3_HANDOFF_2026-10-07.md)和[正式review](../GATE_2_REVIEW.md)。
 
 最新检查点为[2026-10-07新四局配置与QA](NEXT_BUREAU_CHECKPOINT_2026-10-07.md)：配置SHA `e3791c2744c285c7967cb1c6597da3187817889b` 本机fresh full QA通过但CI run37573322451保留OCR deadline分类失败；获准的最小确定性维护SHA `d4fd46ded57cd899793e819a3b49ff8bf6e72e4f` 后续fresh backend QA及CI run [37574033213](https://github.com/revercgy-hub/MYHOT/actions/runs/37574033213) 均通过。checkpoint区分宁夏/青海page2双成功GET与后来一次宁夏首页超时尝试。Gate 2仍 `NOT_PASSED`，不代表来源准入或90日覆盖。

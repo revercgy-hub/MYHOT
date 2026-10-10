@@ -20,7 +20,7 @@ npm run build -w @aihot/web
 node --test apps/web/tests/*.test.ts
 ```
 
-本轮在 Windows 使用 EDB 官方 PostgreSQL 17.11-3 binaries 解压到被 Git 忽略的 `.data/test-pg/`，只运行临时实例并绑定 `127.0.0.1`。该实例不是 Windows 服务；验收后需停止。不要把便携数据库、数据库文件、密钥或 `.data/` 提交。
+本地预览用 PostgreSQL 实例的手动启动命令、隔离地址和 API/Web 顺序见[本地页面预览说明](P3_LOCAL_PREVIEW.md)。它使用已有 EDB PostgreSQL 17.11-3 binaries 解压到被 Git 忽略的 `.data/test-pg/`，只绑定 `127.0.0.1`，不是 Windows 服务；不要重建集群，也不要把便携数据库、数据库文件、密钥或 `.data/` 提交。
 
 完整测试中的分析和翻译用例必须走 provider 接口，所以测试子进程可临时设置 `MODEL_CALLS_ENABLED=true`；这些用例将 provider URL 覆盖到 `127.0.0.1` 的本地 mock，使用假 key。`COLLECT_ENABLED`、`INDEXNOW_SUBMIT_ENABLED`、`FEISHU_CONTENT_PUSH_ENABLED` 和 `FEISHU_INTERNAL_ENABLED` 保持显式关闭。普通开发、build 与 smoke 测试继续保持 `MODEL_CALLS_ENABLED=false`，不配置真实付费模型凭据。
 
