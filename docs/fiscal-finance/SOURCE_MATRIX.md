@@ -1,5 +1,13 @@
 # 官方信源验证矩阵
 
+## 2026-10-10 预算司近期样本窗口单次列表核对（有限观察；网络路径未记录）
+
+`source_saved_quality_oct10`按获批cap只向预算司官方动态列表`https://yss.mof.gov.cn/gongzuodongtai/`发出唯一GET：2026-10-10 02:28:16 UTC，HTTP 200，final URL精确匹配；attempted/dispatched/rejected为1/1/0。保存packet在`.data/fiscal-qa/mof-budget-window-20261010/`：`list.raw`是`Content-Encoding: gzip`响应解压后的entity（12,368 B，SHA-256 `4456c71613c83c0de91a7d3285f93f617c3ddf8b2ef04ffdf89d9a2b1810b148`），manifest为`manifest.json`。因此该hash对应已解码entity，不是gzip wire bytes；与旧保存列表内容相同，未重新抓取比较。独立QA确认saved raw/hash与manifest一致，当前source config hash/raw经`fromHtml`/`allowed`离线重解析10条逐项相符，窗口合格数0、selected为null、详情数0；marker在运行开始前约2ms、dispatch 1/1/0、总时长240ms、official final URL exact。
+
+`fromHtml`解析10条候选，显示日期范围2023-07-24至2026-03-26。以2026-07-12—10-10为本次近90日审计参考窗口，没有符合窗口且具备HTML详情资格的候选，故详情GET为0；总请求仍为1。未重试、未跟随redirect、未翻页、未取详情/附件，亦未访问数据库、调用模型或运行collector。独立QA `p4_review_qa_oct10`确认raw、解析结果与候选约束；未记录的request headers/egress proxy状态不在其证据范围内。
+
+manifest只保存部分response headers，没有实际request headers；本次runtime未记录`EGRESS_PROXY_URL`状态，不能据此宣称请求走直连或证明无proxy。预算events中的official origin不足以证明网络路径，源码只声明header/default route。列表上10条显示日期较旧只描述此次有限快照，不能推断站点停更、全源质量或90日覆盖；预算司历史2025-06-25 zero-body根因仍unknown。来源仍disabled、全文关闭、严格guard不变；本结果不改变Gate或P4真实质量状态。
+
 ## 2026-10-10 只读saved-source质量增量
 
 本次只核对保存材料，未发HTTP、访问数据库、运行collector或调用模型。当前来源目录48项/42个strict body-ready IDs；全disabled，站内与转发全文许可均关闭。Gate 2只对正式review所列三个核心来源逐篇合格文章的bounded P4 pilot有效，不代表全目录source admission。

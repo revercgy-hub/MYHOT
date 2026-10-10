@@ -1,5 +1,15 @@
 # 连续 P3 配置与验证交接（2026-10-07）
 
+## 2026-10-10 预算司saved-source单次列表核对（独立QA完成；网络路径未记录）
+
+**TASK**：按获批单次GET/总cap 2 packet核对预算司官方列表的近90日候选；未获取到合格候选，未发详情请求。
+**MODEL**：文档交接owner GPT-6 Luna High；packet由`source_saved_quality_oct10`执行。
+**FILES**：仅更新`STATUS.md`、`SOURCE_MATRIX.md`及本handoff；P4 readiness与source配置不变。
+**TESTS**：文档`git diff --check`；handoff owner未运行本机测试/HTTP/DB/服务/model。packet唯一请求为2026-10-10 02:28:16 UTC官方列表GET，200/final URL exact，attempted/dispatched/rejected=1/1/0；独立QA已接受saved evidence。
+**RESULT**：`.data/fiscal-qa/mof-budget-window-20261010/list.raw`是`Content-Encoding: gzip`响应解压后的entity，12,368 B、SHA-256 `4456c71613c83c0de91a7d3285f93f617c3ddf8b2ef04ffdf89d9a2b1810b148`，manifest在同目录。`fromHtml`得10条、显示日期2023-07-24至2026-03-26；相对于2026-07-12—10-10审计窗口，合格近90日HTML候选0、selected null、详情GET 0。独立QA确认raw/hash与manifest一致，当前config的`fromHtml`/`allowed`离线重解析10条逐项匹配；marker在运行开始前约2ms、dispatch 1/1/0、总耗时240ms、official finalURL exact。未retry、redirect、翻页、请求详情/附件、访问DB或调用模型。
+**RISKS / BLOCKERS**：manifest仅有部分response headers、无request headers；runtime未记录当时`EGRESS_PROXY_URL`，因此不能声称direct/no-proxy；official origin记录和源码header/default-route声明都不能确定网络路径。列表日期不能推断站点停更、来源质量或覆盖；历史2025 zero-body原因仍unknown。source disabled/fulltext-off、strict guard不变。
+**NEXT**：不额外请求；保留为有限列表快照并据此更新STATUS/SOURCE_MATRIX。来源质量、真实模型质量与Gold人工标签仍未完成。本节是阶段交接记录。
+
 ## 2026-10-10 人工review结果sidecar交接（软件QA/CI完成）
 
 `scripts/fiscal/p4-quality-review-results.ts`提供offline `template`与`validate`命令，分别从execution report及article-analysis metadata生成人工JSON模板，并将填写结果校验为issue ledger。`fiscal-p4-quality-review-results/v1`要求每条结果严格绑定runHash、articleId、sourceId、revision、contentHash与analysisId；review有facts/contentType/taxonomy/scoring四维空值模板和reviewer/含时区真日期的reviewedAt。只输出白名单；`DRAFT_INCOMPLETE`保留已有审阅字段但issues为空，`REVIEW_COMPLETE`只代表表单填齐。非白名单、Gold/metrics/threshold/Gate和system clustering声明均被排除。

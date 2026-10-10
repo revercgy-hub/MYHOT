@@ -3,17 +3,18 @@
 ## 2026-10-10 当前权威状态：离线review工具已交接；真实内容质量未运行
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=0b3cec2b2d155ee57adb908fc477f0737b556ad9（本阶段sidecar code SHA及文档提交前HEAD）
+CURRENT_SHA=98105322bd31203adc961bae98a057b20da7bea0（本次来源交接提交前实际HEAD；sidecar已测试代码SHA另列）
 RECOVERY_SHA=1f30ee1ea059dfc2f758a1e4ebecf29c2c4f391a（本轮实际恢复起点；当时工作树clean）
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c（项目基线；不是本轮测试SHA）
-WORKSPACE=D:\AI-work\MYHOT\AIHOT；本阶段仅更新本状态、连续P3 handoff与P4 readiness；SOURCE_MATRIX沿用前阶段
-STAGE=P4离线人工review与结果sidecar的软件QA/CI均已完成；真实模型执行与内容质量仍未运行
+WORKSPACE=D:\AI-work\MYHOT\AIHOT；本轮只补STATUS、SOURCE_MATRIX与连续P3 handoff；P4 readiness沿用上阶段
+STAGE=P4离线人工review与结果sidecar的软件QA/CI均已完成；预算司有限列表补证已完成；真实模型执行与内容质量仍未运行
 GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`仅限原三source固定小样；本轮未改变Gate，不代表全部source准入
 REVIEW=新增离线P4质量审阅工具通过独立fresh QA（35 migrations、backend 362/362、typecheck、focused 5/5、Web build与15/15）；无真实模型质量结论。福建保存pair题名/日期相符、Readability 421字符，两条PDF正文未知；预算司2025零正文详情raw未保存，确切原因unknown。来源disabled/fulltext-off
 BLOCKERS=真实provider/付费执行按用户决定deferred；8条Gold人工标签及分组/split尚待领域人员确认；来源级质量与覆盖仍未证明
 COMPLETED=P4质量审阅工具：冻结工作树runtime HEAD `1f30ee1`独立fresh QA backend362/362、focused5/5、typecheck、Web build/Web15；同内容提交`0b372dae2202c42ddc52535454c239bc8e592856`的CI run `38016328910` Check+Docker success。P4结果sidecar：冻结运行HEAD `6a808c7`、两目标文件起止SHA稳定、pre业务计数/真实P4执行均0，fresh35 migrations、typecheck、focused8/8、backend370/370（0 fail/skip）、Web build/Web15全exit0；同内容commit `0b3cec2b2d155ee57adb908fc477f0737b556ad9`的CI run `38016781363` Check+Docker success。Synthetic CLI template与draft ledger均exit0；草稿一条记录保持四维/审阅人/时间全空，DRAFT_INCOMPLETE、pending1、issues0、systemClustering NOT_RUN。旧Gold packet `357/357`只属于SHA `2664e1f`；预算静态20-cap与动态上调case分别独立验证。
 IN_PROGRESS=真实模型执行与P4内容质量NOT_RUN、付费DEFERRED_BY_USER；8条humanAnnotation仍null/needs_review，领域人员尚未确定decision、event group、split及annotator/时间。来源级质量与覆盖仍未证明；来源继续disabled/fulltext-off，collector未运行。
-NEXT=来源agent正在规划预算司近期样本的有限2-GET方案，尚未作为本轮执行或结果记录。真实模型/内容质量仍待后续获批运行，Gold标签待领域人员逐条确认。预算司历史0-body原因unknown且不请求2025旧URL；福建PDF继续hold，March 26 pair在90日参考窗口外。P4 sidecar仅记录人工审核结果，不自动导入Gold、计算质量指标、改变阈值或Gate；前阶段SHA `0b372da`/CI `38016328910`与sidecar SHA `0b3cec2`/CI `38016781363`分列。
+SOURCE_AUDIT=预算司官方动态列表唯一GET获独立QA接受：saved raw/hash一致，离线重解析10行逐项匹配当前source config，近90日候选0、selected为null、详情请求0。request headers未保存且当次EGRESS_PROXY_URL未知，网络路径不能归因；见SOURCE_MATRIX与本handoff。
+NEXT=保留本次预算司列表快照为有限页面观察，不补请求/重试或据列表较旧推断来源停更。真实模型/内容质量仍待后续获批运行，Gold标签待领域人员逐条确认。预算司历史2025 zero-body原因unknown，不请求该旧URL；福建PDF继续hold，March 26 pair在90日参考窗口外。P4 sidecar仅记录人工审核结果，不自动导入Gold、计算质量指标、改变阈值或Gate；前阶段P4工具SHA `0b372da`/CI `38016328910`与sidecar SHA `0b3cec2`/CI `38016781363`保持分列。
 LATEST_TESTED_CODE_SHA=0b3cec2b2d155ee57adb908fc477f0737b556ad9（Check+Docker CI run 38016781363 exact headSha success；本机独立QA在运行时HEAD `6a808c7`上的冻结working tree执行并通过，验证内容随后提交为此SHA）
 P4_QUALITY_REVIEW_QA=冻结工作树（运行时HEAD `1f30ee1`；该实现随后提交为`0b372dae2202c42ddc52535454c239bc8e592856`）：fresh 35 migrations，backend 362/362、typecheck、focused5/5、Web build/Web15/15 PASS；无新SHA测试主张
 P4_QUALITY_REVIEW_RESULTS_QA=冻结内容在运行HEAD `6a808c7`独立fresh DB `p4_quality_results_20261010_test`（35 migrations；两目标文件起止SHA稳定；pre业务计数0、真实P4执行0）通过typecheck/focused8/8/backend370/370（0 fail/skip）/Web build/Web15，全部exit0；日志`.data/fiscal-qa/p4-quality-results-qa-20261010/`。同内容commit/push `0b3cec2b2d155ee57adb908fc477f0737b556ad9`的CI run 38016781363 exact headSha Check+Docker均success。synthetic template/draft ledger CLI均exit0，草稿1条全空人工字段，DRAFT_INCOMPLETE/pending1/issues0/systemClustering NOT_RUN
