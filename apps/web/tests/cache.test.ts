@@ -12,17 +12,30 @@ import { releaseBoundCache } from "../app/lib/api.server.ts";
 let web: ChildProcess;
 let origin: string;
 let logs = "";
+let metaRequests = 0;
 let deadline: number;
 let refreshAt: string;
 let metaDelayMs = 0;
+let metaUnavailable = false;
 const apiCookies: Array<string | undefined> = [];
 const api = createServer((req, res) => {
   const url = new URL(req.url!, "http://api.local");
   apiCookies.push(req.headers.cookie);
   res.setHeader("Content-Type", "application/json");
   if (url.pathname === "/api/site/meta") {
+    metaRequests++;
+    if (metaUnavailable) {
+      res.statusCode = 503;
+      return res.end(JSON.stringify({ code: "unavailable" }));
+    }
     const respond = () => res.end(JSON.stringify({ changelogVersion: "2026-09-28T12:00" }));
     return metaDelayMs ? setTimeout(respond, metaDelayMs) : respond();
+  }
+  if (url.pathname === "/api/site/pool") {
+    return res.end(JSON.stringify({
+      filters: { channel: "all", category: url.searchParams.get("category"), tag: null, topic: null, q: null, tab: "time" },
+      items: [], page: 1, pageCount: 1, total: 0, todayCount: 0, freshness: new Date().toISOString(), generatedAt: new Date().toISOString(),
+    }));
   }
   if (url.pathname === "/api/site/timeline") {
     const filters = { channel: "all", category: url.searchParams.get("category"), tag: null, topic: null };
@@ -42,29 +55,43 @@ const api = createServer((req, res) => {
   res.end(JSON.stringify({ code: "not_found" }));
 });
 
+async function startWeb(extraEnv: NodeJS.ProcessEnv = {}) {
+  const childLogs = { value: "" };
+  const child = spawn(process.execPath, [fileURLToPath(new URL("../server.ts", import.meta.url))], {
+    env: {
+      ...process.env,
+      WEB_PORT: "0",
+      TRUST_PROXY: "false",
+      API_BASE_URL: `http://127.0.0.1:${(api.address() as AddressInfo).port}`,
+      ...extraEnv,
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  const childOrigin = await new Promise<string>((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error(`web did not start: ${childLogs.value}`)), 15_000);
+    child.on("exit", () => { clearTimeout(timeout); reject(new Error(`web exited: ${childLogs.value}`)); });
+    child.stderr!.on("data", (chunk) => { childLogs.value += String(chunk); });
+    child.stdout!.on("data", (chunk) => {
+      childLogs.value += String(chunk);
+      const match = childLogs.value.match(/"msg":"web started","port":(\d+)/);
+      if (match) {
+        clearTimeout(timeout);
+        resolve(`http://127.0.0.1:${match[1]}`);
+      }
+    });
+  });
+  return { child, origin: childOrigin, logs: childLogs };
+}
+
 before(async () => {
   deadline = Math.floor(Date.now() / 1000) + 20;
   refreshAt = new Date((deadline + 5) * 1000).toISOString();
   api.listen(0, "127.0.0.1");
   await once(api, "listening");
-  web = spawn(process.execPath, [fileURLToPath(new URL("../server.ts", import.meta.url))], {
-    env: { ...process.env, WEB_PORT: "0", TRUST_PROXY: "false", API_BASE_URL: `http://127.0.0.1:${(api.address() as AddressInfo).port}` },
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  await new Promise<void>((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error(`web did not start: ${logs}`)), 15_000);
-    web.on("exit", () => { clearTimeout(timeout); reject(new Error(`web exited: ${logs}`)); });
-    web.stderr!.on("data", (chunk) => { logs += String(chunk); });
-    web.stdout!.on("data", (chunk) => {
-      logs += String(chunk);
-      const match = logs.match(/"msg":"web started","port":(\d+)/);
-      if (match) {
-        origin = `http://127.0.0.1:${match[1]}`;
-        clearTimeout(timeout);
-        resolve();
-      }
-    });
-  });
+  const started = await startWeb();
+  web = started.child;
+  logs = started.logs.value;
+  origin = started.origin;
 });
 
 after(async () => {
@@ -109,6 +136,35 @@ test("HTML and navigation share freshness; cookies do not personalize public res
   assert.equal(signedIn.headers.get("Set-Cookie"), null);
   assert.equal(await signedIn.text(), await plain.text());
   assert.ok(apiCookies.every((cookie) => !cookie));
+});
+
+test("local preview robots metadata survives leaf metadata and root API fallback", async () => {
+  const hasPreviewRobots = (html: string) => /<meta(?=[^>]*name="robots")(?=[^>]*content="noindex, nofollow")[^>]*>/.test(html);
+  const preview = await startWeb({
+    NODE_ENV: "development",
+    LOCAL_PREVIEW_ENABLED: "true",
+    SITE_URL: "http://127.0.0.1:3000",
+    WEB_HOST: "127.0.0.1",
+  });
+  try {
+    const leaf = await fetch(`${preview.origin}/all?category=${CATEGORY_KEYS.at(-1)}`);
+    assert.equal(leaf.status, 200);
+    assert.ok(hasPreviewRobots(await leaf.text()), "leaf /all metadata must retain root preview noindex");
+
+    const beforeFallback = metaRequests;
+    metaUnavailable = true;
+    const fallback = await fetch(`${preview.origin}/all?category=${CATEGORY_KEYS.at(-1)}`);
+    assert.equal(fallback.status, 200);
+    assert.ok(hasPreviewRobots(await fallback.text()), "root loader API fallback must retain preview noindex");
+    assert.ok(metaRequests > beforeFallback, "the fallback request must reach the fake root metadata API");
+  } finally {
+    metaUnavailable = false;
+    if (preview.child.exitCode === null) {
+      const stopped = once(preview.child, "exit");
+      preview.child.kill("SIGTERM");
+      await stopped;
+    }
+  }
 });
 
 test("missing routes cannot be hidden by a root-only request; errors and redirects stay uncached", async () => {

@@ -40,6 +40,7 @@ export async function loader({ request }: Route.LoaderArgs) {
 export const shouldRevalidate: ShouldRevalidateFunction = () => false;
 
 export function Layout({ children }: { children: React.ReactNode }) {
+  const rootData = useRouteLoaderData<typeof loader>("root");
   return (
     <html lang={SITE.locale} suppressHydrationWarning>
       <head>
@@ -48,6 +49,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#faf9f6" />
         <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#13191c" />
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+        {rootData?.localPreview && <meta name="robots" content="noindex, nofollow" />}
         <Meta />
         <Links />
       </head>
