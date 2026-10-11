@@ -205,7 +205,8 @@ async function upsertIn(db: Db, m: MaterialInput): Promise<MaterialResult> {
       processing_state = CASE WHEN ${markTransition} THEN 'new' ELSE processing_state END,
       processing_queued_at = CASE WHEN ${markTransition} THEN NULL ELSE processing_queued_at END,
       processing_retry_at = CASE WHEN ${markTransition} THEN NULL ELSE processing_retry_at END,
-      updated_at = now() WHERE id = ${existing!.id}`;
+      updated_at = now() WHERE id = ${existing!.id}
+        AND (raw IS DISTINCT FROM ${nextRaw === null || nextRaw === undefined ? null : db.json(nextRaw as never)}::jsonb OR ${diagnosticStateChanged})`;
     if (diagnosticStateChanged) await syncArticlePublication(db as Tx, existing!.id);
   };
   // What the row will hold after this report: a listing without body keeps the stored (extracted) body.

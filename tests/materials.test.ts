@@ -84,6 +84,57 @@ test("an unchanged report does not add a revision", async () => {
   assert.equal(article!.revision, 1);
 });
 
+test("raw JSONB key order and JSON serialization do not refresh updated_at, but persisted changes do", async () => {
+  const url = `https://example.com/raw-jsonb-${tag()}`;
+  const at = new Date("2026-01-02T03:04:05.000Z");
+  const firstRaw = {
+    outer: { alpha: 1, nested: { left: true, right: null } },
+    list: [undefined, null, "tail"],
+    omitted: undefined,
+    at,
+  };
+  const sameRaw = {
+    at: new Date(at),
+    omitted: undefined,
+    list: [null, null, "tail"],
+    outer: { nested: { right: null, left: true }, alpha: 1 },
+  };
+  const base = { sourceId: SOURCE, url, title: "Raw JSONB", excerpt: "same", via: "fetch" as const };
+  const first = await upsertMaterial({ ...base, raw: firstRaw });
+  const oldTime = new Date("2000-01-01T00:00:00.000Z");
+  await sql`UPDATE articles SET updated_at = ${oldTime} WHERE id = ${first.articleId}`;
+  const [before] = await sql<{ raw: unknown; updated_at: Date }[]>`
+    SELECT raw, updated_at FROM articles WHERE id = ${first.articleId}`;
+  assert.deepEqual(before!.raw, {
+    outer: { alpha: 1, nested: { left: true, right: null } },
+    list: [null, null, "tail"],
+    at: at.toISOString(),
+  }, "the assertion uses PostgreSQL's persisted JSONB roundtrip");
+
+  const reordered = await upsertMaterial({ ...base, raw: sameRaw });
+  assert.equal(reordered.revised, false);
+  const [afterReorder] = await sql<{ raw: unknown; updated_at: Date }[]>`
+    SELECT raw, updated_at FROM articles WHERE id = ${first.articleId}`;
+  assert.deepEqual(afterReorder!.raw, before!.raw);
+  assert.equal(afterReorder!.updated_at.getTime(), before!.updated_at.getTime(), "object key order, omitted undefined, array nulls, and Date JSON serialization are unchanged");
+
+  const reorderedArray = { ...sameRaw, list: [null, "tail", null] };
+  await sql`UPDATE articles SET updated_at = ${oldTime} WHERE id = ${first.articleId}`;
+  await upsertMaterial({ ...base, raw: reorderedArray });
+  const [afterArrayChange] = await sql<{ raw: unknown; updated_at: Date }[]>`
+    SELECT raw, updated_at FROM articles WHERE id = ${first.articleId}`;
+  assert.deepEqual((afterArrayChange!.raw as { list: unknown[] }).list, [null, "tail", null]);
+  assert.ok(afterArrayChange!.updated_at.getTime() > oldTime.getTime(), "array order is persisted as a real JSONB change");
+
+  const changedValue = { ...reorderedArray, outer: { ...reorderedArray.outer, alpha: 2 } };
+  await sql`UPDATE articles SET updated_at = ${oldTime} WHERE id = ${first.articleId}`;
+  await upsertMaterial({ ...base, raw: changedValue });
+  const [afterValueChange] = await sql<{ raw: unknown; updated_at: Date }[]>`
+    SELECT raw, updated_at FROM articles WHERE id = ${first.articleId}`;
+  assert.equal((afterValueChange!.raw as { outer: { alpha: number } }).outer.alpha, 2);
+  assert.ok(afterValueChange!.updated_at.getTime() > oldTime.getTime(), "a real nested value change is persisted");
+});
+
 test("an imported article's first report records a baseline, not a revision", async () => {
   const url = `https://example.com/imported-${tag()}`;
   const id = `imp${tag()}`;
