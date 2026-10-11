@@ -110,6 +110,12 @@ before(async () => {
     }
     const detailHtml = localize(rawDetail, origin, localPrefix);
     const sourceConfig = structuredClone(configured!.config);
+    if (bureau.key === "fujian") {
+      // This loopback case covers the legacy single-page collector, its detail budget, and body guards.
+      // The production URL is intentionally rewritten to a local path, so its MOF-only pagination
+      // contract does not apply here; pagination is covered by web-list-pagination and the Fujian config fixtures.
+      delete sourceConfig.pagination;
+    }
     sourceConfig.url = `${localPrefix}/listing.html`;
     sourceConfig.allowUrlPrefixes = [`${localPrefix}/`];
     const candidates = fromHtml(listHtml, sourceConfig.url, { id: bureau.id, name: configured!.name, kind: configured!.kind, config: sourceConfig } as never);

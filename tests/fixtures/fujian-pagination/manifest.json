@@ -1,0 +1,58 @@
+{
+  "sourceId": "mof-fujian-supervision-dynamics",
+  "listingBase": "https://fj.mof.gov.cn/gzdt/caizhengjiancha/",
+  "fixtureBytesCopiedVerbatim": {
+    "page0": false,
+    "page1": false
+  },
+  "captureHistory": [
+    {
+      "pageIndex": 0,
+      "url": "https://fj.mof.gov.cn/gzdt/caizhengjiancha/",
+      "observedAtUtc": "2026-10-11T08:17:21.385Z",
+      "status": 200,
+      "finalUrl": "https://fj.mof.gov.cn/gzdt/caizhengjiancha/",
+      "contentType": "text/html",
+      "eof": true,
+      "fixtureFile": "page-0.html",
+      "fixtureBytes": 2966,
+      "fixtureSha256": "0a255c4d4714b0bd1e298f8ef05b76f6a266e3574244c30ee7c814a73579b846",
+      "note": "Minimal selector/pager-preserving summary generated from this run’s official response. Includes the 10 exact title/date/href rows and only the currentPage/countPage/nextPage link rule; page chrome omitted.",
+      "sourceRawFile": ".data/fiscal-qa/fujian-source-next-20261011/dispatch-002-homepage.body",
+      "sourceRawBytes": 12434,
+      "sourceRawSha256": "2e559c476d16de6b9e0c2424f474b23e4358e8dee7234ec713e6685bfa3361bd"
+    },
+    {
+      "pageIndex": 1,
+      "url": "https://fj.mof.gov.cn/gzdt/caizhengjiancha/index_1.htm",
+      "observedAtUtc": "2026-10-07T02:24:48.573Z",
+      "status": 200,
+      "finalUrl": "https://fj.mof.gov.cn/gzdt/caizhengjiancha/index_1.htm",
+      "contentType": "text/html",
+      "eof": true,
+      "fixtureFile": "page-1.html",
+      "fixtureBytes": 2940,
+      "fixtureSha256": "0527e5d75a797b90dda4ebe221d4242a398f6830b497f1c33e02d240c336bfb1",
+      "note": "Minimal selector/pager-preserving summary generated from the separately authorized 2026-10-07 official page-1 response. The source raw remains unchanged under .data; this fixture contains only the exact 10 title/date/href rows, list structure, and currentPage/countPage/nextPage link rule; page chrome omitted.",
+      "sourceRawFile": ".data/fiscal-qa/oct07-accelerate-pagination/fujian-index-1.html",
+      "sourceRawBytes": 12408,
+      "sourceRawSha256": "6185ddd4c56efee0cbaf7ff4b5521f69deb0ad9ae093c53f7e988af34f70cab3"
+    }
+  ],
+  "boundedSourceConfig": {
+    "mode": "mof_index_v1",
+    "maxPagesPerRun": 2,
+    "maxDispatches": 12,
+    "maxPageIndex": 3,
+    "detailMode": "direct_html_metadata_v1"
+  },
+  "observationBoundary": {
+    "coverage": "unproven",
+    "pageCapInclusiveIndexes": [
+      0,
+      3
+    ],
+    "htmlDeclaredCountPage": 50,
+    "claim": "Fixture/parser test covers page 0 and page 1 evidence only; page cap is an execution safety limit, not a terminal-pagination or complete-90-day claim."
+  }
+}
