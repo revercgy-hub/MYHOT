@@ -14,7 +14,7 @@ COMPLETED=确认GitHub Actions权限与远端配置后，为精确 `feat/fiscal-
 REVIEW=初始无参数 `gh workflow run` 因Git remote自动解析到upstream `KKKKhazix/AIHOT` 而收到403；这是目标仓库选错，不是fork权限不足。显式 `--repo revercgy-hub/MYHOT` 后一次dispatch成功。之前将403表述为权限不足的历史判断已更正。当前API/Web启动请求在进程创建前被策略拒绝，未创建PID；没有尝试换工具。PG在`127.0.0.1:5432`运行，seed已完成；本机页面/robots/HTTP/smoke未验证。CI内置built-site smoke通过不能替代本机HTTP证据。
 BLOCKERS=API和Web本轮未能启动（策略拒绝发生于2026-10-11，不是旧的“等用户手动启动”快照）；本机live页面、HTTP noindex与loopback smoke未运行。旧六条中3篇article的`updated_at`因JSONB属性键顺序导致材料upsert误判changed而刷新；逐字段审核确认内容/raw/provenance/revision/publication/override/audit均相同。该技术时间戳触碰不是官方内容修订；保留不回滚，材料JSON比较的键序问题待独立最小修复评估。
 IN_PROGRESS=本地live root/item与HTTP noindex未核验；九条预览仍全部未精选、正文为空，Gold标签/事件分组及source质量、90日覆盖未证明；厦门PDF正文仍`pdf_page_no_text`/hold。来源仍disabled、全文关闭。
-NEXT=先独立评估JSONB材料比较按key order造成的updated_at触碰并提出最小修复；之后若重新授权并且运行策略允许，再启动API/Web及做有限loopback页面/robots核验。保持来源disabled和Gate不变。
+NEXT=本轮启动已有用户授权且持续有效；API/Web目前仍受执行策略阻止。策略允许后完成启动及本机页面/robots验收。JSONB比较问题独立评估后续最小修复，不作为页面启动前置。保持来源disabled和Gate不变。
 
 ## 2026-10-10 当前权威检查点：浙江三条预览候选与厦门PDF边界
 

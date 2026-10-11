@@ -50,7 +50,7 @@ WORKTREE=开始时clean；本轮只改文档：本交接、`STATUS.md`、`P3_LOC
 
 ## 下一批Agent
 
-先读本handoff、[项目状态](../STATUS.md)、[本地预览状态](../P3_LOCAL_PREVIEW.md)、[来源矩阵](../SOURCE_MATRIX.md)与[Gate 2 review](../GATE_2_REVIEW.md)。优先调查材料JSON比较中的JSONB对象键顺序并提出最小变更及针对性证据，不需要重复本轮seed或CI。API/Web live核验仅在新的明确授权且执行策略允许后考虑；不得用其他工具绕过本轮策略拒绝。文件归属由Lead安排。
+先读本handoff、[项目状态](../STATUS.md)、[本地预览状态](../P3_LOCAL_PREVIEW.md)、[来源矩阵](../SOURCE_MATRIX.md)与[Gate 2 review](../GATE_2_REVIEW.md)。用户已授权本轮启动API/Web，该授权持续有效；当前执行策略阻止进程创建，策略允许后完成启动及有限loopback页面/robots核验，不要用其他工具绕过拒绝。JSONB对象键序问题可独立评估最小修复，不作为页面启动前置；不需要重复本轮seed或CI。文件归属由Lead安排。
 
 ## 必需任务字段
 
@@ -68,7 +68,7 @@ WORKTREE=开始时clean；本轮只改文档：本交接、`STATUS.md`、`P3_LOC
 
 **BLOCKERS**：本机API/Web启动被策略拒绝；live页面与noindex尚无证据。
 
-**NEXT**：调查JSONB键序比较并提出最小修复；后续live核验需新的授权且执行策略允许。
+**NEXT**：本轮启动已有用户授权且持续有效；API/Web仍受执行策略阻止，策略允许后完成启动及本机验收。JSONB键序比较问题独立评估后续最小修复，不作为页面启动前置。
 
 ## 声明
 
