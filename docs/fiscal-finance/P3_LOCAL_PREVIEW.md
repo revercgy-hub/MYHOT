@@ -1,5 +1,13 @@
 # 本地页面内容预览
 
+## 2026-10-11 当前状态：九条已seed，本机live页面仍未核验
+
+本轮在本机PostgreSQL就绪后，经用户授权仅对隔离库`fiscalhot_preview_test`执行一次固定九条seed，并完成读前/写后审计。库有35 migrations；旧六条业务字段与raw/provenance/revision/publication/override/audit均保持一致，新三条浙江样本创建。9 sources/articles/publications/overrides/audits，9 eligible；selected、score、body、analysis、jobs、fetch与receipts均为0。旧六条中的3篇article仅`updated_at`因JSONB对象属性键顺序造成的upsert误判而被刷新。该时间戳是技术处理时间，不是来源内容变化；未恢复或回滚它。详细快照与忽略目录审计日志路径见[本轮交接](HANDOFFS/DIRECT_LOCAL_RECOVERY_2026-10-11.md)。
+
+PostgreSQL当前运行于`127.0.0.1:5432`。本轮API/Web启动请求在进程创建前被策略拒绝，未创建PID；没有用别的工具重试。因此本机`127.0.0.1:3000/3001`页面GET为0，live root/item、HTTP noindex及本机smoke均未验证。该拒绝发生在2026-10-11，不应与旧handoff中“等待用户手动启动”的先前状态混为一谈。GitHub Actions Check+Docker run [38101003073](https://github.com/revercgy-hub/MYHOT/actions/runs/38101003073) 对精确head SHA `f6a6bc2009dd2c1965ce77bb0cbd93127df2ee0c`全绿，其中CI built-site smoke通过；它不证明本机页面或HTTP header。
+
+GitHub诊断的旧403是gh按Git remote默认选到了upstream `KKKKhazix/AIHOT`，不是`revercgy-hub/MYHOT`权限不足。显式指定fork后完成了一次dispatch；前一状态中“权限不足”的判断由本轮纠正。最新阶段代码SHA仍为`3385ef05ebf448a0bd9d68daf748d03b24b34440`，CI所测`f6a6bc2`及本轮文档提交仅增加文档。
+
 ## 2026-10-10 后续候选状态：三条浙江编辑摘要（尚未seed）
 
 后续代码SHA `3385ef05ebf448a0bd9d68daf748d03b24b34440`在seed定义与预览server/test allow-list中加入三条浙江监管工作候选，旧六条样本ID保留。新ID为`local-preview-mof-zhejiang-real-funds`、`local-preview-mof-zhejiang-transfer-performance`、`local-preview-mof-zhejiang-fiscal-supervision-202608`。三个样本日期为2026-07-21、2026-07-29、2026-08-11，均在2026-10-10前90天内；更早的7月9日和6月30日候选因超出范围被排除。当前代码因此定义九条可识别sample，但本机没有seed或数据库读取，本机当前实际篇数未知；先前六条seed结果仅为上一轮历史审计，不推断仍是现状。

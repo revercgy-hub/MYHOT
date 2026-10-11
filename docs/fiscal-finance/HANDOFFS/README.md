@@ -2,6 +2,8 @@
 
 ## 最新阶段状态
 
+最新运维检查点为[2026-10-11本地恢复交接](DIRECT_LOCAL_RECOVERY_2026-10-11.md)：固定九条preview已在隔离库完成单次seed与审计，精确CI head `f6a6bc2` 的Check+Docker全绿；本机API/Web启动请求被策略拒绝，live页面/HTTP仍未核验。旧403原因已纠正为CLI自动选择upstream目标仓库。阶段代码SHA仍为`3385ef0`。
+
 最新交接为[2026-10-10浙江三条预览与厦门债务PDF护栏检查点](CONTENT_PREVIEW_ZHEJIANG_AND_XIAMEN_PDF_2026-10-10.md)，代码SHA `3385ef05ebf448a0bd9d68daf748d03b24b34440`。它记录三条浙江预览候选及事实复核、厦门真实PDF仍`pdf_page_no_text`且source disabled、当前精确SHA的CI和本机seed/live验收状态；请以文内时间点和边界为准。用户手动恢复服务后的验收结果如有更新，追加到该交接及[STATUS](../STATUS.md)，不覆盖历史证据。
 
 最新来源/QA交接是[2026-10-08连续P3恢复检查点](CONTINUOUS_P3_HANDOFF_2026-10-07.md)，当前代码SHA `edd0644ddcdee42de03eb21ad4704108f08000a5`、46来源/40 strict IDs、fresh 35-migration全套QA及同SHA CI run37709884742通过。正式Gate状态由[2026-10-08 Gate 2审查](../GATE_2_REVIEW.md)确定为`PASSED_FOR_BOUNDED_P4_PILOT`，仅限三个source中逐篇合格的固定小样；不等于46源准入、35局持续运行或无人值守采集。厦门财债`xiamen-finance-debt`仍`NOT_ADMITTED`。详见[STATUS](../STATUS.md)、[连续P3交接](CONTINUOUS_P3_HANDOFF_2026-10-07.md)和[正式review](../GATE_2_REVIEW.md)。

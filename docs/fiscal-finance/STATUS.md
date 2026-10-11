@@ -1,5 +1,21 @@
 # 项目状态
 
+## 2026-10-11 当前权威检查点：本地预览seed完成；本机API/Web受策略阻止
+
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_SHA=3385ef05ebf448a0bd9d68daf748d03b24b34440（当前阶段代码SHA；其后 `f6a6bc2` 与本轮提交均为docs-only）
+LATEST_TESTED_CI_HEAD_SHA=f6a6bc2009dd2c1965ce77bb0cbd93127df2ee0c；workflow run [38101003073](https://github.com/revercgy-hub/MYHOT/actions/runs/38101003073) 对精确SHA的Check与Docker均success
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+RECOVERY_SHA=f6a6bc2009dd2c1965ce77bb0cbd93127df2ee0c（本轮开始时的clean HEAD；恢复任务起点）
+WORKSPACE=D:\AI-work\MYHOT\AIHOT
+STAGE=P3来源主线及本地开发预览维护；本轮不扩大Gate或来源范围
+GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`；仅按[正式review](GATE_2_REVIEW.md)限定三source逐篇小样，本轮状态不变
+COMPLETED=确认GitHub Actions权限与远端配置后，为精确 `feat/fiscal-finance-hot`/SHA `f6a6bc2` 执行一次Check dispatch，Check与Docker均通过。用户授权的一次固定seed写入精确隔离库 `fiscalhot_preview_test`：35 migrations、旧六条业务内容保持不变、新三条created；9 sources/articles/publications/overrides/audits，9 eligible、0 selected/score/body/analysis/jobs/fetch/receipts。详见[本轮本地恢复交接](HANDOFFS/DIRECT_LOCAL_RECOVERY_2026-10-11.md)。
+REVIEW=初始无参数 `gh workflow run` 因Git remote自动解析到upstream `KKKKhazix/AIHOT` 而收到403；这是目标仓库选错，不是fork权限不足。显式 `--repo revercgy-hub/MYHOT` 后一次dispatch成功。之前将403表述为权限不足的历史判断已更正。当前API/Web启动请求在进程创建前被策略拒绝，未创建PID；没有尝试换工具。PG在`127.0.0.1:5432`运行，seed已完成；本机页面/robots/HTTP/smoke未验证。CI内置built-site smoke通过不能替代本机HTTP证据。
+BLOCKERS=API和Web本轮未能启动（策略拒绝发生于2026-10-11，不是旧的“等用户手动启动”快照）；本机live页面、HTTP noindex与loopback smoke未运行。旧六条中3篇article的`updated_at`因JSONB属性键顺序导致材料upsert误判changed而刷新；逐字段审核确认内容/raw/provenance/revision/publication/override/audit均相同。该技术时间戳触碰不是官方内容修订；保留不回滚，材料JSON比较的键序问题待独立最小修复评估。
+IN_PROGRESS=本地live root/item与HTTP noindex未核验；九条预览仍全部未精选、正文为空，Gold标签/事件分组及source质量、90日覆盖未证明；厦门PDF正文仍`pdf_page_no_text`/hold。来源仍disabled、全文关闭。
+NEXT=先独立评估JSONB材料比较按key order造成的updated_at触碰并提出最小修复；之后若重新授权并且运行策略允许，再启动API/Web及做有限loopback页面/robots核验。保持来源disabled和Gate不变。
+
 ## 2026-10-10 当前权威检查点：浙江三条预览候选与厦门PDF边界
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
