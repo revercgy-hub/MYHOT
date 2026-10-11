@@ -2,6 +2,8 @@
 
 ## 最新阶段状态
 
+最新QA检查点为[2026-10-11 JSONB幂等性与福建分页配置](JSONB_IDEMPOTENCY_AND_FUJIAN_PAGINATION_2026-10-11.md)：代码SHA `c133db772d1718281fed55bef3a1d2390ed39245` 的Check+Docker run [38125181865](https://github.com/revercgy-hub/MYHOT/actions/runs/38125181865)成功；本机fresh QA backend374/374、Web build及16/16通过。Root授权的九条preview固定seed一次重放前后7表63行完全一致，article更新时间不变。福建受限页面观察经离线复核，source仍disabled/fulltext-off。精确tested SHA、CI backend单个Windows-only skip及安全边界见交接和[STATUS](../STATUS.md)。
+
 最新运维检查点为[2026-10-11本地恢复交接](DIRECT_LOCAL_RECOVERY_2026-10-11.md)：固定九条preview已在隔离库完成单次seed与审计，精确CI head `f6a6bc2` 的Check+Docker全绿；本机API/Web启动请求被策略拒绝，live页面/HTTP仍未核验。旧403原因已纠正为CLI自动选择upstream目标仓库。阶段代码SHA仍为`3385ef0`。
 
 最新交接为[2026-10-10浙江三条预览与厦门债务PDF护栏检查点](CONTENT_PREVIEW_ZHEJIANG_AND_XIAMEN_PDF_2026-10-10.md)，代码SHA `3385ef05ebf448a0bd9d68daf748d03b24b34440`。它记录三条浙江预览候选及事实复核、厦门真实PDF仍`pdf_page_no_text`且source disabled、当前精确SHA的CI和本机seed/live验收状态；请以文内时间点和边界为准。用户手动恢复服务后的验收结果如有更新，追加到该交接及[STATUS](../STATUS.md)，不覆盖历史证据。

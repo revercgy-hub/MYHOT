@@ -1,5 +1,13 @@
 # 官方信源验证矩阵
 
+## 2026-10-11 福建有限主页/详情复核与配置QA增量
+
+source `mof-fujian-supervision-dynamics` 的官方入口为福建监管局“工作动态”栏目 `https://fj.mof.gov.cn/gzdt/caizhengjiancha/`。按一次性精确批准执行的两个 direct GET（目标详情 `/202606/t20260626_3992351.htm` 与上述主页）均为HTTP 200、final URL精确、完整EOF；预算`2/2/0`，20秒超时、6MiB上限、无重试/redirect，不请求附件。独立离线解析确认详情标题匹配、列表日/`PubDate`/可见日均为2026-07-28；详情清理正文2915字符/7段、无附件链接。保存主页与2026-10-06已有homepage snapshot均解析10项且URL/title/date逐行相同。首次manifest错误地拿新主页与已保存`index_1`比较；原始记录未改写，由`offline-audit-correction.json`改用旧page-0后完成相同性复核。 raw、hash、预算和独立QA见`.data/fiscal-qa/fujian-source-next-20261011/`及[本轮handoff](HANDOFFS/JSONB_IDEMPOTENCY_AND_FUJIAN_PAGINATION_2026-10-11.md)。
+
+当前单一来源配置仅在该条目上启用既有`mof_index_v1`有界分页选项：最多2页/次、12次dispatch、最大page index 3，详情metadata模式`direct_html_metadata_v1`。配置使用的page-0/page-1最小fixture均为10行结构；真实raw与fixture SHA分开留存。该source仍`enabled=false`、`site_fulltext=false`、`syndicate_fulltext=false`。一篇详情、一次主页比对和有限分页样本不证明跨周期稳定、全栏目质量、历史或90日完整覆盖、collector持久化或source admission；Gate 2保持正式review原状态。全局目录仍48 sources / 42 strict IDs，所有source disabled且全文关闭。
+
+本次配置及测试随代码SHA `c133db772d1718281fed55bef3a1d2390ed39245`推送；精确SHA的Check+Docker run [38125181865](https://github.com/revercgy-hub/MYHOT/actions/runs/38125181865)成功。独立软件QA与证据限制详见[检查点](HANDOFFS/JSONB_IDEMPOTENCY_AND_FUJIAN_PAGINATION_2026-10-11.md)；软件验证不改变本矩阵中的source admission判定。
+
 ## 2026-10-10 浙江监管工作 page 2 日期与厦门地方债正文识别增量
 
 浙江保存 page 2 中四条 URL 路径日期 token 与列表日期不同的文章，经本轮四次精确详情 GET 后，标题、详情 `PubDate`、页面可见日期与列表中国日期逐条匹配；正文抽取分别为1,390、1,264、2,312、1,203字符，均未发现附件。四份响应 raw/hash 与 manifest 已复核。第五条 2026-08-04 token 的旧核验仍属于10/09材料：列表/详情日为8/11。本次仅新增四次 GET；这些样本不证明来源级日期规则、完整历史/90日覆盖、跨周期稳定或来源准入。明细见[本轮交接](HANDOFFS/CONTENT_PREVIEW_SOURCE_GUARDS_2026-10-10.md)及下方历史分页记录。

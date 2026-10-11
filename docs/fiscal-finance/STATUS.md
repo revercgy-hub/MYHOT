@@ -1,20 +1,25 @@
 # 项目状态
 
-## 2026-10-11 当前权威检查点：本地预览seed完成；本机API/Web受策略阻止
+## 2026-10-11 当前权威检查点：JSONB幂等修复及福建受限分页软件QA
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=3385ef05ebf448a0bd9d68daf748d03b24b34440（当前阶段代码SHA；其后 `f6a6bc2` 与本轮提交均为docs-only）
-LATEST_TESTED_CI_HEAD_SHA=f6a6bc2009dd2c1965ce77bb0cbd93127df2ee0c；workflow run [38101003073](https://github.com/revercgy-hub/MYHOT/actions/runs/38101003073) 对精确SHA的Check与Docker均success
+CURRENT_CODE_SHA=c133db772d1718281fed55bef3a1d2390ed39245（已提交并推送至`origin/feat/fiscal-finance-hot`）
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
-RECOVERY_SHA=f6a6bc2009dd2c1965ce77bb0cbd93127df2ee0c（本轮开始时的clean HEAD；恢复任务起点）
+RECOVERY_SHA=3e6ee8e92c8314a229c54200ced40d165e0b7c77（本轮实际clean起点）
+TESTED_CI_SHA=c133db772d1718281fed55bef3a1d2390ed39245；GitHub Check+Docker run [38125181865](https://github.com/revercgy-hub/MYHOT/actions/runs/38125181865) 对精确head均success。Check backend 373 pass/1 Windows-only skip/0 fail；Web 16/16，typecheck/build/migrate/seed/built-site smoke通过。
+DOCS_BASE_HEAD=c133db772d1718281fed55bef3a1d2390ed39245（文档commit父SHA；文档commit SHA由git log核实）
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
-STAGE=P3来源主线及本地开发预览维护；本轮不扩大Gate或来源范围
-GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`；仅按[正式review](GATE_2_REVIEW.md)限定三source逐篇小样，本轮状态不变
-COMPLETED=确认GitHub Actions权限与远端配置后，为精确 `feat/fiscal-finance-hot`/SHA `f6a6bc2` 执行一次Check dispatch，Check与Docker均通过。用户授权的一次固定seed写入精确隔离库 `fiscalhot_preview_test`：35 migrations、旧六条业务内容保持不变、新三条created；9 sources/articles/publications/overrides/audits，9 eligible、0 selected/score/body/analysis/jobs/fetch/receipts。详见[本轮本地恢复交接](HANDOFFS/DIRECT_LOCAL_RECOVERY_2026-10-11.md)。
-REVIEW=初始无参数 `gh workflow run` 因Git remote自动解析到upstream `KKKKhazix/AIHOT` 而收到403；这是目标仓库选错，不是fork权限不足。显式 `--repo revercgy-hub/MYHOT` 后一次dispatch成功。之前将403表述为权限不足的历史判断已更正。当前API/Web启动请求在进程创建前被策略拒绝，未创建PID；没有尝试换工具。PG在`127.0.0.1:5432`运行，seed已完成；本机页面/robots/HTTP/smoke未验证。CI内置built-site smoke通过不能替代本机HTTP证据。
-BLOCKERS=API和Web本轮未能启动（策略拒绝发生于2026-10-11，不是旧的“等用户手动启动”快照）；本机live页面、HTTP noindex与loopback smoke未运行。旧六条中3篇article的`updated_at`因JSONB属性键顺序导致材料upsert误判changed而刷新；逐字段审核确认内容/raw/provenance/revision/publication/override/audit均相同。该技术时间戳触碰不是官方内容修订；保留不回滚，材料JSON比较的键序问题待独立最小修复评估。
-IN_PROGRESS=本地live root/item与HTTP noindex未核验；九条预览仍全部未精选、正文为空，Gold标签/事件分组及source质量、90日覆盖未证明；厦门PDF正文仍`pdf_page_no_text`/hold。来源仍disabled、全文关闭。
-NEXT=本轮启动已有用户授权且持续有效；API/Web目前仍受执行策略阻止。策略允许后完成启动及本机页面/robots验收。JSONB比较问题独立评估后续最小修复，不作为页面启动前置。保持来源disabled和Gate不变。
+STAGE=P3来源主线与本地开发预览维护；此次改动不扩大Gate或来源准入
+GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`；仅按[正式review](GATE_2_REVIEW.md)限定三个source逐篇小样，状态未改变
+COMPLETED=JSONB修复和福建配置分成两个小代码commit并推送。最终冻结范围通过fresh 35-migration QA：typecheck PASS、backend 374/374、Web build PASS、Web tests 16/16、diff-check PASS。精确代码head `c133db7` 的Check+Docker run 38125181865全绿。Root批准的preview固定九条seed一次幂等重放后，7张业务表共63行逐表快照完全一致，9篇article的updated_at全部不变。详见[本轮检查点](HANDOFFS/JSONB_IDEMPOTENCY_AND_FUJIAN_PAGINATION_2026-10-11.md)。
+REVIEW=JSONB更新保留原JS早返并增加JSONB语义UPDATE保护；福建仅一个`mof_index_v1`两页opt-in，source仍disabled/fulltext-off。QA保留首轮374项中373通过、1项合成localhost fixture被MOF URL guard阻止的真实失败；测试副本修复后新fresh DB完整374/374通过，未放宽生产guard。最终Linux CI backend为373 pass、1个Windows-only monitor test skip、0 fail；CI Web 16/16。
+BLOCKERS=API/Web先前启动请求在进程创建前被策略拒绝，本轮未重试，live root/item、HTTP robots/noindex仍未验证。来源质量和90日覆盖未证明。
+IN_PROGRESS=九条preview保持未精选、正文为空；人工Gold标签/事件分组、来源完整质量和90日覆盖未证明；厦门PDF仍hold；Gate及source admission未变化。
+NEXT=复核文档commit后最终HEAD/远端一致；服务启动策略阻止时不重试；维持来源禁用。
+
+完整QA命令/日志、冻结哈希、福建raw packet和preview前后快照见[JSONB幂等性与福建分页检查点](HANDOFFS/JSONB_IDEMPOTENCY_AND_FUJIAN_PAGINATION_2026-10-11.md)。
+
+## 2026-10-11 前序检查点：本地预览seed完成；本机API/Web受策略阻止
 
 ## 2026-10-10 当前权威检查点：浙江三条预览候选与厦门PDF边界
 
