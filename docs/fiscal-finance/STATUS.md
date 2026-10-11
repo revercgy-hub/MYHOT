@@ -3,7 +3,7 @@
 ## 2026-10-11 当前权威检查点：JSONB幂等修复及福建受限分页软件QA
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_CODE_SHA=c133db772d1718281fed55bef3a1d2390ed39245（已提交并推送至`origin/feat/fiscal-finance-hot`）
+CURRENT_SHA=c133db772d1718281fed55bef3a1d2390ed39245（当前阶段代码SHA，已提交并推送至`origin/feat/fiscal-finance-hot`；docs-only提交另见git log）
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 RECOVERY_SHA=3e6ee8e92c8314a229c54200ced40d165e0b7c77（本轮实际clean起点）
 TESTED_CI_SHA=c133db772d1718281fed55bef3a1d2390ed39245；GitHub Check+Docker run [38125181865](https://github.com/revercgy-hub/MYHOT/actions/runs/38125181865) 对精确head均success。Check backend 373 pass/1 Windows-only skip/0 fail；Web 16/16，typecheck/build/migrate/seed/built-site smoke通过。
@@ -15,7 +15,7 @@ COMPLETED=JSONB修复和福建配置分成两个小代码commit并推送。最�
 REVIEW=JSONB更新保留原JS早返并增加JSONB语义UPDATE保护；福建仅一个`mof_index_v1`两页opt-in，source仍disabled/fulltext-off。QA保留首轮374项中373通过、1项合成localhost fixture被MOF URL guard阻止的真实失败；测试副本修复后新fresh DB完整374/374通过，未放宽生产guard。最终Linux CI backend为373 pass、1个Windows-only monitor test skip、0 fail；CI Web 16/16。
 BLOCKERS=API/Web先前启动请求在进程创建前被策略拒绝，本轮未重试，live root/item、HTTP robots/noindex仍未验证。来源质量和90日覆盖未证明。
 IN_PROGRESS=九条preview保持未精选、正文为空；人工Gold标签/事件分组、来源完整质量和90日覆盖未证明；厦门PDF仍hold；Gate及source admission未变化。
-NEXT=复核文档commit后最终HEAD/远端一致；服务启动策略阻止时不重试；维持来源禁用。
+NEXT=继续准备福建两页配置的隔离、有请求预算的真实collector验证，并按PROJECT_PLAN推进来源质量；已知API/Web启动受策略阻止，不重复启动；source仍disabled。
 
 完整QA命令/日志、冻结哈希、福建raw packet和preview前后快照见[JSONB幂等性与福建分页检查点](HANDOFFS/JSONB_IDEMPOTENCY_AND_FUJIAN_PAGINATION_2026-10-11.md)。
 
