@@ -4,6 +4,10 @@
 
 “栏目证据”仅记录现存资料里能证明的地方栏目或中央汇总样本；中央选登中的一篇稿件不能证明其发布局独立栏目已找到。`未知`代表本地证据不足，不猜栏目、URL或selector。各局后续均需按真实页面核验栏目入口、列表身份/日期、详情正文、窗口/分页和重复；单项通过后才更新状态。
 
+### 2026-10-12 六来源隔离批量观察增量
+
+本次涉及六个官方来源，其中三条地方局独立来源：fresh `fiscalhot_bulk_20261012_test`中的隔离写入不表示来源准入、公开可见或精选。Xiamen一次run `found=10/created=10/body ok=8`；Fujian `20/17/4`；Zhejiang `20/16/5`。三源均保持disabled/fulltext-off，另有38篇本批创建文章没有body抽取，严格正文source产生的17条publication仅是空summary且不可精选/索引的内部状态。Fujian和Zhejiang均两页后以`max_pages_per_run`停止，coverage仍unproven；单次结果不证明完整90日覆盖、周期稳定性或全栏内容质量。独立QA已通过raw/SQL与publication逐行核对；业务正文及噪声判断仍逐篇待审。另有一次QA批准的编辑预览seed将六条编辑辅助摘要加入既有`fiscalhot_preview_test`固定九条，旧9逐字段不变、新6审计通过。它们仅为本地开发预览，未人工精选或人工Gold，页面/HTTP未验证。详见[六来源handoff](HANDOFFS/BULK_SOURCE_SAMPLE_2026-10-12.md)及[来源矩阵](SOURCE_MATRIX.md)。不据此把下方既有逐局证据改为全栏通过。
+
 | # | 财政部官网目录机构名 | 目录域名 | 官方目录证据 | 现存新闻栏目证据 | 独立局源配置 | 独立栏目验证 | 缺口 / 最小下一步 |
 |---:|---|---|---|---|---|---|---|
 | 1 | 财政部北京监管局 | `bj.mof.gov.cn` | 目录页1锚点 | 2026-10-04 batch 1 实见首页“工作动态”链接、栏目列表10条；详情日期相差6天。2026-10-05 fresh隔离库真实collector抓10条（1列表+10详情），再显式抽取1篇和重复列表1次；样本详情日期为9/30，列表日9/24 | 有，`mof-beijing-supervision-dynamics`（disabled） | 有限：首次列表/详情正文raw hash缺失；单篇body转ok；重复列表幂等；其余9篇pending。未验分页、90日历史、周期稳定性 | 保留列表/详情日期差异和首轮11个响应hash未知；不把一次collector/正文样本当来源通过。详见[北京验证报告](BEIJING_REAL_COLLECTOR_2026-10-05.md) |

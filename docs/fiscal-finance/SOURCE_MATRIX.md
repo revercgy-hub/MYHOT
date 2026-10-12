@@ -1,5 +1,21 @@
 # 官方信源验证矩阵
 
+## 2026-10-12 六来源隔离批量运行（内容QA待终结）
+
+对`pboc-open-market`、`mof-treasury-debt-data`、`mof-xiamen-supervision-dynamics`、`mof-fujian-supervision-dynamics`、`mof-zhejiang-supervision-dynamics`与`mof-policy-release`获准各串行运行一次fresh隔离采集及cap内显式正文抽取。数据库`fiscalhot_bulk_20261012_test`从35 migrations后before计数全0；catalog hash `0b35e66f3e7d5816fcc6588527a49d9b650df63c5a3ce01175e4fa909553e7d3`。实际90 found / 70 created，40/120 dispatch、40个响应HTTP 200、0 rejected；显式抽取32篇body `ok`，38篇留在pending。所有来源仍disabled、`site_fulltext=false`、`syndicate_fulltext=false`。worker未运行；70个extract jobs仍created；`job_runs/analyses/receipts/selected_ledger=0`。另17条publication为body_mode=summary、summary为空、selected/eligible/indexable=false且全文关闭，不能当作网站可见新增或精选。
+
+| source | found | created | body ok / approved cap |
+|---|---:|---:|---:|
+| `pboc-open-market` | 20 | 20 | 8 / 8 |
+| `mof-treasury-debt-data` | 10 | 3 | 3 / 8 |
+| `mof-xiamen-supervision-dynamics` | 10 | 10 | 8 / 8 |
+| `mof-fujian-supervision-dynamics` | 20 | 17 | 4 / 4 |
+| `mof-zhejiang-supervision-dynamics` | 20 | 16 | 5 / 5 |
+| `mof-policy-release` | 10 | 4 | 4 / 8 |
+| **合计** | **90** | **70** | **32 / 41** |
+
+PBOC fresh-db effective config将detail `maxFetches`由catalog 3暂时置0以避免inline fetch重复；未改catalog。列表25s/8MiB、详情20s/6MiB，无重试、总dispatch含redirect hop cap120。福建和浙江这次run均只提交两页且partial，coverage仍unproven；这不是任何一个source的完整性、持续稳定性或来源准入结果。body `ok`只表示抽取结果非空，不等于业务质量通过。独立QA核验40/40 raw hash/EOF及解析—SQL绑定、70 articles/102 revisions/70 discoveries、70 created jobs与所有副作用计数；publication逐行符合空summary及不可精选/索引约束，bounded/isolated scope PASS。原始response、hash、manifest及独立审核材料只放忽略目录`.data/fiscal-qa/bulk-20261012/evidence/`。approved local preview seed已将每source至多一条候选纳入本地15条编辑辅助样本，读写审计PASS；summary/正文映射经独立QA核对，但不代表人工精选、Gold或业务质量通过。原始证据只放忽略目录`.data/fiscal-qa/bulk-20261012/evidence/`及`.data/fiscal-qa/local-preview-seed-20261012-qa/`。完整限定见[bulk handoff](HANDOFFS/BULK_SOURCE_SAMPLE_2026-10-12.md)。
+
 ## 2026-10-12 福建两页限额collector实际运行（独立QA）
 
 `mof-fujian-supervision-dynamics`在fresh `fiscalhot_fj_pagination_20261012_test`（35 migrations）执行一次有界`mof_index_v1` collector。仅取栏目首页与`index_1.htm`两个direct列表响应；均HTTP 200、完整EOF、无redirect和重试，dispatch 2/12，无详情或附件请求。按批准的共享预算上限，每个列表response最多8 MiB、详情最多6 MiB；本次实体分别4,432 B/hash `ec08b0675efe1f23a6ab29b16204d37a91b79b6baafbfbed653e83b732cc1b02`，4,396 B/hash `d1285328bc6dde8d04f32fa9f14b3094832ff4d51726e3b4828e4accf35f8421`。经独立离线解压和当前`fromHtml`重放，每页10项、共20个唯一URL、无页间重复；17条落入本次窗口并与新article URL/title/date逐条一致，3条列表日2026-07-10、07-09、07-08早于截止`2026-07-14T07:50:52.074Z`而未落库。7条列表日期与URL路径日期不一致；无详情GET，不能据路径日期判断真实发布日期。

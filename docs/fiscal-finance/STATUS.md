@@ -1,6 +1,29 @@
 # 项目状态
 
-## 2026-10-12 当前权威检查点：福建两页有界collector真实运行
+## 2026-10-12 当前权威检查点：六来源隔离批量采集与本地预览完成
+
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_SHA=07aaf2fcb6d1b0d249c11f78c5a5ff95d2c461dc（当前代码SHA；本轮docs commit另列）
+CURRENT_CODE_SHA=07aaf2fcb6d1b0d249c11f78c5a5ff95d2c461dc；GitHub Check+Docker run [38229999049](https://github.com/revercgy-hub/MYHOT/actions/runs/38229999049) completed/success，head SHA精确匹配
+PREVIOUS_CODE_SHA=0b7d8c844b120af27f9f63dba6c94841b6a6c6f1；metadata counter fix的GitHub Check+Docker run [38227340214](https://github.com/revercgy-hub/MYHOT/actions/runs/38227340214) completed/success，head SHA精确匹配；后由preview代码提交推进至CURRENT_SHA
+DOCS_BASE_HEAD=07aaf2fcb6d1b0d249c11f78c5a5ff95d2c461dc（本轮文档commit父SHA；最终docs SHA见git log）
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+RECOVERY_SHA=cc0b8305748b08c4059846ee8a1821ddb04bbb93（本轮实际clean起点）
+WORKSPACE=D:\AI-work\MYHOT\AIHOT
+STAGE=P3来源质量与本地开发预览维护；六来源隔离批量运行已结束，不扩大Gate或source准入
+GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`，仍仅限正式review指定三来源的逐篇合格小样；本批六来源观察不改变Gate
+SOURCE_DIRECTORY=48项 / 42个strict IDs；所有source仍disabled且站内/转发全文关闭
+COMPLETED=2026-10-12 09:08 UTC在fresh `fiscalhot_bulk_20261012_test`（35 migrations）一次串行运行六source。90 found、70 created、40/120 dispatch、32篇body `ok`、70个created extraction jobs；DB有102 revisions/70 discoveries/17 summary-mode空publication。`analyses/receipts/selected_ledger/job_runs=0`。approved preview seed新增六条本地编辑辅助摘要，总15条；独立读前/写后审计PASS，旧9条72行逐字段含`updated_at`全一致。preview代码已commit/push为`07aaf2f`且精确SHA Check+Docker成功。详见[六来源bulk handoff](HANDOFFS/BULK_SOURCE_SAMPLE_2026-10-12.md)。
+REVIEW=Root批准cap和隔离边界；runner无reported violations。独立QA已验证40/40 raw hash/EOF、解析与SQL绑定及publication逐行状态，bounded/isolated scope PASS。bulk DB 17条publication为`selected/eligible/indexable=false`、body_mode summary且无summary，不是网站页面可见内容。preview DB 15条为summary-only、eligible但未精选、noindex/no syndication，所有正文null，source disabled/fulltext-off；预览独立于bulk库，读前/写后审计确认旧9条未变化。API/Web 3000/3001未运行，无live HTTP/页面验收。
+BLOCKERS=六来源样本的业务价值、单篇噪声判断及列表/详情日期仍待人工审阅；Fujian/Zhejiang本run止于2页上限、coverage unproven；source质量、完整90日覆盖和稳定性未证明。当前无preview代码提交或CI阻塞；live页面尚未核验。
+IN_PROGRESS=六来源样本的逐篇业务价值/噪声审阅，以及后续source栏目覆盖、90日历史覆盖和跨周期稳定性验证。Gate和source admission不变。
+NEXT=docs-only收尾提交并推送后，按项目计划继续样本质量和来源覆盖审查；本批六source不重跑/补采，不连接bulk库。任何live页面/HTTP动作须另行安排。
+MODEL=requested `Luna High`；actual model unverified。应用模型/provider/OCR调用0。
+LOCAL_QA=本轮批量runner静态/preflight通过；manifest `bounded_batch_completed`、6/6 source `ok`、40 HTTP200 dispatch、0 rejected、未触顶、0 runner violations。独立QA核实40/40 raw hash/EOF，DB为70 articles/102 revisions/70 discoveries/70 jobs created、32 body ok/38 pending，17条空summary不可精选/索引publication；analyses/receipts/selected_ledger/job_runs均0，bounded/isolated scope PASS。preview seed读前/写后审计PASS：八张表旧9条72行全字段含timestamp稳定，新6条共15条；无fetch/analysis/receipt/ledger/state/job_runs。旧代码SHA `0b7d8c8` 本机backend完整套件曾374/376通过：`translate-shutdown.test.ts:61`预期2次请求却收到3次、`translate.test.ts:70`预期translated receipt却为`{}`；fresh filtered reruns分别2/2和1/1通过但原失败保留为flaky/unresolved。该SHA Web测试并行build时一次因artifact缺失失败，顺序重跑16/16通过。当前固定15-preview代码SHA `07aaf2f` 的Check+Docker run 38229999049对精确head成功。没有因docs-only恢复重跑tests/CI。CI与采集QA均不能外推为全源覆盖/质量通过。
+
+完整运行边界、逐source分母和忽略目录证据位置见[本轮handoff](HANDOFFS/BULK_SOURCE_SAMPLE_2026-10-12.md)。
+
+## 2026-10-12 前一检查点：福建两页有界collector真实运行
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
 CURRENT_SHA=c133db772d1718281fed55bef3a1d2390ed39245（当前阶段代码SHA）
