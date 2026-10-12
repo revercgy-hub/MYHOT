@@ -53,6 +53,9 @@ const LOCAL_PREVIEW_ARTICLE_IDS = new Set([
   "local-preview-mof-fujian-vat-refund-review",
   "local-preview-mof-zhejiang-cpa-law",
   "local-preview-mof-lottery-funds-rules",
+  "local-preview-mof-guangxi-accounting-checks",
+  "local-preview-mof-hainan-fiscal-management",
+  "local-preview-mof-sichuan-budget-monitoring",
 ]);
 
 export function isLocalPreviewArticleId(id: string): boolean {
