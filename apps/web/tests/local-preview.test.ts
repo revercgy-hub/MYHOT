@@ -62,7 +62,15 @@ test("local preview namespace requires an exact sample allow-list", () => {
     "local-preview-mof-zhejiang-real-funds",
     "local-preview-mof-zhejiang-transfer-performance",
     "local-preview-mof-zhejiang-fiscal-supervision-202608",
+    "local-preview-pboc-omo-189",
+    "local-preview-mof-debt-202607",
+    "local-preview-mof-xiamen-inclusive-finance",
+    "local-preview-mof-fujian-vat-refund-review",
+    "local-preview-mof-zhejiang-cpa-law",
+    "local-preview-mof-lottery-funds-rules",
   ];
+  assert.equal(allowed.length, 15);
+  assert.equal(new Set(allowed).size, allowed.length);
   assert.doesNotThrow(() => assertLocalPreviewIds(allowed, allowed));
   assert.throws(() => assertLocalPreviewIds(["local-preview-unknown"], allowed), /outside the fixed sample allow-list/);
   for (const id of allowed) assert.equal(isLocalPreviewArticleId(id), true, `${id} should receive preview labeling`);

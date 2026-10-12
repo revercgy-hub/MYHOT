@@ -47,6 +47,12 @@ const LOCAL_PREVIEW_ARTICLE_IDS = new Set([
   "local-preview-mof-zhejiang-real-funds",
   "local-preview-mof-zhejiang-transfer-performance",
   "local-preview-mof-zhejiang-fiscal-supervision-202608",
+  "local-preview-pboc-omo-189",
+  "local-preview-mof-debt-202607",
+  "local-preview-mof-xiamen-inclusive-finance",
+  "local-preview-mof-fujian-vat-refund-review",
+  "local-preview-mof-zhejiang-cpa-law",
+  "local-preview-mof-lottery-funds-rules",
 ]);
 
 export function isLocalPreviewArticleId(id: string): boolean {
