@@ -159,6 +159,77 @@ test("metadata pending page resumes in order without refetching its listing or c
   assert.deepEqual(rows.map((row) => row.title).sort(), ["Verified detail a", "Verified detail b", "Verified detail c"].map((title) => `${title} ${T}`).sort());
 });
 
+test("metadata pagination run detail counts each outside-window candidate once", async () => {
+  const id = `test-web-list-metadata-outside-window-count-${T}`;
+  await insertSource(id);
+  const now = Date.now();
+  const insideDate = new Date(now - 30 * 86_400_000).toISOString();
+  const outsideDate = new Date(now - 100 * 86_400_000).toISOString();
+  const candidates = [
+    ...Array.from({ length: 17 }, (_, index) => article(`news/within-${index}-${T}`, `Synthetic in-window ${index} ${T}`, insideDate)),
+    ...Array.from({ length: 3 }, (_, index) => article(`news/outside-${index}-${T}`, `Synthetic out-of-window ${index} ${T}`, outsideDate)),
+  ];
+  const detailCalls: string[] = [];
+  const run = await collectWebListBackfill(id, {
+    force: true,
+    fetchPage: syntheticPages({ 0: candidates }),
+    testMetadataFetcher: async (url) => {
+      detailCalls.push(url);
+      throw new Error("list metadata is sufficient; no detail request should be needed");
+    },
+  });
+
+  assert.deepEqual([run.status, run.found, run.created], ["ok", 20, 17]);
+  assert.deepEqual(detailCalls, []);
+  assert.equal((await stored(id)).length, 17);
+  const [fetchRun] = await sql<{ detail: Record<string, any> }[]>`
+    SELECT detail FROM fetch_runs WHERE source_id = ${id} ORDER BY id DESC LIMIT 1`;
+  assert.equal(fetchRun!.detail.rowsUndated, 0);
+  assert.equal(fetchRun!.detail.rowsOutsideWindow, 3);
+  assert.equal(run.found, run.created + fetchRun!.detail.rowsOutsideWindow, "20 candidates = 17 in-window + 3 outside-window");
+});
+
+test("metadata resume does not count a durable outside-window exclusion twice", async () => {
+  const id = `test-web-list-metadata-outside-window-resume-${T}`;
+  const cfg = metadataConfig() as Record<string, any>;
+  cfg.detail = { ...cfg.detail, maxFetches: 1, titleAuthoritative: true };
+  await insertSource(id, cfg);
+  const insideDate = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  const outsideDate = new Date(Date.now() - 100 * 86_400_000).toISOString();
+  const candidates = [
+    article(`news/resume-outside-${T}`, `Synthetic outside ${T}`, outsideDate),
+    article(`news/resume-a-${T}`, `Synthetic resume A ${T}`, insideDate),
+    article(`news/resume-b-${T}`, `Synthetic resume B ${T}`, insideDate),
+  ];
+  const detailCalls: string[] = [];
+  const metadataFetcher = async (url: string, options: GuardedFetchOptions = {}): Promise<GuardedResponse> => {
+    options.runBudget!.beforeDispatch({ url: new URL(url), method: "GET", redirectHop: 0 });
+    detailCalls.push(url);
+    const body = Buffer.from(`<html><h1>Verified resume title ${T}</h1></html>`);
+    return { status: 200, url, headers: new Headers({ "content-type": "text/html" }), body, text: () => body.toString("utf8") };
+  };
+
+  const first = await collectWebListBackfill(id, {
+    force: true, fetchPage: syntheticPages({ 0: candidates }), testMetadataFetcher: metadataFetcher,
+  });
+  assert.deepEqual([first.status, first.found, first.created], ["ok", 3, 0]);
+  const [firstRun] = await sql<{ detail: Record<string, any> }[]>`
+    SELECT detail FROM fetch_runs WHERE source_id = ${id} ORDER BY id LIMIT 1`;
+  assert.deepEqual([firstRun!.detail.rowsOutsideWindow, firstRun!.detail.detailTargetsUsed, firstRun!.detail.pendingRows], [1, 1, 1]);
+
+  const second = await collectWebListBackfill(id, {
+    force: true,
+    fetchPage: async () => { throw new Error("resume must use the durable pending page"); },
+    testMetadataFetcher: metadataFetcher,
+  });
+  assert.deepEqual([second.status, second.found, second.created], ["ok", 0, 2]);
+  assert.equal(detailCalls.length, 2, "the durable exclusion and first resolved detail are not fetched or counted again");
+  const runs = await sql<{ detail: Record<string, any> }[]>`
+    SELECT detail FROM fetch_runs WHERE source_id = ${id} ORDER BY id`;
+  assert.deepEqual(runs.map((run) => run.detail.rowsOutsideWindow), [1, 0]);
+  assert.equal((await stored(id)).length, 2);
+});
+
 test("metadata snapshot and per-row checkpoints survive injected database failures", async () => {
   const page = [
     article("news/tx-a", `Synthetic metadata tx A ${T}`, "2026-10-01T00:00:00.000Z"),

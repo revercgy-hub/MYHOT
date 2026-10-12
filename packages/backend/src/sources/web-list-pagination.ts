@@ -1025,6 +1025,7 @@ async function collectWebListBackfillCore(sourceId: string, options: PaginatedWe
               }
             }
             cursor = await saveResolvedRow(cursor!, pending, i, resolved);
+            if (resolved.state === "excluded" && resolved.outcome === "outside_window") rowsOutsideWindow += 1;
             pending = cursor.pendingPage!;
             pendingRows = pending.candidates.filter((candidate) => candidate.state === "pending").length;
           }
