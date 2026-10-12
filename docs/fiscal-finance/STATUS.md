@@ -1,5 +1,28 @@
 # 项目状态
 
+## 2026-10-12 当前权威检查点：福建两页有界collector真实运行
+
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_SHA=c133db772d1718281fed55bef3a1d2390ed39245（当前阶段代码SHA）
+CURRENT_CODE_SHA=c133db772d1718281fed55bef3a1d2390ed39245（本轮生产代码未变；之前精确代码CI为38125181865）
+DOCS_BASE_HEAD=cc0b8305748b08c4059846ee8a1821ddb04bbb93（本轮文档提交父SHA；最终docs SHA见git log）
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+RECOVERY_SHA=cc0b8305748b08c4059846ee8a1821ddb04bbb93（本轮clean实际起点）
+WORKSPACE=D:\AI-work\MYHOT\AIHOT
+STAGE=P3来源主线与本地开发预览维护；完成一次福建两页限额真实collector观察，不扩大Gate或准入
+GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`，仅限[正式review](GATE_2_REVIEW.md)规定的三个核心source逐篇合格小样；福建不在批准pilot范围
+SOURCE_DIRECTORY=48项 / 42个strict IDs；本轮前后全部source disabled且站内/转发全文关闭
+COMPLETED=2026-10-12 07:50 UTC对`mof-fujian-supervision-dynamics`执行一次两页bounded collector，fresh 35-migration隔离库中20个候选有17条在窗口内并精确持久化，3条较早候选未入库；独立QA复核原始response/hash/EOF、当前解析及DB逐条匹配。17条均仅有pending空正文与created extraction job，无worker或下游处理。详情见[福建两页交接](HANDOFFS/FUJIAN_BOUNDED_PAGINATION_2026-10-12.md)。
+REVIEW=仅2次direct列表GET、均HTTP200/完整EOF，2/12 dispatch，无redirect/retry/detail/attachment；运行止于`max_pages_per_run`，collector status `ok`同时`partial=true`、coverage `unproven`。独立QA发现metadata route的`rowsOutsideWindow=0`漏计3条窗外候选；原因已定位为direct metadata route未累加该字段。本轮没有改生产代码。标题宽松noise term正则7/20命中、6条入库，属于QA观察而非项目分类或Gold。
+SOURCE=`mof-fujian-supervision-dynamics`继续disabled，`site_fulltext=false`、`syndicate_fulltext=false`；fresh DB新增17篇只属于隔离collector记录，不是网站新增可见或精选。正文pending/空，没请求详情/附件，没运行worker、模型或provider。
+BLOCKERS=福建正文抽取/内容业务质量尚未验证；列表路径日期7条与发布日期不同且无详情核对；仅两页，90日覆盖与来源准入未知；metadata窗外计数漏记留待实现owner评估。
+IN_PROGRESS=source质量、日期与噪声样本核对、分页覆盖和跨时点稳定性仍未闭环；原Gate与准入裁定不变。
+NEXT=Lead另行决定是否安排福建详情或后续分页，以及`rowsOutsideWindow` telemetry修复范围；当前两页预算不授权任何续页或详情请求。保持source禁用、全文关闭、17个extract jobs未消费。
+MODEL=requested `Luna High`；actual model unverified。应用模型/provider/OCR调用0。
+LOCAL_QA=本轮独立离线解析与数据库只读审计完成；本轮未运行代码测试/全套QA/CI，因为生产代码无变化。不得把旧CI当成本轮collector执行证据。
+
+详情与精确证据见[2026-10-12福建检查点](HANDOFFS/FUJIAN_BOUNDED_PAGINATION_2026-10-12.md)；忽略目录raw/QA包位于`.data/fiscal-qa/fujian-pagination-20261012/evidence/`。
+
 ## 2026-10-11 当前权威检查点：JSONB幂等修复及福建受限分页软件QA
 
 CURRENT_BRANCH=feat/fiscal-finance-hot

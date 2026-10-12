@@ -1,5 +1,15 @@
 # 官方信源验证矩阵
 
+## 2026-10-12 福建两页限额collector实际运行（独立QA）
+
+`mof-fujian-supervision-dynamics`在fresh `fiscalhot_fj_pagination_20261012_test`（35 migrations）执行一次有界`mof_index_v1` collector。仅取栏目首页与`index_1.htm`两个direct列表响应；均HTTP 200、完整EOF、无redirect和重试，dispatch 2/12，无详情或附件请求。按批准的共享预算上限，每个列表response最多8 MiB、详情最多6 MiB；本次实体分别4,432 B/hash `ec08b0675efe1f23a6ab29b16204d37a91b79b6baafbfbed653e83b732cc1b02`，4,396 B/hash `d1285328bc6dde8d04f32fa9f14b3094832ff4d51726e3b4828e4accf35f8421`。经独立离线解压和当前`fromHtml`重放，每页10项、共20个唯一URL、无页间重复；17条落入本次窗口并与新article URL/title/date逐条一致，3条列表日2026-07-10、07-09、07-08早于截止`2026-07-14T07:50:52.074Z`而未落库。7条列表日期与URL路径日期不一致；无详情GET，不能据路径日期判断真实发布日期。
+
+fresh库中新建17 articles、17 revisions、17 discoveries，17个`content.extract-body` jobs均created；所有正文pending/空。worker/job_runs/analyses/receipts/publications/selected均0。collector/fetch_run状态`ok`但`partial=true`，`stopReason=max_pages_per_run`、pagesCommitted=2、nextPageIndex=2、coverage=`unproven`；17篇是隔离库记录，不是网站可见新增或精选。source完成后仍disabled/fulltext-off，Gate 2仍只按正式review对三个核心source小样生效；福建来源准入不变。
+
+独立QA发现fetch run metadata的`rowsOutsideWindow=0`与3条实际窗外候选不符。查明`direct_html_metadata_v1`路径将其标为`excluded/outside_window`，但未累加该计数；这是telemetry遗漏，0值不代表零窗外候选。QA以宽松标题关键词正则`机关文化|党建|党支部|党日活动|党课|党务干部|政治监督|正确政绩观`命中7条、其中6条入库，仅作内容抽样提示，不是项目噪声规则或Gold结论。运行器准备时曾修复一次性raw capture与响应上限配置；最终实际执行列表8 MiB/详情6 MiB，未截断；production code没有改。
+
+manifest、raw、离线解析与DB核对在ignored `.data/fiscal-qa/fujian-pagination-20261012/evidence/`；完整限定、hash、数据库计数及限制见[本轮handoff](HANDOFFS/FUJIAN_BOUNDED_PAGINATION_2026-10-12.md)。此两页单次快照不证明详情正文质量、分页末页、90日覆盖、周期稳定、source admission或Gate变化。
+
 ## 2026-10-11 福建有限主页/详情复核与配置QA增量
 
 source `mof-fujian-supervision-dynamics` 的官方入口为福建监管局“工作动态”栏目 `https://fj.mof.gov.cn/gzdt/caizhengjiancha/`。按一次性精确批准执行的两个 direct GET（目标详情 `/202606/t20260626_3992351.htm` 与上述主页）均为HTTP 200、final URL精确、完整EOF；预算`2/2/0`，20秒超时、6MiB上限、无重试/redirect，不请求附件。独立离线解析确认详情标题匹配、列表日/`PubDate`/可见日均为2026-07-28；详情清理正文2915字符/7段、无附件链接。保存主页与2026-10-06已有homepage snapshot均解析10项且URL/title/date逐行相同。首次manifest错误地拿新主页与已保存`index_1`比较；原始记录未改写，由`offline-audit-correction.json`改用旧page-0后完成相同性复核。 raw、hash、预算和独立QA见`.data/fiscal-qa/fujian-source-next-20261011/`及[本轮handoff](HANDOFFS/JSONB_IDEMPOTENCY_AND_FUJIAN_PAGINATION_2026-10-11.md)。

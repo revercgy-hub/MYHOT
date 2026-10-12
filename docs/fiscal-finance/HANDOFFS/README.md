@@ -2,6 +2,8 @@
 
 ## 最新阶段状态
 
+最新来源检查点为[2026-10-12福建两页有界collector实际运行](FUJIAN_BOUNDED_PAGINATION_2026-10-12.md)：代码阶段SHA仍为`c133db7`，本轮没有生产代码修改或新CI。一次fresh 35-migration隔离运行请求两页列表2/12次、均200/EOF；离线独立复核20候选中17条窗口内新建，3条窗外未入库。17篇正文仍pending、17个extract job未消费；`partial=true`、coverage unproven、source disabled且全文关闭。QA也确认`rowsOutsideWindow` metadata计数漏记3条的原因，以及标题关键词检查仅为启发式提示。Gate与source admission不变。当前状态见[STATUS](../STATUS.md)、来源细节见[来源矩阵](../SOURCE_MATRIX.md)和[区域覆盖矩阵](../REGIONAL_BUREAU_COVERAGE_MATRIX.md)。
+
 最新QA检查点为[2026-10-11 JSONB幂等性与福建分页配置](JSONB_IDEMPOTENCY_AND_FUJIAN_PAGINATION_2026-10-11.md)：代码SHA `c133db772d1718281fed55bef3a1d2390ed39245` 的Check+Docker run [38125181865](https://github.com/revercgy-hub/MYHOT/actions/runs/38125181865)成功；本机fresh QA backend374/374、Web build及16/16通过。Root授权的九条preview固定seed一次重放前后7表63行完全一致，article更新时间不变。福建受限页面观察经离线复核，source仍disabled/fulltext-off。精确tested SHA、CI backend单个Windows-only skip及安全边界见交接和[STATUS](../STATUS.md)。
 
 最新运维检查点为[2026-10-11本地恢复交接](DIRECT_LOCAL_RECOVERY_2026-10-11.md)：固定九条preview已在隔离库完成单次seed与审计，精确CI head `f6a6bc2` 的Check+Docker全绿；本机API/Web启动请求被策略拒绝，live页面/HTTP仍未核验。旧403原因已纠正为CLI自动选择upstream目标仓库。阶段代码SHA仍为`3385ef0`。
