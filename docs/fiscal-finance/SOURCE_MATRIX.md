@@ -1,5 +1,13 @@
 # 官方信源验证矩阵
 
+## 2026-10-12 陕西修复后正文复核增量
+
+原 regional 隔离库中10条陕西非ok记录（8 pending、2 held）进行一次修复后复核。OP1在source config同步处失败，0 HTTP/正文dispatch；事务内canonical config对照后rollback验证成功。独立静核、精确freeze与Lead授权后，OP2只同步陕西source config至修复catalog，source及全文开关保持关闭，再对固定首篇作正文提取。该次1 dispatch返回内容未满足`.my_doccontent .TRS_Editor` div-block策略，`body_policy_div_blocks_invalid`，状态仍unconfirmed；按首个non-ok规则停止，其他9篇未请求，不重试。独立QA核对raw/hash/parser/SQL与安全边界通过。随后只对既有held正例`jrrdig4rwly5f2wb3czfanzm8`执行1次，独立QA确认revision2、2021字符和body/content哈希匹配；source配置不变且仍关闭。五库合计309篇，257 ok/38 pending/14 held。两个单篇观察不代表来源准入或栏目覆盖通过，详见[正文handoff](HANDOFFS/PENDING_BODY_BACKLOG_2026-10-12.md)。
+
+## 2026-10-12 pending正文受限处理状态增量
+
+对四个此前扩展批次fresh库中冻结的192个pending ID（另1篇PDF不请求），以及独立anomaly库的30个pending ID，各执行一次正文提取。185次实际dispatch后，原四库为231 `ok` /34 pending /14 held；anomaly库为25 `ok` /4 pending /1 held。五库合计309篇，256 `ok` /38 pending /15 held。原有80 `ok`及6 held未触碰，未进行列表抓取、重试、附件处理、worker/provider调用或source enable。首个non-ok导致来源内剩余条目停止：福建`non_article_container`、贵州`identity_mismatch`、青海`short_body_not_allowed`、陕西`non_article_container`、新疆`attachments_unprocessed`、江苏第3次正文尝试`non_article_container`、河北`article_fetch_failed`、山东`short_body_not_allowed`、天津第6次正文尝试`identity_mismatch`（其余4条仍pending）。北京与黑龙江在anomaly库各10次正文尝试均ok。状态只反映正文提取结果，不代表来源准入或业务质量；source配置继续disabled/fulltext-off，分析/receipt/selection未消费。原四库与anomaly库独立离线QA报告位于对应ignored evidence目录；最终审核结论见[正文待处理批次handoff](HANDOFFS/PENDING_BODY_BACKLOG_2026-10-12.md)。
+
 ## 2026-10-12 地方监管局第二轮16源扩展（两次各八源隔离运行）
 
 在此前bulk观察基础上，Lead又批准两批不重叠的八个地方监管局disabled source，各用现有单页collector执行一次。B1（北京、江苏、安徽、江西、河南、湖北、湖南、广东）与B2（天津、河北、山西、内蒙古、吉林、黑龙江、山东、大连）分别使用全新35-migration隔离库；两库不合并。B1 found/created=80/69，20次正文尝试得到19 `ok`、1 `identity_mismatch`，28 dispatch；B2 found/created=60/60，15次正文尝试得到13 `ok`、2 `short_body_not_allowed`，23 dispatch。两次dispatch共51，0 rejected、0 redirect；B2有天津和黑龙江两个列表timeout且无重试。独立QA对B1判`PASS_WITHIN_BOUNDED_BATCH`、B2判`PASS_WITHIN_BOUNDED_SAMPLE`。B1北京10条列表日期均在窗口内，但source要求`publishedAtAuthoritative=true`的详情日期确认；inline `detail.maxFetches=0`使10条found均未写入。此为严格日期策略与本轮预算设置不兼容，不是窗口外判定，也不是collector失败；未补详情请求。湖北10项中1条日期2023-11-20、超出三个月首次回填窗口。湖南、内蒙古、山东三条正文失败保持hold。

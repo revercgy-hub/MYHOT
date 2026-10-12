@@ -1,11 +1,24 @@
 # 项目状态
 
-## 2026-10-12 当前权威检查点：16个新增地方来源的两批隔离单页观察完成
+## 2026-10-12 当前权威检查点：正文待处理批次完成一次受限提取
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_HEAD=095db3ba6cdee946fbd0dbaf3b6a24fe3ef07237（本轮文档修改前；待docs-only提交）
+CURRENT_HEAD=ce2d0d968e89713dc3b4ae35d610a528e6539b32（当前代码HEAD；docs增量尚未提交）
+CURRENT_CODE_SHA=ce2d0d968e89713dc3b4ae35d610a528e6539b32；本轮从RECOVERY_HEAD=9da7dc6ffe1db75827954a4e9879f710c1959cb8继续，项目BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+STAGE=P3地方监管局来源质量与覆盖核验；在16个新增来源的两批隔离观察后，对已存pending正文做一次有界提取
+GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`；本轮不改变Gate、source admission或任何source开关
+COMPLETED=四个扩展隔离库192-ID scope（1篇PDF排除）完成159次正文dispatch，151 ok/8 held；独立anomaly库30-ID scope完成26次，25 ok/1 held，天津在第6次尝试identity_mismatch后停源、余4篇pending。两批独立offline QA通过。陕西OP2一次dispatch因body_policy_div_blocks_invalid停源，余9篇未请求；随后单独批准的既有陕西正例ID `jrrdig4rwly5f2wb3czfanzm8` 一次dispatch后由unconfirmed rev1变为提取ok rev2/2021字符。OP1 config-hash失败保留且0 dispatch，canonical transaction probe成功并rollback。五库合计309篇：257 ok、38 pending、14 held。正例独立raw/parser/SQL QA通过；提取ok不代表业务质量或来源准入。详见[正文待处理批次handoff](HANDOFFS/PENDING_BODY_BACKLOG_2026-10-12.md)。
+SCOPE=冻结ID、仅正文提取、单进程串行、每源首个non-ok即停止；无列表抓取、重试、worker/model/paid/Jina、附件/PDF/OCR或source/global enable。累计正文dispatch187（之前185 + OP2一次 + 正例一次）；陕西source config保持修复版且disabled/fulltext-off。四库剩余34 pending（33候选未执行及1篇排除PDF）、anomaly库剩4 pending；陕西8 pending和OP2失败文章未重试。
+IN_PROGRESS=counts owner完成获准的陕西兼容性及preview实现；focused tests/typecheck、backend 377/377、web build及web tests 16/16均通过；两次陕西复核独立QA通过。来源修复与preview代码已分组提交并push至`ce2d0d968e89713dc3b4ae35d610a528e6539b32`。该精确head的GitHub Actions [38267542444](https://github.com/revercgy-hub/MYHOT/actions/runs/38267542444) Check + Docker通过，含install/typecheck/web build/tests、migrate+topic seed及built-site smoke。本机smoke未运行（本地服务未启动）。
+NEXT=提交并推送本阶段四份文档增量；不扩大陕西范围，也不重试OP2失败页面。
+MODEL=requested `Luna High`；实际model未验证；正文提取未调用模型/provider。
+
+## 2026-10-12 来源扩展检查点：16个新增地方来源的两批隔离单页观察完成
+
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_HEAD=9da7dc6ffe1db75827954a4e9879f710c1959cb8（前次docs-only提交后的真实HEAD）
 CURRENT_CODE_SHA=ed0081cd295df99401b06212648b62f9ce829111；GitHub Check+Docker run [38233568406](https://github.com/revercgy-hub/MYHOT/actions/runs/38233568406)对精确head成功
-DOCS_BASE_HEAD=095db3ba6cdee946fbd0dbaf3b6a24fe3ef07237
+DOCS_BASE_HEAD=9da7dc6ffe1db75827954a4e9879f710c1959cb8
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 STAGE=P3地方监管局来源质量与覆盖核验；在既有22个来源单页/有限批次基础上，本轮对另16个disabled来源各运行一次
 GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`，仍仅限正式review指定三个来源的逐篇合格样本；本轮不改变Gate或来源准入
@@ -14,7 +27,7 @@ COMPLETED=Lead批准的B1（北京、江苏、安徽、江西、河南、湖北�
 REVIEW=两批独立QA均通过其固定bounded scope。B1 28/28 raw hash/bytes/EOF匹配、所有GET HTTP200，八个gzip列表各离线重放10项，20详情重放及SQL body长度一致；B2 23个dispatch事件全部对账，21个HTTP200完整实体、天津/黑龙江2个timeout无重试，六个成功列表各重放10项。两批SQL counts、body export、publication状态、源安全旗标、配置精确恢复及未消费jobs均核验通过；报告分别位于各batch ignored evidence目录`offline-qa.json`。本结论不代表内容业务审核、source admission或90日覆盖。
 CROSS_BATCH=四次相互隔离的bulk观察保留各自DB/manifest：六来源批次90 found/70 created（32 ok/38 pending/0 held）/40 dispatch；前一八来源批次80/80（16/61/3）/27；本轮B1 80/69（19/49/1）/28；B2 60/60（13/45/2）/23。合计310 found候选、279 stored、80 body ok、193 pending、6 unconfirmed、118 dispatch；30个source各尝试一次，27个产生文章。以上是隔离批次数据，不代表source admission。preview18条为另一独立样本集，不加到bulk记录中。
 BLOCKERS=天津与黑龙江两个列表timeout保留；湖南`identity_mismatch`及内蒙古、山东`short_body_not_allowed`共3篇保持hold。北京仍有列表与权威详情日期不一致的既有风险；本次策略组合下无文章写入。剩余193篇pending正文、近90日分页/来源窗口完整性、其余页面历史、整栏内容质量、跨周期稳定均未证明。Gate 2和source admission不变。
-IN_PROGRESS=本轮4份文档差异完成；未seed preview或修改业务代码/source目录。
+IN_PROGRESS=来源扩展两批独立QA均通过；后续正文提取与陕西/preview变更见顶部最新检查点。
 NEXT=按单独范围继续核验193篇pending的正文样本、6篇held结果及尚未核验的栏目页/历史分页；对北京日期和天津/黑龙江timeout另定复查范围。本轮不重试、不补抓。
 MODEL=requested `Luna High`；实际model未验证；项目模型/provider/OCR调用0。
 LOCAL_QA=两库均为专用fresh 35-migration `_test`库，执行前全表计数0（含`pool_search`）。B1 after sources8/articles69/fetch_runs8/revisions88/discoveries69/publications20/jobs created69；body status 19 ok/49 pending/1 unconfirmed。B2 after 8/60/8/73/60/15/jobs created60；body status 13 ok/45 pending/2 unconfirmed。两库analyses/receipts/selected ledger/state/job_runs/editorial overrides/audit_log/pool_search均0；所有publication为空summary、summary-mode、selected/eligible/indexable=false；source flags disabled/fulltext-off、config逐项恢复。B1/B2只读SQL与raw/parser QA均通过限定批次范围。

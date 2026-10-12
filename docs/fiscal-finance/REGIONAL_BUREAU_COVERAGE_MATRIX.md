@@ -1,5 +1,13 @@
 # 财政部地方监管局新闻栏目覆盖矩阵
 
+### 陕西修复后正文复核（2026-10-12；单篇失败后停止）
+
+原 regional 隔离库的陕西source config同步为catalog修复版，source仍disabled且站内/转发全文关闭。OP1同步因JSONB键序哈希比较中止，0 dispatch并安全rollback；OP2在独立静核、preflight和rollback probe后获批，仅发出1次正文dispatch。首篇仍为`unconfirmed`，正文选择器返回`body_policy_div_blocks_invalid`，source-stop后其余9篇未请求。独立offline QA通过raw/hash/parser/SQL及安全核验。另一次仅含既有held正例`jrrdig4rwly5f2wb3czfanzm8`的已批准scope发出1个GET 200，正文抽取由unconfirmed rev1变为ok rev2/2021字符，独立QA核验哈希和SQL一致；source配置无变化且保持关闭。五库现为309篇、257 ok/38 pending/14 held。以上只验证一页可抽取结构，不代表陕西整源恢复、栏目覆盖或准入通过；OP2失败文章和另外8个冻结候选未触及。详见[正文handoff](HANDOFFS/PENDING_BODY_BACKLOG_2026-10-12.md)。
+
+### 2026-10-12 pending正文受限处理增量（不作栏目准入判定）
+
+四个来源扩展隔离库对冻结pending正文执行一次，另在单独anomaly库处理30篇pending。正文阶段原计185 dispatch（四库159、anomaly库26）；陕西OP2和正例各增加1次，累计187；相关collector另有13次dispatch，合计200且不与正文数混称。四库留存231 `ok`/34 pending/14 held，anomaly库留存25 `ok`/4 pending/1 held；陕西10篇当前8 pending/1 ok/1 held，总聚合309篇为257 `ok`/38 pending/14 held。独立offline QA两批及陕西OP2、正例均通过各自限定raw、解析、SQL与安全检查。北京与黑龙江各10篇详情正文提取成功；天津在第6次正文尝试遇`identity_mismatch`，按首个non-ok规则停止该source余4篇。其他source-stop见[正文handoff](HANDOFFS/PENDING_BODY_BACKLOG_2026-10-12.md)。既有80篇`ok`与6篇held未重试，Gate、准入状态、来源开关均不变；正文`ok`不证明该局栏目完整或业务质量。陕西只完成一页正例，剩余8 pending及OP2失败文章未重试。
+
 状态基准：2026-10-12。范围按用户已确认的首阶段口径：逐局覆盖全国财政部各地方监管局的新闻动态栏目；财政部中央选登仅作补充。这里的35行来自财政部官网机构目录两页（本地保存HTML：`.data/fiscal-regional-audit/www.mof.gov.cn_znjg_jgsz_czbzdfzyb.html` 与 `..._index_1_htm.html`，解析为18+17个目录锚点），只证明机构名和官网域名。它们不是35个已发现栏目、feed、已配置来源或已完成覆盖。NFRA地方监管局不属于本矩阵。执行日期依据各manifest内真实UTC时间戳；10月6日至12日是文档更新时点，不改变各manifest记载的实际观察时间。
 
 “栏目证据”仅记录现存资料里能证明的地方栏目或中央汇总样本；中央选登中的一篇稿件不能证明其发布局独立栏目已找到。`未知`代表本地证据不足，不猜栏目、URL或selector。各局后续均需按真实页面核验栏目入口、列表身份/日期、详情正文、窗口/分页和重复；单项通过后才更新状态。
