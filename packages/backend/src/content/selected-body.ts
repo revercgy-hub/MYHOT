@@ -18,6 +18,7 @@ export interface SelectedBodyPolicy {
   selector: string;
   minTextChars: number;
   table?: { requiredHeaderCells: string[]; minCompleteDataRows: number };
+  divTextBlocks?: true;
 }
 
 export interface SelectedArticleEnvelopeConfig extends SelectedBodyConfig {
@@ -33,7 +34,7 @@ export interface BodyIdentity {
 
 export interface SelectedBodyResult {
   body: ExtractedBody | null;
-  reason: "selector_missing" | "selector_not_unique" | "body_policy_invalid" | "body_policy_ambiguous" | "body_policy_table_invalid" | "non_article_container" | "empty_body" | "short_body_not_allowed" | "identity_missing" | "identity_mismatch" | "attachment_scope_invalid" | "attachments_unprocessed" | null;
+  reason: "selector_missing" | "selector_not_unique" | "body_policy_invalid" | "body_policy_ambiguous" | "body_policy_table_invalid" | "body_policy_div_blocks_invalid" | "non_article_container" | "empty_body" | "short_body_not_allowed" | "identity_missing" | "identity_mismatch" | "attachment_scope_invalid" | "attachments_unprocessed" | null;
   attachments: Array<{ url: string; title: string }>;
 }
 
@@ -183,9 +184,14 @@ export function validateBodyPolicies(value: unknown): string[] {
     const prefix = `bodyPolicies[${index}]`;
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) { errors.push(`${prefix} must be an object`); return; }
     const policy = raw as Record<string, unknown>;
-    for (const key of Object.keys(policy)) if (!(["selector", "minTextChars", "table"] as const).includes(key as never)) errors.push(`${prefix}.${key} is unsupported`);
+    for (const key of Object.keys(policy)) if (!(["selector", "minTextChars", "table", "divTextBlocks"] as const).includes(key as never)) errors.push(`${prefix}.${key} is unsupported`);
     if (typeof policy.selector !== "string" || !policy.selector.trim() || policy.selector.length > 500) errors.push(`${prefix}.selector must be a non-empty string of at most 500 characters`);
     if (!Number.isSafeInteger(policy.minTextChars) || Number(policy.minTextChars) < 1 || Number(policy.minTextChars) > MAX_POLICY_TEXT_CHARS) errors.push(`${prefix}.minTextChars must be an integer from 1 to ${MAX_POLICY_TEXT_CHARS}`);
+    if (policy.divTextBlocks !== undefined && policy.divTextBlocks !== true) errors.push(`${prefix}.divTextBlocks must be true when specified`);
+    if (policy.divTextBlocks === true) {
+      if (policy.table !== undefined) errors.push(`${prefix}.table and ${prefix}.divTextBlocks cannot be combined`);
+      if (Number.isSafeInteger(policy.minTextChars) && Number(policy.minTextChars) < 1_500) errors.push(`${prefix}.minTextChars must be at least 1500 for divTextBlocks`);
+    }
     if (policy.table !== undefined) {
       if (!policy.table || typeof policy.table !== "object" || Array.isArray(policy.table)) { errors.push(`${prefix}.table must be an object`); return; }
       const table = policy.table as Record<string, unknown>;
@@ -225,6 +231,25 @@ function policyTableIsComplete(html: string, policy: SelectedBodyPolicy): boolea
     completeRows += 1;
   }
   return completeRows >= policy.table.minCompleteDataRows;
+}
+
+function policyDivTextBlocksAreComplete(html: string, pageUrl: string): boolean {
+  const $ = cheerio.load(html, null, false);
+  const contents = $.root().contents().toArray();
+  const blocks = contents.filter((node) => node.type === "tag");
+  if (contents.some((node) => node.type === "text" && String((node as any).data ?? "").trim()) ||
+    blocks.length < 3 || blocks.some((node) => !$(node).is("div"))) return false;
+  const divs = $("div");
+  if (divs.length !== blocks.length || $("a").length > 0 || $(BLOCKED_CONTAINERS).length > 0 ||
+    $("p,table,ul,ol,pre,blockquote,figure").length > 0) return false;
+
+  let effectiveBlocks = 0;
+  for (const block of blocks) {
+    const sanitized = trimTrailingChrome(sanitizeBody($(block).html() ?? "", pageUrl));
+    const text = textKeepingTableCells(sanitized);
+    if (text.length >= 40) effectiveBlocks += 1;
+  }
+  return effectiveBlocks >= 3;
 }
 
 function hasUnsupportedTableLayout(html: string): boolean {
@@ -307,7 +332,10 @@ function extractSelectedBodyCore(
   const scanAttachments = () => scopeConfigured
     ? attachmentScope ? pdfLinks($, url, attachmentScope) : []
     : pdfLinks($, url);
-  if (selected.is(BLOCKED_CONTAINERS) || selected.find(BLOCKED_CONTAINERS).length > 0 || selected.find(STRUCTURED_CONTENT).length === 0) {
+  const divBlockPolicy = activePolicy?.divTextBlocks === true;
+  if (selected.is(BLOCKED_CONTAINERS) || selected.find(BLOCKED_CONTAINERS).length > 0 ||
+    (divBlockPolicy && (selected.is("html,body") || selected.parents(BLOCKED_CONTAINERS).length > 0)) ||
+    (selected.find(STRUCTURED_CONTENT).length === 0 && !divBlockPolicy)) {
     return { body: null, reason: "non_article_container", attachments: scanAttachments() };
   }
   const rawHtml = selected.html() ?? "";
@@ -327,8 +355,11 @@ function extractSelectedBodyCore(
     return { body: null, reason: "identity_mismatch", attachments: [] };
   }
 
-  const attachments = options.pdfAttachmentsPrevalidated ? [] : scanAttachments();
-  if (!options.pdfAttachmentsPrevalidated && attachments.length > 0) return { body: null, reason: "attachments_unprocessed", attachments };
+  const attachments = options.pdfAttachmentsPrevalidated && !divBlockPolicy ? [] : scanAttachments();
+  if ((!options.pdfAttachmentsPrevalidated || divBlockPolicy) && attachments.length > 0) return { body: null, reason: "attachments_unprocessed", attachments };
+  if (divBlockPolicy && !policyDivTextBlocksAreComplete(rawHtml, url)) {
+    return { body: null, reason: "body_policy_div_blocks_invalid", attachments };
+  }
 
   const clean = trimTrailingChrome(sanitizeBody(rawHtml, url));
   const text = textKeepingTableCells(clean);

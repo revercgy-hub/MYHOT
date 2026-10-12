@@ -92,6 +92,64 @@ test("short-body opt-in is explicit and requires a body selector", () => {
   assert.deepEqual(unsupportedConfig("web_list", { detail: { bodySelector: "#zoom", allowShortBody: true } }), []);
 });
 
+test("Shaanxi div-block policy is explicit, identity-bound, and rejects weak or linked containers", () => {
+  const source = (JSON.parse(readFileSync(new globalThis.URL("../industry/sources.json", import.meta.url), "utf8")) as {
+    sources: Array<{ id: string; kind: string; enabled: boolean; site_fulltext: boolean; syndicate_fulltext: boolean; config: Record<string, any> }>;
+  }).sources.find((row) => row.id === "mof-shaanxi-supervision-dynamics");
+  assert.ok(source);
+  assert.equal(source.enabled, false);
+  assert.equal(source.site_fulltext, false);
+  assert.equal(source.syndicate_fulltext, false);
+  assert.deepEqual(unsupportedConfig("web_list", source.config), []);
+  assert.deepEqual(source.config.detail.bodyPolicies, [
+    { selector: ".my_doccontent .TRS_Editor", minTextChars: 1500, divTextBlocks: true },
+  ]);
+  assert.equal(source.config.detail.titleRegex, "<title>\\s*([^<]+)</title>");
+
+  const shaanxiTitle = "财政部陕西监管局开展财政监督工作";
+  const shaanxiExpected = { title: shaanxiTitle, publishedAt: new Date("2026-10-12T00:00:00+08:00") };
+  const policy = source.config.detail.bodyPolicies;
+  const paragraph = "围绕预算执行、财政资金使用和项目绩效情况开展核查，梳理发现问题并跟踪推动整改落实。".repeat(12);
+  const shortHeading = "部门工作动态".repeat(5);
+  const blocks = [paragraph, shortHeading, paragraph, shortHeading, paragraph, shortHeading, paragraph]
+    .map((text) => `<div>${text}</div>`).join("");
+  const page = (body: string) => `<html><head><meta name="ArticleTitle" content="${shaanxiTitle}"><meta name="PubDate" content="2026-10-12"></head><body><div class="my_doccontent"><div class="TRS_Editor">${body}</div></div></body></html>`;
+  const result = extractSelectedBody(page(blocks), URL, { bodyPolicies: policy, publishedAtUtcOffset: "+08:00" }, shaanxiExpected);
+  assert.equal(result.reason, null);
+  assert.ok(result.body!.text.length >= 1500);
+
+  // A div-only page still fails the legacy selector path; only the explicit structure policy opts in.
+  assert.equal(extractSelectedBody(page(blocks), URL, { bodySelector: ".TRS_Editor" }, shaanxiExpected).reason, "non_article_container");
+  assert.equal(extractSelectedBody(omo(), URL, { bodySelector: "body", allowShortBody: true }, expected).reason, "selector_not_unique");
+  assert.equal(extractSelectedBody(page(blocks.replace(/<div>(.*?)<\/div>/, "<div><div>$1</div></div>")), URL,
+    { bodyPolicies: policy, publishedAtUtcOffset: "+08:00" }, shaanxiExpected).reason, "body_policy_div_blocks_invalid");
+  const twoEffectiveBlocks = [paragraph, shortHeading, paragraph, shortHeading, shortHeading, shortHeading, shortHeading]
+    .map((text) => `<div>${text}</div>`).join("");
+  assert.equal(extractSelectedBody(page(twoEffectiveBlocks), URL,
+    { bodyPolicies: policy, publishedAtUtcOffset: "+08:00" }, shaanxiExpected).reason, "body_policy_div_blocks_invalid");
+  assert.equal(extractSelectedBody(page(blocks.replace(paragraph, `<a href="/navigation">${paragraph}</a>`)), URL,
+    { bodyPolicies: policy, publishedAtUtcOffset: "+08:00" }, shaanxiExpected).reason, "body_policy_div_blocks_invalid");
+  assert.equal(extractSelectedBody(page(blocks.replace("<div>", "<div><nav>栏目</nav>")), URL,
+    { bodyPolicies: policy, publishedAtUtcOffset: "+08:00" }, shaanxiExpected).reason, "non_article_container");
+  const navAncestor = page(blocks).replace('<div class="TRS_Editor">', '<nav><div class="TRS_Editor">')
+    .replace("</div></div></body>", "</div></nav></div></body>");
+  assert.equal(extractSelectedBody(navAncestor, URL, { bodyPolicies: policy, publishedAtUtcOffset: "+08:00" }, shaanxiExpected).reason, "non_article_container");
+  assert.equal(extractSelectedBody(page(blocks), URL, { bodyPolicies: policy, publishedAtUtcOffset: "+08:00" },
+    { ...shaanxiExpected, title: "其他文章标题" }).reason, "identity_mismatch");
+
+  const attachment = extractSelectedBody(page(blocks).replace("</body>", '<a href="/files/report.pdf">附件</a></body>'), URL,
+    { bodyPolicies: policy, publishedAtUtcOffset: "+08:00" }, shaanxiExpected);
+  assert.equal(attachment.reason, "attachments_unprocessed");
+  assert.equal(attachment.attachments.length, 1);
+  assert.equal(extractSelectedBody(page(blocks).replace("</body>", '<a href="/files/report.pdf">附件</a></body>'), URL,
+    { bodyPolicies: policy, publishedAtUtcOffset: "+08:00" }, shaanxiExpected, { pdfAttachmentsPrevalidated: true }).reason, "attachments_unprocessed");
+
+  assert(unsupportedConfig("web_list", { detail: { bodyPolicies: [{ ...policy[0], divTextBlocks: false }] } }).some((error) => error.includes("divTextBlocks must be true")));
+  assert(unsupportedConfig("web_list", { detail: { bodyPolicies: [{ ...policy[0], minTextChars: 1499 }] } }).some((error) => error.includes("at least 1500")));
+  assert(unsupportedConfig("web_list", { detail: { bodyPolicies: [{ ...policy[0], table: { requiredHeaderCells: ["标题"], minCompleteDataRows: 1 } }] } }).some((error) => error.includes("cannot be combined")));
+  assert(unsupportedConfig("web_list", { detail: { bodyPolicies: [{ ...policy[0], unexpected: true }] } }).some((error) => error.includes("unsupported")));
+});
+
 const financeTitle = "关于公布普惠金融示范区名单的通知";
 const financeHtml = (notice = "简短公示说明。", files = '<a href="./result.pdf">考核结果表.pdf</a>', outside = "") => `<html><head>
 <meta name="ArticleTitle" content="${financeTitle}"><meta name="PubDate" content="2026-06-08"></head><body>

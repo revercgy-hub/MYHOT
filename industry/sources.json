@@ -725,7 +725,14 @@
         "publishedAtSelector": "span",
         "publishedAtUtcOffset": "+08:00",
         "allowUrlPrefixes": ["https://sx.mof.gov.cn/gzdt/caizhengjiancha/"],
-        "detail": { "maxFetches": 10, "titleSelector": "h2.title_con", "publishedAtRegex": "<meta\\s+name=\"PubDate\"\\s+content=\"([^\"]+)", "publishedAtUtcOffset": "+08:00", "bodySelector": ".my_doccontent" },
+        "detail": {
+          "maxFetches": 10,
+          "titleSelector": "h2.title_con",
+          "titleRegex": "<title>\\s*([^<]+)</title>",
+          "publishedAtRegex": "<meta\\s+name=\"PubDate\"\\s+content=\"([^\"]+)",
+          "publishedAtUtcOffset": "+08:00",
+          "bodyPolicies": [{ "selector": ".my_doccontent .TRS_Editor", "minTextChars": 1500, "divTextBlocks": true }]
+        },
         "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true, "requireBodyReadyForAutomaticSelection": true }
       },
       "tier": "T1", "first_party": true, "owner_entity_id": "mof", "participation_mode": "editorial", "interval_minutes": 1440,

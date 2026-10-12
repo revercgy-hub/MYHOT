@@ -493,15 +493,29 @@ test("regional bureau disabled configs match the saved list DOMs and detail meta
 
     const detail = config.detail;
     assert.equal(detail.maxFetches, 10);
-    assert.equal(detail.bodySelector, ".my_doccontent");
+    if (spec.id === "mof-shaanxi-supervision-dynamics") {
+      assert.equal(detail.bodySelector, undefined);
+      assert.deepEqual(detail.bodyPolicies, [
+        { selector: ".my_doccontent .TRS_Editor", minTextChars: 1500, divTextBlocks: true },
+      ]);
+      assert.equal(detail.titleRegex, "<title>\\s*([^<]+)</title>");
+    } else {
+      assert.equal(detail.bodySelector, ".my_doccontent");
+    }
     assert.equal(detail.publishedAtUtcOffset, "+08:00");
     assert.equal(detail.publishedAtRegex, '<meta\\s+name="PubDate"\\s+content="([^"]+)');
     // Shenzhen's saved ArticleTitle contains an encoded <br> absent from h2/list; strict identity must hold body readiness.
     const checksBody = strictBodyIds.has(spec.id) && spec.id !== "mof-shenzhen-supervision-dynamics";
     let detailHtml = readFileSync(fixtureUrl(`${spec.bureau}-detail.html`), "utf8");
     if (checksBody) {
-      const syntheticBody = Array.from({ length: 4 }, () => "<p>Synthetic body paragraph for selector verification; no official article text is copied.</p>").join("");
-      detailHtml = detailHtml.replace(/(<div class="my_doccontent">)[\s\S]*?(<\/div>)/, (_match, start: string, end: string) => `${start}${syntheticBody}${end}`);
+      if (spec.id === "mof-shaanxi-supervision-dynamics") {
+        const syntheticBody = Array.from({ length: 4 }, () => `<div>${"Synthetic body paragraph for selector verification; no official article text is copied. ".repeat(12)}</div>`).join("");
+        detailHtml = detailHtml.replace(/(<div class="my_doccontent">)[\s\S]*?(<\/div>)/, (_match, start: string, end: string) => `${start}<div class="TRS_Editor">${syntheticBody}</div>${end}`);
+        detailHtml = detailHtml.replace("<head>", `<head><title>${spec.detailTitle}</title>`);
+      } else {
+        const syntheticBody = Array.from({ length: 4 }, () => "<p>Synthetic body paragraph for selector verification; no official article text is copied.</p>").join("");
+        detailHtml = detailHtml.replace(/(<div class="my_doccontent">)[\s\S]*?(<\/div>)/, (_match, start: string, end: string) => `${start}${syntheticBody}${end}`);
+      }
     }
     let reads = 0;
     const expectedDetailDate = new Date(`${spec.detailDate.replace(" ", "T")}+08:00`);
@@ -517,7 +531,7 @@ test("regional bureau disabled configs match the saved list DOMs and detail meta
     assert.equal(metadata.title, spec.parsedDetailTitle);
     if (checksBody) {
       assert.ok(metadata.body?.text && metadata.body.text.length >= 200, `${spec.id} extracts the configured body fixture`);
-      assert.ok(metadata.body!.text.includes("Synthetic body paragraph"), `${spec.id} body comes from .my_doccontent`);
+      assert.ok(metadata.body!.text.includes("Synthetic body paragraph"), `${spec.id} body comes from its configured body container`);
       assert.ok(!metadata.body!.text.includes("DETAIL-CHROME-SHOULD-NOT-LEAK"), `${spec.id} excludes page chrome`);
     }
   }
