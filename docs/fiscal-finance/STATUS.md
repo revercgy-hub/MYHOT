@@ -1,6 +1,26 @@
 # 项目状态
 
-## 2026-10-12 当前权威检查点：六来源隔离批量采集与本地预览完成
+## 2026-10-12 当前权威检查点：八地方来源隔离观察与限量样本QA完成
+
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_SHA=ed0081cd295df99401b06212648b62f9ce829111（当前阶段代码SHA；docs-only提交另列）
+CURRENT_CODE_SHA=ed0081cd295df99401b06212648b62f9ce829111；GitHub Check+Docker run [38233568406](https://github.com/revercgy-hub/MYHOT/actions/runs/38233568406)对精确head completed/success；`gh --repo revercgy-hub/MYHOT`核实head SHA匹配，origin分支同SHA。前一preview代码SHA `07aaf2fcb6d1b0d249c11f78c5a5ff95d2c461dc`的run [38229999049](https://github.com/revercgy-hub/MYHOT/actions/runs/38229999049)保留为前序证据。
+DOCS_BASE_HEAD=ed0081cd295df99401b06212648b62f9ce829111
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+RECOVERY_SHA=07aaf2fcb6d1b0d249c11f78c5a5ff95d2c461dc（本次Root恢复时的checkout起点）
+STAGE_START_SHA=9030fcc5468d5662352655ddbdca25a53dc401b2（八源执行与文档收尾阶段起点；`cc0b830`是更早历史恢复点）
+WORKSPACE=D:\AI-work\MYHOT\AIHOT
+STAGE=P3地方监管局来源质量与覆盖核验；八源单页隔离观察及指定样本QA完成，完整覆盖与来源准入未证明
+GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`，仍仅限正式review指定三个来源的逐篇合格样本；本批不改变Gate或来源准入
+SOURCE_DIRECTORY=48 sources / 42 strict IDs；所有source仍disabled且站内/转发全文关闭
+COMPLETED=Lead批准的八个地方监管局source在fresh隔离库`fiscalhot_regional_bulk_20261012_test`各完成一次普通单页collector。8/8发现10条并新建10条，共80 articles、8 fetch_runs、96 revisions、80 discoveries；dispatch 27/64、0 rejected、0 redirect、无重试。cap内正文实际尝试19条：16 body `ok`、3 `unconfirmed`（陕西`non_article_container`、青海`short_body_not_allowed`、新疆`identity_mismatch`）；不得把19尝试或19 publication projection描述成19篇正文通过。80个extract jobs为created未消费。独立raw/SQL/runtime QA通过；内容QA通过广西、海南、四川各一条候选事实核对。Root另批准既有`fiscalhot_preview_test`固定样本由15扩为18，单次seed创建3条，本地读前/写后审计PASS，旧15条八表全字段含timestamps完全不变。完整限定见[八地方来源handoff](HANDOFFS/REGIONAL_BULK_SOURCE_SAMPLE_2026-10-12.md)。此前六来源批次与15条seed事实按下方历史记录保留。
+REVIEW=独立运行QA已PASS：27/27 raw byte/hash/EOF匹配，HTTP 200均成功、无redirect/reject/duplicate/violation；当前parser离线重放8源各10条，URL/title与DB匹配，80条记录发布日期均在本轮窗口内；DB副作用、disabled/fulltext/strict flags及source config恢复核实通过。内容QA通过广西、海南、四川各一条候选事实核对；本地preview seed读写审计PASS。详情权威日期与全栏质量仍未证明。新代码SHA `ed0081c`的Check+Docker run 38233568406对精确head成功。
+BLOCKERS=陕西、青海、新疆三条正文拒绝保持hold；仅单页观察，分页、完整90日窗口、日期权威规则、跨周期稳定和来源准入均未证明。Gate 2及source admission没有改变。
+IN_PROGRESS=完整来源质量、权威日期、分页/90日覆盖与跨周期稳定性仍待核验；本批三条候选已进入本地开发预览且旧15条逐字段保持不变。Gate和source admission维持原判。
+NEXT=继续逐局核验栏目历史、详情日期权威性、近90日分页覆盖与跨周期稳定性；任何新网络、详情补采、source配置或启用需要单独范围批准。
+MODEL=requested `Luna High`；actual model unverified；应用模型/provider/OCR调用0。
+LOCAL_QA=Fresh 35-migration隔离数据库执行一次，before count全0。after sources 8/articles 80/fetch_runs 8/revisions 96/discoveries 80/publications 19/jobs created 80；analyses/receipts/selected ledger/state/job_runs/audit_log均0。19条publication均summary-mode、无summary且selected/eligible/indexable=false。独立运行QA对27/27 responses和只读DB副作用复核PASS；19次body attempts实际为16 ok/3 unconfirmed。既有preview DB读前15条、读后18条：sources/articles/publications/editorial_overrides/audit_log/article_revisions/article_discoveries/pool_search均18，旧15条全字段timestamp精确一致，新增3条summary-only/bodyless/eligible/未精选/scoreless/noindex，fetch/analysis/receipt/ledger/state/job_runs=0，pgboss absent按0。快照位于`.data/fiscal-qa/local-preview-seed-20261012-qa/`。精确preview代码SHA的Check+Docker CI 38233568406成功。
+CROSS_BATCH=2026-10-12两次隔离批量观察分别保留各自数据库和manifest：此前六来源批次90 found / 70 created / 32 body ok / 40 dispatch；本次八地方来源80 found / 80 created / 16 body ok / 27 dispatch。两批合计150 found/created records、48 body ok、67 dispatch；不同测试库不合并，汇总不代表来源准入或全目录质量。
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
 CURRENT_SHA=07aaf2fcb6d1b0d249c11f78c5a5ff95d2c461dc（当前代码SHA；本轮docs commit另列）

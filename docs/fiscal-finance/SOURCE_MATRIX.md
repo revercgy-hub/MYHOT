@@ -1,5 +1,23 @@
 # 官方信源验证矩阵
 
+## 2026-10-12 八个地方监管局来源单页隔离批量观察（三条候选内容QA完成，来源准入未判）
+
+Root批准以catalog普通单页collector对广西、海南、重庆、四川、贵州、陕西、青海、新疆八个disabled来源各运行一次。Fresh `fiscalhot_regional_bulk_20261012_test`（35 migrations）中8/8列表运行status为`ok`，各found/created=10/10，共80篇；共享dispatch 27/64，0 rejected、0 redirect。显式正文19次尝试，16 `ok`、3 `unconfirmed`：陕西`non_article_container`、青海`short_body_not_allowed`、新疆`identity_mismatch`。失败即停本源正文阶段，无补请求。此处的body `ok`仅表示非空抽取，不是内容业务QA通过；19条summary-mode publication均selected/eligible/indexable=false且无summary，不能称为19篇正文通过或公开页面内容。80个extract jobs状态`created`、未消费；analysis/receipts/selected ledger/state/job_runs均0。数据库article正文与每次尝试、raw response的只读导出及digest关联见忽略目录`.data/fiscal-qa/regional-bulk-20261012/evidence/body-sql-export.json`；27份响应及manifest在同目录。独立运行QA已核验raw/hash/EOF、离线解析及数据库副作用；内容QA通过广西、海南、四川各一条事实核对候选，不构成Gold或source通过。80条存储发布日期落入该次运行窗口仅说明列表解析值符合配置窗口，不建立来源级日期权威性；其余样本不为凑数升级。
+
+| source | found / created | explicit body attempts | body `ok` / unconfirmed | 当前限制 |
+|---|---:|---:|---:|---|
+| `mof-guangxi-supervision-dynamics` | 10 / 10 | 3 | 3 / 0 | 单页、单时点；1条业务候选事实QA通过，日期权威性未定 |
+| `mof-hainan-supervision-dynamics` | 10 / 10 | 3 | 3 / 0 | 单页、单时点；1条业务候选事实QA通过，日期权威性未定 |
+| `mof-chongqing-supervision-dynamics` | 10 / 10 | 3 | 3 / 0 | 单页、单时点；内容及日期QA待完成 |
+| `mof-sichuan-supervision-dynamics` | 10 / 10 | 3 | 3 / 0 | 单页、单时点；1条业务候选事实QA通过，日期权威性未定 |
+| `mof-guizhou-supervision-dynamics` | 10 / 10 | 3 | 3 / 0 | 单页、单时点；内容及日期QA待完成 |
+| `mof-shaanxi-supervision-dynamics` | 10 / 10 | 1 | 0 / 1 | 非PDF约3,087字TRS正文缺当前结构节点；保持hold |
+| `mof-qinghai-supervision-dynamics` | 10 / 10 | 2 | 1 / 1 | 非PDF约176字含图片、低于200字门槛；有财政监督事实仍保持hold |
+| `mof-xinjiang-supervision-dynamics` | 10 / 10 | 1 | 0 / 1 | 标题匹配但当前PubDate 10/8对列表/旧详情9/24；URL日7/17不裁定，保持hold |
+| **合计** | **80 / 80** | **19** | **16 / 3** | **尚不证明90日覆盖、分页完整、日期规则、跨周期稳定或source admission** |
+
+source保持disabled且全文关闭；隔离config临时将inline `maxFetches`置0后逐源恢复并核验原catalog。不存在分页overlay、详情预算补请求或重试。内容QA通过广西、海南、四川各一条业务候选事实核对，未通过的候选不凑数；三条仅供后续开发预览编辑，不构成Gold或source admission。见[八来源handoff](HANDOFFS/REGIONAL_BULK_SOURCE_SAMPLE_2026-10-12.md)。
+
 ## 2026-10-12 六来源隔离批量运行（内容QA待终结）
 
 对`pboc-open-market`、`mof-treasury-debt-data`、`mof-xiamen-supervision-dynamics`、`mof-fujian-supervision-dynamics`、`mof-zhejiang-supervision-dynamics`与`mof-policy-release`获准各串行运行一次fresh隔离采集及cap内显式正文抽取。数据库`fiscalhot_bulk_20261012_test`从35 migrations后before计数全0；catalog hash `0b35e66f3e7d5816fcc6588527a49d9b650df63c5a3ce01175e4fa909553e7d3`。实际90 found / 70 created，40/120 dispatch、40个响应HTTP 200、0 rejected；显式抽取32篇body `ok`，38篇留在pending。所有来源仍disabled、`site_fulltext=false`、`syndicate_fulltext=false`。worker未运行；70个extract jobs仍created；`job_runs/analyses/receipts/selected_ledger=0`。另17条publication为body_mode=summary、summary为空、selected/eligible/indexable=false且全文关闭，不能当作网站可见新增或精选。

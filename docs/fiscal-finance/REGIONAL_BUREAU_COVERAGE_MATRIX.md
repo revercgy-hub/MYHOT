@@ -8,6 +8,23 @@
 
 本次涉及六个官方来源，其中三条地方局独立来源：fresh `fiscalhot_bulk_20261012_test`中的隔离写入不表示来源准入、公开可见或精选。Xiamen一次run `found=10/created=10/body ok=8`；Fujian `20/17/4`；Zhejiang `20/16/5`。三源均保持disabled/fulltext-off，另有38篇本批创建文章没有body抽取，严格正文source产生的17条publication仅是空summary且不可精选/索引的内部状态。Fujian和Zhejiang均两页后以`max_pages_per_run`停止，coverage仍unproven；单次结果不证明完整90日覆盖、周期稳定性或全栏内容质量。独立QA已通过raw/SQL与publication逐行核对；业务正文及噪声判断仍逐篇待审。另有一次QA批准的编辑预览seed将六条编辑辅助摘要加入既有`fiscalhot_preview_test`固定九条，旧9逐字段不变、新6审计通过。它们仅为本地开发预览，未人工精选或人工Gold，页面/HTTP未验证。详见[六来源handoff](HANDOFFS/BULK_SOURCE_SAMPLE_2026-10-12.md)及[来源矩阵](SOURCE_MATRIX.md)。不据此把下方既有逐局证据改为全栏通过。
 
+### 2026-10-12 八地方监管局普通单页collector及cap内正文观察（三条候选QA完成，来源准入未判）
+
+Lead批准对广西、海南、重庆、四川、贵州、陕西、青海、新疆八个独立disabled来源各执行一次现有catalog普通单页collector，不用分页overlay。Fresh `fiscalhot_regional_bulk_20261012_test`（35 migrations）中每源列表found/created=10/10，共80篇；8次列表与19次显式正文请求合计27 dispatch，未触及64硬上限，0 rejected、0 redirect。正文cap至多3/source，已有body ok不重抓；实际19次尝试中16 `ok`、3 `unconfirmed`。陕西`non_article_container`、青海`short_body_not_allowed`、新疆`identity_mismatch`均触发本源停止，未重试或补抓。独立runtime/raw/SQL QA已核验27/27 raw hash/EOF和数据库绑定；当前parser离线复放每源10条，80条stored listing dates处于这次collector窗口内。此窗口判断不建立详情日期权威规则。内容QA通过广西、海南、四川各一条业务候选事实核对，仅供后续编辑预览；其他样本不为凑数升级。陕西约3,087字非PDF TRS正文缺少当前结构节点、青海约176字非PDF正文低于200字门槛、新疆标题匹配但当前详情PubDate 10/8与列表9/24及旧详情9/24记录冲突，三者保持hold。正文非空状态不代表业务价值通过。隔离库80个extract jobs为`created`且未消费，source仍disabled/fulltext-off。19条summary-mode publication均无summary且不可精选/索引，不代表页面公开可见。raw、manifest与只读文章正文/attempt/response绑定导出见[八来源handoff](HANDOFFS/REGIONAL_BULK_SOURCE_SAMPLE_2026-10-12.md)及`.data/fiscal-qa/regional-bulk-20261012/evidence/`。
+
+| # | 监管局 | source ID | 本次found / created | 正文尝试 / ok / held | 本次观察和仍未核验 |
+|---:|---|---|---:|---:|---|
+| 25 | 广西 | `mof-guangxi-supervision-dynamics` | 10 / 10 | 3 / 3 / 0 | 一页、单时点；1篇业务候选事实核对通过，日期权威性未定 |
+| 26 | 海南 | `mof-hainan-supervision-dynamics` | 10 / 10 | 3 / 3 / 0 | 一页、单时点；1篇业务候选事实核对通过，日期权威性未定 |
+| 27 | 重庆 | `mof-chongqing-supervision-dynamics` | 10 / 10 | 3 / 3 / 0 | 一页、单时点；其余样本不晋升候选 |
+| 28 | 四川 | `mof-sichuan-supervision-dynamics` | 10 / 10 | 3 / 3 / 0 | 一页、单时点；1篇业务候选事实核对通过，摘要已移除不支持事实 |
+| 29 | 贵州 | `mof-guizhou-supervision-dynamics` | 10 / 10 | 3 / 3 / 0 | 一页、单时点；其余样本不晋升候选 |
+| 31 | 陕西 | `mof-shaanxi-supervision-dynamics` | 10 / 10 | 1 / 0 / 1 | 非PDF约3,087字TRS正文缺当前结构节点；保持hold |
+| 33 | 青海 | `mof-qinghai-supervision-dynamics` | 10 / 10 | 2 / 1 / 1 | 非PDF约176字含图片且低于200字门槛；正文有财政监督事实，保持hold |
+| 35 | 新疆 | `mof-xinjiang-supervision-dynamics` | 10 / 10 | 1 / 0 / 1 | 标题匹配，当前PubDate 10/8与列表/旧详情9/24冲突；URL日7/17不裁定，保持hold |
+
+本次单页运行不改变各行的独立栏目验证判定，不证明近90日完整覆盖、分页末页、日期权威规则、全栏内容质量、跨周期稳定性或来源准入。review完成后再补充每源候选的内容/日期结论；不以标题主题词猜测业务分类。
+
 | # | 财政部官网目录机构名 | 目录域名 | 官方目录证据 | 现存新闻栏目证据 | 独立局源配置 | 独立栏目验证 | 缺口 / 最小下一步 |
 |---:|---|---|---|---|---|---|---|
 | 1 | 财政部北京监管局 | `bj.mof.gov.cn` | 目录页1锚点 | 2026-10-04 batch 1 实见首页“工作动态”链接、栏目列表10条；详情日期相差6天。2026-10-05 fresh隔离库真实collector抓10条（1列表+10详情），再显式抽取1篇和重复列表1次；样本详情日期为9/30，列表日9/24 | 有，`mof-beijing-supervision-dynamics`（disabled） | 有限：首次列表/详情正文raw hash缺失；单篇body转ok；重复列表幂等；其余9篇pending。未验分页、90日历史、周期稳定性 | 保留列表/详情日期差异和首轮11个响应hash未知；不把一次collector/正文样本当来源通过。详见[北京验证报告](BEIJING_REAL_COLLECTOR_2026-10-05.md) |
