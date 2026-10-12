@@ -1,6 +1,25 @@
 # 项目状态
 
-## 2026-10-12 当前权威检查点：八地方来源隔离观察与限量样本QA完成
+## 2026-10-12 当前权威检查点：16个新增地方来源的两批隔离单页观察完成
+
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_HEAD=095db3ba6cdee946fbd0dbaf3b6a24fe3ef07237（本轮文档修改前；待docs-only提交）
+CURRENT_CODE_SHA=ed0081cd295df99401b06212648b62f9ce829111；GitHub Check+Docker run [38233568406](https://github.com/revercgy-hub/MYHOT/actions/runs/38233568406)对精确head成功
+DOCS_BASE_HEAD=095db3ba6cdee946fbd0dbaf3b6a24fe3ef07237
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+STAGE=P3地方监管局来源质量与覆盖核验；在既有22个来源单页/有限批次基础上，本轮对另16个disabled来源各运行一次
+GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`，仍仅限正式review指定三个来源的逐篇合格样本；本轮不改变Gate或来源准入
+SOURCE_DIRECTORY=48 sources / 42 strict IDs；所有source仍disabled且站内/转发全文关闭
+COMPLETED=Lead批准的B1（北京、江苏、安徽、江西、河南、湖北、湖南、广东）及B2（天津、河北、山西、内蒙古、吉林、黑龙江、山东、大连）各在新建隔离库执行一次普通单页collector。B1 `fiscalhot_source_expand_20261012_test`（35 migrations）found/created=80/69，28 dispatch，20 body尝试=19 ok/1 unconfirmed，结束69 articles/88 revisions/69 discoveries/20 publication projections。B2 `fiscalhot_source_expand_b2_20261012_test`（35 migrations）found/created=60/60，23 dispatch，15 body尝试=13 ok/2 unconfirmed，结束60 articles/73 revisions/60 discoveries/15 publication projections。B2天津与黑龙江列表timeout，无重试；B1北京found10/created0，因strict `publishedAtAuthoritative=true`要求详情日期确认而本次`maxFetches=0`抑制详情；列表10个日期在窗口内但无文章写入，不能说窗口外或collector失败。湖北有1条日期2023-11-20、超出三个月首次回填窗口。每源临时inline `detail.maxFetches=0`后恢复catalog config。独立QA对B1得`PASS_WITHIN_BOUNDED_BATCH`，对B2得`PASS_WITHIN_BOUNDED_SAMPLE`。既有preview库保持18条，不参加本次批量写入。详见[16源扩展handoff](HANDOFFS/REGIONAL_BULK_EXPANSION_2026-10-12.md)。
+REVIEW=两批独立QA均通过其固定bounded scope。B1 28/28 raw hash/bytes/EOF匹配、所有GET HTTP200，八个gzip列表各离线重放10项，20详情重放及SQL body长度一致；B2 23个dispatch事件全部对账，21个HTTP200完整实体、天津/黑龙江2个timeout无重试，六个成功列表各重放10项。两批SQL counts、body export、publication状态、源安全旗标、配置精确恢复及未消费jobs均核验通过；报告分别位于各batch ignored evidence目录`offline-qa.json`。本结论不代表内容业务审核、source admission或90日覆盖。
+CROSS_BATCH=四次相互隔离的bulk观察保留各自DB/manifest：六来源批次90 found/70 created（32 ok/38 pending/0 held）/40 dispatch；前一八来源批次80/80（16/61/3）/27；本轮B1 80/69（19/49/1）/28；B2 60/60（13/45/2）/23。合计310 found候选、279 stored、80 body ok、193 pending、6 unconfirmed、118 dispatch；30个source各尝试一次，27个产生文章。以上是隔离批次数据，不代表source admission。preview18条为另一独立样本集，不加到bulk记录中。
+BLOCKERS=天津与黑龙江两个列表timeout保留；湖南`identity_mismatch`及内蒙古、山东`short_body_not_allowed`共3篇保持hold。北京仍有列表与权威详情日期不一致的既有风险；本次策略组合下无文章写入。剩余193篇pending正文、近90日分页/来源窗口完整性、其余页面历史、整栏内容质量、跨周期稳定均未证明。Gate 2和source admission不变。
+IN_PROGRESS=本轮4份文档差异完成；未seed preview或修改业务代码/source目录。
+NEXT=按单独范围继续核验193篇pending的正文样本、6篇held结果及尚未核验的栏目页/历史分页；对北京日期和天津/黑龙江timeout另定复查范围。本轮不重试、不补抓。
+MODEL=requested `Luna High`；实际model未验证；项目模型/provider/OCR调用0。
+LOCAL_QA=两库均为专用fresh 35-migration `_test`库，执行前全表计数0（含`pool_search`）。B1 after sources8/articles69/fetch_runs8/revisions88/discoveries69/publications20/jobs created69；body status 19 ok/49 pending/1 unconfirmed。B2 after 8/60/8/73/60/15/jobs created60；body status 13 ok/45 pending/2 unconfirmed。两库analyses/receipts/selected ledger/state/job_runs/editorial overrides/audit_log/pool_search均0；所有publication为空summary、summary-mode、selected/eligible/indexable=false；source flags disabled/fulltext-off、config逐项恢复。B1/B2只读SQL与raw/parser QA均通过限定批次范围。
+
+## 2026-10-12 前一检查点：八地方来源隔离观察与限量样本QA完成
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
 CURRENT_SHA=ed0081cd295df99401b06212648b62f9ce829111（当前阶段代码SHA；docs-only提交另列）
@@ -20,7 +39,7 @@ IN_PROGRESS=完整来源质量、权威日期、分页/90日覆盖与跨周期�
 NEXT=继续逐局核验栏目历史、详情日期权威性、近90日分页覆盖与跨周期稳定性；任何新网络、详情补采、source配置或启用需要单独范围批准。
 MODEL=requested `Luna High`；actual model unverified；应用模型/provider/OCR调用0。
 LOCAL_QA=Fresh 35-migration隔离数据库执行一次，before count全0。after sources 8/articles 80/fetch_runs 8/revisions 96/discoveries 80/publications 19/jobs created 80；analyses/receipts/selected ledger/state/job_runs/audit_log均0。19条publication均summary-mode、无summary且selected/eligible/indexable=false。独立运行QA对27/27 responses和只读DB副作用复核PASS；19次body attempts实际为16 ok/3 unconfirmed。既有preview DB读前15条、读后18条：sources/articles/publications/editorial_overrides/audit_log/article_revisions/article_discoveries/pool_search均18，旧15条全字段timestamp精确一致，新增3条summary-only/bodyless/eligible/未精选/scoreless/noindex，fetch/analysis/receipt/ledger/state/job_runs=0，pgboss absent按0。快照位于`.data/fiscal-qa/local-preview-seed-20261012-qa/`。精确preview代码SHA的Check+Docker CI 38233568406成功。
-CROSS_BATCH=2026-10-12两次隔离批量观察分别保留各自数据库和manifest：此前六来源批次90 found / 70 created / 32 body ok / 40 dispatch；本次八地方来源80 found / 80 created / 16 body ok / 27 dispatch。两批合计150 found/created records、48 body ok、67 dispatch；不同测试库不合并，汇总不代表来源准入或全目录质量。
+CROSS_BATCH=截至此检查点，两次隔离批量观察分别保留各自数据库和manifest：此前六来源批次90 found / 70 created / 32 body ok / 40 dispatch；八地方来源批次80 found / 80 created / 16 body ok / 27 dispatch。合计170 found / 150 created / 48 body ok / 67 dispatch；不同测试库不合并，汇总不代表来源准入或全目录质量。
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
 CURRENT_SHA=07aaf2fcb6d1b0d249c11f78c5a5ff95d2c461dc（当前代码SHA；本轮docs commit另列）

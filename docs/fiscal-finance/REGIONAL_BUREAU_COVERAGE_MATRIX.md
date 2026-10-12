@@ -4,6 +4,32 @@
 
 “栏目证据”仅记录现存资料里能证明的地方栏目或中央汇总样本；中央选登中的一篇稿件不能证明其发布局独立栏目已找到。`未知`代表本地证据不足，不猜栏目、URL或selector。各局后续均需按真实页面核验栏目入口、列表身份/日期、详情正文、窗口/分页和重复；单项通过后才更新状态。
 
+### 2026-10-12 第二轮16地方来源扩展（B1/B2各八源，来源准入未判）
+
+Lead批准两次不重叠的fresh隔离运行，均复用普通单页collector。独立QA分别以`PASS_WITHIN_BOUNDED_BATCH`（B1）和`PASS_WITHIN_BOUNDED_SAMPLE`（B2）通过固定样本的raw、解析、正文/SQL绑定及安全边界。B1对北京、江苏、安徽、江西、河南、湖北、湖南、广东运行28 dispatch；found/created=80/69，20次正文尝试中19 `ok`、1 `identity_mismatch`。B2对天津、河北、山西、内蒙古、吉林、黑龙江、山东、大连运行23 dispatch；found/created=60/60，15次正文尝试中13 `ok`、2 `short_body_not_allowed`。两次实际dispatch共51，0 rejected、0 redirect；B2天津和黑龙江列表请求timeout，未重试。北京10条列表日期均在三个月窗口内，但`publishedAtAuthoritative=true`要求详情日期权威确认；本次隔离`detail.maxFetches=0`关闭详情，配合`initialBackfillRequirePublishedAt=true`使collector仍为`ok`但0条写入。这是策略与本轮抑制详情设置不兼容，不是窗口外判定或collector失败。湖北10条中1条日期为2023-11-20、超出三个月回填窗口。三条正文hold（湖南、内蒙古、山东）保持原状态。
+
+| 监管局 | source ID | 本次found / created | body尝试 / ok / held | 运行观察 |
+|---|---|---:|---:|---|
+| 北京 | `mof-beijing-supervision-dynamics` | 10 / 0 | 0 / 0 / 0 | 严格权威详情日期要求与`maxFetches=0`不兼容；非窗口外结果 |
+| 江苏 | `mof-jiangsu-supervision-dynamics` | 10 / 10 | 3 / 3 / 0 | 单页；不据正文ok判断业务质量 |
+| 安徽 | `mof-anhui-supervision-dynamics` | 10 / 10 | 3 / 3 / 0 | 单页；不据正文ok判断业务质量 |
+| 江西 | `mof-jiangxi-supervision-dynamics` | 10 / 10 | 3 / 3 / 0 | 单页；不据正文ok判断业务质量 |
+| 河南 | `mof-henan-supervision-dynamics` | 10 / 10 | 3 / 3 / 0 | 单页；不据正文ok判断业务质量 |
+| 湖北 | `mof-hubei-supervision-dynamics` | 10 / 9 | 3 / 3 / 0 | 1条列表日2023-11-20超出三个月首次回填窗口 |
+| 湖南 | `mof-hunan-supervision-dynamics` | 10 / 10 | 2 / 1 / 1 | `identity_mismatch`，该源正文阶段停止 |
+| 广东 | `mof-guangdong-supervision-dynamics` | 10 / 10 | 3 / 3 / 0 | 单页；不据正文ok判断业务质量 |
+| 天津 | `mof-tianjin-supervision-dynamics` | 0 / 0 | 0 / 0 / 0 | 列表timeout，无重试 |
+| 河北 | `mof-hebei-supervision-dynamics` | 10 / 10 | 3 / 3 / 0 | 单页；不据正文ok判断业务质量 |
+| 山西 | `mof-shanxi-supervision-dynamics` | 10 / 10 | 3 / 3 / 0 | 单页；不据正文ok判断业务质量 |
+| 内蒙古 | `mof-inner-mongolia-supervision-dynamics` | 10 / 10 | 1 / 0 / 1 | 第一条`short_body_not_allowed`，该源正文阶段停止 |
+| 吉林 | `mof-jilin-supervision-dynamics` | 10 / 10 | 3 / 3 / 0 | 单页；不据正文ok判断业务质量 |
+| 黑龙江 | `mof-heilongjiang-supervision-dynamics` | 0 / 0 | 0 / 0 / 0 | 列表timeout，无重试 |
+| 山东 | `mof-shandong-supervision-dynamics` | 10 / 10 | 2 / 1 / 1 | 第二条`short_body_not_allowed`，该源正文阶段停止 |
+| 大连 | `mof-dalian-supervision-dynamics` | 10 / 10 | 3 / 3 / 0 | 单页；不据正文ok判断业务质量 |
+| **合计** | **16个互不重叠来源** | **140 / 129** | **35 / 32 / 3** | **51 dispatch；两次分别独立隔离** |
+
+B1、B2各自保留manifest、raw、正文SQL导出和QA报告；详细count、预算、disabled/config恢复及QA边界见[扩展handoff](HANDOFFS/REGIONAL_BULK_EXPANSION_2026-10-12.md)。本次不修改下方目录基线状态为source pass；单页观察不能证明近90日完整覆盖、分页末页、日期权威规则、整栏业务质量、跨周期稳定或source admission。全48项source目录仍disabled且站内/转发全文关闭，Gate 2未改变。
+
 ### 2026-10-12 六来源隔离批量观察增量
 
 本次涉及六个官方来源，其中三条地方局独立来源：fresh `fiscalhot_bulk_20261012_test`中的隔离写入不表示来源准入、公开可见或精选。Xiamen一次run `found=10/created=10/body ok=8`；Fujian `20/17/4`；Zhejiang `20/16/5`。三源均保持disabled/fulltext-off，另有38篇本批创建文章没有body抽取，严格正文source产生的17条publication仅是空summary且不可精选/索引的内部状态。Fujian和Zhejiang均两页后以`max_pages_per_run`停止，coverage仍unproven；单次结果不证明完整90日覆盖、周期稳定性或全栏内容质量。独立QA已通过raw/SQL与publication逐行核对；业务正文及噪声判断仍逐篇待审。另有一次QA批准的编辑预览seed将六条编辑辅助摘要加入既有`fiscalhot_preview_test`固定九条，旧9逐字段不变、新6审计通过。它们仅为本地开发预览，未人工精选或人工Gold，页面/HTTP未验证。详见[六来源handoff](HANDOFFS/BULK_SOURCE_SAMPLE_2026-10-12.md)及[来源矩阵](SOURCE_MATRIX.md)。不据此把下方既有逐局证据改为全栏通过。

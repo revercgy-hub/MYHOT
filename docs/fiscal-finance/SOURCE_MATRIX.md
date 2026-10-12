@@ -1,5 +1,31 @@
 # 官方信源验证矩阵
 
+## 2026-10-12 地方监管局第二轮16源扩展（两次各八源隔离运行）
+
+在此前bulk观察基础上，Lead又批准两批不重叠的八个地方监管局disabled source，各用现有单页collector执行一次。B1（北京、江苏、安徽、江西、河南、湖北、湖南、广东）与B2（天津、河北、山西、内蒙古、吉林、黑龙江、山东、大连）分别使用全新35-migration隔离库；两库不合并。B1 found/created=80/69，20次正文尝试得到19 `ok`、1 `identity_mismatch`，28 dispatch；B2 found/created=60/60，15次正文尝试得到13 `ok`、2 `short_body_not_allowed`，23 dispatch。两次dispatch共51，0 rejected、0 redirect；B2有天津和黑龙江两个列表timeout且无重试。独立QA对B1判`PASS_WITHIN_BOUNDED_BATCH`、B2判`PASS_WITHIN_BOUNDED_SAMPLE`。B1北京10条列表日期均在窗口内，但source要求`publishedAtAuthoritative=true`的详情日期确认；inline `detail.maxFetches=0`使10条found均未写入。此为严格日期策略与本轮预算设置不兼容，不是窗口外判定，也不是collector失败；未补详情请求。湖北10项中1条日期2023-11-20、超出三个月首次回填窗口。湖南、内蒙古、山东三条正文失败保持hold。
+
+| source | found / created | body attempts | body `ok` / unconfirmed | 本批结果边界 |
+|---|---:|---:|---:|---|
+| `mof-beijing-supervision-dynamics` | 10 / 0 | 0 | 0 / 0 | 严格权威详情日期要求与`maxFetches=0`不兼容；列表日虽在窗口内，未作窗口外判定 |
+| `mof-jiangsu-supervision-dynamics` | 10 / 10 | 3 | 3 / 0 | 单页观察；正文ok不代表业务QA通过 |
+| `mof-anhui-supervision-dynamics` | 10 / 10 | 3 | 3 / 0 | 单页观察；正文ok不代表业务QA通过 |
+| `mof-jiangxi-supervision-dynamics` | 10 / 10 | 3 | 3 / 0 | 单页观察；正文ok不代表业务QA通过 |
+| `mof-henan-supervision-dynamics` | 10 / 10 | 3 | 3 / 0 | 单页观察；正文ok不代表业务QA通过 |
+| `mof-hubei-supervision-dynamics` | 10 / 9 | 3 | 3 / 0 | 1条列表日期2023-11-20超出三个月回填窗口 |
+| `mof-hunan-supervision-dynamics` | 10 / 10 | 2 | 1 / 1 | `identity_mismatch`后停止该源正文尝试 |
+| `mof-guangdong-supervision-dynamics` | 10 / 10 | 3 | 3 / 0 | 单页观察；正文ok不代表业务QA通过 |
+| `mof-tianjin-supervision-dynamics` | 0 / 0 | 0 | 0 / 0 | 列表timeout，无重试 |
+| `mof-hebei-supervision-dynamics` | 10 / 10 | 3 | 3 / 0 | 单页观察；正文ok不代表业务QA通过 |
+| `mof-shanxi-supervision-dynamics` | 10 / 10 | 3 | 3 / 0 | 单页观察；正文ok不代表业务QA通过 |
+| `mof-inner-mongolia-supervision-dynamics` | 10 / 10 | 1 | 0 / 1 | `short_body_not_allowed`后停止该源正文尝试 |
+| `mof-jilin-supervision-dynamics` | 10 / 10 | 3 | 3 / 0 | 单页观察；正文ok不代表业务QA通过 |
+| `mof-heilongjiang-supervision-dynamics` | 0 / 0 | 0 | 0 / 0 | 列表timeout，无重试 |
+| `mof-shandong-supervision-dynamics` | 10 / 10 | 2 | 1 / 1 | `short_body_not_allowed`后停止该源正文尝试 |
+| `mof-dalian-supervision-dynamics` | 10 / 10 | 3 | 3 / 0 | 单页观察；正文ok不代表业务QA通过 |
+| **合计** | **140 / 129** | **35** | **32 / 3** | **两个fresh库；不含preview数据库** |
+
+B1结束计数为69 articles、88 revisions、69 discoveries、20空summary publication projections、69个未消费`created`抽取jobs；B2为60/73/60/15/60。两库analysis、receipt、selection、job_runs与preview状态均未改变。所有来源继续disabled且全文关闭；publication没有summary且selected/eligible/indexable均false。独立运行QA分别通过`PASS_WITHIN_BOUNDED_BATCH`与`PASS_WITHIN_BOUNDED_SAMPLE`，报告见[本轮handoff](HANDOFFS/REGIONAL_BULK_EXPANSION_2026-10-12.md)；B1、B2原始manifest、response、body SQL export和`offline-qa.json`分别位于忽略目录`.data/fiscal-qa/source-expand-20261012/evidence/`和`.data/fiscal-qa/source-expand-b2-20261012/evidence/`。两批仍是普通单页、单时点有界观察；它们不证明90日历史完整、日期权威、跨周期稳定、全栏业务质量或source admission，也不改变Gate 2。
+
 ## 2026-10-12 八个地方监管局来源单页隔离批量观察（三条候选内容QA完成，来源准入未判）
 
 Root批准以catalog普通单页collector对广西、海南、重庆、四川、贵州、陕西、青海、新疆八个disabled来源各运行一次。Fresh `fiscalhot_regional_bulk_20261012_test`（35 migrations）中8/8列表运行status为`ok`，各found/created=10/10，共80篇；共享dispatch 27/64，0 rejected、0 redirect。显式正文19次尝试，16 `ok`、3 `unconfirmed`：陕西`non_article_container`、青海`short_body_not_allowed`、新疆`identity_mismatch`。失败即停本源正文阶段，无补请求。此处的body `ok`仅表示非空抽取，不是内容业务QA通过；19条summary-mode publication均selected/eligible/indexable=false且无summary，不能称为19篇正文通过或公开页面内容。80个extract jobs状态`created`、未消费；analysis/receipts/selected ledger/state/job_runs均0。数据库article正文与每次尝试、raw response的只读导出及digest关联见忽略目录`.data/fiscal-qa/regional-bulk-20261012/evidence/body-sql-export.json`；27份响应及manifest在同目录。独立运行QA已核验raw/hash/EOF、离线解析及数据库副作用；内容QA通过广西、海南、四川各一条事实核对候选，不构成Gold或source通过。80条存储发布日期落入该次运行窗口仅说明列表解析值符合配置窗口，不建立来源级日期权威性；其余样本不为凑数升级。
