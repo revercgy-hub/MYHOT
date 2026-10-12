@@ -71,8 +71,19 @@ test("local preview namespace requires an exact sample allow-list", () => {
     "local-preview-mof-guangxi-accounting-checks",
     "local-preview-mof-hainan-fiscal-management",
     "local-preview-mof-sichuan-budget-monitoring",
+    "local-preview-mof-lottery-2025-sales",
+    "local-preview-mof-lottery-game-closures",
+    "local-preview-pboc-omo-196",
+    "local-preview-shanxi-accounting-inspection-2026",
+    "local-preview-shanxi-zero-based-budget",
+    "local-preview-zhejiang-budget-execution-joint-supervision",
+    "local-preview-anhui-special-bonds-2026-batch-9",
+    "local-preview-jilin-transfer-payment-performance-loop",
+    "local-preview-hunan-state-finance-capital-registration",
+    "local-preview-guangdong-central-transfer-supervision",
+    "local-preview-dalian-three-guarantees-monitoring",
   ];
-  assert.equal(allowed.length, 18);
+  assert.equal(allowed.length, 29);
   assert.equal(new Set(allowed).size, allowed.length);
   assert.doesNotThrow(() => assertLocalPreviewIds(allowed, allowed));
   assert.throws(() => assertLocalPreviewIds(["local-preview-unknown"], allowed), /outside the fixed sample allow-list/);
