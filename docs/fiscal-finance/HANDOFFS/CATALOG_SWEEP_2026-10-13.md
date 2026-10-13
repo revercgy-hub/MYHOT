@@ -33,7 +33,7 @@ Lead批准后，对`industry/sources.json`中固定的48个source各运行一次
 
 ## 审核和限制
 
-独立QA报告为`PASS_BOUNDED_WITH_RECORDED_SOURCE_HOLDS`，覆盖88/88 raw文件hash、长度及EOF，48/48 gzip/entity列表离线重放，413/413 SQL文章身份/状态/hash核对，48/48 source配置恢复、精确队列隔离和零PDF请求。QA未将此结论升级为来源准入或业务质量通过。Counts另对48个source各至多查看一篇body-ok正文，若无正文则仅看标题。样本中可核业务事实包括云南一篇对某单位884笔支出作分类核验并发现违规挤占资金；PBOC公开市场公告写明10月13日650亿元、7天期逆回购、利率1.40%。上海、山西、四川等样本描述了监督工作方法，但缺当期量化结果。另有较多样本为会议、党团学习、文化和内部活动；这些结论仅适用于被读的一条样本，不能外推整源质量或噪声比例。其余未抽正文的记录仅做标题线索检查。48源机器摘要含每源代表文章ID/URL/body hash及判断，位于ignored证据`content-review.json`，SHA-256为`89E52D09B2ADE277922A713239D7A45B43A23A63012A32E6FCF319C8717A737E`。
+独立QA报告为`PASS_BOUNDED_WITH_RECORDED_SOURCE_HOLDS`，覆盖88/88 raw文件hash、长度及EOF，48/48 gzip/entity列表离线重放，413/413 SQL文章身份/状态/hash核对，48/48 source配置恢复、精确队列隔离和零PDF请求。QA未将此结论升级为来源准入或业务质量通过。Counts另对48个source各至多查看一篇body-ok正文，若无正文则仅看标题。样本中可核业务事实包括云南一篇对某单位884笔支出作分类核验并发现违规挤占资金；PBOC公开市场公告写明10月13日650亿元、7天期逆回购、利率1.40%。上海、山西、四川等样本描述了监督工作方法，但缺当期量化结果。另有较多样本为会议、党团学习、文化和内部活动；这些结论仅适用于被读的一条样本，不能外推整源质量或噪声比例。其余未抽正文的记录仅做标题线索检查。48源机器摘要含每源代表文章ID/URL/body hash及判断，位于ignored证据`content-review.json`，SHA-256为`5054F214C25BB9D34F12A2FF9A542768D4BD0E564488AFFB0C79E59E7997B8A3`。
 
 found与stored相差86；本次没有逐候选reject-reason导出，不能把差值臆分为日期、identity或URL过滤。每source仅一页、一个时间点；结果不证明90日完整、分页结束、发布日期权威、跨周期稳定或来源级质量。来源全保持disabled；Gate 2仍为`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3–5未通过。source矩阵和STATUS均记录本检查点。
 
@@ -50,7 +50,7 @@ found与stored相差86；本次没有逐候选reject-reason导出，不能把差
 | evidence/manifest.json | `a0b8734dc167e942abd949fea9b1ce77d1c66d01b3a58ebe30b573358c314657` |
 | evidence/body-sql-export.json | `3d79eaefc18abf7794a7148de8d69f849ebb473000145288e05d6d8541e4b4a8` |
 | evidence/independent-qa.json | `1503e0f890d0d95a440a8f64e606ce362d9b80b906e75f8435a264ae6b41c8bd` |
-| evidence/content-review.json | `89E52D09B2ADE277922A713239D7A45B43A23A63012A32E6FCF319C8717A737E` |
+| evidence/content-review.json | `5054F214C25BB9D34F12A2FF9A542768D4BD0E564488AFFB0C79E59E7997B8A3` |
 | evidence/responses/ | 88 raw response files, each hash/length/EOF verified |
 
 runner及freeze先由QA静核并执行offline preflight，再由Lead预先授权条件触发一次运行；没有复用其他数据库、旧manifest或旧run token。本轮没有改业务代码、source catalog、LAN配置或preview fixture，因此没有重新运行软件tests/CI。

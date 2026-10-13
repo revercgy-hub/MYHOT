@@ -56,7 +56,7 @@
 | `nfra-regulatory-dynamics` | 6 / 6 | 0 / 0 / 6 |
 | **合计** | **499 / 413** | **28 / 378 / 7** |
 
-*表内held对应`unconfirmed`，不是PDF下载数。7条由会计来源1条嵌入PDF链接hold、NFRA 6条空附件数组但保守诊断hold组成。NFRA相同API path上的6次详情请求使用6个不同docId并匹配6个不同URL；原始`duplicate_dispatch_target` manifest告警因按path去重而误报，保留不改。3个本轮metadata-only来源为厦门地方债、财政部金融司通知、福建财政通知；URL涉及附件风险时只保留元数据，不请求PDF。逐source独立内容检查每源至多阅读一篇已抽取正文，否则只看标题，属于候选筛查而非全源业务质量结论。可核业务样本包括云南一篇对单位884笔支出分类进行核查并发现违规挤占资金，以及PBOC 10月13日650亿元、7天期逆回购公告（1.40%）；上海、山西、四川等样本偏监督流程/机制说明，不一定有当期结果。内部会议、党团学习或文化活动也频繁出现，但单条样本不能估算整源噪声率。48源内容审核机器摘要位于ignored证据，含每源代表文章ID/URL/hash和判断，SHA-256=`89E52D09B2ADE277922A713239D7A45B43A23A63012A32E6FCF319C8717A737E`。完整执行证据、安全旗标、队列审计及URL去重口径见[48源巡检handoff](HANDOFFS/CATALOG_SWEEP_2026-10-13.md)。本轮413条与之前六个隔离bulk库425条有394个URL交集，记录合计838、distinct URL 444；local preview59另计。
+*表内held对应`unconfirmed`，不是PDF下载数。7条由会计来源1条嵌入PDF链接hold、NFRA 6条空附件数组但保守诊断hold组成。NFRA相同API path上的6次详情请求使用6个不同docId并匹配6个不同URL；原始`duplicate_dispatch_target` manifest告警因按path去重而误报，保留不改。3个本轮metadata-only来源为厦门地方债、财政部金融司通知、福建财政通知；URL涉及附件风险时只保留元数据，不请求PDF。逐source独立内容检查每源至多阅读一篇已抽取正文，否则只看标题，属于候选筛查而非全源业务质量结论。可核业务样本包括云南一篇对单位884笔支出分类进行核查并发现违规挤占资金，以及PBOC 10月13日650亿元、7天期逆回购公告（1.40%）；上海、山西、四川等样本偏监督流程/机制说明，不一定有当期结果。内部会议、党团学习或文化活动也频繁出现，但单条样本不能估算整源噪声率。48源内容审核机器摘要位于ignored证据，含每源代表文章ID/URL/hash和判断，SHA-256=`5054F214C25BB9D34F12A2FF9A542768D4BD0E564488AFFB0C79E59E7997B8A3`。完整执行证据、安全旗标、队列审计及URL去重口径见[48源巡检handoff](HANDOFFS/CATALOG_SWEEP_2026-10-13.md)。本轮413条与之前六个隔离bulk库425条有394个URL交集，记录合计838、distinct URL 444；local preview59另计。
 
 ## 2026-10-13 15源单页扩展与54篇正文增量
 
