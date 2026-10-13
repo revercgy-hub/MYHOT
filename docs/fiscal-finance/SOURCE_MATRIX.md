@@ -1,5 +1,11 @@
 # 官方信源验证矩阵
 
+## 2026-10-13 15源单页扩展与54篇正文增量
+
+在fresh隔离库`fiscalhot_source_expand_20261013_test`单次运行15个source、25 actual HTTP dispatch，158 found/116 stored。正文批次冻结54条pending ID，7个source合计44 dispatch：新增41条body `ok`、3条held；结束该库为48 ok/64 pending/4 held。6个地方监管局source的本轮正文结果为：甘肃9次（8 ok后`attachments_unprocessed`停）、宁波9 ok、宁夏首篇`identity_mismatch`后停、青岛9 ok、上海9 ok、云南5 ok。另有GovCN两次（1 ok后`attachments_unprocessed`停）。其他候选按source-stop规则未请求。Accounting整源因既有附件hold排除，深圳、辽宁整源因先前inline `identity_mismatch`排除；Fujian、PBOC厦门、区域监管、厦门证监及PDF/无detail对象亦未进正文scope。
+
+采集manifest仍保留原始`partial_or_failed`和`attachment_hold_rows_present`、`unexpected_or_consumed_queue_job`两项violations；Lead批准后仅将精确7条`content.analyze` created job事务性cancelled，108条extract jobs保持created，原manifest未改写。Counts独立raw/parser/SQL QA通过，报告摘要及文件hash记录在[10月13日handoff](HANDOFFS/SOURCE_EXPANSION_2026-10-13.md)。六个bulk测试库总计425条，305 ok/102 pending/18 held；本计数与本地preview59完全分开。没有source admission或业务质量结论，Gate保持不变。
+
 ## 2026-10-12 陕西修复后正文复核增量
 
 原 regional 隔离库中10条陕西非ok记录（8 pending、2 held）进行一次修复后复核。OP1在source config同步处失败，0 HTTP/正文dispatch；事务内canonical config对照后rollback验证成功。独立静核、精确freeze与Lead授权后，OP2只同步陕西source config至修复catalog，source及全文开关保持关闭，再对固定首篇作正文提取。该次1 dispatch返回内容未满足`.my_doccontent .TRS_Editor` div-block策略，`body_policy_div_blocks_invalid`，状态仍unconfirmed；按首个non-ok规则停止，其他9篇未请求，不重试。独立QA核对raw/hash/parser/SQL与安全边界通过。随后只对既有held正例`jrrdig4rwly5f2wb3czfanzm8`执行1次，独立QA确认revision2、2021字符和body/content哈希匹配；source配置不变且仍关闭。五库合计309篇，257 ok/38 pending/14 held。两个单篇观察不代表来源准入或栏目覆盖通过，详见[正文handoff](HANDOFFS/PENDING_BODY_BACKLOG_2026-10-12.md)。

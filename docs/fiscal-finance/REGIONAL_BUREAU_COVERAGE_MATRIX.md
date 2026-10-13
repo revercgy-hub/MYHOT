@@ -1,5 +1,21 @@
 # 财政部地方监管局新闻栏目覆盖矩阵
 
+### 2026-10-13 七局正文批次增量（限定pending ID）
+
+本次仅对既有隔离库冻结候选执行正文提取，不抓列表。六个地方来源各自结果如下；第七个source为非地方的GovCN政策库，两次正文dispatch，1 ok后`attachments_unprocessed`停止。此处`ok`表示抽取状态，不代表内容业务审核、来源准入或整栏质量。
+
+| 地方监管局 source | 冻结pending数 | 正文dispatch | 本次ok | 本次held及停止规则 |
+|---|---:|---:|---:|---|
+| `mof-gansu-supervision-dynamics` | 9 | 9 | 8 | 第9次`attachments_unprocessed`后停该source |
+| `mof-ningbo-supervision-dynamics` | 9 | 9 | 9 | 全部按冻结列表尝试 |
+| `mof-ningxia-supervision-dynamics` | 9 | 1 | 0 | 首次`identity_mismatch`后停止，余8未请求 |
+| `mof-qingdao-supervision-dynamics` | 9 | 9 | 9 | 全部按冻结列表尝试 |
+| `mof-shanghai-supervision-dynamics` | 9 | 9 | 9 | 全部按冻结列表尝试 |
+| `mof-yunnan-supervision-dynamics` | 5 | 5 | 5 | 全部按冻结列表尝试 |
+| **合计（六个地方source）** | **50** | **42** | **40** | **2 held；其他未尝试候选未被补抓** |
+
+该batch是fresh隔离库采集后的pending子集检查点，全部来源继续disabled、全文关闭。全局54-ID正文scope为44 dispatch、41 ok、3 held；GovCN贡献2 dispatch、1 ok、1 held。旧库与preview样本不与此表相加。原始请求和数据库对账文件位于`.data/fiscal-qa/source-expand-body-20261013/evidence/`；15源collector、独立隔离job审计见`.data/fiscal-qa/source-expand-20261013/evidence/`。完整边界见[10月13日handoff](HANDOFFS/SOURCE_EXPANSION_2026-10-13.md)。
+
 ### 陕西修复后正文复核（2026-10-12；单篇失败后停止）
 
 原 regional 隔离库的陕西source config同步为catalog修复版，source仍disabled且站内/转发全文关闭。OP1同步因JSONB键序哈希比较中止，0 dispatch并安全rollback；OP2在独立静核、preflight和rollback probe后获批，仅发出1次正文dispatch。首篇仍为`unconfirmed`，正文选择器返回`body_policy_div_blocks_invalid`，source-stop后其余9篇未请求。独立offline QA通过raw/hash/parser/SQL及安全核验。另一次仅含既有held正例`jrrdig4rwly5f2wb3czfanzm8`的已批准scope发出1个GET 200，正文抽取由unconfirmed rev1变为ok rev2/2021字符，独立QA核验哈希和SQL一致；source配置无变化且保持关闭。五库现为309篇、257 ok/38 pending/14 held。以上只验证一页可抽取结构，不代表陕西整源恢复、栏目覆盖或准入通过；OP2失败文章和另外8个冻结候选未触及。详见[正文handoff](HANDOFFS/PENDING_BODY_BACKLOG_2026-10-12.md)。

@@ -2,7 +2,9 @@
 
 ## 最新阶段状态
 
-最新来源检查点为[2026-10-12福建两页有界collector实际运行](FUJIAN_BOUNDED_PAGINATION_2026-10-12.md)：代码阶段SHA仍为`c133db7`，本轮没有生产代码修改或新CI。一次fresh 35-migration隔离运行请求两页列表2/12次、均200/EOF；离线独立复核20候选中17条窗口内新建，3条窗外未入库。17篇正文仍pending、17个extract job未消费；`partial=true`、coverage unproven、source disabled且全文关闭。QA也确认`rowsOutsideWindow` metadata计数漏记3条的原因，以及标题关键词检查仅为启发式提示。Gate与source admission不变。当前状态见[STATUS](../STATUS.md)、来源细节见[来源矩阵](../SOURCE_MATRIX.md)和[区域覆盖矩阵](../REGIONAL_BUREAU_COVERAGE_MATRIX.md)。
+最新检查点为[2026-10-13来源扩展与正文检查点](SOURCE_EXPANSION_2026-10-13.md)：fresh隔离库对15个source单次单页运行25次HTTP dispatch，158 found/116 stored；随后对固定54个pending ID执行44次正文dispatch，增量41 ok/3 held。原manifest的两项violations保留，获批的7个意外`content.analyze` created job另行精确cancel，108个extract jobs未消费。六个bulk隔离库合计425篇（305 ok/102 pending/18 held），本地preview59条独立不合并。独立raw/parser/SQL审计通过；代码SHA `6b1c2def`的Check+Docker run 38327393124成功。LAN规则创建一次被拒（exit 1），本地服务/LAN smoke未运行。Gate/source admission不变。
+
+较早的福建运行记录见[2026-10-12福建两页有界collector实际运行](FUJIAN_BOUNDED_PAGINATION_2026-10-12.md)：一次fresh 35-migration隔离运行请求两页列表2/12次、均200/EOF；离线独立复核20候选中17条窗口内新建，3条窗外未入库。17篇正文仍pending、17个extract job未消费；`partial=true`、coverage unproven、source disabled且全文关闭。QA也确认`rowsOutsideWindow` metadata计数漏记3条的原因，以及标题关键词检查仅为启发式提示。Gate与source admission不变。当前状态见[STATUS](../STATUS.md)、来源细节见[来源矩阵](../SOURCE_MATRIX.md)和[区域覆盖矩阵](../REGIONAL_BUREAU_COVERAGE_MATRIX.md)。
 
 最新QA检查点为[2026-10-11 JSONB幂等性与福建分页配置](JSONB_IDEMPOTENCY_AND_FUJIAN_PAGINATION_2026-10-11.md)：代码SHA `c133db772d1718281fed55bef3a1d2390ed39245` 的Check+Docker run [38125181865](https://github.com/revercgy-hub/MYHOT/actions/runs/38125181865)成功；本机fresh QA backend374/374、Web build及16/16通过。Root授权的九条preview固定seed一次重放前后7表63行完全一致，article更新时间不变。福建受限页面观察经离线复核，source仍disabled/fulltext-off。精确tested SHA、CI backend单个Windows-only skip及安全边界见交接和[STATUS](../STATUS.md)。
 
