@@ -9,7 +9,7 @@ HANDOFF_HEAD=6b1c2def0b683500cb7ce4846d6e5479b0779940（docs-only handoff commit
 STAGE_CODE_SHA=6b1c2def0b683500cb7ce4846d6e5479b0779940（preview/LAN review代码提交；精确SHA CI成功）
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 ```
-WORKTREE=5个preview/LAN review代码文件已独立提交；本检查点4份文档增量和本handoff为docs-only提交内容。提交前确认无其他文件变更。
+WORKTREE=5个preview/LAN review代码文件及本检查点5份文档已分组提交并push；handoff交付时工作树clean，origin与本地HEAD一致，最终SHA由当轮git交接报告给出。
 
 ## 范围与结论
 

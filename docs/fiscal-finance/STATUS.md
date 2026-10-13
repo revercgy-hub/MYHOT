@@ -3,7 +3,7 @@
 ## 2026-10-13 当前检查点：15源单页扩展与54篇正文批次完成
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_HEAD=6b1c2def0b683500cb7ce4846d6e5479b0779940（本检查点docs-only提交的父SHA）
+CURRENT_HEAD=3ee34300383c7b887d9af7da23f5e931c043ef4b（本次最终文字修正前的checkpoint SHA；最终docs SHA由git交接报告）
 CURRENT_CODE_SHA=6b1c2def0b683500cb7ce4846d6e5479b0779940；origin `feat/fiscal-finance-hot` 与本地代码HEAD一致；精确SHA GitHub Check [38327393124](https://github.com/revercgy-hub/MYHOT/actions/runs/38327393124) completed/success
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 STAGE=P3来源证据与本地预览维护；本次为受限单页collector和既有pending正文提取观察
@@ -13,8 +13,8 @@ COMPLETED=Lead批准的15源单页采集只在fresh `fiscalhot_source_expand_202
 TOTALS=截至本检查点六个相互隔离bulk测试库合计425 articles：305 body `ok`、102 pending、18 held；这些结果与独立local preview 59条是两组数据，不能相加或称为正式发布。body `ok`仅表示提取结果，不等于业务质量或准入。
 LOCAL_QA=本机fresh 35-migration backend 377/377、typecheck通过、web build通过、Web tests 17/17通过；Counts独立正文QA通过：44/44 raw hash/length/EOF、54 ID SQL状态、queue与安全旗标核对匹配。服务/LAN smoke未执行。ActiveStore显示`AllowLocalFirewallRules=True`与`PublicDefaultInboundBlock`；精确入站规则尝试一次因拒绝访问exit 1，规则未创建；手动启动服务与LAN可达性尚未核验。
 BLOCKED=本机LAN review尚不可验收：管理员精确入站规则未能创建（access denied/exit 1），服务尚未手动启动，因此本机HTTP、listener和LAN smoke均未验证。
-IN_PROGRESS=代码SHA `6b1c2def`已commit/push，精确SHA Check+Docker run [38327393124](https://github.com/revercgy-hub/MYHOT/actions/runs/38327393124)成功；四份文档和新handoff已完成审阅，docs-only提交待完成。保持source及发布Gate不变。
-NEXT=docs-only提交/push并验证origin与clean worktree。之后只读盘点48个catalog source中未尝试的3项（含NFRA），建议单页metadata验证范围与collector能力缺口，不发请求。
+IN_PROGRESS=代码SHA `6b1c2def`已commit/push，精确SHA Check+Docker run [38327393124](https://github.com/revercgy-hub/MYHOT/actions/runs/38327393124)成功；文档checkpoint已在docs-only提交中完成并push。最终docs HEAD见本轮git交接记录。保持source及发布Gate不变。
+NEXT=用户/管理员手动完成防火墙规则与LAN服务启动后，再做只读HTTP/listener验收；随后只读整理未尝试source、held修复和Gold review待办，不扩大本轮采集。
 MODEL=requested `Luna High`；实际model未验证；本轮未调用provider/model/OCR/Jina。此工作由执行agent完成大部分、Lead负责设计/纠偏/核准；Token占比未测量，估计约90/10。
 
 ## 2026-10-12 当前权威检查点：正文待处理批次完成一次受限提取
