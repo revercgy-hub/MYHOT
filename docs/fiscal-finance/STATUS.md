@@ -1,5 +1,21 @@
 # 项目状态
 
+## 2026-10-13 当前检查点：目录巡检待正文样本完成一次有界提取
+
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_HEAD=a60563aedda07e03e9f16636582643f4bd84cf72（本次docs-only更新前真实HEAD；提交后SHA由Git读取）
+CURRENT_CODE_SHA=a60563aedda07e03e9f16636582643f4bd84cf72；本轮无tracked代码、来源目录、preview或LAN变更，未重跑软件测试/CI
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+STAGE=P3官方来源证据与内容质量核验；对48源单页巡检库中的可提取pending HTML做一次有界正文样本
+GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`；此批不改变Gate、来源准入或任何开关
+COMPLETED=在既有隔离库`fiscalhot_catalog_sweep_20261013_test`（35 migrations）中，先用历史六库精确source/URL/title/date身份交叉核对378条pending：254条历史body-ok、14条历史held排除；99条历史pending加11条无历史记录进入候选池。11条无历史记录均因预定限制排除：1条来自含附件配置的`mof-finance-notices`、2条来自无detail driver的regional来源、8条来自附件配置的Xiamen债务来源。另排除26条无detail/unsupported、9条附件配置来源文章和1条PDF，最终冻结74条、13个支持HTML detail的source。单次`extractArticleBody(id,false)`运行对33条发出33个HTTP GET（cap 200，含redirect；实际无redirect/reject），得到26 body `ok`、7 `unconfirmed`；首次non-ok后停止对应source，无重试。独立QA核实33/33 raw hash/length/EOF、33/33离线parser重放与SQL正文一致。前后body总数为28 ok/378 pending/7 held → 54 ok/345 pending/14 held。详见[74条pending正文handoff](HANDOFFS/PENDING_BODY_CATALOG_2026-10-13.md)。
+QUALITY=七个首次non-ok分别为会计来源`attachments_unprocessed`、辽宁`identity_mismatch`、宁夏`non_article_container`、陕西`short_body_not_allowed`、山东在2篇ok后`short_body_not_allowed`、深圳`identity_mismatch`、天津`short_body_not_allowed`。其余六源（GovCN、贵州、河北、江苏、青海、新疆）本批冻结候选均提取ok。该结果只描述本批冻结页面，不外推整源质量；body `ok`仅代表抽取成功，不表示业务相关性或准入。
+SAFETY=48个source保持disabled及全文开关关闭；本轮不抓列表，不调用worker/model/provider/Jina/OCR，不抓附件/PDF。13个source配置与旗标原样恢复，406个既有pg-boss jobs（378 extract-body created、28 analyze cancelled）前后完全一致；分析、receipt、job_runs、pool_search均0；已尝试条目的publication projections仍summary mode、未精选/不eligible/不可索引。该隔离库仍非已发布内容。
+ATTACHMENTS=独立证据scope对会计来源1份PDF及NFRA 6份PDF各单次GET并完整解析，共35页/43,521字符；不连接数据库、不写入文章正文、不更改14条unconfirmed状态。会计英文IASB文件补充了中文封面，且征求意见截止日与封面日期不同；NFRA六份与对应HTML高度重复。详见[同一handoff的PDF诊断段](HANDOFFS/PENDING_BODY_CATALOG_2026-10-13.md#separate-bounded-pdf-attachment-diagnostics)。
+EVIDENCE=冻结scope 74 IDs、候选SHA `e8ca3d755a9b9be0fc35da26bc1b8a79190e9db5a4e6bafa218e444755b6a8ec`；执行manifest SHA `e0489d410b1b78c9df87c444aa4c1e7f06ed4d19b17ee29986b71cec93f299d4`；SQL export SHA `d1c74646dc38901cd0e38e56e1c69eae3cab7e0bc0b7b7a01297471fe70cb3a2`。独立QA结果与忽略文件路径见handoff及`.data/fiscal-qa/pending-body-catalog-20261013/evidence/`。
+NEXT=待处理345条pending中，先评估历史已有完整raw的离线重放可行性，并明确HTML与附件正文的身份/来源合成规则。此body scope不含跨库正文导入；14条unconfirmed保持待核，附件解析结果不能单独解除正文身份/抽取hold。继续保持所有source关闭、Gate与正式发布边界不变。
+MODEL=requested `Luna High`；实际model未验证；本轮未调用provider/model。
+
 ## 2026-10-13 当前检查点：48源目录单页巡检完成
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
