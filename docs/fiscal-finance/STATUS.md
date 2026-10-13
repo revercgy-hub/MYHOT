@@ -4,12 +4,12 @@
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
 CURRENT_HEAD=3ee34300383c7b887d9af7da23f5e931c043ef4b（本次最终文字修正前的checkpoint SHA；最终docs SHA由git交接报告）
-CURRENT_CODE_SHA=6b1c2def0b683500cb7ce4846d6e5479b0779940；origin `feat/fiscal-finance-hot` 与本地代码HEAD一致；精确SHA GitHub Check [38327393124](https://github.com/revercgy-hub/MYHOT/actions/runs/38327393124) completed/success
+CURRENT_CODE_SHA=6b1c2def0b683500cb7ce4846d6e5479b0779940；该代码commit已推送；分支最终docs HEAD从git读取；精确SHA GitHub Check [38327393124](https://github.com/revercgy-hub/MYHOT/actions/runs/38327393124) completed/success
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 STAGE=P3来源证据与本地预览维护；本次为受限单页collector和既有pending正文提取观察
 GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`；此检查点不改变Gate或任何source admission
 PHASE_GATES=Lead批准的本轮preview/LAN review范围已经执行；Gate 3–5均未通过，不能以软件QA、采集量或预览数量替代正式Gate裁定
-COMPLETED=Lead批准的15源单页采集只在fresh `fiscalhot_source_expand_20261013_test`执行一次（35 migrations）：25/400实际HTTP dispatch，158 found、116 stored、15 fetch runs。该collector结果标记`partial_or_failed`，manifest保留`attachment_hold_rows_present`与`unexpected_or_consumed_queue_job`原始violations；对精确获批的7个`content.analyze` created job以独立事务精确取消，108个`content.extract-body` jobs未动。随后冻结54条pending ID、7源、仅正文提取：44/150 dispatch，基线108 pending/7 ok/1 held，结束64 pending/48 ok/4 held（本次41 ok、3 held）。GovCN与甘肃首个non-ok后停源；宁夏首个`identity_mismatch`后停源，其余源按冻结计划完成。两批均不重试、不抓列表；证据与QA状态见[10月13日handoff](HANDOFFS/SOURCE_EXPANSION_2026-10-13.md)。
+COMPLETED=Lead批准的15源单页采集只在fresh `fiscalhot_source_expand_20261013_test`执行一次（35 migrations）：25/400实际HTTP dispatch，158 found、116 stored、15 fetch runs。该collector结果标记`partial_or_failed`，manifest保留`attachment_hold_rows_present`与`unexpected_or_consumed_queue_job`原始violations；对精确获批的7个`content.analyze` created job以独立事务精确取消，108个`content.extract-body` jobs未动。随后冻结54条pending ID、7源、仅正文提取：44/150 dispatch，基线108 pending/7 ok/1 held，结束64 pending/48 ok/4 held（本次41 ok、3 held）。GovCN与甘肃首个non-ok后停源；宁夏首个`identity_mismatch`后停源，其余源按冻结计划完成。两批均不重试；仅后续正文批次不抓列表。证据与QA状态见[10月13日handoff](HANDOFFS/SOURCE_EXPANSION_2026-10-13.md)。
 TOTALS=截至本检查点六个相互隔离bulk测试库合计425 articles：305 body `ok`、102 pending、18 held；这些结果与独立local preview 59条是两组数据，不能相加或称为正式发布。body `ok`仅表示提取结果，不等于业务质量或准入。
 LOCAL_QA=本机fresh 35-migration backend 377/377、typecheck通过、web build通过、Web tests 17/17通过；Counts独立正文QA通过：44/44 raw hash/length/EOF、54 ID SQL状态、queue与安全旗标核对匹配。服务/LAN smoke未执行。ActiveStore显示`AllowLocalFirewallRules=True`与`PublicDefaultInboundBlock`；精确入站规则尝试一次因拒绝访问exit 1，规则未创建；手动启动服务与LAN可达性尚未核验。
 BLOCKED=本机LAN review尚不可验收：管理员精确入站规则未能创建（access denied/exit 1），服务尚未手动启动，因此本机HTTP、listener和LAN smoke均未验证。
