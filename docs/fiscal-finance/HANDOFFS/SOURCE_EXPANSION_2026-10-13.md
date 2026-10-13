@@ -62,15 +62,17 @@ Collector原manifest结果为`partial_or_failed`且原样保留两项violations�
 
 COLLECT/MODEL/provider/OCR/Jina/worker、全局source开关及全文开关保持关闭；没有付费服务调用、PDF/附件请求或生产库写入。目标库为loopback fresh隔离测试库，preview使用其独立既有preview seed流程。隔离测试库数据不是主页可见内容。
 
-本机LAN review启动尚未进行。只读检查记录ActiveStore `AllowLocalFirewallRules=True`、`PublicDefaultInboundBlock`；以下精确入站规则尝试创建一次，系统返回access denied/exit 1且没有新规则。需要管理员在PowerShell单独执行该规则，然后才可由用户手动启动服务并做只读HTTP/listener smoke：
+此前第一次防火墙规则创建尝试因access denied以exit 1结束，作为历史保留。随后用户提供成功创建输出；Counts只读核实ActiveStore和PersistentStore各有两条等价规则（不删除）：DisplayName `MYHOT local LAN preview TCP 3000`，Enabled、Public、Inbound、Allow、TCP/3000、local address `192.168.3.47`、remote subnet `192.168.3.0/24`、interface `以太网`，GUID分别为`{7ea9cd3d-98e2-4312-aead-eafc689398be}`和`{04e2d2ad-67f6-40b5-91cf-4a54e8ac9354}`。使用范围仅覆盖指定子网，异机实际可达性仍需另一台设备验证。
 
-BLOCKED=LAN smoke尚未验证，因为入站规则被系统拒绝且本机服务未手动启动。未验证LAN URL可达性，不将本地build/CI smoke描述为本机浏览器验收。
+服务由用户手动启动；Counts没有重启或改配置。runtime state及日志位于`.data/fiscal-qa/lan-web-20261013/`：Web `0.0.0.0:3000` PID 365024，API `127.0.0.1:3001` PID 203468，Postgres `127.0.0.1:5432` PID 423500；runtime.json记录对应PID与preview数据库，API stdout记录listen成功，stderr只有Fastify deprecation warning，Web stderr为空。只读系统状态显示服务正在运行。
+
+初次用默认系统代理请求局域网IP时返回502；在本机仅为checker进程清除HTTP/HTTPS/ALL/NO_PROXY大小写变量与`NODE_USE_ENV_PROXY`后直连，首页、`/all`、`X-Robots-Tag: noindex, nofollow`、robots meta及`assets/manifest-fcefeb47.js`均通过，页面/asset/API请求返回200。API health、timeline、pool返回200；匿名`/api/admin/me`返回预期401。502属于代理路径结果，直连未复现网站错误。
+
+本机smoke通过：`node scripts/smoke.ts --base http://192.168.3.47:3000` exit 0，27/27项成功，包括`/api/mcp` stateless initialize握手（未调用MCP tools）；使用临时清代理的checker进程执行并在结束后恢复环境，不改变服务进程或配置。smoke输出未落独立文件。上述只验证本机，异机/跨设备网络访问未验证。
 
 ```powershell
 New-NetFirewallRule -DisplayName 'MYHOT local LAN preview TCP 3000' -Direction Inbound -Action Allow -Profile Public -InterfaceAlias '以太网' -LocalAddress 192.168.3.47 -RemoteAddress 192.168.3.0/24 -Protocol TCP -LocalPort 3000
 ```
-
-服务启动命令为`& 'D:\AI-work\MYHOT\AIHOT\scripts\start-local-lan.ps1' -LanAddress 192.168.3.47`。尚无管理员规则成功或服务启动证据，LAN URL可达性未核验；不使用ExecutionPolicy绕过，也不打开其它端口。
 
 未证明这些sources的完整90日覆盖、历史分页、跨周期稳定或整栏业务质量。三处正文held及原collector异常按证据保留；不重跑此scope。下一步只读检查48个catalog sources中尚未尝试的3个（含NFRA），提出有限metadata单页能力缺口；本交接不授权新网络请求、正文补抓、启源或改Gate。
 

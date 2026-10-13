@@ -11,10 +11,10 @@ GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`；此检查点不改变Gate或任何so
 PHASE_GATES=Lead批准的本轮preview/LAN review范围已经执行；Gate 3–5均未通过，不能以软件QA、采集量或预览数量替代正式Gate裁定
 COMPLETED=Lead批准的15源单页采集只在fresh `fiscalhot_source_expand_20261013_test`执行一次（35 migrations）：25/400实际HTTP dispatch，158 found、116 stored、15 fetch runs。该collector结果标记`partial_or_failed`，manifest保留`attachment_hold_rows_present`与`unexpected_or_consumed_queue_job`原始violations；对精确获批的7个`content.analyze` created job以独立事务精确取消，108个`content.extract-body` jobs未动。随后冻结54条pending ID、7源、仅正文提取：44/150 dispatch，基线108 pending/7 ok/1 held，结束64 pending/48 ok/4 held（本次41 ok、3 held）。GovCN与甘肃首个non-ok后停源；宁夏首个`identity_mismatch`后停源，其余源按冻结计划完成。两批均不重试；仅后续正文批次不抓列表。证据与QA状态见[10月13日handoff](HANDOFFS/SOURCE_EXPANSION_2026-10-13.md)。
 TOTALS=截至本检查点六个相互隔离bulk测试库合计425 articles：305 body `ok`、102 pending、18 held；这些结果与独立local preview 59条是两组数据，不能相加或称为正式发布。body `ok`仅表示提取结果，不等于业务质量或准入。
-LOCAL_QA=本机fresh 35-migration backend 377/377、typecheck通过、web build通过、Web tests 17/17通过；Counts独立正文QA通过：44/44 raw hash/length/EOF、54 ID SQL状态、queue与安全旗标核对匹配。服务/LAN smoke未执行。ActiveStore显示`AllowLocalFirewallRules=True`与`PublicDefaultInboundBlock`；精确入站规则尝试一次因拒绝访问exit 1，规则未创建；手动启动服务与LAN可达性尚未核验。
-BLOCKED=本机LAN review尚不可验收：管理员精确入站规则未能创建（access denied/exit 1），服务尚未手动启动，因此本机HTTP、listener和LAN smoke均未验证。
+LOCAL_QA=本机fresh 35-migration backend 377/377、typecheck通过、web build通过、Web tests 17/17通过；Counts独立正文QA通过：44/44 raw hash/length/EOF、54 ID SQL状态、queue与安全旗标核对匹配。用户随后成功创建精确防火墙规则并手动启动Web/API；只读检查在ActiveStore和PersistentStore发现两条同DisplayName/同filter规则（不删除）。规则均为Public inbound allow TCP3000、local 192.168.3.47、remote 192.168.3.0/24、Ethernet。Web监听0.0.0.0:3000 PID365024，API监听127.0.0.1:3001 PID203468，Postgres监听127.0.0.1:5432 PID423500。显式绕过系统代理后本机首页、/all和assets均200；首页preview提示、X-Robots-Tag及meta robots noindex/nofollow通过；API health/timeline/pool均200，匿名`/api/admin/me`为401。`node scripts/smoke.ts --base http://192.168.3.47:3000` exit 0、27/27通过，包括无工具调用的stateless `/api/mcp` initialize；仅checker进程清代理且结束后恢复。首轮经系统代理的502是代理路径误报。runtime.json与服务日志见`.data/fiscal-qa/lan-web-20261013/`。
+BLOCKED=异机/跨设备LAN访问仍未验证；当前仅有本机直连成功证据，不能推断远端设备可达。
 IN_PROGRESS=代码SHA `6b1c2def`已commit/push，精确SHA Check+Docker run [38327393124](https://github.com/revercgy-hub/MYHOT/actions/runs/38327393124)成功；文档checkpoint已在docs-only提交中完成并push。最终docs HEAD见本轮git交接记录。保持source及发布Gate不变。
-NEXT=用户/管理员手动完成防火墙规则与LAN服务启动后，再做只读HTTP/listener验收；随后只读整理未尝试source、held修复和Gold review待办，不扩大本轮采集。
+NEXT=如需确认跨设备访问，再由用户指定另一台设备做只读验收；随后只读整理未尝试source、held修复和Gold review待办，不扩大本轮采集。
 MODEL=requested `Luna High`；实际model未验证；本轮未调用provider/model/OCR/Jina。此工作由执行agent完成大部分、Lead负责设计/纠偏/核准；Token占比未测量，估计约90/10。
 
 ## 2026-10-12 当前权威检查点：正文待处理批次完成一次受限提取
