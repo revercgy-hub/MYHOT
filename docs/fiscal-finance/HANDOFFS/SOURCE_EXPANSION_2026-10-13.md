@@ -1,12 +1,14 @@
 # 10月13日来源扩展与正文检查点（进行中）
 
-STATUS=IN_PROGRESS  
-STAGE=P3 官方来源证据与预览维护  
-GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`；Gate 3–5未通过；本轮没有 source admission 或 Gate 裁定  
-BRANCH=`feat/fiscal-finance-hot`  
-HANDOFF_HEAD=`6b1c2def0b683500cb7ce4846d6e5479b0779940`（docs-only handoff commit的父SHA）  
-STAGE_CODE_SHA=`6b1c2def0b683500cb7ce4846d6e5479b0779940`（preview/LAN review代码提交；精确SHA CI成功）  
-BASE_SHA=`589f79eff09470b31ba8a7f1d9eb62d36ff2be6c`  
+```text
+STATUS=IN_PROGRESS
+STAGE=P3 官方来源证据与预览维护
+GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3–5未通过；本轮没有source admission或Gate裁定
+BRANCH=feat/fiscal-finance-hot
+HANDOFF_HEAD=6b1c2def0b683500cb7ce4846d6e5479b0779940（docs-only handoff commit的父SHA）
+STAGE_CODE_SHA=6b1c2def0b683500cb7ce4846d6e5479b0779940（preview/LAN review代码提交；精确SHA CI成功）
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+```
 WORKTREE=5个preview/LAN review代码文件已独立提交；本检查点4份文档增量和本handoff为docs-only提交内容。提交前确认无其他文件变更。
 
 ## 范围与结论
@@ -61,6 +63,8 @@ Collector原manifest结果为`partial_or_failed`且原样保留两项violations�
 COLLECT/MODEL/provider/OCR/Jina/worker、全局source开关及全文开关保持关闭；没有付费服务调用、PDF/附件请求或生产库写入。目标库为loopback fresh隔离测试库，preview使用其独立既有preview seed流程。隔离测试库数据不是主页可见内容。
 
 本机LAN review启动尚未进行。只读检查记录ActiveStore `AllowLocalFirewallRules=True`、`PublicDefaultInboundBlock`；以下精确入站规则尝试创建一次，系统返回access denied/exit 1且没有新规则。需要管理员在PowerShell单独执行该规则，然后才可由用户手动启动服务并做只读HTTP/listener smoke：
+
+BLOCKED=LAN smoke尚未验证，因为入站规则被系统拒绝且本机服务未手动启动。未验证LAN URL可达性，不将本地build/CI smoke描述为本机浏览器验收。
 
 ```powershell
 New-NetFirewallRule -DisplayName 'MYHOT local LAN preview TCP 3000' -Direction Inbound -Action Allow -Profile Public -InterfaceAlias '以太网' -LocalAddress 192.168.3.47 -RemoteAddress 192.168.3.0/24 -Protocol TCP -LocalPort 3000
