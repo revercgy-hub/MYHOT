@@ -1,5 +1,63 @@
 # 官方信源验证矩阵
 
+## 2026-10-13 48源目录单页巡检（fresh隔离库）
+
+一次性巡检覆盖目录全部48个disabled source，在`fiscalhot_catalog_sweep_20261013_test`完成35 migrations后运行。所有48个fetch run状态为`ok`，found/created合计499/413；实际HTTP dispatch 88/400，全部为允许的GET响应，没有redirect、rejected dispatch、PDF或附件请求。内联正文只在兼容配置下最多尝试1篇；NFRA保留其validator要求的详情上限6，3个有附件风险的来源改为本次metadata-only。body `ok`为28、pending为378、unconfirmed为7。该批overall `partial_or_failed`及manifest两项原始violation保持不变；不表示source稳定或通过准入。
+
+| source ID | found / stored | body ok / pending / held* |
+|---|---:|---:|
+| `mof-budget-work` | 10 / 0 | 10 / 0 / 0 |
+| `fujian-finance-notices` | 5 / 5 | 0 / 5 / 0 |
+| `xiamen-finance-debt` | 15 / 8 | 0 / 8 / 0 |
+| `pboc-xiamen-work` | 20 / 8 | 0 / 8 / 0 |
+| `mof-policy-release` | 10 / 4 | 0 / 4 / 0 |
+| `mof-finance-notices` | 10 / 1 | 0 / 1 / 0 |
+| `mof-accounting-notices` | 10 / 10 | 0 / 9 / 1 |
+| `pboc-open-market` | 20 / 20 | 1 / 19 / 0 |
+| `mof-treasury-debt-data` | 10 / 3 | 0 / 3 / 0 |
+| `xiamen-csrc-regulatory-work` | 20 / 4 | 0 / 4 / 0 |
+| `govcn-policy-library` | 5 / 5 | 0 / 5 / 0 |
+| `mof-regional-supervision-dynamics` | 9 / 9 | 0 / 9 / 0 |
+| `mof-xiamen-supervision-dynamics` | 10 / 9 | 0 / 9 / 0 |
+| `mof-fujian-supervision-dynamics` | 10 / 10 | 0 / 10 / 0 |
+| `mof-beijing-supervision-dynamics` | 10 / 1 | 0 / 1 / 0 |
+| `mof-shanghai-supervision-dynamics` | 10 / 9 | 1 / 8 / 0 |
+| `mof-henan-supervision-dynamics` | 10 / 10 | 1 / 9 / 0 |
+| `mof-hubei-supervision-dynamics` | 10 / 9 | 1 / 8 / 0 |
+| `mof-hunan-supervision-dynamics` | 10 / 9 | 1 / 8 / 0 |
+| `mof-guangdong-supervision-dynamics` | 10 / 10 | 1 / 9 / 0 |
+| `mof-guangxi-supervision-dynamics` | 10 / 10 | 1 / 9 / 0 |
+| `mof-hainan-supervision-dynamics` | 10 / 10 | 1 / 9 / 0 |
+| `mof-chongqing-supervision-dynamics` | 10 / 10 | 1 / 9 / 0 |
+| `mof-sichuan-supervision-dynamics` | 10 / 9 | 1 / 8 / 0 |
+| `mof-ningxia-supervision-dynamics` | 10 / 9 | 1 / 8 / 0 |
+| `mof-qinghai-supervision-dynamics` | 10 / 10 | 1 / 9 / 0 |
+| `mof-shaanxi-supervision-dynamics` | 10 / 9 | 1 / 8 / 0 |
+| `mof-guizhou-supervision-dynamics` | 10 / 9 | 1 / 8 / 0 |
+| `mof-gansu-supervision-dynamics` | 10 / 10 | 1 / 9 / 0 |
+| `mof-qingdao-supervision-dynamics` | 10 / 10 | 1 / 9 / 0 |
+| `mof-dalian-supervision-dynamics` | 10 / 10 | 1 / 9 / 0 |
+| `mof-ningbo-supervision-dynamics` | 10 / 10 | 1 / 9 / 0 |
+| `mof-shenzhen-supervision-dynamics` | 10 / 10 | 0 / 10 / 0 |
+| `mof-tianjin-supervision-dynamics` | 10 / 10 | 1 / 9 / 0 |
+| `mof-hebei-supervision-dynamics` | 10 / 10 | 1 / 9 / 0 |
+| `mof-shanxi-supervision-dynamics` | 10 / 10 | 1 / 9 / 0 |
+| `mof-inner-mongolia-supervision-dynamics` | 10 / 10 | 0 / 10 / 0 |
+| `mof-jilin-supervision-dynamics` | 10 / 10 | 1 / 9 / 0 |
+| `mof-heilongjiang-supervision-dynamics` | 10 / 10 | 1 / 9 / 0 |
+| `mof-shandong-supervision-dynamics` | 10 / 10 | 1 / 9 / 0 |
+| `mof-jiangsu-supervision-dynamics` | 10 / 10 | 1 / 9 / 0 |
+| `mof-anhui-supervision-dynamics` | 10 / 10 | 1 / 9 / 0 |
+| `mof-jiangxi-supervision-dynamics` | 10 / 10 | 1 / 9 / 0 |
+| `mof-xinjiang-supervision-dynamics` | 10 / 10 | 0 / 10 / 0 |
+| `mof-zhejiang-supervision-dynamics` | 10 / 10 | 0 / 10 / 0 |
+| `mof-liaoning-supervision-dynamics` | 10 / 10 | 0 / 10 / 0 |
+| `mof-yunnan-supervision-dynamics` | 9 / 7 | 1 / 6 / 0 |
+| `nfra-regulatory-dynamics` | 6 / 6 | 0 / 0 / 6 |
+| **合计** | **499 / 413** | **28 / 378 / 7** |
+
+*表内held对应`unconfirmed`，不是PDF下载数。7条由会计来源1条嵌入PDF链接hold、NFRA 6条空附件数组但保守诊断hold组成。NFRA相同API path上的6次详情请求使用6个不同docId并匹配6个不同URL；原始`duplicate_dispatch_target` manifest告警因按path去重而误报，保留不改。3个本轮metadata-only来源为厦门地方债、财政部金融司通知、福建财政通知；URL涉及附件风险时只保留元数据，不请求PDF。逐source独立内容检查每源至多阅读一篇已抽取正文，否则只看标题，属于候选筛查而非全源业务质量结论。可核业务样本包括云南一篇对单位884笔支出分类进行核查并发现违规挤占资金，以及PBOC 10月13日650亿元、7天期逆回购公告（1.40%）；上海、山西、四川等样本偏监督流程/机制说明，不一定有当期结果。内部会议、党团学习或文化活动也频繁出现，但单条样本不能估算整源噪声率。48源内容审核机器摘要位于ignored证据，含每源代表文章ID/URL/hash和判断，SHA-256=`89E52D09B2ADE277922A713239D7A45B43A23A63012A32E6FCF319C8717A737E`。完整执行证据、安全旗标、队列审计及URL去重口径见[48源巡检handoff](HANDOFFS/CATALOG_SWEEP_2026-10-13.md)。本轮413条与之前六个隔离bulk库425条有394个URL交集，记录合计838、distinct URL 444；local preview59另计。
+
 ## 2026-10-13 15源单页扩展与54篇正文增量
 
 在fresh隔离库`fiscalhot_source_expand_20261013_test`单次运行15个source、25 actual HTTP dispatch，158 found/116 stored。正文批次冻结54条pending ID，7个source合计44 dispatch：新增41条body `ok`、3条held；结束该库为48 ok/64 pending/4 held。6个地方监管局source的本轮正文结果为：甘肃9次（8 ok后`attachments_unprocessed`停）、宁波9 ok、宁夏首篇`identity_mismatch`后停、青岛9 ok、上海9 ok、云南5 ok。另有GovCN两次（1 ok后`attachments_unprocessed`停）。其他候选按source-stop规则未请求。Accounting整源因既有附件hold排除，深圳、辽宁整源因先前inline `identity_mismatch`排除；Fujian、PBOC厦门、区域监管、厦门证监及PDF/无detail对象亦未进正文scope。

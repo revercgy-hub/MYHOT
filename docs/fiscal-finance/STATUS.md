@@ -1,5 +1,20 @@
 # 项目状态
 
+## 2026-10-13 当前检查点：48源目录单页巡检完成
+
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_HEAD=2b15d994f147501671a3f3c61f7b4232441444c3（本次文档更新前实际HEAD；文档提交SHA由Git交接结果读取）
+CURRENT_CODE_SHA=2b15d994f147501671a3f3c61f7b4232441444c3；本轮无代码、来源目录或preview变更，未重跑软件测试/CI
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+STAGE=P3官方来源证据与内容质量核验；对48源目录进行一次fresh隔离、单页巡检
+GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`；本轮不改变Gate、来源准入或任何开关
+COMPLETED=Lead批准的48源单页巡检在`fiscalhot_catalog_sweep_20261013_test`（35 migrations）一次完成。48/48 collector fetch runs状态为`ok`，收集499个候选、写入413篇；实际HTTP dispatch 88次（硬上限400，含redirect，未触顶）。正文状态为28 `ok`、378 pending、7 unconfirmed。整体manifest保持`partial_or_failed`，保留原始`duplicate_dispatch_target`与`attachment_hold_rows_present`两项violations。独立QA通过：88/88 raw hash/length/EOF、48/48离线列表解析重放、413/413 SQL对账、48/48 source config恢复。逐源结果、证据hash和限制见[48源巡检handoff](HANDOFFS/CATALOG_SWEEP_2026-10-13.md)。
+SAFETY=48个source仍disabled，站内与转发全文开关全关；未运行worker/provider/model/Jina/OCR、未抓附件/PDF、未改生产与preview。28个本批意外排入的`content.analyze` created jobs按冻结ID精确cancelled；378个extract-body jobs保持created；分析、receipt、publication、selection、job_runs及pool_search为0。新库为隔离summary-only测试数据，不是已发布内容。
+QUALITY=7条unconfirmed包括会计来源1条指向嵌入PDF的记录，以及NFRA 6条保守`attachments_unprocessed`诊断（详情JSON的附件数组为空，不能称为6个PDF）。Manifest的duplicate path告警是NFRA同一API path承载6个不同docId导致的路径级误报；6个docId各自匹配不同Article URL，原manifest violation保留。Counts对48个来源各最多看1篇body-ok样本或标题线索：云南一篇报告资金用途违规核查、PBOC公开市场公告给出可核金额/期限/利率；其他样本不少为会议、党团和内部学习活动，不能将单篇判断外推至整源。正文`ok`仅表示抽取成功，不代表业务质量或source admission。
+TOTALS=此前六个隔离bulk库425条记录与本轮413条记录有394个URL交集，累计838条记录/444个distinct URL，本轮净增19个distinct URL。既有local preview 59条独立，不与bulk相加。所有计数均非正式发布量或完整覆盖结论。
+NEXT=按代表性事实、内宣噪声、日期与附件风险安排人工复核；不因collector `ok`或正文`ok`启用来源。Gate 2仍仅适用已裁定范围，Gate 3–5未通过。
+MODEL=requested `Luna High`；实际model未验证；本次未调用provider/model。
+
 ## 2026-10-13 当前检查点：15源单页扩展与54篇正文批次完成
 
 CURRENT_BRANCH=feat/fiscal-finance-hot

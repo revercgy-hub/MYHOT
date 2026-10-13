@@ -2,7 +2,7 @@
 
 ## 最新阶段状态
 
-最新检查点为[2026-10-13来源扩展与正文检查点](SOURCE_EXPANSION_2026-10-13.md)：fresh隔离库对15个source单次单页运行25次HTTP dispatch，158 found/116 stored；随后对固定54个pending ID执行44次正文dispatch，增量41 ok/3 held。原manifest的两项violations保留，获批的7个意外`content.analyze` created job另行精确cancel，108个extract jobs未消费。六个bulk隔离库合计425篇（305 ok/102 pending/18 held），本地preview59条独立不合并。独立raw/parser/SQL审计通过；代码SHA `6b1c2def`的Check+Docker run 38327393124成功。LAN规则创建一次被拒（exit 1），本地服务/LAN smoke未运行。Gate/source admission不变。
+最新检查点为[2026-10-13全目录48源单页巡检](CATALOG_SWEEP_2026-10-13.md)：fresh隔离库一次完成48/48来源单页collector，88次HTTP dispatch，499 found/413 stored；28 body `ok`、378 pending、7 unconfirmed。整体manifest及两项violations原样保留；精确cancelled 28个意外`content.analyze` jobs，378个extract jobs未消费。独立QA通过raw/parser/SQL/config恢复与队列核对。此前六库425条与本轮413条有394 URL交集，合计838条/444 distinct URL；local preview59条仍独立。所有source仍disabled/fulltext-off，无source admission或Gate变化。
 
 较早的福建运行记录见[2026-10-12福建两页有界collector实际运行](FUJIAN_BOUNDED_PAGINATION_2026-10-12.md)：一次fresh 35-migration隔离运行请求两页列表2/12次、均200/EOF；离线独立复核20候选中17条窗口内新建，3条窗外未入库。17篇正文仍pending、17个extract job未消费；`partial=true`、coverage unproven、source disabled且全文关闭。QA也确认`rowsOutsideWindow` metadata计数漏记3条的原因，以及标题关键词检查仅为启发式提示。Gate与source admission不变。当前状态见[STATUS](../STATUS.md)、来源细节见[来源矩阵](../SOURCE_MATRIX.md)和[区域覆盖矩阵](../REGIONAL_BUREAU_COVERAGE_MATRIX.md)。
 
