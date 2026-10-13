@@ -3,7 +3,7 @@ import * as cheerio from "cheerio";
 import { guardedFetch, type GuardedFetchRunBudget } from "../lib/http-fetch.ts";
 import { collapseWhitespace, stripTags } from "../lib/text.ts";
 import { readable, type ExtractedBody } from "../content/extract.ts";
-import { extractConfiguredHtmlBody, extractDirectPdfBody, type PdfFetcher, type PdfSourceBodyConfig } from "../content/pdf-body.ts";
+import { extractConfiguredHtmlBody, extractDirectPdfBody, isDirectPdfUrl, type PdfFetcher, type PdfSourceBodyConfig } from "../content/pdf-body.ts";
 import { attachmentDiagnosticForFailure, type AttachmentDiagnostic } from "../content/attachment-diagnostics.ts";
 import { sanitizeBody } from "../content/sanitize.ts";
 import { jinaRead } from "../providers/jina.ts";
@@ -496,7 +496,7 @@ export async function fetchDetail(url: string, source: SourceRow, need: DetailNe
     return { publishedAt: null, title: null, summary: null, body: result.body, ...(result.attachmentDiagnostic ? { attachmentDiagnostic: result.attachmentDiagnostic } : {}) };
   }
   const fetcher = options.fetcher ?? guardedFetch;
-  const pdfConfigured = d.pdfDirect === true || typeof d.attachmentSelector === "string";
+  const pdfConfigured = (d.pdfDirect === true && d.pdfDirectUrlSuffix === undefined) || typeof d.attachmentSelector === "string";
   const jinaListing = String(source.config.url ?? "").startsWith(JINA_PREFIX);
   const dateInJina = !pdfConfigured && need.date && jinaListing && !!d.publishedAtRegex;
   const titleInJina = !pdfConfigured && need.title && jinaListing && !!d.titleRegex;
@@ -504,8 +504,11 @@ export async function fetchDetail(url: string, source: SourceRow, need: DetailNe
   let html: string | null = null;
   let body: ExtractedBody | null = null;
   let attachmentDiagnostic: AttachmentDiagnostic | null = null;
-  if (need.body && d.pdfDirect === true) {
-    const result = await extractDirectPdfBody(url, need.expectedTitle ?? "", source.config.allowUrlPrefixes ?? [], fetcher);
+  if (need.body && isDirectPdfUrl(url, d.pdfDirect, d.pdfDirectUrlSuffix)) {
+    const result = await extractDirectPdfBody(url, need.expectedTitle ?? "", source.config.allowUrlPrefixes ?? [], fetcher, {
+      maxBytes: d.pdfMaxBytes,
+      identity: d.pdfIdentity,
+    });
     body = result.body;
     if (!body && result.reason) attachmentDiagnostic = attachmentDiagnosticForFailure(d, {
       articleUrl: url, reason: result.reason, attachments: result.attachments ?? [],
@@ -513,7 +516,7 @@ export async function fetchDetail(url: string, source: SourceRow, need: DetailNe
     if (!body && result.reason) console.warn(JSON.stringify({ level: "warn", msg: "source body selector declined", source: source.id, reason: result.reason }));
   }
   const hasSelectedBodyConfig = !!d.bodySelector || !!d.attachmentSelector || Array.isArray(d.bodyPolicies) || d.attachmentScopeSelector !== undefined;
-  if (!d.pdfDirect && ((need.date && !dateInJina) || (need.title && !titleInJina) || need.summary || (need.body && hasSelectedBodyConfig))) {
+  if (!isDirectPdfUrl(url, d.pdfDirect, d.pdfDirectUrlSuffix) && ((need.date && !dateInJina) || (need.title && !titleInJina) || need.summary || (need.body && hasSelectedBodyConfig))) {
     const govcnJsonPagination = source.id === "govcn-policy-library" && source.kind === "json_list" && Object.hasOwn(source.config ?? {}, "pagination");
     const remainingMs = options.remainingMs?.() ?? 20_000;
     if (govcnJsonPagination && remainingMs <= 0) throw new Error("GovCN JSON run deadline exceeded");
@@ -539,6 +542,8 @@ export async function fetchDetail(url: string, source: SourceRow, need: DetailNe
               articleSelector: d.articleSelector,
               attachmentSelector: d.attachmentSelector,
               attachmentMode: d.attachmentMode,
+              pdfMaxBytes: d.pdfMaxBytes,
+              pdfIdentity: d.pdfIdentity,
             };
             const selected = await extractConfiguredHtmlBody(html, res.url, bodyConfig,
               { title: need.expectedTitle ?? "", publishedAt: need.expectedPublishedAt ?? null }, source.config.allowUrlPrefixes ?? [], fetcher);

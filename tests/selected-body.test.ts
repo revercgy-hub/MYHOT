@@ -186,8 +186,37 @@ test("PDF source config fields are explicit, paired, and require HTTPS source pr
   assert.deepEqual(unsupportedConfig("web_list", { allowUrlPrefixes: ["https://official.example/"], detail: envelopeConfig }), []);
   assert.deepEqual(unsupportedConfig("web_list", { allowUrlPrefixes: ["http://official.example/"], detail: envelopeConfig }), ["PDF opt-in requires HTTPS allowUrlPrefixes"]);
   assert.deepEqual(unsupportedConfig("rss", { allowUrlPrefixes: ["https://official.example/"], detail: envelopeConfig }), ["PDF body config is only supported by web_list"]);
-  assert.deepEqual(unsupportedConfig("web_list", { detail: { articleSelector: ".article" } }), ["detail.articleSelector requires detail.bodySelector and detail.attachmentSelector"]);
+  assert.deepEqual(unsupportedConfig("web_list", { detail: { articleSelector: ".article" } }), ["detail.articleSelector requires detail.attachmentSelector and a body selector or policy"]);
   assert.deepEqual(unsupportedConfig("web_list", { allowUrlPrefixes: ["https://official.example/"], detail: { pdfDirect: true, bodySelector: ".body" } }), ["detail.pdfDirect cannot be combined with HTML selectors"]);
+  assert.deepEqual(unsupportedConfig("web_list", { allowUrlPrefixes: ["https://official.example/"], detail: {
+    pdfDirect: true, pdfDirectUrlSuffix: ".pdf", bodySelector: ".body",
+  } }), []);
+  assert(unsupportedConfig("web_list", { allowUrlPrefixes: ["https://official.example/"], detail: {
+    pdfDirect: true, pdfDirectUrlSuffix: ".PDF", bodySelector: ".body",
+  } }).some((entry) => entry.includes("pdfDirectUrlSuffix must be .pdf")));
+  assert(unsupportedConfig("web_list", { allowUrlPrefixes: ["https://official.example/"], detail: {
+    pdfDirect: false, pdfDirectUrlSuffix: ".pdf", bodySelector: ".body",
+  } }).some((entry) => entry.includes("pdfDirectUrlSuffix requires detail.pdfDirect=true")));
+  assert.deepEqual(unsupportedConfig("web_list", { allowUrlPrefixes: ["https://official.example/"], detail: {
+    pdfDirect: true, pdfDirectUrlSuffix: ".pdf", bodyPolicies: [{ selector: ".notice", minTextChars: 1 }],
+  } }), [], "mixed direct-PDF mode can retain policy selectors without an attachment envelope");
+  const policyEnvelope = {
+    bodyPolicies: [{ selector: ".notice", minTextChars: 1 }], articleSelector: ".article",
+    attachmentSelector: ".files", attachmentMode: "required",
+  };
+  assert.deepEqual(unsupportedConfig("web_list", { allowUrlPrefixes: ["https://official.example/"], detail: policyEnvelope }), []);
+  assert.deepEqual(unsupportedConfig("web_list", { allowUrlPrefixes: ["https://official.example/"], detail: {
+    ...policyEnvelope, pdfIdentity: { kind: "normalized_title" },
+  } }), []);
+  for (const pdfMaxBytes of [0, -1, 1.5, Number.NaN, 20 * 1024 * 1024 + 1]) {
+    assert(unsupportedConfig("web_list", { allowUrlPrefixes: ["https://official.example/"], detail: { pdfDirect: true, pdfMaxBytes } }).some((entry) => entry.includes("pdfMaxBytes")));
+  }
+  assert.deepEqual(unsupportedConfig("web_list", { allowUrlPrefixes: ["https://official.example/"], detail: {
+    pdfDirect: true, pdfIdentity: { kind: "normalized_title" }, pdfMaxBytes: 20 * 1024 * 1024,
+  } }), []);
+  assert(unsupportedConfig("web_list", { allowUrlPrefixes: ["https://official.example/"], detail: {
+    pdfDirect: true, pdfIdentity: { kind: "document_number", regex: "([" },
+  } }).some((entry) => entry.includes("valid regular expression")));
 });
 
 test("Xiamen debt config sends its required article PDF through the shared text extractor", async () => {

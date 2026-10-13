@@ -37,7 +37,7 @@ const NESTED: Record<string, string[]> = {
   detail: [
     "mode", "maxFetches", "publishedAtSelector", "publishedAtRegex", "publishedAtUtcOffset", "publishedAtAuthoritative", "upgradeDatePrecision",
     "titleSelector", "titleRegex", "titleAuthoritative", "summarySelector", "articleSelector", "bodySelector", "allowShortBody", "bodyPolicies", "attachmentScopeSelector",
-    "attachmentSelector", "attachmentMode", "pdfDirect",
+      "attachmentSelector", "attachmentMode", "pdfDirect", "pdfDirectUrlSuffix", "pdfMaxBytes", "pdfIdentity",
   ],
   pagination: ["mode", "maxPagesPerRun", "maxDispatches", "maxPageIndex", "detailMode"],
   categorySelection: ["arrayPath", "categoryIdPath", "categoryId", "itemsPath"],
@@ -73,9 +73,12 @@ export function unsupportedConfig(kind: SourceRow["kind"], config: Record<string
         if (nested.bodyPolicies !== undefined) {
           for (const error of validateBodyPolicies(nested.bodyPolicies)) out.push(`detail.${error}`);
           if (kind !== "web_list") out.push("detail.bodyPolicies is only supported by web_list");
-          for (const legacy of ["bodySelector", "allowShortBody", "articleSelector", "attachmentSelector", "attachmentMode", "pdfDirect"] as const) {
+          for (const legacy of ["bodySelector", "allowShortBody"] as const) {
             if (nested[legacy] !== undefined) out.push(`detail.bodyPolicies cannot be combined with detail.${legacy}`);
           }
+          if ((nested.articleSelector !== undefined || nested.attachmentSelector !== undefined || nested.attachmentMode !== undefined) &&
+            (!nested.articleSelector || !nested.attachmentSelector || nested.attachmentMode === undefined)) out.push("detail.bodyPolicies attachment envelope requires articleSelector, attachmentSelector, and attachmentMode");
+          if (nested.pdfDirect !== undefined && nested.pdfDirectUrlSuffix === undefined) out.push("detail.bodyPolicies cannot be combined with detail.pdfDirect unless a PDF URL suffix is configured");
         }
         if (nested.bodySelector !== undefined && (typeof nested.bodySelector !== "string" || !nested.bodySelector.trim())) out.push("detail.bodySelector");
         if (nested.attachmentScopeSelector !== undefined) {
@@ -95,10 +98,28 @@ export function unsupportedConfig(kind: SourceRow["kind"], config: Record<string
         }
         if (nested.attachmentMode !== undefined && !["required", "optional"].includes(String(nested.attachmentMode))) out.push("detail.attachmentMode");
         if (nested.pdfDirect !== undefined && typeof nested.pdfDirect !== "boolean") out.push("detail.pdfDirect");
-        if (nested.attachmentSelector && (!nested.articleSelector || !nested.bodySelector)) out.push("detail.attachmentSelector requires detail.articleSelector and detail.bodySelector");
-        if (nested.articleSelector && (!nested.bodySelector || !nested.attachmentSelector)) out.push("detail.articleSelector requires detail.bodySelector and detail.attachmentSelector");
+        if (nested.pdfDirectUrlSuffix !== undefined && nested.pdfDirectUrlSuffix !== ".pdf") out.push("detail.pdfDirectUrlSuffix must be .pdf");
+        if (nested.pdfDirectUrlSuffix !== undefined && nested.pdfDirect !== true) out.push("detail.pdfDirectUrlSuffix requires detail.pdfDirect=true");
+        if (nested.attachmentSelector && (!nested.articleSelector || (!nested.bodySelector && !nested.bodyPolicies))) out.push("detail.attachmentSelector requires detail.articleSelector and a body selector or policy");
+        if (nested.articleSelector && (!nested.attachmentSelector || (!nested.bodySelector && !nested.bodyPolicies))) out.push("detail.articleSelector requires detail.attachmentSelector and a body selector or policy");
         if (nested.attachmentMode !== undefined && !nested.attachmentSelector) out.push("detail.attachmentMode requires detail.attachmentSelector");
-        if (nested.pdfDirect === true && (nested.articleSelector || nested.bodySelector || nested.attachmentSelector || nested.attachmentMode)) out.push("detail.pdfDirect cannot be combined with HTML selectors");
+        if (nested.pdfDirect === true && nested.pdfDirectUrlSuffix === undefined && (nested.articleSelector || nested.bodySelector || nested.attachmentSelector || nested.attachmentMode || nested.bodyPolicies)) out.push("detail.pdfDirect cannot be combined with HTML selectors");
+        if (nested.pdfMaxBytes !== undefined && (!Number.isSafeInteger(nested.pdfMaxBytes) || Number(nested.pdfMaxBytes) <= 0 || Number(nested.pdfMaxBytes) > 20 * 1024 * 1024)) out.push("detail.pdfMaxBytes must be an integer from 1 to 20971520");
+        if (nested.pdfMaxBytes !== undefined && nested.pdfDirect !== true && !nested.attachmentSelector) out.push("detail.pdfMaxBytes requires detail.pdfDirect or detail.attachmentSelector");
+        if (nested.pdfIdentity !== undefined) {
+          const identity = nested.pdfIdentity;
+          if (!identity || typeof identity !== "object" || Array.isArray(identity)) out.push("detail.pdfIdentity must be an object");
+          else {
+            const record = identity as Record<string, unknown>;
+            if (record.kind === "normalized_title") {
+              if (Object.keys(record).length !== 1) out.push("detail.pdfIdentity normalized_title accepts only kind");
+            } else if (record.kind === "document_number") {
+              if (Object.keys(record).some((key) => key !== "kind" && key !== "regex") || typeof record.regex !== "string" || !record.regex.trim() || record.regex.length > 500) out.push("detail.pdfIdentity document_number requires a regex of at most 500 characters");
+              else { try { new RegExp(record.regex); } catch { out.push("detail.pdfIdentity.regex must be a valid regular expression"); } }
+            } else out.push("detail.pdfIdentity.kind must be normalized_title or document_number");
+          }
+          if (nested.pdfDirect !== true && !nested.attachmentSelector) out.push("detail.pdfIdentity requires detail.pdfDirect or detail.attachmentSelector");
+        }
         if (nested.pdfDirect === true || nested.attachmentSelector) {
           if (kind !== "web_list") out.push("PDF body config is only supported by web_list");
           const prefixes = config.allowUrlPrefixes;

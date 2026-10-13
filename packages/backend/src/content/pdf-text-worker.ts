@@ -1,7 +1,8 @@
 // One document per process. The parent owns byte, page-count, output-size and wall-clock limits.
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 
-const MAX_INPUT_BYTES = 6 * 1024 * 1024;
+const DEFAULT_MAX_INPUT_BYTES = 6 * 1024 * 1024;
+const ABSOLUTE_MAX_INPUT_BYTES = 20 * 1024 * 1024;
 const MAX_PAGES = 40;
 const MAX_TEXT_CHARS = 120_000;
 
@@ -13,12 +14,17 @@ function reply(value: Record<string, unknown>): void {
 }
 
 async function main(): Promise<void> {
+  const configuredLimit = process.argv[2] === undefined ? DEFAULT_MAX_INPUT_BYTES : Number(process.argv[2]);
+  if (!Number.isSafeInteger(configuredLimit) || configuredLimit <= 0 || configuredLimit > ABSOLUTE_MAX_INPUT_BYTES) {
+    reply({ ok: false, reason: "pdf_too_large" });
+    return;
+  }
   const chunks: Buffer[] = [];
   let size = 0;
   for await (const part of process.stdin) {
     const chunk = Buffer.from(part as Uint8Array);
     size += chunk.length;
-    if (size > MAX_INPUT_BYTES) {
+    if (size > configuredLimit) {
       reply({ ok: false, reason: "pdf_too_large" });
       process.exitCode = 0;
       return;

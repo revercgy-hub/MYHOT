@@ -9,14 +9,29 @@ export type PdfFetchFailure = "pdf_url_rejected" | "pdf_fetch_failed" | "pdf_htt
 export type FetchedPdf = { ok: true; url: string; bytes: Buffer; parsed: Extract<PdfTextResult, { ok: true }> } | { ok: false; reason: PdfFetchFailure };
 export type PdfFetcher = (url: string, options: GuardedFetchOptions) => Promise<GuardedResponse>;
 
-const MAX_PDF_BYTES = 6 * 1024 * 1024;
+const DEFAULT_MAX_PDF_BYTES = 6 * 1024 * 1024;
+const MAX_PDF_BYTES = 20 * 1024 * 1024;
 const MAX_LAYOUT_CHARS = 120_000;
+
+export type PdfIdentityConfig = { kind: "normalized_title" } | { kind: "document_number"; regex: string };
+export interface PdfBodyOptions { maxBytes?: number; identity?: PdfIdentityConfig }
+
+export function isDirectPdfUrl(url: string, enabled: unknown, suffix?: unknown): boolean {
+  if (enabled !== true) return false;
+  if (suffix === undefined) return true;
+  if (suffix !== ".pdf") return false;
+  try { return new URL(url).pathname.toLowerCase().endsWith(".pdf"); }
+  catch { return false; }
+}
 
 export interface PdfSourceBodyConfig extends SelectedBodyConfig {
   articleSelector?: string;
   attachmentSelector?: string;
   attachmentMode?: "required" | "optional";
   pdfDirect?: boolean;
+  pdfDirectUrlSuffix?: string;
+  pdfMaxBytes?: number;
+  pdfIdentity?: PdfIdentityConfig;
 }
 
 export type ConfiguredBodyResult = PdfBodyResult;
@@ -49,13 +64,20 @@ function parserFailure(reason: string): PdfFetchFailure {
 }
 
 /** Fetch and parse one explicitly selected official PDF. The injected fetcher exists for offline tests. */
-export async function fetchAndParseOfficialPdf(url: string, allowUrlPrefixes: string[], fetcher: PdfFetcher = guardedFetch): Promise<FetchedPdf> {
+function validMaxBytes(value: number | undefined): number | null {
+  if (value === undefined) return DEFAULT_MAX_PDF_BYTES;
+  return Number.isSafeInteger(value) && value > 0 && value <= MAX_PDF_BYTES ? value : null;
+}
+
+export async function fetchAndParseOfficialPdf(url: string, allowUrlPrefixes: string[], fetcher: PdfFetcher = guardedFetch, maxBytes?: number): Promise<FetchedPdf> {
+  const byteLimit = validMaxBytes(maxBytes);
+  if (byteLimit === null) return { ok: false, reason: "pdf_too_large" };
   if (!urlMatchesAllowedPrefixes(url, allowUrlPrefixes)) return { ok: false, reason: "pdf_url_rejected" };
   let response: GuardedResponse;
   try {
     response = await fetcher(url, {
       timeoutMs: 20_000,
-      maxBytes: MAX_PDF_BYTES,
+      maxBytes: byteLimit,
       maxRedirects: 0,
       headers: { accept: "application/pdf" },
     });
@@ -71,9 +93,9 @@ export async function fetchAndParseOfficialPdf(url: string, allowUrlPrefixes: st
     return { ok: false, reason: "pdf_url_rejected" };
   }
   if (!/^application\/pdf(?:\s*;|\s*$)/i.test(response.headers.get("content-type") ?? "")) return { ok: false, reason: "pdf_mime_rejected" };
-  if (response.body.byteLength > MAX_PDF_BYTES) return { ok: false, reason: "pdf_too_large" };
+  if (response.body.byteLength > byteLimit) return { ok: false, reason: "pdf_too_large" };
   if (response.body.byteLength < 5 || response.body.subarray(0, 5).toString("ascii") !== "%PDF-") return { ok: false, reason: "invalid_pdf" };
-  const parsed = await parsePdfText(response.body);
+  const parsed = await parsePdfText(response.body, byteLimit);
   if (!parsed.ok) return { ok: false, reason: parserFailure(parsed.reason) };
   return { ok: true, url: response.url, bytes: response.body, parsed };
 }
@@ -135,13 +157,13 @@ export async function extractHtmlEnvelopeWithPdf(
 ): Promise<PdfBodyResult> {
   if (config.attachmentScopeSelector !== undefined) return { body: null, reason: "attachment_scope_invalid" };
   if (!urlMatchesAllowedPrefixes(url, allowUrlPrefixes)) return { body: null, reason: "article_url_rejected" };
-  if (!config.articleSelector || !config.attachmentSelector || !config.bodySelector) return { body: null, reason: "attachment_config_invalid" };
+  if (!config.articleSelector || !config.attachmentSelector || (!config.bodySelector && !config.bodyPolicies)) return { body: null, reason: "attachment_config_invalid" };
   const envelopeConfig: SelectedArticleEnvelopeConfig = {
     articleSelector: config.articleSelector,
     bodySelector: config.bodySelector,
+    bodyPolicies: config.bodyPolicies,
     attachmentSelector: config.attachmentSelector,
     attachmentMode: config.attachmentMode,
-    allowShortBody: config.allowShortBody,
     publishedAtUtcOffset: config.publishedAtUtcOffset,
     ...(Object.hasOwn(config, "titleRegex") ? { titleRegex: config.titleRegex } : {}),
     ...(Object.hasOwn(config, "publishedAtRegex") ? { publishedAtRegex: config.publishedAtRegex } : {}),
@@ -154,8 +176,11 @@ export async function extractHtmlEnvelopeWithPdf(
     // allowShortBody is intentionally not carried into the no-attachment case.
     return { body: selected.body, reason: null };
   }
-  const pdf = await fetchAndParseOfficialPdf(selected.attachment.url, allowUrlPrefixes, fetcher);
+  const pdf = await fetchAndParseOfficialPdf(selected.attachment.url, allowUrlPrefixes, fetcher, config.pdfMaxBytes);
   if (!pdf.ok) return { body: null, reason: pdf.reason, attachments: [selected.attachment] };
+  if (config.pdfIdentity && !pdfMatchesExpectedIdentity(pdf.parsed.text, expected.title, config.pdfIdentity)) {
+    return { body: null, reason: "pdf_identity_mismatch", attachments: [selected.attachment] };
+  }
   const body = composeHtmlAndPdfBody(selected.body, pdf, selected.attachment.title);
   return body ? { body, reason: null } : { body: null, reason: "pdf_layout_invalid", attachments: [selected.attachment] };
 }
@@ -177,10 +202,11 @@ export async function extractConfiguredHtmlBody(
   }
   if ("bodyPolicies" in config && config.bodyPolicies !== undefined &&
     (config.bodySelector !== undefined || config.allowShortBody !== undefined ||
-      ("articleSelector" in config && config.articleSelector !== undefined) ||
-      ("attachmentSelector" in config && config.attachmentSelector !== undefined) ||
-      ("attachmentMode" in config && config.attachmentMode !== undefined) ||
-      ("pdfDirect" in config && config.pdfDirect !== undefined))) {
+      (("articleSelector" in config && config.articleSelector !== undefined) !== ("attachmentSelector" in config && config.attachmentSelector !== undefined)) ||
+      (("articleSelector" in config && config.articleSelector !== undefined) &&
+        (!("attachmentMode" in config) || config.attachmentMode === undefined)) ||
+      ("pdfDirect" in config && config.pdfDirect !== undefined &&
+        !(config.pdfDirect === true && "pdfDirectUrlSuffix" in config && config.pdfDirectUrlSuffix === ".pdf")))) {
     return { body: null, reason: "body_policy_invalid" };
   }
   if ("attachmentSelector" in config && typeof config.attachmentSelector === "string") {
@@ -196,11 +222,36 @@ export async function extractDirectPdfBody(
   title: string,
   allowUrlPrefixes: string[],
   fetcher: PdfFetcher = guardedFetch,
+  options: PdfBodyOptions = {},
 ): Promise<PdfBodyResult> {
-  const pdf = await fetchAndParseOfficialPdf(url, allowUrlPrefixes, fetcher);
+  const pdf = await fetchAndParseOfficialPdf(url, allowUrlPrefixes, fetcher, options.maxBytes);
   if (!pdf.ok) return { body: null, reason: pdf.reason, attachments: [{ url, title }] };
+  if (options.identity && !pdfMatchesExpectedIdentity(pdf.parsed.text, title, options.identity)) {
+    return { body: null, reason: "pdf_identity_mismatch", attachments: [{ url, title }] };
+  }
   const body = composePdfSegments(null, pdf, title);
   return body ? { body, reason: null } : { body: null, reason: "pdf_layout_invalid", attachments: [{ url, title }] };
+}
+
+export function pdfMatchesExpectedIdentity(text: string, title: string, identity: PdfIdentityConfig): boolean {
+  if (!text.trim() || !title.trim() || !identity || typeof identity !== "object") return false;
+  const normalize = (value: string) => value.normalize("NFKC").toLocaleLowerCase().replace(/[\p{P}\p{S}\s]+/gu, "");
+  if (identity.kind === "normalized_title") {
+    const expected = normalize(title);
+    return !!expected && normalize(text).includes(expected);
+  }
+  if (identity.kind !== "document_number" || typeof identity.regex !== "string" || !identity.regex.trim() || identity.regex.length > 500) return false;
+  try {
+    const extract = (value: string) => {
+      const regex = new RegExp(identity.regex, "gu");
+      const matches = [...value.matchAll(regex)];
+      if (matches.length !== 1 || !matches[0]![1]) return null;
+      return normalize(matches[0]![1]!);
+    };
+    const expected = extract(title);
+    const actual = extract(text);
+    return !!expected && expected === actual;
+  } catch { return false; }
 }
 
 /** Validate one parser result before it can be persisted as a complete body. */

@@ -37,6 +37,11 @@
         "publishedAtSelector": "span.bf-pass",
         "allowUrlPrefixes": ["https://czt.fujian.gov.cn/zwgk/tzgg/"],
         "publishedAtUtcOffset": "+08:00",
+        "detail": {
+          "maxFetches": 10,
+          "bodySelector": ".TRS_Editor",
+          "titleRegex": "<title>\\s*([\\s\\S]*?)\\s+_\\s+通知公告\\s+_\\s+福建省财政厅\\s*</title>"
+        },
         "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true, "requireBodyReadyForAutomaticSelection": true }
       },
       "tier": "T1",
@@ -94,6 +99,7 @@
         "allowUrlPrefixes": ["https://xiamen.pbc.gov.cn/xiamen/127699/"],
         "publishedAtUtcOffset": "+08:00",
         "titleAttribute": "title",
+        "detail": { "maxFetches": 10, "bodySelector": "#zoom", "publishedAtUtcOffset": "+08:00" },
         "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
       },
       "tier": "T1",
@@ -118,6 +124,7 @@
         "publishedAtSelector": "span",
         "publishedAtUtcOffset": "+08:00",
         "allowUrlPrefixes": ["https://zhs.mof.gov.cn/zhengcefabu/"],
+        "detail": { "maxFetches": 10, "bodySelector": ".my_doccontent > .TRS_Editor", "publishedAtUtcOffset": "+08:00" },
         "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
       },
       "tier": "T1",
@@ -187,7 +194,10 @@
               "selector": ".my_doccontent > .TRS_Editor:has(p + p)",
               "minTextChars": 200
             }
-          ]
+          ],
+          "articleSelector": ".my_conboxzw",
+          "attachmentSelector": ".gu-download:has(a[href$=\".pdf\"])",
+          "attachmentMode": "required"
         },
         "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true, "requireBodyReadyForAutomaticSelection": true }
       },
@@ -243,6 +253,7 @@
         "publishedAtSelector": "span",
         "publishedAtUtcOffset": "+08:00",
         "allowUrlPrefixes": ["https://zwgls.mof.gov.cn/tjsj/"],
+        "detail": { "maxFetches": 10, "bodySelector": ".my_conboxzw > .TRS_Editor", "publishedAtUtcOffset": "+08:00" },
         "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
       },
       "tier": "T1",
@@ -266,6 +277,12 @@
         "summaryPaths": ["content"],
         "publishedAtPath": "publishedTimeStr",
         "publishedAtUtcOffset": "+08:00",
+        "detail": {
+          "maxFetches": 10,
+          "bodySelector": ".detail-news",
+          "titleRegex": "<h2[^>]*>([^<]+)</h2>",
+          "publishedAtUtcOffset": "+08:00"
+        },
         "urlTemplate": "https:{raw:url}",
         "allowUrlPrefixes": ["https://www.csrc.gov.cn/xiamen/c101757/"],
         "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
@@ -341,6 +358,7 @@
           "http://hq.mof.gov.cn/", "http://cq.mof.gov.cn/", "http://sc.mof.gov.cn/", "http://gz.mof.gov.cn/", "http://yn.mof.gov.cn/",
           "http://sx.mof.gov.cn/", "http://gs.mof.gov.cn/", "http://qh.mof.gov.cn/", "http://nx.mof.gov.cn/", "http://xj.mof.gov.cn/"
         ],
+        "detail": { "maxFetches": 10, "bodySelector": ".my_doccontent > .TRS_Editor", "publishedAtUtcOffset": "+08:00" },
         "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
       },
       "tier": "T1",
@@ -365,6 +383,7 @@
         "publishedAtSelector": "span",
         "publishedAtUtcOffset": "+08:00",
         "allowUrlPrefixes": ["https://xm.mof.gov.cn/caizhengjiancha/"],
+        "detail": { "maxFetches": 10, "bodySelector": ".my_doccontent", "publishedAtUtcOffset": "+08:00" },
         "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true, "requireBodyReadyForAutomaticSelection": true }
       },
       "tier": "T1",
@@ -1114,7 +1133,7 @@
         "publishedAtUtcOffset": "+08:00",
         "allowUrlPrefixes": ["https://yn.mof.gov.cn/caizhengjiancha/"],
         "denyUrlPrefixes": ["https://yn.mof.gov.cn/caizhengjiancha/202609/t20260918_3997724.htm"],
-        "detail": { "maxFetches": 10, "titleSelector": "h2.title_con", "publishedAtRegex": "<meta\\s+name=\"PubDate\"\\s+content=\"([^\"]+)", "publishedAtUtcOffset": "+08:00", "bodySelector": ".my_doccontent" },
+        "detail": { "maxFetches": 10, "titleSelector": "h2.title_con", "publishedAtRegex": "<meta\\s+name=\"PubDate\"\\s+content=\"([^\"]+)", "publishedAtUtcOffset": "+08:00", "bodySelector": ".my_doccontent", "pdfDirect": true, "pdfDirectUrlSuffix": ".pdf", "pdfMaxBytes": 20971520, "pdfIdentity": { "kind": "normalized_title" } },
         "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true, "requireBodyReadyForAutomaticSelection": true }
       },
       "tier": "T1", "first_party": true, "owner_entity_id": "mof", "participation_mode": "editorial", "interval_minutes": 1440,

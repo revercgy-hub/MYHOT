@@ -438,7 +438,7 @@ export function extractSelectedArticleEnvelope(
   expected: BodyIdentity,
 ): SelectedArticleEnvelopeResult {
   if (config.attachmentScopeSelector !== undefined) return { body: null, attachment: null, reason: "attachment_scope_invalid" };
-  if (config.bodyPolicies !== undefined) return { body: null, attachment: null, reason: "body_policy_invalid" };
+  if (config.bodyPolicies !== undefined && (config.bodySelector !== undefined || config.allowShortBody !== undefined || validateBodyPolicies(config.bodyPolicies).length > 0)) return { body: null, attachment: null, reason: "body_policy_invalid" };
   const $ = cheerio.load(html, null, false);
   let articles: cheerio.Cheerio<any>;
   try { articles = $(config.articleSelector); } catch { return { body: null, attachment: null, reason: "article_missing" }; }
@@ -448,7 +448,18 @@ export function extractSelectedArticleEnvelope(
   let bodies: cheerio.Cheerio<any>;
   let regions: cheerio.Cheerio<any>;
   try {
-    bodies = article.find(config.bodySelector ?? "");
+    if (config.bodyPolicies) {
+      const matches: Array<{ invalid: boolean; node?: cheerio.Cheerio<any> }> = [];
+      for (const policy of config.bodyPolicies) {
+        const selected = $(policy.selector);
+        if (selected.length > 1 || (selected.length === 1 && !article.find(policy.selector).length)) matches.push({ invalid: true });
+        else if (selected.length === 1) matches.push({ invalid: false, node: selected.first() });
+      }
+      if (matches.some((match) => match.invalid)) return { body: null, attachment: null, reason: "body_not_unique" };
+      const chosen = matches.filter((match) => !match.invalid && match.node);
+      if (chosen.length !== 1) return { body: null, attachment: null, reason: chosen.length ? "body_not_unique" : "body_missing" };
+      bodies = chosen[0]!.node!;
+    } else bodies = article.find(config.bodySelector ?? "");
     regions = article.find(config.attachmentSelector);
   } catch { return { body: null, attachment: null, reason: "body_missing" }; }
   if (!bodies.length) return { body: null, attachment: null, reason: "body_missing" };
@@ -487,13 +498,19 @@ export function extractSelectedArticleEnvelope(
 
   // A short notice is only provisional when a PDF is present. It can reach storage only after the
   // companion PDF has passed the complete bounded parser; the zero-attachment branch uses 200 chars.
-  const bodyResult = extractSelectedBody(html, url, {
+  const bodyConfig: SelectedBodyConfig = config.bodyPolicies ? {
+    bodyPolicies: config.bodyPolicies,
+    publishedAtUtcOffset: config.publishedAtUtcOffset,
+    ...(Object.hasOwn(config, "titleRegex") ? { titleRegex: config.titleRegex } : {}),
+    ...(Object.hasOwn(config, "publishedAtRegex") ? { publishedAtRegex: config.publishedAtRegex } : {}),
+  } : {
     bodySelector: config.bodySelector,
     allowShortBody: attachment ? true : false,
     publishedAtUtcOffset: config.publishedAtUtcOffset,
     ...(Object.hasOwn(config, "titleRegex") ? { titleRegex: config.titleRegex } : {}),
     ...(Object.hasOwn(config, "publishedAtRegex") ? { publishedAtRegex: config.publishedAtRegex } : {}),
-  }, expected, { pdfAttachmentsPrevalidated: true });
+  };
+  const bodyResult = extractSelectedBody(html, url, bodyConfig, expected, { pdfAttachmentsPrevalidated: true });
   if (!bodyResult.body) return { body: null, attachment, ...(attachment ? { attachments: [attachment] } : {}), reason: bodyResult.reason ?? "empty_body" };
   if (!attachment && bodyResult.body.text.length < 200) return { body: null, attachment: null, reason: "short_body_not_allowed" };
   return { body: bodyResult.body, attachment, reason: null };

@@ -11,7 +11,7 @@ import { getArticle } from "../providers/socialdata.ts";
 import { onlyXArticleLink, xArticleText } from "../sources/x.ts";
 import { sanitizeBody, trimTrailingChrome } from "./sanitize.ts";
 import type { BodyIdentity } from "./selected-body.ts";
-import { extractConfiguredHtmlBody, extractDirectPdfBody, type PdfFetcher, type PdfSourceBodyConfig } from "./pdf-body.ts";
+import { extractConfiguredHtmlBody, extractDirectPdfBody, isDirectPdfUrl, type PdfFetcher, type PdfSourceBodyConfig } from "./pdf-body.ts";
 import { contentHash, syncArticlePublication } from "./materials.ts";
 import { requiresBodyReadyForAutomaticSelection } from "./body-readiness.ts";
 import { attachmentDiagnosticForFailure, clearAttachmentDiagnostic, createAttachmentDiagnostic, readAttachmentDiagnostic, setAttachmentDiagnostic } from "./attachment-diagnostics.ts";
@@ -100,8 +100,11 @@ export async function extractFromUrl(url: string, opts: { allowJina: boolean; su
     opts.onSelectedBodyFailure?.("attachment_scope_invalid");
     return null;
   }
-  if (opts.selectedBody?.config.pdfDirect === true) {
-    const result = await extractDirectPdfBody(url, opts.selectedBody.expected.title, opts.selectedBody.allowUrlPrefixes, fetcher);
+  if (opts.selectedBody && isDirectPdfUrl(url, opts.selectedBody.config.pdfDirect, opts.selectedBody.config.pdfDirectUrlSuffix)) {
+    const result = await extractDirectPdfBody(url, opts.selectedBody.expected.title, opts.selectedBody.allowUrlPrefixes, fetcher, {
+      maxBytes: opts.selectedBody.config.pdfMaxBytes,
+      identity: opts.selectedBody.config.pdfIdentity,
+    });
     if (!result.body) opts.onSelectedBodyFailure?.(result.reason ?? "pdf_body_unconfirmed", result.attachments);
     return result.body;
   }
@@ -185,7 +188,10 @@ export async function extractArticleBody(articleId: string, allowJina = process.
         articleSelector: detail.articleSelector,
         attachmentSelector: detail.attachmentSelector,
         attachmentMode: detail.attachmentMode,
-        ...(!bodyPolicies && detail.pdfDirect !== undefined ? { pdfDirect: detail.pdfDirect } : {}),
+        pdfDirect: detail.pdfDirect,
+        pdfDirectUrlSuffix: detail.pdfDirectUrlSuffix,
+        pdfMaxBytes: detail.pdfMaxBytes,
+        pdfIdentity: detail.pdfIdentity,
       }, expected: { title: a.title, publishedAt: a.published_at }, allowUrlPrefixes: a.source_config.allowUrlPrefixes ?? [],
       ...(nfraMode ? { nfra: { docId: Number.isSafeInteger(rawExternalId) ? rawExternalId : -1, listAttachmentPending: hadPendingAttachment, source: { id: a.source_id, kind: "json_list", config: a.source_config } as SourceRow } } : {}) }
     : undefined;

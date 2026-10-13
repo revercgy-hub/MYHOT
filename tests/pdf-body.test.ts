@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { composeHtmlAndPdfBody, extractDirectPdfBody, extractHtmlEnvelopeWithPdf, fetchAndParseOfficialPdf, urlMatchesAllowedPrefixes } from "@aihot/backend/content/pdf-body";
+import { composeHtmlAndPdfBody, extractDirectPdfBody, extractHtmlEnvelopeWithPdf, fetchAndParseOfficialPdf, isDirectPdfUrl, pdfMatchesExpectedIdentity, urlMatchesAllowedPrefixes } from "@aihot/backend/content/pdf-body";
 import type { GuardedResponse } from "@aihot/backend/lib/http-fetch";
 import type { ExtractedBody } from "@aihot/backend/content/extract";
 import type { PdfSourceBodyConfig } from "@aihot/backend/content/pdf-body";
@@ -96,6 +96,48 @@ test("PDF request is bounded, forbids redirects, and requires status, MIME, and 
   assert.equal(requested, false);
 });
 
+test("PDF maxBytes is an integer opt-in bound shared by fetch and parser, capped at 20 MiB", async () => {
+  const bytes = pdfFixture([title]);
+  let requestedMax = 0;
+  const allowed = await fetchAndParseOfficialPdf(pdfUrl, prefixes, async (url, opts) => {
+    requestedMax = opts.maxBytes ?? 0;
+    return response(url, bytes);
+  }, 18 * 1024 * 1024);
+  assert.equal(allowed.ok, true);
+  assert.equal(requestedMax, 18 * 1024 * 1024);
+  const padded = Buffer.concat([bytes, Buffer.alloc(6 * 1024 * 1024 + 1)]);
+  const overDefault = await fetchAndParseOfficialPdf(pdfUrl, prefixes, async (url, opts) => {
+    assert.equal(opts.maxBytes, 18 * 1024 * 1024);
+    return response(url, padded);
+  }, 18 * 1024 * 1024);
+  assert.equal(overDefault.ok, true, "the identical bound reaches the parser worker as well as the fetcher");
+  for (const invalid of [0, -1, 1.5, Number.NaN, 20 * 1024 * 1024 + 1]) {
+    let called = false;
+    const result = await fetchAndParseOfficialPdf(pdfUrl, prefixes, async () => { called = true; return response(pdfUrl, bytes); }, invalid);
+    assert.deepEqual(result, { ok: false, reason: "pdf_too_large" });
+    assert.equal(called, false);
+  }
+});
+
+test("direct PDF identity uses actual parsed title or exact document-number captures", () => {
+  assert.equal(pdfMatchesExpectedIdentity("财政部 公告 2026 年第 24 号", "财政部公告2026年第24号", { kind: "normalized_title" }), true);
+  assert.equal(pdfMatchesExpectedIdentity("财政部公告2026年第25号", "财政部公告2026年第24号", { kind: "normalized_title" }), false);
+  const numberIdentity = { kind: "document_number", regex: "(2026\\s*年第\\s*\\d+\\s*号)" } as const;
+  assert.equal(pdfMatchesExpectedIdentity("财政部公告 2026 年第 24 号", "财政部公告2026年第24号", numberIdentity), true);
+  assert.equal(pdfMatchesExpectedIdentity("财政部公告2026年第25号", "财政部公告2026年第24号", numberIdentity), false);
+  assert.equal(pdfMatchesExpectedIdentity("无可核验文号", "公告", numberIdentity), false);
+});
+
+test("PDF suffix routing is pathname-only, case-insensitive, and keeps legacy direct mode", () => {
+  assert.equal(isDirectPdfUrl("https://official.example/report.pdf", true, ".pdf"), true);
+  assert.equal(isDirectPdfUrl("https://official.example/report.PDF?download=1", true, ".pdf"), true);
+  assert.equal(isDirectPdfUrl("https://official.example/report.html?file=.pdf", true, ".pdf"), false);
+  assert.equal(isDirectPdfUrl("https://official.example/report.pdf.html", true, ".pdf"), false);
+  assert.equal(isDirectPdfUrl("https://official.example/report.pdf", false, ".pdf"), false);
+  assert.equal(isDirectPdfUrl("https://official.example/report.html", true, ".doc"), false);
+  assert.equal(isDirectPdfUrl("https://official.example/report.html", true), true, "the old direct-only setting still routes every URL through PDF handling");
+});
+
 test("PDF attachment failure cannot fall back to the short HTML intro; valid output retains source segments and coordinates", async () => {
   const invalid = await extractHtmlEnvelopeWithPdf(pageHtml(), articleUrl, htmlConfig, expected, prefixes,
     async (url) => response(url, pdfFixture(["row"]), 200, "text/html"));
@@ -137,6 +179,45 @@ test("direct PDF requires explicit caller opt-in and can compose complete layout
   assert.equal(result.reason, null);
   assert.match(result.body!.text, new RegExp(title));
   assert.match(result.body!.text, /page=1 y=/);
+});
+
+test("direct PDF opt-in rejects mismatched actual title and preserves the attachment as unconfirmed", async () => {
+  const result = await extractDirectPdfBody(pdfUrl, title, prefixes,
+    async (url) => response(url, pdfFixture(["另一份文件 2026 年第 7 号"])),
+    { identity: { kind: "normalized_title" } });
+  assert.deepEqual(result, { body: null, reason: "pdf_identity_mismatch", attachments: [{ url: pdfUrl, title }] });
+});
+
+test("body policy plus exact HTML/PDF envelope composes the notice and selected PDF only", async () => {
+  const config: PdfSourceBodyConfig = {
+    articleSelector: ".article-envelope",
+    bodyPolicies: [{ selector: ".clean-body", minTextChars: 1 }],
+    attachmentSelector: ".file-area",
+    attachmentMode: "required",
+    publishedAtUtcOffset: "+08:00",
+  };
+  const result = await extractHtmlEnvelopeWithPdf(pageHtml("通知事实。", '<a href="./result.pdf">结果表.pdf</a>'), articleUrl, config, expected, prefixes,
+    async (url) => response(url, pdfFixture(["EXAM RESULTS TABLE", "FUJIAN FINANCE FACTS"])));
+  assert.equal(result.reason, null);
+  assert.match(result.body!.text, /通知事实/);
+  assert.match(result.body!.text, /FUJIAN FINANCE FACTS/);
+
+  let requests = 0;
+  const ambiguous = await extractHtmlEnvelopeWithPdf(pageHtml("通知事实。", '<a href="./result.pdf">结果表.pdf</a><a href="./extra.pdf">补充表.pdf</a>'), articleUrl, config, expected, prefixes,
+    async (url) => { requests += 1; return response(url, pdfFixture(["table"])); });
+  assert.equal(ambiguous.reason, "attachment_ambiguous");
+  assert.equal(requests, 0, "an unclassified second attachment prevents fetching/composition");
+
+  const missing = await extractHtmlEnvelopeWithPdf(pageHtml("通知事实。", ""), articleUrl, config, expected, prefixes,
+    async () => { requests += 1; return response(pdfUrl, pdfFixture(["table"])); });
+  assert.equal(missing.reason, "attachment_required");
+  assert.equal(requests, 0);
+
+  const identityFailure = await extractHtmlEnvelopeWithPdf(pageHtml("通知事实。", '<a href="./result.pdf">结果表.pdf</a>'), articleUrl,
+    { ...config, pdfIdentity: { kind: "normalized_title" } }, expected, prefixes,
+    async (url) => response(url, pdfFixture(["UNRELATED REPORT TITLE"])));
+  assert.equal(identityFailure.reason, "pdf_identity_mismatch");
+  assert.equal(identityFailure.body, null);
 });
 
 test("detail prefetch and extraction use the same PDF driver and never store the HTML intro on attachment failure", async () => {
@@ -185,6 +266,40 @@ test("detail prefetch and extraction use the same PDF driver and never store the
   assert.equal(noFallback, null);
   assert.deepEqual(rejectionReasons, ["pdf_mime_rejected"]);
   assert.equal(rejected.requested.length, 2, "failure does not fetch Jina or keep the intro as a complete body");
+});
+
+test("mixed suffix mode keeps HTML selectors and applies real-text identity only to PDF paths", async () => {
+  const pdfIdentityTitle = "PUBLIC REPORT 2026";
+  const mixedConfig = {
+    bodySelector: ".clean-body",
+    titleRegex: '<meta name="ArticleTitle" content="([^\"]+)',
+    publishedAtRegex: '<meta name="PubDate" content="([^\"]+)',
+    publishedAtUtcOffset: "+08:00",
+    pdfDirect: true,
+    pdfDirectUrlSuffix: ".pdf",
+    pdfIdentity: { kind: "normalized_title" as const },
+  };
+  const source = { id: "mof-yunnan-test", config: { allowUrlPrefixes: prefixes, detail: mixedConfig } } as never;
+  const requests: string[] = [];
+  const fetcher = async (url: string) => {
+    requests.push(url);
+    return url.endsWith(".pdf")
+      ? response(url, pdfFixture([pdfIdentityTitle]))
+      : response(url, Buffer.from(`<html><head><meta name="ArticleTitle" content="${pdfIdentityTitle}"><meta name="PubDate" content="2026-06-08"></head><body><article class="clean-body"><p>${"HTML article facts with full source detail. ".repeat(8)}</p><p>Second complete paragraph.</p></article></body></html>`), 200, "text/html");
+  };
+
+  const html = await fetchDetail(articleUrl, source, {
+    date: false, title: false, summary: false, body: true, expectedTitle: pdfIdentityTitle, expectedPublishedAt: expected.publishedAt,
+  }, { fetcher: fetcher as never });
+  assert.match(html.body!.text, /HTML article facts/);
+  assert.equal(requests.length, 1, "HTML keeps the existing selector path without a PDF request");
+
+  const direct = await fetchDetail(pdfUrl, source, {
+    date: false, title: false, summary: false, body: true, expectedTitle: pdfIdentityTitle, expectedPublishedAt: null,
+  }, { fetcher: fetcher as never });
+  assert.match(direct.body!.text, /PUBLIC REPORT 2026/);
+  assert.equal(requests.length, 2, "PDF uses only the bounded direct-PDF path");
+
 });
 
 test("manual composition refuses missing or partial layout", () => {

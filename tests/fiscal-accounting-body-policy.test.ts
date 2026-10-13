@@ -119,7 +119,10 @@ test("invalid policy shapes and incompatible or unsupported source kinds are ref
   assert(unsupportedConfig("web_list", { detail: { bodyPolicies: policies, bodySelector: "#old" } }).some((x) => x.includes("cannot be combined")));
   assert(unsupportedConfig("web_list", { detail: { bodyPolicies: [{ ...policies[0], table: { ...policies[0]!.table!, typo: true } }] } }).some((x) => x.includes("unsupported")));
   assert(unsupportedConfig("json_list", { url: "https://example.org/list.json", detail: { bodyPolicies: policies } }).some((x) => x.includes("only supported by web_list")));
-  assert(unsupportedConfig("web_list", { detail: { bodyPolicies: policies, attachmentSelector: ".files", articleSelector: "article" } }).some((x) => x.includes("cannot be combined")));
+  assert(unsupportedConfig("web_list", { detail: { bodyPolicies: policies, attachmentSelector: ".files", articleSelector: "article" } }).some((x) => x.includes("requires articleSelector, attachmentSelector, and attachmentMode")));
+  assert.deepEqual(unsupportedConfig("web_list", { allowUrlPrefixes: ["https://example.org/"], detail: {
+    bodyPolicies: policies, attachmentSelector: ".files", articleSelector: "article", attachmentMode: "required",
+  } }), []);
 });
 
 test("the HTML envelope driver refuses policy plus legacy or PDF selector settings", async () => {
