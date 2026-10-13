@@ -1,5 +1,38 @@
 # 项目状态
 
+## 2026-10-13 当前检查点：正文恢复与三源历史分页续跑
+
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_HEAD=ef69c97c7fa5de4d19754b17c65a57cba920aa5d（本次docs更新前的代码HEAD；文档提交后SHA以Git读取为准）
+CURRENT_WORKTREE=代码改动已提交并推送；本次只更新阶段交接文档，采集/QA证据均在ignored `.data/`，未加入Git
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+STAGE=P3 全源正文质量核验与有限历史窗口续跑；其余来源分页能力仍需逐源验证
+GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`；未升级来源准入或其他Gate
+REVIEW=49条严格匹配历史正文离线重放、213次正文HTTP dispatch和六条NFRA人工resolution均独立QA通过；三源分页续跑亦通过独立raw/SQL QA
+COMPLETED=隔离库`fiscalhot_catalog_sweep_20261013_test`（35 migrations）现有442条记录：323 body ok、97 pending、22 unconfirmed。三源历史分页scope共31次HTTP dispatch、29条新文章、31条revision、8个collector runs；GovCN新增15（5 ok/10附件诊断hold），福建新增8 pending，浙江新增6 pending。详情见[全量待正文与历史采集handoff](HANDOFFS/FULL_PENDING_RECOVERY_2026-10-13.md)。
+QUALITY=GovCN五条正文样本包含应急采购、罕见病服务、内河新能源船、铁路科技规划和智能家居消费政策事实；另10条仅有标题/附件诊断，不能作为已核正文。福建和浙江的14条新增文章均无正文；浙江2025决算PDF仍pending。run的collector状态不代表历史窗口覆盖完成，cursor coverage仍unproven。
+SAFETY=48个source及全文开关关闭；无worker/model/provider/OCR/PDF请求。31个response raw均完整，三源配置/cursor只在隔离测试库按冻结scope变更；精确取消5个新建`content.analyze` jobs，相关`content.extract-body` jobs保持created/unstarted。selected/analysis/receipt/job_runs/pool_search为0；所有出版投影仍为summary-only、未精选/不eligible/不可索引。
+EVIDENCE=分页scope SHA `4bec9b339ff5e30cf2d4b754fdd7d82584e46b90f153d300946355f7072b9a66`；runner SHA `ad75806fc0a681fa90aa9b0b2be257a5179279de0258048fa7e5eb6f9fbbeb5c`；manifest SHA `dc8b00aadcc7fcb288b239a4761d770f4d915821e18841f0e6c357dcb5ec783c`；SQL export SHA `c70dc0f8cde9268a8e99696dfe6ca5f616b189091e57c60789ab2e8c9331444c`；独立QA SHA `6238aa2ba1b7ad32131b202b3b092364e371b47689e7c06c920d8f7e307fac13`。代码SHA `ef69c97c7fa5de4d19754b17c65a57cba920aa5d` 已推送，精确HEAD CI run 38364737341 SUCCESS。
+IN_PROGRESS=复核剩余pending/held并继续验证其他来源的历史分页结构；不可猜造页URL，也不可把标题样本升级为事实摘要。
+BLOCKED=45个source没有已配置分页adapter；三源cursor仍未证明完整90日覆盖。剩余正文及附件holds仍待逐项处理。
+NEXT=先依据本次SQL和原始响应清单冻结下一批有真实detail能力的pending scope；分页开发仅使用已验证adapter或基于保存的真实页面结构，保持隔离、限额和stop规则。
+MODEL=requested `Luna High`；实际执行模型未独立验证；本轮无provider/model调用。
+
+## 2026-10-13 全量处理额度中断恢复点（历史快照；状态已由上方检查点更新）
+
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_SHA=3586f046b0aba445f287096432edf30353733e16（本恢复记录写入前）
+CURRENT_CODE_SHA=6b1c2def0b683500cb7ce4846d6e5479b0779940
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+WORKSPACE=D:\AI-work\MYHOT\AIHOT
+STAGE=P3 全量待正文处理与首次历史采集准备
+GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；未改变
+REVIEW=缓存离线重放与 PDF direct 身份校验仅设计范围获批，尚未实现全量执行
+BLOCKERS=三名 Luna 子 Agent 均遇到 usage limit
+COMPLETED=8 个固定详情 URL 探测已保存；中断后只读 SQL 确认 54 ok / 345 pending / 14 unconfirmed
+IN_PROGRESS=254 个历史成功身份匹配的完整 raw/revision/policy 筛选；无详情源及附件处理适配
+NEXT=按[全量恢复交接](HANDOFFS/FULL_PENDING_RECOVERY_2026-10-13.md)继续；不得将尚未执行的 replay 或历史回填记为完成
+
 ## 2026-10-13 当前检查点：目录巡检待正文样本完成一次有界提取
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
