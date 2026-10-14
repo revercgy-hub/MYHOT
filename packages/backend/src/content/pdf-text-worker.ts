@@ -77,7 +77,9 @@ async function main(): Promise<void> {
       lines.sort((a, b) => b.y - a.y);
       for (const line of lines) line.spans.sort((a, b) => a.x - b.x);
       const lineText = lines.map((line) => line.spans.map((span) => span.text).join("   ")).join("\n");
-      if (!lineText.replace(/\s/g, "")) {
+      const normalizedPageText = lineText.trim().replace(/\s+/g, " ");
+      const pageNumberOnly = /^[-—\s]*\d{1,3}[-—\s]*$/.test(normalizedPageText);
+      if (!normalizedPageText || pageNumberOnly) {
         await task.destroy();
         reply({ ok: false, reason: "pdf_page_no_text" });
         return;

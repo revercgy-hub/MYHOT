@@ -56,6 +56,15 @@ test("offline PDF parser fails closed on empty, malformed and oversized inputs",
   assert.deepEqual(await parsePdfText(Buffer.concat([Buffer.from("%PDF-"), Buffer.alloc(6 * 1024 * 1024)])), { ok: false, reason: "pdf_too_large" });
 });
 
+test("a footer page number alone is not meaningful page text, while numeric table rows are", async () => {
+  assert.deepEqual(await parsePdfText(pdfFixture(["9"])), { ok: false, reason: "pdf_page_no_text" });
+  const table = await parsePdfText(pdfFixture(["2025 | 123.45 | 67.89", "2026 | 234.56 | 78.90"]));
+  assert.equal(table.ok, true);
+  if (!table.ok) return;
+  assert.match(table.text, /2025 \| 123\.45 \| 67\.89/);
+  assert.match(table.text, /2026 \| 234\.56 \| 78\.90/);
+});
+
 test("offline PDF parser refuses encrypted documents", async () => {
   const encryptedFixture = Buffer.from("JVBERi0xLjMKJeLjz9MKMSAwIG9iago8PAovUHJvZHVjZXIgPDc0ZjNkMmM4YjQ+Cj4+CmVuZG9iagoyIDAgb2JqCjw8Ci9UeXBlIC9QYWdlcwovQ291bnQgMQovS2lkcyBbIDQgMCBSIF0KPj4KZW5kb2JqCjMgMCBvYmoKPDwKL1R5cGUgL0NhdGFsb2cKL1BhZ2VzIDIgMCBSCj4+CmVuZG9iago0IDAgb2JqCjw8Ci9UeXBlIC9QYWdlCi9SZXNvdXJjZXMgPDwKPj4KL01lZGlhQm94IFsgMC4wIDAuMCA3MiA3MiBdCi9QYXJlbnQgMiAwIFIKPj4KZW5kb2JqCjUgMCBvYmoKPDwKL1YgMgovUiAzCi9MZW5ndGggMTI4Ci9QIDQyOTQ5NjcyOTIKL0ZpbHRlciAvU3RhbmRhcmQKL08gPDBiYTM4MzVmODhmOTAzODhlNzRlNTQ1ODQxMjVjZTE0MmJlMGRlMjRjNmIwZDM3NzQ2ZTA3NWI4OTE3NTY2NzE+Ci9VIDxmMzU2YzUzZTkwOGVjN2JkN2Q2NGE2MTNkM2U4OTM5NTI4YmY0ZTVlNGU3NThhNDE2NDAwNGU1NmZmZmEwMTA4Pgo+PgplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDE1IDAwMDAwIG4gCjAwMDAwMDAwNTkgMDAwMDAgbiAKMDAwMDAwMDExOCAwMDAwMCBuIAowMDAwMDAwMTY3IDAwMDAwIG4gCjAwMDAwMDAyNTkgMDAwMDAgbiAKdHJhaWxlcgo8PAovU2l6ZSA2Ci9Sb290IDMgMCBSCi9JbmZvIDEgMCBSCi9JRCBbIDw2NDY2NjM2MTY2MzUzNDMyMzczOTMwMzMzMjMwMzY2NDY0MzEzMTM0MzQzMTY0MzA2MjM1NjI2MTM5MzYzMTYyPiA8NjQ2NjYzNjE2NjM1MzQzMjM3MzkzMDMzMzIzMDM2NjQ2NDMxMzEzNDM0MzE2NDMwNjIzNTYyNjEzOTM2MzE2Mj4gXQovRW5jcnlwdCA1IDAgUgo+PgpzdGFydHhyZWYKNDc0CiUlRU9GCg==", "base64");
   assert.deepEqual(await parsePdfText(encryptedFixture), { ok: false, reason: "pdf_encrypted" });
