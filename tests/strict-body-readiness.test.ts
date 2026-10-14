@@ -124,6 +124,8 @@ test("strict-body opt-in is exact boolean and body readiness requires nonblank c
 test("strict unconfirmed rows cannot enter auto analysis or retry queues, while pending and legacy routes remain intact", async () => {
   const held = await create(STRICT, "unconfirmed", "unconfirmed");
   const pending = await create(STRICT, "pending", "pending");
+  const unqueuedPending = await create(STRICT, "unqueued-pending", "pending");
+  const unrelatedPending = await create(STRICT, "unrelated-pending", "pending");
   const whitespaceOnly = await create(STRICT, "whitespace-only", "ok", " \t\n\u00a0\u3000 ");
   const legacy = await create(LEGACY, "legacy", "unconfirmed");
 
@@ -171,10 +173,28 @@ test("strict unconfirmed rows cannot enter auto analysis or retry queues, while 
   const legacyJobs = await sql<{ name: string }[]>`SELECT name FROM pgboss.job WHERE data->>'articleId' = ${legacy.articleId}`;
   assert.ok(legacyJobs.some((job) => job.name === QUEUES.analyze));
 
-  const swept = await sweepUnprocessed();
-  assert.equal(swept.enqueued, 0, "the already queued pending item and held unconfirmed item need no safety-net enqueue");
+  await sql`UPDATE articles SET created_at = now() - interval '10 minutes', discovered_at = now(), processing_state = 'new',
+                       processing_queued_at = NULL, processing_retry_at = NULL WHERE id = ${unqueuedPending.articleId}`;
+  await sql`UPDATE articles SET created_at = now() - interval '10 minutes', discovered_at = now(), processing_state = 'new',
+                       processing_queued_at = NULL, processing_retry_at = NULL WHERE id = ${unrelatedPending.articleId}`;
+  const queuedBeforeSweep = await sql<{ id: string; name: string }[]>`
+    SELECT id, name FROM pgboss.job WHERE data->>'articleId' = ${pending.articleId} ORDER BY id`;
+  assert.deepEqual(await sweepUnprocessed({ articleIds: [] }), { enqueued: 0 }, "an empty exact scope is a no-op");
+  assert.equal((await sql`SELECT 1 FROM pgboss.job WHERE data->>'articleId' = ${unrelatedPending.articleId}`).length, 0,
+    "an empty exact scope does not sweep unrelated eligible rows");
+  const swept = await sweepUnprocessed({ articleIds: [held.articleId, pending.articleId, unqueuedPending.articleId] });
+  assert.equal(swept.enqueued, 1, "the scoped safety net enqueues only the eligible unqueued pending fixture");
   assert.equal((await sql`SELECT 1 FROM pgboss.job WHERE data->>'articleId' = ${held.articleId}`).length, 0,
     "the sweeper leaves strict unconfirmed material alone");
+  assert.deepEqual(await sql<{ id: string; name: string }[]>`
+    SELECT id, name FROM pgboss.job WHERE data->>'articleId' = ${pending.articleId} ORDER BY id`, queuedBeforeSweep,
+    "the sweeper does not duplicate an already queued pending fixture");
+  const unqueuedPendingJobs = [...await sql<{ name: string }[]>`
+    SELECT name FROM pgboss.job WHERE data->>'articleId' = ${unqueuedPending.articleId}`];
+  assert.deepEqual(unqueuedPendingJobs, [{ name: QUEUES.extractBody }],
+    "an eligible unqueued pending fixture receives only a body-extraction job");
+  assert.equal((await sql`SELECT 1 FROM pgboss.job WHERE data->>'articleId' = ${unrelatedPending.articleId}`).length, 0,
+    "the exact article scope leaves an unrelated eligible pending row alone");
 
   await sql`UPDATE articles SET processing_state = 'failed', discovered_at = now(), processing_error = 'synthetic readiness failure'
             WHERE id = ${held.articleId}`;

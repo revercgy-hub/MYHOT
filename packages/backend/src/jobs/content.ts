@@ -229,7 +229,9 @@ export async function registerExtractionJobs(boss: PgBoss) {
  * Safety net: articles waiting for processing that no queue holds (crash between write and enqueue,
  * a lost job, a retry that came due). Articles already queued or running are left alone.
  */
-export async function sweepUnprocessed(): Promise<{ enqueued: number }> {
+export async function sweepUnprocessed(options: { articleIds?: string[] } = {}): Promise<{ enqueued: number }> {
+  const articleIds = options.articleIds;
+  if (articleIds?.length === 0) return { enqueued: 0 };
   const rows = await sql<{ id: string }[]>`
     SELECT a.id FROM articles a JOIN sources s ON s.id = a.source_id
     WHERE a.processing_state = 'new' AND NOT COALESCE((
@@ -243,6 +245,7 @@ export async function sweepUnprocessed(): Promise<{ enqueued: number }> {
       AND a.created_at < now() - interval '3 minutes'
       AND (a.processing_retry_at IS NULL OR a.processing_retry_at <= now())
       AND (a.processing_queued_at IS NULL OR a.processing_queued_at < now() - ${QUEUED_STALE}::interval)
+      AND (${articleIds === undefined} OR a.id = ANY(${articleIds ?? []}::text[]))
     ORDER BY a.discovered_at DESC LIMIT 500`;
   let enqueued = 0;
   for (const r of rows) if (await queueProcessing(r.id)) enqueued += 1;
