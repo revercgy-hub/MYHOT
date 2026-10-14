@@ -1,5 +1,23 @@
 # 项目状态
 
+## 2026-10-14 续跑检查点：保存正文367/64/11与40条摘要修订待导入
+
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_CODE_SHA=c2cc5427ea7c573faf9ed5444d013b34228de6c2；本次仅docs，最终文档HEAD以Git读取为准
+SAVED_CATALOG=442 articles；367 body ok、64 pending、11 unconfirmed（保存执行SQL统计，非停机后的实时查询）
+PREVIEW=最近核实65条无正文摘要；batch2/3新增40条未入库，105仅为全部新建后的预期值
+HTML12_QA=raw/hash/parser/contentHash/revision及保存队列/source config离线通过；当前SQL/cursor因5432拒绝连接未核，缺非目标文章完整前后指纹，保持partial
+DIAGNOSTIC25=23单次GET+2raw复用，均200、25rawhash通过；无附件/DB/provider/worker请求。4处actual dispatch间距724–748ms不满足750ms，明确执行不合规；raw可附缺陷供离线审阅，不重发、不外推source准入
+REVISION40=原batch2 PASS被两事实/一topic错误发现部分取代；batch3两topic修正。原证据保留，独立v2修订只改五内容字段，作者自检不作独立QA；Root独立核销五处修订为APPROVED_FOR_LOCAL_SUMMARY，不等于全40独立QA/Gold；唯一40条计划已准备
+PLAN_SHA=fce8b40b0533401deade1f05ef62ed0588bb3e2c462acac87611b5d1a2640444；当前SQL dedupe、baseline/CAS和runner冻结预检均未做，未执行导入
+BLOCKER=PostgreSQL停止；等待用户手动恢复。自动服务start审批此前被拒绝，不换工具重启绕过
+SAFETY=AD-012 bodyless/summary-only/unselected/score与reason NULL、无analysis/receipt/jobs；sources/fulltext/provider/worker/OCR及推送保持关闭
+GATE=Gate 2仅PASSED_FOR_BOUNDED_P4_PILOT；其他Gate、source全面准入、90日覆盖、Gold/正式模型验收未通过
+MODEL=requested GPT-6.1 Sol Medium；实际模型执行未独立核验；临时quota fallback；不是Human Gold
+HANDOFF=[有界QA与摘要修订](HANDOFFS/BOUNDED_QA_SUMMARY_REVISION_2026-10-14.md)
+
+以下为此前检查点，数据/服务状态以本节及后续真实核验为准。
+
 ## 2026-10-14 当前检查点：离线正文修复与本地编辑预览导入
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
@@ -453,3 +471,5 @@ GovCN精确保存pair离线验证对应当前候选：目录raw与详情raw fixt
 本地preview smoke在重新加载当前API代码后30/30、exit 0；日志在ignored `.data/fiscal-qa/preview-smoke-20261008/post-gov-smoke.log`。`fiscalhot_preview_test`启动前后只读SQL均为35 migrations、3 sources（0 enabled / 0 fulltext）、3 articles、3 publications、0 analyses/receipts/fetch_runs/selected/job_runs；仅API标准健康心跳在`settings`中。API/Web仍仅监听`127.0.0.1:3001/3000`，PostgreSQL仅`127.0.0.1:5432`；未启普通worker。模型、采集、推送、Jina、embedding、私网和egress-proxy开关均关闭，真实HTTP/provider/OCR/付费调用0。
 
 可无付费推进：bounded executor尚未覆盖的失败路径软件测试、GovCN固定候选的后续配置/离线审查与其他来源主线最小工程补证、只读planner/负例核验、Gold schema与评测工具准备。人工Gold标签仍需领域人员决定。延期/未获授权：用户已选择暂不付费，故DeepSeek真实执行继续deferred且不再询问20/10；OCR仍按既有用户决定延期；生产/NAS/Staging部署及真实采集/常驻worker保持未启动。Gate 2 bounded pilot已通过，其它来源质量、首次90日覆盖、Gate 3/4不宣称完成。
+
+
