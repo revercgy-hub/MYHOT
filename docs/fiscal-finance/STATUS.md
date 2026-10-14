@@ -471,5 +471,3 @@ GovCN精确保存pair离线验证对应当前候选：目录raw与详情raw fixt
 本地preview smoke在重新加载当前API代码后30/30、exit 0；日志在ignored `.data/fiscal-qa/preview-smoke-20261008/post-gov-smoke.log`。`fiscalhot_preview_test`启动前后只读SQL均为35 migrations、3 sources（0 enabled / 0 fulltext）、3 articles、3 publications、0 analyses/receipts/fetch_runs/selected/job_runs；仅API标准健康心跳在`settings`中。API/Web仍仅监听`127.0.0.1:3001/3000`，PostgreSQL仅`127.0.0.1:5432`；未启普通worker。模型、采集、推送、Jina、embedding、私网和egress-proxy开关均关闭，真实HTTP/provider/OCR/付费调用0。
 
 可无付费推进：bounded executor尚未覆盖的失败路径软件测试、GovCN固定候选的后续配置/离线审查与其他来源主线最小工程补证、只读planner/负例核验、Gold schema与评测工具准备。人工Gold标签仍需领域人员决定。延期/未获授权：用户已选择暂不付费，故DeepSeek真实执行继续deferred且不再询问20/10；OCR仍按既有用户决定延期；生产/NAS/Staging部署及真实采集/常驻worker保持未启动。Gate 2 bounded pilot已通过，其它来源质量、首次90日覆盖、Gate 3/4不宣称完成。
-
-
