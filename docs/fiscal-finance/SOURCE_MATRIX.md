@@ -1,5 +1,13 @@
 # 官方信源验证矩阵
 
+## 2026-10-14 正文修复与手工复核增量
+
+隔离库 `fiscalhot_catalog_sweep_20261013_test` 当前442篇：344篇 `body_status=ok`、76篇 `pending`、22篇 `unconfirmed`。不因正文解析成功而推断来源整体稳定或准入。已修复两个受测来源的标题身份处理：`mof-regional-supervision-dynamics` 从官方详情 `<title>`提取配置题名；`mof-shenzhen-supervision-dynamics` 仅对显式 `titleAuthoritative=true` 的来源优先使用精确详情selector。两项仍保持 `enabled=false`、全文与syndication关闭；既有保存详情离线positive replay通过，未重复网络抓取。来源/DOM identity定向测试26/26通过，代码见提交`3c7cfb4`。
+
+人工内容处理仅限有冻结身份和逐项复核证据的文章：六条短正文及一条Yunnan表格记录经独立QA后通过现有revision/hash/publication同步路径写入；短文阈值和来源策略未改。Luna-assisted摘要预览为20条事实审阅候选中保留的19条（13条更新原preview ID、6条新增），预览总计65。此层保持bodyless、summary-only、unselected、scoreless、non-indexable、non-syndicated；不产生analysis、receipt或Gold。真实模型执行未独立验证。详见[本阶段handoff](HANDOFFS/LOCAL_PREVIEW_REVIEW_2026-10-14.md)。
+
+尚有9篇附件正文resolution proposal通过独立包QA但未写入数据库；PDF/附件诊断不自动清除body hold。其余pending/held继续按当前source identity、正文与附件证据分开处理，Gate和来源开关不变。
+
 ## 2026-10-13 48源目录单页巡检（fresh隔离库）
 
 一次性巡检覆盖目录全部48个disabled source，在`fiscalhot_catalog_sweep_20261013_test`完成35 migrations后运行。所有48个fetch run状态为`ok`，found/created合计499/413；实际HTTP dispatch 88/400，全部为允许的GET响应，没有redirect、rejected dispatch、PDF或附件请求。内联正文只在兼容配置下最多尝试1篇；NFRA保留其validator要求的详情上限6，3个有附件风险的来源改为本次metadata-only。body `ok`为28、pending为378、unconfirmed为7。该批overall `partial_or_failed`及manifest两项原始violation保持不变；不表示source稳定或通过准入。

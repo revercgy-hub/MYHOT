@@ -1,5 +1,25 @@
 # 项目状态
 
+## 2026-10-14 当前检查点：离线正文修复与本地编辑预览导入
+
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_CODE_SHA=c2cc5427ea7c573faf9ed5444d013b34228de6c（四个代码提交已推送；精确 Check CI run 38489265042 SUCCESS；本次文档提交后分支 HEAD 以 Git 读取为准）
+CURRENT_WORKTREE=数据证据与运行清单均在ignored `.data/`；源码与测试提交已推送；预览服务未重启
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+STAGE=P3 全源正文核验与受控本地预览；不改变Gate或来源准入
+GATE=Gate 2仍为`PASSED_FOR_BOUNDED_P4_PILOT`；未声称P4模型/人工Gold验收或来源全面准入
+REVIEW=23条HTML正文scope独立QA通过；Yunnan一条人工表格补录和六条短正文人工复核事务独立QA通过；20条Luna-assisted review候选和19条安全预览导入独立QA通过
+COMPLETED=隔离采集库`fiscalhot_catalog_sweep_20261013_test`为442篇：344 body `ok`、76 `pending`、22 `unconfirmed`。其中6条短正文通过逐篇人工复核后经现有revision/hash/publication事务更新；Yunnan一条经表格逐行复核的手工补录也通过QA。另对20条正文候选做事实审阅，保留19条（13条更新既有预览、6条新建），低价值规则学习稿排除；本地预览总数65，均为无正文的summary-only内容。
+PREVIEW=19条更新/新增均不含正文；不写analysis、receipt、score、selection或Gold。保留原始文章标题/URL/日期及来源身份，审阅模式标记为`Luna-assisted agent review; actual model execution unverified; not Human Gold`。采集source、全文、provider、worker仍关闭。
+QUALITY=regional与Shenzhen两个来源的标题身份路径修复并针对性验证；Yunnan表格人工补录保留视觉复核限制；6条短正文人工复核未改变阈值。附件14-PDF诊断不自动清除数据库hold；9篇候选的附件正文复核包已独立QA通过，但尚未写入文章。
+SAFETY=网页预览保持bodyless、summary-only、unselected、score=null、非indexable、非syndicated；全局analysis/receipt/job_runs/selection为0。队列不消费。全量source和正文开关保持关闭；没有模型/provider/worker/OCR调用。
+CODE=来源标题身份与parser测试提交`3c7cfb4`；PDF页脚页拒绝提交`88984a1`；精确正文安全队列范围提交`b952734`；6条本地预览ID allowlist与手动LAN刷新helper提交`c2cc542`。精确代码HEAD的GitHub Check/Docker均通过：https://github.com/revercgy-hub/MYHOT/actions/runs/38489265042。
+LAN=本机服务仍运行；未使用helper停止/重启。helper的只读`-PreflightOnly`因CIM无法读取记录PID 203468的命令行而安全拒绝；未放宽进程所有权检查。跨设备可达性未在本阶段复验。
+EVIDENCE=AD-012导入execution结果SHA `b7a0d5998737cfa11519e09374ae7743ccaac73d9abb0f8cad4ad257aa6b9739`；独立QA SHA `9c28aa4f614a41fcfdacbce932547fecd6a66c64d1b512006b1ab546a8ea2071`。20条review JSON SHA `db82ad96e80a37335203377fe504bfbd4d2bb18c675f8346159e821b8e3f7bef`，独立内容QA SHA `b339fef8948bcf7b6f0c95c0d7e42d80a5e1d284dc25b1de81c79520b85596bd`。六条短正文复核SHA `d08830270217ab17ee3c9f50b19a46448511285097b65a4e5b35e0673614f1ce`，区域/Shenzhen离线重放SHA `46b1bb24edb959d73cc7004d6ca6ef21f1debda9387d806d817209dc73801200`。原始证据不提交Git。
+IN_PROGRESS=独立核对9篇PDF/DOC人工resolution包及后续正文回填；完成后再评估是否更新预览样本。不得把附件解析等同来源准入或自动hold解除。
+NEXT=等待9篇附件resolution包最终QA后再按冻结身份/修订/队列状态处理；保留手动刷新helper的进程所有权护栏。任何页面更新需使用可复核的用户手动刷新流程，不绕过自动审核限制。
+MODEL=requested Luna High；review JSON标注实际模型执行未核验。无provider调用、无Human Gold。
+
 ## 2026-10-13 当前检查点：正文恢复与三源历史分页续跑
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
