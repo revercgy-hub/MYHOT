@@ -71,6 +71,58 @@ test("selector extraction fails closed on title/date identity mismatch or missin
   assert.equal(extractSelectedBody(ambiguous, URL, { bodySelector: ".dup", allowShortBody: true }, expected).reason, "selector_not_unique");
 });
 
+test("saved Shaanxi regional page uses its exact title element while preserving the publication-day check", () => {
+  const source = (JSON.parse(readFileSync(new globalThis.URL("../industry/sources.json", import.meta.url), "utf8")) as {
+    sources: Array<{ id: string; config: Record<string, any> }>;
+  }).sources.find((row) => row.id === "mof-regional-supervision-dynamics");
+  assert.ok(source);
+  const detail = source.config.detail;
+  assert.equal(detail.titleRegex, "<title>\\s*([^<]+)</title>");
+  const html = readFileSync(new globalThis.URL("./fixtures/regional-bureaus/mof-regional-saved-detail.html", import.meta.url), "utf8");
+  const articleUrl = "http://sx.mof.gov.cn/gzdt/caizhengjiancha/202609/t20260922_3997949.htm";
+  const articleTitle = "财政部陕西监管局：落实六字工作方针持续提升财政运行分析评估“三化”水平";
+  const articleDate = new Date("2026-09-29T16:00:00.000Z");
+  assert.match(html, /name="ArticleTitle" content="[^"]*<br>/);
+  const result = extractSelectedBody(html, articleUrl, detail, { title: articleTitle, publishedAt: articleDate });
+  assert.equal(result.reason, null);
+  assert.ok(result.body!.text.length >= 1_500);
+  assert.match(result.body!.text, /陕西省107个县区/);
+
+  const { titleRegex: _titleRegex, ...legacy } = detail;
+  assert.equal(extractSelectedBody(html, articleUrl, legacy, { title: articleTitle, publishedAt: articleDate }).reason, "identity_mismatch");
+  assert.equal(extractSelectedBody(html, articleUrl, detail, { title: articleTitle, publishedAt: new Date("2026-09-28T16:00:00.000Z") }).reason, "identity_mismatch");
+});
+
+test("authoritative title selector reads Shenzhen rendered heading and fails closed on ambiguity", () => {
+  const source = (JSON.parse(readFileSync(new globalThis.URL("../industry/sources.json", import.meta.url), "utf8")) as {
+    sources: Array<{ id: string; config: Record<string, any> }>;
+  }).sources.find((row) => row.id === "mof-shenzhen-supervision-dynamics");
+  assert.ok(source);
+  const detail = source.config.detail;
+  assert.equal(detail.titleAuthoritative, true);
+  assert.equal(detail.titleSelector, "h2.title_con");
+  const html = readFileSync(new globalThis.URL("./fixtures/regional-bureaus/shenzhen-saved-detail.html", import.meta.url), "utf8");
+  const articleUrl = "https://sz.mof.gov.cn/caizhengjiancha/202609/t20260920_3997808.htm";
+  const articleTitle = "深圳监管局：凝聚共识真抓实干 深入贯彻落实财政科学管理试点座谈会精神";
+  const articleDate = new Date("2026-09-19T16:00:00.000Z");
+  assert.match(html, /name="ArticleTitle" content="[^"]*<br>/);
+
+  const result = extractSelectedBody(html, articleUrl, detail, { title: articleTitle, publishedAt: articleDate });
+  assert.equal(result.reason, null);
+  assert.ok(result.body!.text.length > 1_500);
+  assert.match(result.body!.text, /深圳监管局第一时间组织召开专题会议/);
+
+  const { titleSelector: _titleSelector, ...legacy } = detail;
+  assert.equal(extractSelectedBody(html, articleUrl, legacy, { title: articleTitle, publishedAt: articleDate }).reason, "identity_mismatch");
+  assert.equal(extractSelectedBody(html, articleUrl, { ...detail, titleRegex: "<title>(wrong)</title>" }, { title: articleTitle, publishedAt: articleDate }).reason, null,
+    "an explicitly configured title selector takes precedence over a regex");
+  assert.equal(extractSelectedBody(html, articleUrl, { ...detail, titleSelector: ".missing-title" }, { title: articleTitle, publishedAt: articleDate }).reason, "identity_missing");
+  assert.equal(extractSelectedBody(html, articleUrl, { ...detail, titleSelector: "h2.title_con, title" }, { title: articleTitle, publishedAt: articleDate }).reason, "identity_missing");
+  const emptyTitle = html.replace(/<h2 class="title_con"[^>]*>[\s\S]*?<\/h2>/, '<h2 class="title_con"></h2>');
+  assert.equal(extractSelectedBody(emptyTitle, articleUrl, detail, { title: articleTitle, publishedAt: articleDate }).reason, "identity_missing");
+  assert.equal(extractSelectedBody(html, articleUrl, detail, { title: articleTitle, publishedAt: new Date("2026-09-18T16:00:00.000Z") }).reason, "identity_mismatch");
+});
+
 test("selector extraction rejects navigation, blank or linked-only containers, and unprocessed PDF attachments", () => {
   const navOnly = `<meta name="ArticleTitle" content="${title}"><meta name="PubDate" content="2026-09-29"><div id="zoom"><nav><p>菜单</p></nav></div>`;
   assert.equal(extractSelectedBody(navOnly, URL, config, expected).reason, "non_article_container");
@@ -156,6 +208,22 @@ const financeHtml = (notice = "简短公示说明。", files = '<a href="./resul
 ${outside}<div class="box_content"><div class="my_doccontent"><p>${notice}</p></div><div class="gu-download"><ul>${files}</ul></div></div></body></html>`;
 const envelopeConfig = { articleSelector: ".box_content", bodySelector: ".my_doccontent", attachmentSelector: ".gu-download", attachmentMode: "required" as const, publishedAtUtcOffset: "+08:00" };
 const financeExpected = { title: financeTitle, publishedAt: new Date("2026-06-08T00:00:00+08:00") };
+
+test("article envelope honors the explicit authoritative rendered-title selector", () => {
+  const renderedTitle = "深圳监管局：凝聚共识真抓实干 深入贯彻落实财政科学管理试点座谈会精神";
+  const html = `<html><head><meta name="ArticleTitle" content="深圳监管局：凝聚共识真抓实干 深入贯彻落实<br>财政科学管理试点座谈会精神"><meta name="PubDate" content="2026-09-20"></head><body>
+    <article class="selected-article"><h2 class="authoritative-title">深圳监管局：凝聚共识真抓实干 深入贯彻落实<br>财政科学管理试点座谈会精神</h2>
+    <div class="notice-body"><p>${"围绕财政监管工作制定举措，持续推动责任落实和政策执行。".repeat(8)}</p></div><div class="files"></div></article></body></html>`;
+  const config = {
+    articleSelector: ".selected-article", bodySelector: ".notice-body", attachmentSelector: ".files", attachmentMode: "optional" as const,
+    titleSelector: ".authoritative-title", titleRegex: "<title>(wrong)</title>", publishedAtUtcOffset: "+08:00",
+  };
+  const expected = { title: renderedTitle, publishedAt: new Date("2026-09-19T16:00:00.000Z") };
+  assert.equal(extractSelectedArticleEnvelope(html, URL, config, expected).reason, null);
+  assert.equal(extractSelectedArticleEnvelope(html, URL, config, { ...expected, title: "其他标题" }).reason, "identity_mismatch");
+  assert.equal(extractSelectedArticleEnvelope(html.replace("</article>", '<h2 class="authoritative-title">重复</h2></article>'), URL, config, expected).reason, "identity_missing");
+  assert.equal(extractSelectedArticleEnvelope(html, URL, { ...config, titleSelector: ".absent" }, expected).reason, "identity_missing");
+});
 
 test("article envelope finds exactly one selected PDF sibling, ignoring unrelated page attachments", () => {
   const got = extractSelectedArticleEnvelope(financeHtml("公示说明。", '<li><a href="./result.pdf">结果表.pdf</a></li>', '<a href="/nav.pdf">导航PDF</a>'), URL, envelopeConfig, financeExpected);

@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import type { GuardedFetchRunBudget } from "@aihot/backend/lib/http-fetch";
-import { fetchWebListMetadata } from "@aihot/backend/sources/web-list";
+import { fetchDetail, fetchWebListMetadata } from "@aihot/backend/sources/web-list";
 import type { SourceRow } from "@aihot/backend/sources/types";
 
 const listingUrl = "https://sc.mof.gov.cn/caizhengjiancha/";
@@ -110,6 +111,60 @@ test("metadata-only transport extracts configured title/date and consumes shared
   });
   assert.ok(fixture.activeChecks() >= 3, "deadline is checked before request, after response, and after parsing");
   assert.deepEqual(Object.keys(result).sort(), ["date", "finalUrl", "title"]);
+});
+
+test("authoritative detail title selector wins over regex and is passed to strict body extraction", async () => {
+  const html = readFileSync(new URL("./fixtures/regional-bureaus/shenzhen-saved-detail.html", import.meta.url), "utf8");
+  const title = "深圳监管局：凝聚共识真抓实干 深入贯彻落实财政科学管理试点座谈会精神";
+  const articleDate = new Date("2026-09-19T16:00:00.000Z");
+  const catalog = JSON.parse(readFileSync(new URL("../industry/sources.json", import.meta.url), "utf8")) as {
+    sources: Array<{ id: string; kind: string; config: Record<string, any> }>;
+  };
+  const shenzhen = catalog.sources.find((row) => row.id === "mof-shenzhen-supervision-dynamics");
+  assert.ok(shenzhen);
+  assert.equal(shenzhen.config.detail.titleAuthoritative, true);
+  const fetcher = async (url: string) => response(url, html);
+  const detail = await fetchDetail(
+    "https://sz.mof.gov.cn/caizhengjiancha/202609/t20260920_3997808.htm",
+    shenzhen as unknown as SourceRow,
+    { title: true, date: true, summary: false, body: true, expectedTitle: title, expectedPublishedAt: articleDate },
+    { fetcher },
+  );
+  assert.equal(detail.title, title);
+  assert.equal(detail.publishedAt?.toISOString(), "2026-09-20T09:52:00.000Z");
+  assert.ok(detail.body);
+  assert.match(detail.body!.text, /深圳监管局第一时间组织召开专题会议/);
+
+  const nonAuthoritative = structuredClone(shenzhen) as typeof shenzhen;
+  nonAuthoritative.config.detail.titleAuthoritative = false;
+  const legacy = await fetchDetail(
+    "https://sz.mof.gov.cn/caizhengjiancha/202609/t20260920_3997808.htm",
+    nonAuthoritative as unknown as SourceRow,
+    { title: true, date: true, summary: false, body: true, expectedTitle: title, expectedPublishedAt: articleDate },
+    { fetcher },
+  );
+  assert.equal(legacy.body, null, "without the opt-in, body identity keeps using the legacy metadata title");
+});
+
+test("authoritative selector wins in metadata mode only when the source opts in", async () => {
+  const html = '<html><head><title>regex title</title><meta name="ArticleTitle" content="legacy"><meta name="PubDate" content="2026-10-06"></head><body><h1 class="authoritative">visible title</h1></body></html>';
+  const authoritative = transport(html);
+  const selected = await fetchWebListMetadata(articleUrl, source({
+    titleSelector: "h1.authoritative", titleRegex: "<title>(regex title)</title>", titleAuthoritative: true,
+  }), { title: true, date: false }, {
+    runBudget: authoritative.runBudget, remainingMs: authoritative.remainingMs, assertActive: authoritative.assertActive,
+    testFetcher: authoritative.testFetcher,
+  });
+  assert.deepEqual(selected.title, { status: "found", value: "visible title", source: "configured_rule" });
+
+  const legacy = transport(html);
+  const regexFirst = await fetchWebListMetadata(articleUrl, source({
+    titleSelector: "h1.authoritative", titleRegex: "<title>(regex title)</title>",
+  }), { title: true, date: false }, {
+    runBudget: legacy.runBudget, remainingMs: legacy.remainingMs, assertActive: legacy.assertActive,
+    testFetcher: legacy.testFetcher,
+  });
+  assert.deepEqual(regexFirst.title, { status: "found", value: "regex title", source: "configured_rule" });
 });
 
 test("metadata-only mode never falls back to generic publication metadata", async () => {

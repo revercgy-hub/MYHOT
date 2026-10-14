@@ -358,7 +358,7 @@
           "http://hq.mof.gov.cn/", "http://cq.mof.gov.cn/", "http://sc.mof.gov.cn/", "http://gz.mof.gov.cn/", "http://yn.mof.gov.cn/",
           "http://sx.mof.gov.cn/", "http://gs.mof.gov.cn/", "http://qh.mof.gov.cn/", "http://nx.mof.gov.cn/", "http://xj.mof.gov.cn/"
         ],
-        "detail": { "maxFetches": 10, "bodySelector": ".my_doccontent > .TRS_Editor", "publishedAtUtcOffset": "+08:00" },
+        "detail": { "maxFetches": 10, "bodySelector": ".my_doccontent > .TRS_Editor", "titleRegex": "<title>\\s*([^<]+)</title>", "publishedAtUtcOffset": "+08:00" },
         "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
       },
       "tier": "T1",
@@ -865,7 +865,7 @@
         "publishedAtSelector": "span",
         "publishedAtUtcOffset": "+08:00",
         "allowUrlPrefixes": ["https://sz.mof.gov.cn/caizhengjiancha/"],
-        "detail": { "maxFetches": 10, "titleSelector": "h2.title_con", "publishedAtRegex": "<meta\\s+name=\"PubDate\"\\s+content=\"([^\"]+)", "publishedAtUtcOffset": "+08:00", "bodySelector": ".my_doccontent" },
+        "detail": { "maxFetches": 10, "titleSelector": "h2.title_con", "titleAuthoritative": true, "publishedAtRegex": "<meta\\s+name=\"PubDate\"\\s+content=\"([^\"]+)", "publishedAtUtcOffset": "+08:00", "bodySelector": ".my_doccontent" },
         "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true, "requireBodyReadyForAutomaticSelection": true }
       },
       "tier": "T1", "first_party": true, "owner_entity_id": "mof", "participation_mode": "editorial", "interval_minutes": 1440,

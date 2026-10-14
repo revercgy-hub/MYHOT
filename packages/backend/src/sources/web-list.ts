@@ -449,7 +449,8 @@ export async function fetchWebListMetadata(
       ? { status: "missing", source: "no_configured_rule" }
       : (() => {
         let value = "";
-        if (detail.titleRegex) value = new RegExp(detail.titleRegex, "m").exec(html)?.[1] ?? "";
+        if (detail.titleAuthoritative === true && detail.titleSelector) value = $(detail.titleSelector).first().text();
+        else if (detail.titleRegex) value = new RegExp(detail.titleRegex, "m").exec(html)?.[1] ?? "";
         else if (detail.titleSelector) value = $(detail.titleSelector).first().text();
         const normalized = collapseWhitespace(value);
         return normalized ? { status: "found", value: normalized, source: "configured_rule" } as const
@@ -537,6 +538,7 @@ export async function fetchDetail(url: string, source: SourceRow, need: DetailNe
               bodyPolicies: d.bodyPolicies,
               attachmentScopeSelector: d.attachmentScopeSelector,
               publishedAtUtcOffset: d.publishedAtUtcOffset ?? source.config.publishedAtUtcOffset,
+              ...(d.titleAuthoritative === true && typeof d.titleSelector === "string" ? { titleSelector: d.titleSelector } : {}),
               ...(Object.hasOwn(d, "titleRegex") ? { titleRegex: d.titleRegex } : {}),
               ...(Object.hasOwn(d, "publishedAtRegex") ? { publishedAtRegex: d.publishedAtRegex } : {}),
               articleSelector: d.articleSelector,
@@ -587,7 +589,8 @@ export async function fetchDetail(url: string, source: SourceRow, need: DetailNe
   let title: string | null = null;
   if (need.title) {
     const titleText = titleInJina ? jina : html;
-    if (d.titleRegex && titleText !== null) title = collapseWhitespace(new RegExp(d.titleRegex, "m").exec(titleText)?.[1] ?? "") || null;
+    if (d.titleAuthoritative === true && d.titleSelector && $) title = collapseWhitespace($(d.titleSelector).first().text()) || null;
+    else if (d.titleRegex && titleText !== null) title = collapseWhitespace(new RegExp(d.titleRegex, "m").exec(titleText)?.[1] ?? "") || null;
     else if (d.titleSelector && $) title = collapseWhitespace($(d.titleSelector).first().text()) || null;
   }
 

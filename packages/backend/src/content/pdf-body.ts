@@ -165,6 +165,7 @@ export async function extractHtmlEnvelopeWithPdf(
     attachmentSelector: config.attachmentSelector,
     attachmentMode: config.attachmentMode,
     publishedAtUtcOffset: config.publishedAtUtcOffset,
+    ...(Object.hasOwn(config, "titleSelector") ? { titleSelector: config.titleSelector } : {}),
     ...(Object.hasOwn(config, "titleRegex") ? { titleRegex: config.titleRegex } : {}),
     ...(Object.hasOwn(config, "publishedAtRegex") ? { publishedAtRegex: config.publishedAtRegex } : {}),
   };

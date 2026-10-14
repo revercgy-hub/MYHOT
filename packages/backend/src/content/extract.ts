@@ -183,6 +183,7 @@ export async function extractArticleBody(articleId: string, allowJina = process.
         bodyPolicies,
         attachmentScopeSelector,
         publishedAtUtcOffset: detail.publishedAtUtcOffset ?? a.source_config.publishedAtUtcOffset,
+        ...(detail.titleAuthoritative === true && typeof detail.titleSelector === "string" ? { titleSelector: detail.titleSelector } : {}),
         ...(Object.hasOwn(detail, "titleRegex") ? { titleRegex: detail.titleRegex } : {}),
         ...(Object.hasOwn(detail, "publishedAtRegex") ? { publishedAtRegex: detail.publishedAtRegex } : {}),
         articleSelector: detail.articleSelector,

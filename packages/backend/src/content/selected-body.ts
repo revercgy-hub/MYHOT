@@ -10,6 +10,7 @@ export interface SelectedBodyConfig {
   bodyPolicies?: SelectedBodyPolicy[];
   attachmentScopeSelector?: string;
   publishedAtUtcOffset?: string;
+  titleSelector?: string;
   titleRegex?: string;
   publishedAtRegex?: string;
 }
@@ -103,14 +104,29 @@ function regexCapture(html: string, value: unknown): string | null {
 
 function identityFromHtml($: cheerio.CheerioAPI, html: string, offset: string, config: SelectedBodyConfig): BodyIdentity | null {
   const rawConfig = config as SelectedBodyConfig & Record<string, unknown>;
+  const hasTitleSelector = Object.hasOwn(rawConfig, "titleSelector");
   const hasTitleRegex = Object.hasOwn(rawConfig, "titleRegex");
   const hasPublishedAtRegex = Object.hasOwn(rawConfig, "publishedAtRegex");
-  const title = collapseWhitespace(hasTitleRegex
-    ? regexCapture(html, rawConfig.titleRegex) ?? ""
-    : $("meta[name='ArticleTitle']").attr("content") ??
-      $("meta[property='og:title']").attr("content") ??
-      $("meta[property='article:title']").attr("content") ??
-      $("title").first().text());
+  let titleValue = "";
+  if (hasTitleSelector) {
+    const selector = rawConfig.titleSelector;
+    if (typeof selector !== "string" || !selector.trim() || selector.length > 500) return null;
+    try {
+      const matches = $(selector);
+      if (matches.length !== 1) return null;
+      titleValue = matches.first().text();
+    } catch {
+      return null;
+    }
+  } else {
+    titleValue = hasTitleRegex
+      ? regexCapture(html, rawConfig.titleRegex) ?? ""
+      : $("meta[name='ArticleTitle']").attr("content") ??
+        $("meta[property='og:title']").attr("content") ??
+        $("meta[property='article:title']").attr("content") ??
+        $("title").first().text();
+  }
+  const title = collapseWhitespace(titleValue);
   const rawDate = hasPublishedAtRegex
     ? regexCapture(html, rawConfig.publishedAtRegex)
     : $("meta[name='PubDate']").attr("content") ??
@@ -501,12 +517,14 @@ export function extractSelectedArticleEnvelope(
   const bodyConfig: SelectedBodyConfig = config.bodyPolicies ? {
     bodyPolicies: config.bodyPolicies,
     publishedAtUtcOffset: config.publishedAtUtcOffset,
+    ...(Object.hasOwn(config, "titleSelector") ? { titleSelector: config.titleSelector } : {}),
     ...(Object.hasOwn(config, "titleRegex") ? { titleRegex: config.titleRegex } : {}),
     ...(Object.hasOwn(config, "publishedAtRegex") ? { publishedAtRegex: config.publishedAtRegex } : {}),
   } : {
     bodySelector: config.bodySelector,
     allowShortBody: attachment ? true : false,
     publishedAtUtcOffset: config.publishedAtUtcOffset,
+    ...(Object.hasOwn(config, "titleSelector") ? { titleSelector: config.titleSelector } : {}),
     ...(Object.hasOwn(config, "titleRegex") ? { titleRegex: config.titleRegex } : {}),
     ...(Object.hasOwn(config, "publishedAtRegex") ? { publishedAtRegex: config.publishedAtRegex } : {}),
   };

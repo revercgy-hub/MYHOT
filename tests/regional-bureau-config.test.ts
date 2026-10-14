@@ -469,7 +469,7 @@ test("regional bureau disabled configs match the saved list DOMs and detail meta
     if (["henan", "hubei", "hunan", "guangdong", "ningxia", "qinghai", "shaanxi", "guizhou", "dalian", "ningbo", "shenzhen", "qingdao", "gansu", "tianjin", "hebei", "shanxi", "inner-mongolia", "jilin", "heilongjiang", "shandong", "jiangsu", "anhui", "jiangxi", "xinjiang", "zhejiang"].includes(spec.bureau)) {
       assert.equal(source.owner_entity_id, "mof");
       assert.equal(config.detail.titleSelector, "h2.title_con");
-      assert.equal(config.detail.titleAuthoritative, undefined);
+      assert.equal(config.detail.titleAuthoritative, spec.bureau === "shenzhen" ? true : undefined);
       assert.equal(config.detail.publishedAtAuthoritative, undefined);
     }
     if (spec.bureau === "liaoning" || spec.bureau === "yunnan") {
@@ -546,7 +546,7 @@ test("regional bureau disabled configs match the saved list DOMs and detail meta
     assert.equal(source.owner_entity_id, "mof");
   }
   for (const source of sources.filter(({ id }) => id !== "mof-beijing-supervision-dynamics")) {
-    assert.equal(source.config.detail.titleAuthoritative, undefined);
+    assert.equal(source.config.detail.titleAuthoritative, source.id === "mof-shenzhen-supervision-dynamics" ? true : undefined);
     assert.equal(source.config.detail.publishedAtAuthoritative, undefined);
   }
 });
