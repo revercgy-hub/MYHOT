@@ -3,6 +3,15 @@
 ## 2026-10-14 续跑检查点：保存正文367/64/11与40条摘要修订待导入
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_SHA=32e7ac234427b3a2beae58c7c422520cd482e5f4（本节补齐前；提交后的HEAD以Git读取为准）
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+WORKSPACE=D:\AI-work\MYHOT\AIHOT
+STAGE=P3正文核验与AD-012本地摘要预览；不改变source准入或Gate
+REVIEW=12 HTML离线核验通过但当前SQL/cursor及非目标逐行证据未齐，保持partial；9篇及2篇附件manual-resolution独立QA PASS按Root交接记录，正文准备包QA不代表整源准入
+COMPLETED=相对本日344 ok检查点新增23篇正文，保存总量367 ok；40条摘要五字段修订获Root核销，导入计划prepared，尚未入库
+IN_PROGRESS=等待用户手动恢复PG；保持旧证据与pending状态，Luna quota期间临时fallback
+BLOCKERS=PostgreSQL停机；Luna usage quota未恢复，两个原Luna任务暂停以免pending_init阻塞
+NEXT=PG恢复后40条当前SQL URL/identity去重、baseline/CAS预检、既有AD-012安全入库及独立DB/页面QA；随后继续64 pending逐项处理
 CURRENT_CODE_SHA=c2cc5427ea7c573faf9ed5444d013b34228de6c2；本次仅docs，最终文档HEAD以Git读取为准
 SAVED_CATALOG=442 articles；367 body ok、64 pending、11 unconfirmed（保存执行SQL统计，非停机后的实时查询）
 PREVIEW=最近核实65条无正文摘要；batch2/3新增40条未入库，105仅为全部新建后的预期值
