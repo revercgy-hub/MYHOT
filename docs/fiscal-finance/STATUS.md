@@ -1,5 +1,25 @@
 # 项目状态
 
+## 2026-10-16 验收收尾与采集余额检查点
+
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_SHA=7de66eb91197d9028f40e79a5b789554772de0dc（本次文档提交前代码HEAD；文档提交后以Git读取为准）
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+WORKSPACE=D:\AI-work\MYHOT\AIHOT
+STAGE=P3正文与bounded分页持续核验；本地summary preview只用于人工浏览，不改变来源/Gate状态
+REVIEW=40条摘要独立事实QA通过；另对40条preview API与SSR详情逐条只读核验。source准入与Gate不变。
+SOFTWARE_QA=fresh `fiscal_acceptance_final2_20261016_test` 35 migrations，backend 394/394；`npm run typecheck` PASS；Web tests17/17；隔离Web副本build PASS；当前站点smoke30/30。full测试日志 `.data/fiscal-acceptance-20261016-fulltest-final.log` SHA `9b0e2070b51009180c909509e22dca8868af52dcc50bfcc1975897bdb9abcf9b`。此前MODEL_CALLS关闭使local mocks失败及误删DATABASE_URL的中止均为环境错误；具体原因与fixture修复见[验收交接](HANDOFFS/FISCAL_ACCEPTANCE_QA_2026-10-16.md)。
+DISPATCH_GUARD=提交 `7de66eb` 增加可选全局 `minDispatchIntervalMs` 约束，默认0兼容旧调用，配置后在实际HTTP dispatch边界检查请求间隔，过快请求拒绝且不sleep/retry；runner需自行等待并显式opt-in 1000ms。guard后focused测试7/7与typecheck通过；394/394全套结果属于guard前代码，不能外推为新提交的全套验证。此前四HTML批次仍按其自身证据记录为不合规，不回写历史结果。
+PREVIEW=固定40摘要一次性导入，1更新+39新增，preview数据库共104条；首页精选目前仍为空。40/40 API详情及SSR详情核验PASS，bodyless、unselected、score null、noindex。证据 `.data/fiscal-qa/preview40-api-web-postqa-20261016/summary.json` SHA `7efd6d9b207b841321fbff6478023045a75785a6b1073a86a9e3907e6d488c9a`；同机192.168.3.47可达，不代表异机验证。
+COMPLETED=四个地方局bounded metadata pagination配置进入代码；最近5篇正文transaction独立SQL QA PASS；IFXP单篇人工附件resolution rev2独立只读SQL QA PASS，严格失败原因留存，来源/cursor/427 jobs不变、未产生downstream分析。证据 `.data/fiscal-qa/pending-audit-20261016/poc-five/root-independent-sql-qa.json`；IFXP独立复核 `.data/fiscal-qa/qa-luna-expansion-followup-20261016/ifxp-manual-resolution-independent-qa.json` SHA `026764ec6bbdd7dd9d886e7ab00c15ed1912f1db42c143832f8c2d7b7765598d`。采集库计数和preview104是分离统计。
+COLLECTOR=主隔离采集库442篇：373 body ok、57 pending、12 unconfirmed（IFXP单篇人工附件resolution后）。另有独立四源分页测试库80篇，全部pending；该测试库不与主库相加，不能当作80篇新增去重内容。
+PAGINATION=广西、海南、重庆、四川四个地方来源沿用既有bounded metadata adapter；独立fresh测试库分页运行2页/源，共80篇列表元数据，每源20篇、两页无URL重复，80篇body均pending、80个extract-body job仍created，cursor到page index 2且coverage=unproven；来源保持disabled/fulltext关闭。原始8响应独立hash/EOF核验通过，最小请求间隔1003ms。备份恢复helper的本机合成_test验证focused5/5和dump/restore PASS，不等于NAS验收。
+IN_PROGRESS=新疆1篇、厦门证监3篇HTML候选已完成有界运行与独立raw/SQL审计：新疆与厦门证监各首篇标题匹配，但列表日期与详情页日期不一致，严格身份检查保留为unconfirmed；同源后续2篇按首篇失败停源规则未请求。runner scope配置750ms（低于Lead批准的1000ms），实际两次HTTP GET起始间隔仅294ms（低于scope及批准值），记录为执行节奏违规，不重试。四源分页另在独立数据库完成；两批证据均已保存，分页不合并进主库计数。
+BLOCKERS=本检查点没有常规离线正文/保存页面核验阻塞；全局采集、Gate升级、Gold及生产部署仍不在当前验收结论内。
+NEXT=保留新疆/厦门证监两条严格日期身份失败为unconfirmed并停止补抓；继续已授权的冻结正文事实审阅及基于真实列表证据的bounded分页批次。人工Gold标注、付费模型调用和正式部署属于独立决策项，不构成常规离线工作的前置阻塞。
+GATE=Gate2仍 `PASSED_FOR_BOUNDED_P4_PILOT`；Gate3—5未通过。48个source保持disabled/fulltext-off。
+MODEL=requested Luna High；本轮backend tests仅允许repo-local mock。预览摘要标注model execution未验证；非provider receipt、非Human Gold。
+HANDOFF=[本轮验收与本地预览交接](HANDOFFS/FISCAL_ACCEPTANCE_QA_2026-10-16.md)
 ## 2026-10-16 恢复检查点：40条本地摘要已写入；分项独立核验完成
 
 CURRENT_BRANCH=feat/fiscal-finance-hot

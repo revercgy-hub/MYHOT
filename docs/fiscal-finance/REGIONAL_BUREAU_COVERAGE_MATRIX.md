@@ -1,5 +1,9 @@
 # 财政部地方监管局新闻栏目覆盖矩阵
 
+## 2026-10-16 四源有界分页实测（fresh隔离库）
+
+广西、海南、重庆、四川分别请求列表第0页和第1页，共8次HTTP 200 GET；原始8个gzip响应完整、hash匹配，按当前目录选择器复算每页10项，每源20个唯一URL、跨页无重叠。隔离库写入80条metadata文章，全部 body_status=pending，80个 content.extract-body 任务保持 created 未消费；4条fetch run均为ok，每源pagesCommitted=2、nextPageIndex=2、coverage=unproven。source均disabled且全文关闭；没有详情正文请求、精选、publication、分析或worker动作。请求最小间隔1003ms，符合冻结的≥1000ms。原manifest逐页pageAudit因sourceId映射为空未填充，本次独立QA按response origin/path读取8份raw重算。此观察不证明90日/整栏覆盖或source准入；80条位于独立测试库，不并入主采集库。证据：`.data/fiscal-qa/regional-pagination4-20261016/evidence/manifest.json` SHA `EFC9A832132E7EC5424D0DA0056A03180290D70A4CCD0C09B0C93263CB378CD0`；独立QA `.data/fiscal-qa/qa-luna-expansion-followup-20261016/html-four-and-pagination-audit.json`。
+
 ### 2026-10-13 七局正文批次增量（限定pending ID）
 
 本次仅对既有隔离库冻结候选执行正文提取，不抓列表。六个地方来源各自结果如下；第七个source为非地方的GovCN政策库，两次正文dispatch，1 ok后`attachments_unprocessed`停止。此处`ok`表示抽取状态，不代表内容业务审核、来源准入或整栏质量。

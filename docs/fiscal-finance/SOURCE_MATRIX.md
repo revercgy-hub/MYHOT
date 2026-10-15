@@ -1,5 +1,11 @@
 # 官方信源验证矩阵
 
+## 2026-10-16 当前核验增量
+
+隔离主采集库现为442篇：373 ok、57 pending、12 unconfirmed。GovCN固定文章 ifxp3rg71sg6grhlply3qkkeg 经人工复核的PDF附件正文resolution写入rev2并经独立只读SQL QA；原附件解析失败provenance保留，不推广为通用附件放行规则，来源仍disabled。
+
+广西、海南、重庆、四川各抓取列表第0/1页，每页10条、每源20条列表项，独立分页测试库共80条全部pending、80个正文抽取job未消费；四源disabled、全文关闭、cursor到page index 2、coverage=unproven。8份原始响应哈希/EOF及单页候选复算通过；页面审计字段sourceId为空，独立QA按响应URL映射复核。此证据不代表栏目准入、90日或整栏覆盖。独立复核报告 `.data/fiscal-qa/qa-luna-expansion-followup-20261016/html-four-and-pagination-audit.json`。
+
 ## 2026-10-14 正文修复与手工复核增量
 
 隔离库 `fiscalhot_catalog_sweep_20261013_test` 当前442篇：344篇 `body_status=ok`、76篇 `pending`、22篇 `unconfirmed`。不因正文解析成功而推断来源整体稳定或准入。已修复两个受测来源的标题身份处理：`mof-regional-supervision-dynamics` 从官方详情 `<title>`提取配置题名；`mof-shenzhen-supervision-dynamics` 仅对显式 `titleAuthoritative=true` 的来源优先使用精确详情selector。两项仍保持 `enabled=false`、全文与syndication关闭；既有保存详情离线positive replay通过，未重复网络抓取。来源/DOM identity定向测试26/26通过，代码见提交`3c7cfb4`。
