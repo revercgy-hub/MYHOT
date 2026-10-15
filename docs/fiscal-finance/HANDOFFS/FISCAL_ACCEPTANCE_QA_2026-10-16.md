@@ -37,3 +37,9 @@
 ## HTTP dispatch 间隔 guard 后续修复
 
 后续提交 `7de66eb` 为HTTP预算器增加可选全局 `minDispatchIntervalMs`：默认值0保持现有调用兼容；显式配置后，在每次真实dispatch边界拒绝间隔不足的请求，不自动sleep或retry，runner需自行等待并配置至少1000ms。focused测试7/7和typecheck通过。此前四HTML批次scope配置750ms、低于获批1000ms，实际起始间隔294ms的违规记录保持不变；没有重跑或重写原始证据。全套394/394回归属于该guard提交前代码，guard后未宣称完整套件通过。
+
+## 下一批自动处理优先级
+
+离线材料盘点未发现尚未处理、且已有完整成功解析结果可直接复用的PDF或ZIP；这属于保存证据盘点，不是对全部待办重新逐行核验的结论。下一批应先从57条pending中精确核对已有HTML详情及附件链接，采用带1000ms全局dispatch检查的固定批次；不重复已经完成的PDF resolution，也不重试本轮两个日期冲突URL。
+
+三份已保存PDF（`jm8ravjewxi3ub9kltm5lolqv`、`ld6ktjamsz2q37ok4jpq5ypp1`、`bk6bfigo44bphu0sqsf0ocj17`）的现有解析结果为`pdf_page_no_text`，在当前不使用OCR的路线下保留待核；不得把无文字PDF标成正文成功。其他单位决算、处罚公告及旧身份失败行仍需按原始证据分别定位，不能将它们一概归为扫描件或日期冲突。
