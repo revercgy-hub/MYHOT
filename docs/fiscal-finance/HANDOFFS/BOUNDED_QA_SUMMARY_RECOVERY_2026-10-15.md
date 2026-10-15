@@ -8,7 +8,27 @@
 
 此前9条附件正文resolution和2条保存raw离线正文replay各自有独立事务/QA记录；本handoff不把它们与12次新HTTP混为一批。25条附件壳诊断只有23次新GET，另2条复用了raw；所有原文均为200，但4个请求间隔只有724–748ms，未满足750ms节奏要求。Root将该运行判为执行节奏不合规；不重发、不称为稳定来源、不提升source准入。实际PDF读取、正文review与数据库hold状态分别记录在前序证据中。
 
-## 40条摘要导入计划
+## 最新40条内容核销与真实导入driver（本轮新增）
+
+代码 `21bdddf19617ed2edf3451813ba7eb71f57dbc19` 新增 `scripts/import-local-preview40.mjs`、纯guard helper与聚焦测试。它实现三个真实模式：`--offline-check`只读取固定输入并执行内存安全夹具；`--preflight-only`必须连接精确loopback预览库才生成完整read-only baseline与normalized URL绑定；`--execute`要求已pin的独立full40 QA proof、baseline文件物理SHA及15分钟内的新鲜快照，随后在serializable事务中重新完整CAS。当前仅运行离线模式，没有写DB或制造baseline/匹配数。已有19条driver的核心SELECT原样复用，并追加pool_search完整投影；原Date对象先JSON-safe为ISO值再用相同sorted-key序列化，防止日期漂移被空对象序列化掩盖。
+
+Root独立读取40/40全文（含长铁路、会计中英文PDF）、全部标题/引文/entity/relevance/topic，发现问题经作者15字段修改后逐项复核，最终内容proof为 `PASS_OFFLINE_CONTENT_REVIEW`：`.data/fiscal-qa/final-preview40-v4r2-20261015/root-independent-content-qa.json` SHA `145aa2be05dcb328b00855574487f551f8a98394d9acf13c91d3721757c89ab3`。最终master SHA `20ff84ad28aea5bd2053bfdcdee05fa50fee7b8f3aa1e3dcb2bd9e23d1b20030`，plan SHA `c473b89f0bb07d8af04a082f985802e9640a549a3166d0106724647545ca4898`。脚本三者均物理pin，并检查40精确IDs/per-ID PASS、原始freeze/body hash/metadata、全部编辑字段投影；这份内容proof仍不是Human Gold/Gate/SQL准入，也不能代替live baseline。
+
+实时去重保留匹配记录的旧ID、原日期及原URL；陌生编辑归属、题名/日期/body身份冲突或精确开发标签清单外旧ID均跳过并记录，不强制替换ID。未知override字段通过overlay保留。新增source全部disabled/fulltext=false，source article仅bodyless写入；现有publisher负责eligible和pool投影，driver不手写publications.eligible。事务后要求target eligible=true、summary-only、unselected、score/reason=NULL、无analysis、不可syndicate/indexable；每个target唯一pool_search行且direct等于publication.search_text、body为空。非目标articles/sources/overrides/publications/pool、队列及旧审计均有前后守卫；失败回滚，baseline claim与execution marker以wx保存，不自动重试。
+
+S1已核准仅在现有Web exact-ID helper追加本plan的40固定ID及扩展对应清单测试；旧65与新40合计105个**允许开发标签的静态ID**，不是DB条数或页面105可见。未知prefix仍不获信任，没有修改routes/API/packages/schema。匹配的旧ID也须在现有exact allowlist中，避免新摘要被误标普通AI导读。实际页面仍须服务恢复并完成导入后独立核验。
+
+验证：`npm run typecheck`退出0；全Web tests17/17；driver聚焦tests11/11，含14项内存guard、未知override/旧ID日期保留、ownership/日期冲突、normalized URL歧义、非目标和queue、eligible/pool拒绝场景及proof缺失/物理hash错误/非独立/错ID/错plan/无baseline的拒绝测试；node语法检查通过。真实Rootproof pin的offline-check通过，输出在ignored `.data/fiscal-qa/preview40-driver-20261015/`。新隔离project的client与SSR build成功，未覆盖active build；首次从错误工作目录调用npm exec因plugin未找到失败，已从正确隔离project重跑成功。PG停机，未运行真实数据库integration、live SQL/smoke或完整后端tests，不复用旧393测试声称本轮通过。exact代码SHA自动CI列表读取为空；不手动dispatch、不声称CI通过。
+
+服务恢复后先运行（此命令本轮尚未运行）：
+
+```powershell
+node 'D:\AI-work\MYHOT\AIHOT\scripts\import-local-preview40.mjs' --preflight-only --out-dir '.data/fiscal-qa/preview40-live-20261015/preflight-op1' --qa-file '.data/fiscal-qa/final-preview40-v4r2-20261015/root-independent-content-qa.json' --qa-sha '145aa2be05dcb328b00855574487f551f8a98394d9acf13c91d3721757c89ab3'
+```
+
+它会输出真实baseline路径、物理SHA和匹配/新建/跳过数量。随后在15分钟内以该输出SHA作为`--baseline-sha`、文件作为`--baseline-file`，使用新的`--out-dir`和同一proof运行`--execute`；不得填写占位或旧baseline，不自动重试。若进程环境已有其他DATABASE_URL，driver拒绝而不悄悄切换；目标只接受 `postgres://postgres@127.0.0.1:5432/fiscalhot_preview_test`。最终DB/页面QA通过前，保存预览总量仍只记65，40尚未入库。
+
+## 40条摘要导入计划（此前v3r3准备历史）
 
 10月15日此前full40审阅确认结构/原文绑定后发现六处待修：医疗2030量化指标与旧judgment/uncertainties矛盾；会计意见征集须区分财政部2026-11-15国内反馈与IASB 2027-01-26全球截止；该会计topic财政收支无依据；紧急采购直接采购例外须保留竞争采购不能满足需要及原文列举原因；福建200亿元、1个月国库定存应按Root裁定标policy_release/政策发布并保留计划而非结果；新疆重复句删除。对应摘要、类型、标签与关联metadata已同步。v3 SHA `f090a727954591cb5cad368c84c143568723f48f0b298cdf1db43a8d051c4794`、v3r2 SHA `3aae652b8b6e2ee8769583c42ebb13d96a71ae96c8c50f0dd6db1773a83421de`原包保留。
 

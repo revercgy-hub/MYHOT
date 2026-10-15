@@ -1,28 +1,30 @@
 # 项目状态
 
-## 2026-10-15 恢复检查点：40条摘要计划已做离线预检；数据库仍停机
+## 2026-10-15 恢复检查点：40条内容独立审阅通过，真实导入driver已完成；尚未入库
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=7b36c2f0d399c6a005b8cc55c8dd982777d17a56（本次文档提交前的恢复HEAD；最终docs-only HEAD以Git读取为准）
+CURRENT_SHA=21bdddf19617ed2edf3451813ba7eb71f57dbc19（本次docs更新前的代码HEAD；文档HEAD以Git读取为准）
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
 STAGE=P3正文核验与AD-012本地摘要预览；不改变source准入或Gate
-REVIEW=12 HTML仅保存raw/parser/SQL导出离线核验通过，当前SQL/cursor和非目标逐行证据仍partial；9条附件resolution与2条regional/Shenzhen HTML离线replay分别有QA，2条不是附件resolution。40条结构/原文绑定及安全预检PASS；此前全40内容审阅发现六处问题已在v3r3关联metadata修订，作者自检关闭；Root只核销指定新增字段，不等于全40独立内容PASS或Gold。
-COMPLETED=隔离采集库最后保存统计442篇：367 body ok、64 pending、11 unconfirmed。40条摘要修订输入与原始候选冻结文件均通过离线绑定/结构预检；没有向预览库写入任何新记录
-IN_PROGRESS=最新v3r3整40审阅包与唯一plan已冻结至新目录，7项篡改负例被拒绝；当前SQL URL去重、baseline、CAS均unknown/null，plan明确executionAllowed=false。原19条driver必须按新40输入适配并重新冻结，不能原样运行。
+REVIEW=Root现已独立完成40/40冻结全文、标题/引文、entity/relevance/topic与15修订字段复核，精确final v4r2 proof=PASS_OFFLINE_CONTENT_REVIEW；非Human Gold或Gate结论。12 HTML当前SQL/cursor/非目标指纹仍partial；9条附件resolution与2条regional/Shenzhen HTML replay分别记录，2条不是附件resolution。
+COMPLETED=最终40正文摘要已独立内容QA；真实固定40导入CLI已适配并离线验证，支持offline-check/preflight-only/execute。source原日期/URL、旧ID和未知override保留；target publication须eligible=true且summary-only/unselected/score reason NULL，pool_search目标唯一且body空。采集库最近保存442=367ok/64pending/11held；预览最近保存65，新增40仍未写入。
+IN_PROGRESS=固定40实际导入driver完成，不再只计划；fresh live DB identity、normalized URL dedupe、完整canonical baseline/CAS与serializable事务尚未运行。PG/Web/API停机，没有live integration/页面成功证据；程序使用原readBaseline SQL追加完整pool_search投影，Date先JSON-safe再稳定排序序列化。
 BLOCKERS=本轮只读复核5432/3000/3001均无listener，停止原因未知；不删除stale PID、不自动启动服务。Luna usage quota造成两个原任务pending_init，已interrupt；临时fallback继续离线准备。此前服务启动被policy阻止的边界不变。
-NEXT=用户依handoff两条命令先恢复现有PG cluster，再启动LAN Web/API（192.168.3.47为本轮实际默认路由地址）；随后只读核目标库和fresh URL去重、完整canonical baseline/CAS，冻结适配runner并执行获准的AD-012导入，再独立核DB/页面；继续64 pending。
-CURRENT_CODE_SHA=c2cc5427ea7c573faf9ed5444d013b34228de6c2；本轮只改文档和ignored `.data/` 预检文件，不改tracked代码
+NEXT=用户手动恢复PG与Web/API后，携固定独立QA proof执行CLI --preflight-only取得真实baseline和目标绑定；15分钟内以物理SHA pin baseline执行--execute，事务重读完整stateCAS，不符即拒绝/回滚；之后独立DB/页面QA，再继续64 pending。
+CURRENT_CODE_SHA=21bdddf19617ed2edf3451813ba7eb71f57dbc19；新增AD-012固定40 CLI/纯guard/测试与精确40页面开发标签allowlist，不改API/packages/schema
 SAVED_CATALOG=442 articles；367 body ok、64 pending、11 unconfirmed（最近保存SQL统计，PG停机后不是实时查询）
 PREVIEW=最近保存65条无正文摘要；修订batch2/3合计40条尚未导入；105只是“40条全部无现存URL匹配时”的算术预期，不是当前记录数
 HTML12_QA=执行manifest/SQL export及独立离线QA通过；target 12条revision/hash匹配；PG现已停止，不能在线复查当前SQL或source cursor；缺非目标文章完整前后指纹，仍保持限定批次结论
 DIAGNOSTIC25=23单次GET+2raw复用，均200、25rawhash通过；无附件/DB/provider/worker请求。4处actual dispatch间距724–748ms不满足750ms，明确执行不合规；raw可供离线事实审阅，不重发、不外推source准入
-REVISION40=v3 f090a727…、v3r2 3aae652b…均保留；最新v3r3整包SHA d0dd767ca1eab23acfbf35932480b48077659bd16f1909fb4a6206c3ae47bd8b。六处内容问题修订闭环记录与Root限定字段核销均保存；无全40独立内容PASS声明。
-PLAN_SHA=唯一最终准备计划 .data/fiscal-qa/final-preview40-v3r3-20261015/import-plan-40-v3r3.json SHA 09f5008005beec7541f832785783bacd780c022950b820962af4e5cd2a19573a；离线输入预检SHA 52debf90276dc1ebd6490dbea5ef80bb9aaff0b20e9a2d723027fd99e9f52836。旧v2路径已由fce8b…覆盖成bc2e…，原fce字节未找到，缺口如实保留，不伪恢复。
+REVISION40=最终独立v4r2 master20ff84ad28aea5bd2053bfdcdee05fa50fee7b8f3aa1e3dcb2bd9e23d1b20030；Root全40独立proof145aa2be05dcb328b00855574487f551f8a98394d9acf13c91d3721757c89ab3。旧v3/v3r2/v3r3/v4过渡包全部保留。
+PLAN_SHA=.data/fiscal-qa/final-preview40-v4r2-20261015/import-plan-40-v4r2.json SHA c473b89f0bb07d8af04a082f985802e9640a549a3166d0106724647545ca4898；脚本同时pin master/plan/Rootproof真实SHA；未生成live baseline、匹配数或可执行ready。旧fce计划字节缺口已如实保留。
 BLOCKER=PG/Web/API均停止；须用户手动恢复，不能绕过先前自动服务启动被拒绝的策略。
 SAFETY=AD-012仅bodyless/summary-only/unselected/score与reason NULL，不写analysis/receipt/jobs；sources/fulltext/应用provider/worker/OCR及推送保持关闭
 GATE=Gate 2仅PASSED_FOR_BOUNDED_P4_PILOT；其他Gate、source全面准入、90日覆盖、Gold/正式模型验收未通过
 MODEL=requested GPT-6.1 Sol Medium；实际模型执行未独立核验；用户授权临时quota fallback；native agent辅助审阅不是Human Gold/正式模型精选，无应用provider调用。
+QUALITY=typecheck exit0；全Web tests17/17；固定40 CLI tests11/11（含14个内存guard场景与实际CLI拒绝测试）；绑定真实QA proof的--offline-check通过；nodecheck及隔离Web client/SSR build通过。全后端DB tests与live SQL/smoke未运行，PG停止。
+CI=GitHub exact codeSHA21bdddf…读取自动run列表为空，未有本SHA CI成功证据；没有手动dispatch或沿用旧393 tests作为本次结果。
 HANDOFF=[10月15日恢复与40条预览导入准备](HANDOFFS/BOUNDED_QA_SUMMARY_RECOVERY_2026-10-15.md)
 
 以下为此前检查点，数据/服务状态以本节及后续真实核验为准。
