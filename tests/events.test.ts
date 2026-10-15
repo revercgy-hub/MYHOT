@@ -28,16 +28,22 @@ let relation: Rel = "SAME_OCCURRENCE";
 let pairRelation: Rel | null = null;
 /** Answer every candidate of a batch prompt, not only the first. */
 let answerAll = false;
+/** When set, only these facts are treated as related in a batch answer. */
+let tiedFactTitles: Set<string> | null = null;
 const provider = await stub(async (_hit, req) => {
   asked.open();
   await hold.promise;
   const body = JSON.parse(req.body) as { messages: Array<{ content: string }> };
   const user = body.messages[1]!.content;
   const pair = user.includes("报道 A");
-  const ids = answerAll ? [...user.matchAll(/【候选 (C\d+)】/g)].map((m) => m[1]!) : ["C1"];
+  const candidates = [...user.matchAll(/【候选 (C\d+)】（该事实已有 \d+ 篇报道；事实标题：([^\n）]+)）/g)];
+  const ids = answerAll ? candidates.map((m) => m[1]!) : ["C1"];
   const answer = pair
     ? { a: "发布", b: "发布", relation: pairRelation ?? relation, difference: "", confidence: 0.95 }
-    : { query: "发布新模型", decisions: ids.map((id) => ({ id, relation, confidence: 0.95, note: "" })) };
+    : { query: "发布新模型", decisions: ids.map((id) => ({
+      id, relation: tiedFactTitles && !tiedFactTitles.has(candidates.find((candidate) => candidate[1] === id)?.[2] ?? "") ? "UNRELATED" : relation,
+      confidence: 0.95, note: "",
+    })) };
   return { id: "stub", choices: [{ message: { content: JSON.stringify(answer) } }], usage: { prompt_tokens: 10, completion_tokens: 10, total_tokens: 20 } };
 });
 process.env.DEEPSEEK_BASE_URL = `${provider.url}/v1`;
@@ -318,6 +324,7 @@ test("stories that reports keep tying together without merging list each other a
   relation = "SAME_STORY";
   pairRelation = "UNRELATED";
   answerAll = true;
+  tiedFactTitles = new Set([`${text}甲`, `${text}乙`]);
   try {
     await groupArticle(await report("tie-one", text, text));
     await linkRelatedStories();
@@ -330,5 +337,6 @@ test("stories that reports keep tying together without merging list each other a
     relation = "SAME_OCCURRENCE";
     pairRelation = null;
     answerAll = false;
+    tiedFactTitles = null;
   }
 });
