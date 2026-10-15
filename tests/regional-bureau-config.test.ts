@@ -1,11 +1,17 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { test } from "node:test";
+import { identityKeyFor } from "@aihot/backend/content/materials";
 import { unsupportedConfig } from "@aihot/backend/sources/config-keys";
 import { fetchDetail, fromHtml } from "@aihot/backend/sources/web-list";
+import { readWebListPagination, validateWebListPagination, webListPageUrl } from "@aihot/backend/sources/web-list-pagination";
+import type { SourceRow } from "@aihot/backend/sources/types";
 
 const sourcesFile = new URL("../industry/sources.json", import.meta.url);
 const fixtureUrl = (name: string) => new URL(`./fixtures/regional-bureaus/${name}`, import.meta.url);
+const paginationFixtureUrl = (name: string) => new URL(`./fixtures/regional-bureau-pagination/${name}`, import.meta.url);
 const strictBodyIds = new Set([
   "mof-xiamen-supervision-dynamics",
   "mof-beijing-supervision-dynamics",
@@ -548,5 +554,118 @@ test("regional bureau disabled configs match the saved list DOMs and detail meta
   for (const source of sources.filter(({ id }) => id !== "mof-beijing-supervision-dynamics")) {
     assert.equal(source.config.detail.titleAuthoritative, source.id === "mof-shenzhen-supervision-dynamics" ? true : undefined);
     assert.equal(source.config.detail.publishedAtAuthoritative, undefined);
+  }
+});
+
+const paginationSpecs = [
+  {
+    id: "mof-guangxi-supervision-dynamics", bureau: "guangxi", pageCount: 15,
+    page0Bytes: 12903, page0Sha256: "4dd601d12faae22f8199eab25af146ae81eff72a2467c39fe13d6ab445f045df",
+    page1Bytes: 12736, page1Sha256: "a3efea8e4c2657b92e797a7e136e6a7b8f89ac1d97b36a4f5a24a0016bd623e9",
+    page0Range: ["2026-09-11", "2026-09-29"], page1Range: ["2026-08-11", "2026-09-07"], page0Mismatches: 1, page1Mismatches: 1,
+  },
+  {
+    id: "mof-hainan-supervision-dynamics", bureau: "hainan", pageCount: 15,
+    page0Bytes: 13022, page0Sha256: "a9963e71769067fd8d69fcac49e6a01a407bb9f26c170542efe41a4c3bbcf380",
+    page1Bytes: 13146, page1Sha256: "cd978c9d0f16828c274cd23e9df027e43c41823186239c96d7edc95c77360329",
+    page0Range: ["2026-09-11", "2026-09-30"], page1Range: ["2026-08-17", "2026-09-08"], page0Mismatches: 1, page1Mismatches: 1,
+  },
+  {
+    id: "mof-chongqing-supervision-dynamics", bureau: "chongqing", pageCount: 45,
+    page0Bytes: 12878, page0Sha256: "b18f871d35d84daac5e2a0e119e64e7292708fde55a2fba94298d676357e7207",
+    page1Bytes: 12753, page1Sha256: "c2c532f7af341748ccd48fd4dc620d133a72e50262f46b4bd7ed1cdca2857290",
+    page0Range: ["2026-09-21", "2026-09-30"], page1Range: ["2026-09-02", "2026-09-21"], page0Mismatches: 0, page1Mismatches: 0,
+  },
+  {
+    id: "mof-sichuan-supervision-dynamics", bureau: "sichuan", pageCount: 11,
+    page0Bytes: 12857, page0Sha256: "b45bcd903f386c72c6c755d3378740d852788551323548e4961d4e33e6ecb06f",
+    page1Bytes: 12754, page1Sha256: "8af972a808c7b1c3d67088d2247aae7cfac13969799d942916408ead670c41e8",
+    page0Range: ["2026-09-02", "2026-09-28"], page1Range: ["2026-07-29", "2026-09-01"], page0Mismatches: 2, page1Mismatches: 4,
+  },
+] as const;
+
+test("four saved bureau page pairs use the existing bounded pagination adapter", async () => {
+  const sourceDoc = JSON.parse(readFileSync(sourcesFile, "utf8")) as { sources: Array<{ id: string; enabled: boolean; site_fulltext: boolean; syndicate_fulltext: boolean; config: Record<string, any> }> };
+  const byId = new Map(sourceDoc.sources.map((source) => [source.id, source]));
+  assert.deepEqual([...paginationSpecs.map(({ id }) => id)].sort(), [...byId.keys()].filter((id) => paginationSpecs.some((spec) => spec.id === id)).sort());
+
+  const displayDate = (value: Date | null | undefined) => value
+    ? new Date(value.getTime() + 8 * 60 * 60 * 1000).toISOString().slice(0, 10)
+    : null;
+  const hash = (bytes: Buffer) => createHash("sha256").update(bytes).digest("hex");
+  const pathDateMismatches = (items: ReturnType<typeof fromHtml>) => items.filter((candidate) => {
+    const match = /\/t(\d{8})_/u.exec(new URL(candidate.url).pathname);
+    if (!match) return false;
+    const urlDate = `${match[1]!.slice(0, 4)}-${match[1]!.slice(4, 6)}-${match[1]!.slice(6, 8)}`;
+    return displayDate(candidate.publishedAt) !== urlDate;
+  });
+
+  for (const spec of paginationSpecs) {
+    const entry = byId.get(spec.id)!;
+    const source = entry as unknown as SourceRow;
+    const config = source.config;
+    const pagination = readWebListPagination(config);
+    const expectedPageCap = spec.pageCount - 1;
+
+    assert.deepEqual(pagination, {
+      mode: "mof_index_v1", maxPagesPerRun: 2, maxDispatches: 12,
+      maxPageIndex: expectedPageCap, detailMode: "direct_html_metadata_v1",
+    });
+    assert.deepEqual(validateWebListPagination("web_list", config), []);
+    assert.deepEqual(unsupportedConfig("web_list", config), []);
+    assert.equal(entry.enabled, false);
+    assert.equal(entry.site_fulltext, false);
+    assert.equal(entry.syndicate_fulltext, false);
+    assert.deepEqual(config.allowUrlPrefixes, [config.url]);
+    assert.equal(config._aihot.initialBackfillMonths, 3);
+    assert.equal(config._aihot.initialBackfillRequirePublishedAt, true);
+    assert.equal(config._aihot.requireBodyReadyForAutomaticSelection, true);
+    assert.equal(config.detail.maxFetches, 10, "metadata-only detail resolution shares the existing per-source cap");
+    assert.equal(config.detail.titleSelector, "h2.title_con");
+    assert.equal(config.detail.publishedAtRegex, '<meta\\s+name="PubDate"\\s+content="([^"]+)');
+    assert.equal(config.detail.bodySelector, ".my_doccontent", "body extraction remains the separate strict extractor's responsibility");
+
+    const [page0Bytes, page1Bytes] = await Promise.all([
+      readFile(paginationFixtureUrl(`${spec.bureau}-page-0.html`)),
+      readFile(paginationFixtureUrl(`${spec.bureau}-page-1.html`)),
+    ]);
+    assert.deepEqual([
+      [page0Bytes.length, hash(page0Bytes)], [page1Bytes.length, hash(page1Bytes)],
+    ], [
+      [spec.page0Bytes, spec.page0Sha256], [spec.page1Bytes, spec.page1Sha256],
+    ], "tracked fixtures preserve the captured public list response bytes");
+
+    const page0Html = page0Bytes.toString("utf8");
+    const page1Html = page1Bytes.toString("utf8");
+    assert.match(page0Html, /var currentPage\s*=\s*0;/u);
+    assert.match(page1Html, /var currentPage\s*=\s*1;/u);
+    assert.match(page0Html, new RegExp(`var countPage\\s*=\\s*${spec.pageCount}\\b`, "u"));
+    assert.match(page1Html, new RegExp(`var countPage\\s*=\\s*${spec.pageCount}\\b`, "u"));
+    assert.match(page0Html, /index"\s*\+\s*"_"\s*\+\s*nextPage/u);
+    assert.equal(webListPageUrl(config.url, 0), config.url);
+    const page1Url = webListPageUrl(config.url, 1);
+    assert.equal(page1Url, new URL("index_1.htm", config.url).toString());
+    assert.equal(webListPageUrl(config.url, expectedPageCap), new URL(`index_${expectedPageCap}.htm`, config.url).toString());
+
+    const page0 = fromHtml(page0Html, config.url, source, config.url);
+    const page1 = fromHtml(page1Html, page1Url, source, page1Url);
+    assert.equal(page0.length, 10);
+    assert.equal(page1.length, 10);
+    const identity = (candidate: (typeof page0)[number]) => identityKeyFor({
+      url: candidate.url, title: candidate.title, sourceId: spec.id, via: "fetch",
+    });
+    const page0Ids = page0.map(identity);
+    const page1Ids = page1.map(identity);
+    assert.equal(new Set(page0Ids).size, 10);
+    assert.equal(new Set(page1Ids).size, 10);
+    assert.equal(page1Ids.filter((id) => new Set(page0Ids).has(id)).length, 0, "the saved adjacent pages have no URL identity overlap");
+    for (const candidate of [...page0, ...page1]) assert.equal(candidate.publishedAt === null || candidate.publishedAt instanceof Date, true);
+
+    const page0Dates = page0.map((candidate) => displayDate(candidate.publishedAt)).sort();
+    const page1Dates = page1.map((candidate) => displayDate(candidate.publishedAt)).sort();
+    assert.deepEqual([page0Dates[0], page0Dates.at(-1)], spec.page0Range);
+    assert.deepEqual([page1Dates[0], page1Dates.at(-1)], spec.page1Range);
+    assert.equal(pathDateMismatches(page0).length, spec.page0Mismatches);
+    assert.equal(pathDateMismatches(page1).length, spec.page1Mismatches, "display dates remain authoritative when URL date tokens disagree");
   }
 });
