@@ -3,6 +3,7 @@
 // other Undici copies, workers, or the ALLOW_PRIVATE_NETWORK_FETCH global-dispatcher bypass.
 import diagnosticsChannel from "node:diagnostics_channel";
 import { createRequire } from "node:module";
+import { performance } from "node:perf_hooks";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -44,6 +45,8 @@ export type P3HttpBudgetSnapshot = {
   events: number;
   eventCounts: Record<string, number>;
   diagnosticCallbackErrors: number;
+  minDispatchIntervalMs: number;
+  rateRejected: number;
   requests: EventRecord[];
 };
 
@@ -80,11 +83,17 @@ function safeRecord(fn: () => void, state: { diagnosticCallbackErrors: number })
  * Install a strict request-dispatch cap on only the backend's pinned Undici Agent classes.
  * The cap applies to origin dispatcher calls (one per fetch/redirect hop), not proxy CONNECT
  * internals. Keep the P3 runner serial and use the same backend-resolved Undici import for fetch.
+ * The optional interval is fail-closed: callers must wait between dispatches themselves; an early
+ * origin or redirect dispatch is rejected without sleeping or retrying. The default remains off.
  */
-export function installP3HttpBudget(maxRequests: number): P3HttpBudget {
+export function installP3HttpBudget(maxRequests: number, options: { minDispatchIntervalMs?: number } = {}): P3HttpBudget {
   if (activeBudget) throw new Error("A P3 HTTP budget is already installed in this process");
   if (!Number.isSafeInteger(maxRequests) || maxRequests < 1) {
     throw new RangeError("maxRequests must be a positive safe integer");
+  }
+  const minDispatchIntervalMs = options.minDispatchIntervalMs ?? 0;
+  if (!Number.isSafeInteger(minDispatchIntervalMs) || minDispatchIntervalMs < 0 || minDispatchIntervalMs > 60_000) {
+    throw new RangeError("minDispatchIntervalMs must be an integer from 0 to 60000");
   }
 
   const requireBackend = backendRequire();
@@ -126,8 +135,11 @@ export function installP3HttpBudget(maxRequests: number): P3HttpBudget {
     events: 0,
     eventCounts: Object.fromEntries(CHANNELS.map((name) => [name, 0])),
     diagnosticCallbackErrors: 0,
+    minDispatchIntervalMs,
+    rateRejected: 0,
     requests: [],
   };
+  let lastDispatchAt: number | undefined;
   const requestIds = new WeakMap<object, number>();
   let nextRequestId = 1;
   let proxyDelegationDepth = 0;
@@ -168,12 +180,12 @@ export function installP3HttpBudget(maxRequests: number): P3HttpBudget {
   const proxyDispatch = originals[1]!;
   wrappers.push(function (this: unknown, opts: object, handler: DispatchHandler): unknown {
     if (proxyDelegationDepth > 0) return Reflect.apply(agentDispatch, this, [opts, handler]);
-    return dispatchWithBudget(agentDispatch, this, opts, handler, state);
+    return dispatchWithBudget(agentDispatch, this, opts, handler, state, () => lastDispatchAt, (at) => { lastDispatchAt = at; });
   });
   wrappers.push(function (this: unknown, opts: object, handler: DispatchHandler): unknown {
     proxyDelegationDepth++;
     try {
-      return dispatchWithBudget(proxyDispatch, this, opts, handler, state);
+      return dispatchWithBudget(proxyDispatch, this, opts, handler, state, () => lastDispatchAt, (at) => { lastDispatchAt = at; });
     } finally {
       proxyDelegationDepth--;
     }
@@ -206,6 +218,8 @@ export function installP3HttpBudget(maxRequests: number): P3HttpBudget {
     events: state.events,
     eventCounts: { ...state.eventCounts },
     diagnosticCallbackErrors: state.diagnosticCallbackErrors,
+    minDispatchIntervalMs: state.minDispatchIntervalMs,
+    rateRejected: state.rateRejected,
     requests: state.requests.map((record) => ({ ...record })),
   });
   const uninstall = () => {
@@ -224,8 +238,12 @@ function dispatchWithBudget(
   opts: object,
   handler: DispatchHandler,
   state: P3HttpBudgetSnapshot,
+  getLastDispatchAt: () => number | undefined,
+  setLastDispatchAt: (at: number) => void,
 ): unknown {
   state.attempted++;
+  const now = performance.now();
+  const lastDispatchAt = getLastDispatchAt();
   if (state.dispatched >= state.maxRequests) {
     state.rejected++;
     const error = Object.assign(new Error(`P3 HTTP request budget exhausted (${state.maxRequests})`), { code: "P3_HTTP_BUDGET_EXHAUSTED" });
@@ -236,7 +254,27 @@ function dispatchWithBudget(
     // Throw only at the guarded dispatch boundary, before the original dispatcher can send.
     throw error;
   }
+  if (lastDispatchAt !== undefined && now - lastDispatchAt < state.minDispatchIntervalMs) {
+    state.rejected++;
+    state.rateRejected++;
+    const error = Object.assign(new Error(`P3 HTTP minimum dispatch interval not met (${state.minDispatchIntervalMs}ms)`), { code: "P3_HTTP_MIN_INTERVAL" });
+    const origin = (opts as RequestLike).origin;
+    state.requests.push({
+      event: "dispatch:rejected",
+      at: new Date().toISOString(),
+      ...(origin ? { origin: String(origin) } : {}),
+      ...(typeof (opts as RequestLike).method === "string" ? { method: String((opts as RequestLike).method) } : {}),
+      ...(typeof (opts as RequestLike).path === "string" ? { path: safePath((opts as RequestLike).path) } : {}),
+      error: errorLabel(error),
+    });
+    if (typeof handler?.onResponseError === "function") {
+      handler.onResponseError(null, error);
+      return false;
+    }
+    throw error;
+  }
   state.dispatched++;
+  setLastDispatchAt(now);
   return Reflect.apply(original, receiver, [opts, handler]);
 }
 

@@ -8,7 +8,7 @@ const requireBackend = createRequire(new URL("../packages/backend/src/lib/http-f
 const backendUndici = requireBackend("undici") as {
   Agent: new () => { close(): Promise<void>; dispatch: unknown };
   ProxyAgent: new (proxyUrl: string) => { close(): Promise<void>; dispatch: unknown };
-  fetch(input: string, init: { dispatcher: object; redirect?: "manual" }): Promise<Response>;
+  fetch(input: string, init: { dispatcher: object; redirect?: "manual" | "follow" }): Promise<Response>;
 };
 const serverHits = new Map<string, number>();
 let proxyHits = 0;
@@ -108,6 +108,70 @@ test("cap 2 admits both localhost redirect hops", async () => {
   }
 });
 
+test("minimum interval rejects a fast dispatch across origins without resetting the clock", async () => {
+  serverHits.clear();
+  proxyHits = 0;
+  const budget = installP3HttpBudget(3, { minDispatchIntervalMs: 1_000 });
+  const agent = new backendUndici.Agent();
+  try {
+    const first = await backendUndici.fetch(localUrl("/finish"), { dispatcher: agent, redirect: "manual" });
+    assert.equal(first.status, 200);
+    await first.text();
+
+    await assert.rejects(
+      backendUndici.fetch(`http://127.0.0.1:${proxyPort}/cross-origin-fast`, { dispatcher: agent, redirect: "manual" }),
+      (error: unknown) => {
+        assert(error instanceof TypeError);
+        assert.equal((error as TypeError & { cause?: { code?: string } }).cause?.code, "P3_HTTP_MIN_INTERVAL");
+        return true;
+      },
+    );
+    assert.equal(proxyHits, 0, "a rate-rejected origin must not receive a request");
+
+    await new Promise((resolve) => setTimeout(resolve, 1_100));
+    const second = await backendUndici.fetch(`http://127.0.0.1:${proxyPort}/cross-origin-after-gap`, { dispatcher: agent, redirect: "manual" });
+    assert.equal(second.status, 200);
+    await second.text();
+
+    const audit = budget.snapshot();
+    assert.deepEqual(
+      { attempted: audit.attempted, rejected: audit.rejected, rateRejected: audit.rateRejected, dispatched: audit.dispatched },
+      { attempted: 3, rejected: 1, rateRejected: 1, dispatched: 2 },
+    );
+    assert.equal(audit.minDispatchIntervalMs, 1_000);
+    assert.equal(audit.requests.filter((event) => event.event === "dispatch:rejected").length, 1);
+  } finally {
+    budget.uninstall();
+    await agent.close();
+  }
+});
+
+test("minimum interval rejects an immediate redirect hop before its target is contacted", async () => {
+  serverHits.clear();
+  const budget = installP3HttpBudget(3, { minDispatchIntervalMs: 1_000 });
+  const agent = new backendUndici.Agent();
+  try {
+    await assert.rejects(
+      backendUndici.fetch(localUrl("/start"), { dispatcher: agent, redirect: "follow" }),
+      (error: unknown) => {
+        assert(error instanceof TypeError);
+        assert.equal((error as TypeError & { cause?: { code?: string } }).cause?.code, "P3_HTTP_MIN_INTERVAL");
+        return true;
+      },
+    );
+    assert.equal(serverHits.get("/start"), 1);
+    assert.equal(serverHits.get("/finish") ?? 0, 0);
+    const audit = budget.snapshot();
+    assert.deepEqual(
+      { attempted: audit.attempted, rejected: audit.rejected, rateRejected: audit.rateRejected, dispatched: audit.dispatched },
+      { attempted: 2, rejected: 1, rateRejected: 1, dispatched: 1 },
+    );
+  } finally {
+    budget.uninstall();
+    await agent.close();
+  }
+});
+
 test("backend ProxyAgent is counted once despite its internal Agent delegation", async () => {
   proxyHits = 0;
   const budget = installP3HttpBudget(1);
@@ -149,9 +213,13 @@ test("HTTP error status is recorded without changing normal fetch behavior", asy
 test("invalid install leaves dispatch prototypes untouched; uninstall removes observers and restores dispatch", async () => {
   const before = Object.getOwnPropertyDescriptor(backendUndici.Agent.prototype, "dispatch");
   assert.throws(() => installP3HttpBudget(0), /positive safe integer/);
+  assert.throws(() => installP3HttpBudget(1, { minDispatchIntervalMs: -1 }), /integer from 0 to 60000/);
+  assert.throws(() => installP3HttpBudget(1, { minDispatchIntervalMs: 60_001 }), /integer from 0 to 60000/);
+  assert.throws(() => installP3HttpBudget(1, { minDispatchIntervalMs: 1.5 }), /integer from 0 to 60000/);
   assert.deepEqual(Object.getOwnPropertyDescriptor(backendUndici.Agent.prototype, "dispatch"), before);
 
   const budget = installP3HttpBudget(1);
+  assert.equal(budget.snapshot().minDispatchIntervalMs, 0, "the default keeps prior no-rate-limit behavior");
   const installed = Object.getOwnPropertyDescriptor(backendUndici.Agent.prototype, "dispatch");
   assert.notDeepEqual(installed, before);
   budget.uninstall();
