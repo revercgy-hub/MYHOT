@@ -1,32 +1,24 @@
 # 项目状态
 
-## 2026-10-15 恢复检查点：40条内容独立审阅通过，真实导入driver已完成；尚未入库
+## 2026-10-16 恢复检查点：40条本地摘要已写入；分项独立核验完成
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=21bdddf19617ed2edf3451813ba7eb71f57dbc19（本次docs更新前的代码HEAD；文档HEAD以Git读取为准）
-BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+CURRENT_CODE_SHA=f426f017501be08982989b3436a0b49824cec363（launcher等待修复已提交并推送）
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
-STAGE=P3正文核验与AD-012本地摘要预览；不改变source准入或Gate
-REVIEW=Root现已独立完成40/40冻结全文、标题/引文、entity/relevance/topic与15修订字段复核，精确final v4r2 proof=PASS_OFFLINE_CONTENT_REVIEW；非Human Gold或Gate结论。12 HTML当前SQL/cursor/非目标指纹仍partial；9条附件resolution与2条regional/Shenzhen HTML replay分别记录，2条不是附件resolution。
-COMPLETED=最终40正文摘要已独立内容QA；真实固定40导入CLI已适配并离线验证，支持offline-check/preflight-only/execute。source原日期/URL、旧ID和未知override保留；target publication须eligible=true且summary-only/unselected/score reason NULL，pool_search目标唯一且body空。采集库最近保存442=367ok/64pending/11held；预览最近保存65，新增40仍未写入。
-IN_PROGRESS=固定40实际导入driver完成，不再只计划；fresh live DB identity、normalized URL dedupe、完整canonical baseline/CAS与serializable事务尚未运行。PG/Web/API停机，没有live integration/页面成功证据；程序使用原readBaseline SQL追加完整pool_search投影，Date先JSON-safe再稳定排序序列化。
-BLOCKERS=本轮只读复核5432/3000/3001均无listener，停止原因未知；不删除stale PID、不自动启动服务。Luna usage quota造成两个原任务pending_init，已interrupt；临时fallback继续离线准备。此前服务启动被policy阻止的边界不变。
-NEXT=用户手动恢复PG与Web/API后，携固定独立QA proof执行CLI --preflight-only取得真实baseline和目标绑定；15分钟内以物理SHA pin baseline执行--execute，事务重读完整stateCAS，不符即拒绝/回滚；之后独立DB/页面QA，再继续64 pending。
-CURRENT_CODE_SHA=21bdddf19617ed2edf3451813ba7eb71f57dbc19；新增AD-012固定40 CLI/纯guard/测试与精确40页面开发标签allowlist，不改API/packages/schema
-SAVED_CATALOG=442 articles；367 body ok、64 pending、11 unconfirmed（最近保存SQL统计，PG停机后不是实时查询）
-PREVIEW=最近保存65条无正文摘要；修订batch2/3合计40条尚未导入；105只是“40条全部无现存URL匹配时”的算术预期，不是当前记录数
-HTML12_QA=执行manifest/SQL export及独立离线QA通过；target 12条revision/hash匹配；PG现已停止，不能在线复查当前SQL或source cursor；缺非目标文章完整前后指纹，仍保持限定批次结论
-DIAGNOSTIC25=23单次GET+2raw复用，均200、25rawhash通过；无附件/DB/provider/worker请求。4处actual dispatch间距724–748ms不满足750ms，明确执行不合规；raw可供离线事实审阅，不重发、不外推source准入
-REVISION40=最终独立v4r2 master20ff84ad28aea5bd2053bfdcdee05fa50fee7b8f3aa1e3dcb2bd9e23d1b20030；Root全40独立proof145aa2be05dcb328b00855574487f551f8a98394d9acf13c91d3721757c89ab3。旧v3/v3r2/v3r3/v4过渡包全部保留。
-PLAN_SHA=.data/fiscal-qa/final-preview40-v4r2-20261015/import-plan-40-v4r2.json SHA c473b89f0bb07d8af04a082f985802e9640a549a3166d0106724647545ca4898；脚本同时pin master/plan/Rootproof真实SHA；未生成live baseline、匹配数或可执行ready。旧fce计划字节缺口已如实保留。
-BLOCKER=PG/Web/API均停止；须用户手动恢复，不能绕过先前自动服务启动被拒绝的策略。
-SAFETY=AD-012仅bodyless/summary-only/unselected/score与reason NULL，不写analysis/receipt/jobs；sources/fulltext/应用provider/worker/OCR及推送保持关闭
-GATE=Gate 2仅PASSED_FOR_BOUNDED_P4_PILOT；其他Gate、source全面准入、90日覆盖、Gold/正式模型验收未通过
-MODEL=requested GPT-6.1 Sol Medium；实际模型执行未独立核验；用户授权临时quota fallback；native agent辅助审阅不是Human Gold/正式模型精选，无应用provider调用。
-QUALITY=typecheck exit0；全Web tests17/17；固定40 CLI tests11/11（含14个内存guard场景与实际CLI拒绝测试）；绑定真实QA proof的--offline-check通过；nodecheck及隔离Web client/SSR build通过。全后端DB tests与live SQL/smoke未运行，PG停止。
-CI=GitHub exact codeSHA21bdddf…读取自动run列表为空，未有本SHA CI成功证据；没有手动dispatch或沿用旧393 tests作为本次结果。
-HANDOFF=[10月15日恢复与40条预览导入准备](HANDOFFS/BOUNDED_QA_SUMMARY_RECOVERY_2026-10-15.md)
-
+STAGE=P3正文核验与AD-012本地摘要预览；source准入与Gate不变
+REVIEW=40/40摘要通过独立内容QA PASS_OFFLINE_CONTENT_REVIEW；非Human Gold/Gate结论。12条HTML批次的raw/parser/执行时SQL报告通过离线复核，但停机后未重新核live SQL/cursor及完整非目标指纹。9条附件manual-resolution与2条regional/Shenzhen saved-HTML replay是不同操作，后两条不是附件处理。
+COMPLETED=PG crash recovery结束并ready。当前HEAD web build成功；launcher从2秒改为最多30秒轮询并要求精确子进程拥有listener，PowerShell解析及delayed-bind/early-exit/bounded-timeout三项测试通过，同一launcher启动API/Web。safe-env只读网站smoke 27/27通过。40条导入一次执行`PREVIEW40_IMPORT_COMMITTED`：1个原URL更新、39个新摘要、0冲突。Root独立核了目标/非目标baseline、40详情/API/Web SSR，随后另存health/SQL safety报告；此前一份汇总检查的尾部health URL拼错，因此不称已有完整合并post-QA报告。
+IMPORT=目标`fiscalhot_preview_test`。执行结果 `.data/fiscal-qa/preview40-live-20261016/execute-op1/execution-result.json` SHA `7daac913233bbba60023d0efa5fbf4ea3e94edca2845f3d55ee074f551201e61`；start marker SHA `c3725c7c88fd9502ad0702fc0283ccae7ed27095c68967319c418987007cd316`。前置baseline `.data/fiscal-qa/preview40-live-20261016/preflight-op1/live-baseline.json` SHA `aea46ce9a8c5bb12ec2aa71e1a29a2ee7cce966257491ab3853f218e7875cdab`，fingerprint `c206ebc2b2a4566a225863e8c1525749de12070983b24693c557ce24e1f1cb3e`。driver事务完成且报告104 articles/sources/publications/overrides/pool_search，analysis/receipts/job_runs/selection/fetch_runs=0，sources disabled/fulltext off；还须独立QA验证。
+SERVICES=PostgreSQL PID3652 loopback:5432；API PID18516 loopback:3001；Web PID19348 0.0.0.0:3000。local smoke基址192.168.3.47:3000。没有改防火墙；本机通过不证明其他设备可达。
+RECOVERY=Root于10月16日以正常`pg_ctl start`启动现有cluster，工具等待30秒超时返回，但postgres PID3652并未退出，持续执行fsync crash recovery，日志后续报告ready。根因未确定。此前某次policy refusal是历史事实，不是本次永久启动禁令；本次启动没有被policy拒绝，也不再要求用户重复启动。
+LAUNCHER=第一次同一launcher启动API后2秒即报“未绑定”；PID17276稍后确实绑定。已保存失败runtime和空stdout/stderr到`.data/fiscal-qa/lan-web-20261016/attempt1/`，只停止该次由我启动的API PID。脚本现在为API/Web分别等待最多30秒，并要求精确子进程拥有预期地址端口；PowerShell parse和preflight通过，第二次正常启动成功。
+POST_QA=报告`.data/fiscal-qa/preview40-root-postqa-20261016/current-health-safety.json` SHA `d20f5476ef8668022b3daa702a5641ed5167ef189e15861f1727fa603379ea71`，`PASS_CURRENT_HEALTH_AND_SQL_SAFETY`：/api/health DB ok，本机与192.168.3.47的/all均200；SQL articles/pool=104、body/unsafe publications/enabled sources/analyses/receipts/job_runs/selected ledger=0。独立详情检查40/40通过，但早先错误访问`/health`而非`/api/health`导致完整汇总文件未保存；两层证据分开记录。
+IN_PROGRESS=只需完成当前阶段STATUS/handoff文档提交；40条one-shot事务不重跑，不启动worker或采集。
+NEXT=推送本次STATUS/handoff更新；后续正文处理按新授权继续。跨设备LAN可达性尚未验证。
+SAFETY=40条保持bodyless、summary-only、unselected、score/reason NULL；不写analysis/receipt/jobs/provider结果。sources、全文、collector、model/provider、worker开关均关闭。
+GATE=Gate 2仍仅PASSED_FOR_BOUNDED_P4_PILOT；其他Gate、source全面准入、90日覆盖及Gold未通过。
+MODEL=requested Luna High；摘要review标注Luna-assisted，实际模型身份未独立核验。无应用provider调用不代表无native agent审阅；非Human Gold。
+HANDOFF=[10月16日服务恢复与40条导入检查点](HANDOFFS/BOUNDED_QA_SUMMARY_RECOVERY_2026-10-15.md)
 以下为此前检查点，数据/服务状态以本节及后续真实核验为准。
 
 ## 2026-10-14 当前检查点：离线正文修复与本地编辑预览导入
