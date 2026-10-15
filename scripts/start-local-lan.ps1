@@ -43,6 +43,18 @@ function Test-PortFree([int]$Port) {
   return $listeners.Count -eq 0
 }
 
+function Wait-ForOwnedListener($Process, [int]$Port, [string[]]$Addresses, [int]$TimeoutMs = 30000) {
+  $deadline = [DateTime]::UtcNow.AddMilliseconds($TimeoutMs)
+  do {
+    if ($Process.HasExited) { throw "Process $($Process.Id) exited during startup (code $($Process.ExitCode))." }
+    $listeners = @(Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue |
+      Where-Object { $_.OwningProcess -eq $Process.Id -and $_.LocalAddress -in $Addresses })
+    if ($listeners.Count -gt 0) { return $listeners }
+    Start-Sleep -Milliseconds 250
+  } while ([DateTime]::UtcNow -lt $deadline)
+  return @()
+}
+
 function Get-ExistingRuntimePids {
   if (-not (Test-Path -LiteralPath $statePath)) { return @() }
   try {
@@ -144,10 +156,9 @@ try {
   $apiProcess = Start-Process -FilePath $node -ArgumentList @('apps/api/src/main.ts') -WorkingDirectory $repoRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput $apiStdout -RedirectStandardError $apiStderr
   $state = [ordered]@{ startedAt = (Get-Date).ToString('o'); apiPid = $apiProcess.Id; webPid = $null; lanUrl = "http://${LanAddress}:3000"; apiBind = '127.0.0.1:3001'; webBind = '0.0.0.0:3000'; database = $databaseUrl }
   $state | ConvertTo-Json | Set-Content -LiteralPath $statePath -Encoding utf8
-  Start-Sleep -Seconds 2
-  if ($apiProcess.HasExited) { throw "API exited during startup (code $($apiProcess.ExitCode)); see $apiStderr" }
-  $apiListening = @(Get-NetTCPConnection -State Listen -LocalPort 3001 -ErrorAction SilentlyContinue | Where-Object { $_.LocalAddress -in @('127.0.0.1','::1') })
-  if ($apiListening.Count -eq 0) { throw "API did not bind loopback port 3001; inspect $apiStdout and $apiStderr before retrying." }
+  try { $apiListening = @(Wait-ForOwnedListener $apiProcess 3001 @('127.0.0.1','::1')) }
+  catch { throw "API startup failed: $($_.Exception.Message) See $apiStdout and $apiStderr." }
+  if ($apiListening.Count -eq 0) { throw "API did not own loopback port 3001 within 30 seconds; inspect $apiStdout and $apiStderr before retrying." }
 
   $webEnvironment = @{
     LOCAL_PREVIEW_ENABLED = 'true'
@@ -162,10 +173,9 @@ try {
   $webProcess = Start-Process -FilePath $node -ArgumentList @('apps/web/server.ts') -WorkingDirectory $repoRoot -WindowStyle Hidden -PassThru -RedirectStandardOutput $webStdout -RedirectStandardError $webStderr
   $state.webPid = $webProcess.Id
   $state | ConvertTo-Json | Set-Content -LiteralPath $statePath -Encoding utf8
-  Start-Sleep -Seconds 2
-  if ($webProcess.HasExited) { throw "Web exited during startup (code $($webProcess.ExitCode)); see $webStderr" }
-  $webListening = @(Get-NetTCPConnection -State Listen -LocalPort 3000 -ErrorAction SilentlyContinue | Where-Object { $_.LocalAddress -in @('0.0.0.0','::') })
-  if ($webListening.Count -eq 0) { throw "Web did not bind 0.0.0.0:3000; inspect $webStdout and $webStderr before retrying." }
+  try { $webListening = @(Wait-ForOwnedListener $webProcess 3000 @('0.0.0.0','::')) }
+  catch { throw "Web startup failed: $($_.Exception.Message) See $webStdout and $webStderr." }
+  if ($webListening.Count -eq 0) { throw "Web did not own 0.0.0.0:3000 within 30 seconds; inspect $webStdout and $webStderr before retrying." }
 
   [pscustomobject]@{
     started = $true
