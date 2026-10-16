@@ -1,5 +1,9 @@
 # P4–P7 执行与准入计划（2026-10-03）
 
+## 最新任务安排索引（2026-10-17）
+
+当前P3/P4/P5后续安排以[项目计划文首](PROJECT_PLAN.md)和[10月17日任务安排审查](HANDOFFS/NEXT_TASKS_REVIEW_2026-10-17.md)为准：A先在隔离`_test`库验证`p3-page-continuation.ts` execute正向路径（A独占该CLI、focused test和隔离运行证据），B并行配对两库pending证据且仅拥有自己的证据/正文处理scope，C独立QA并独占文档和Git操作。通过后才分别进入原cursor历史回填和grounded正文批，同一隔离库一批写入后须独立QA再开展下一批；不先扩来源数量。本文下方2026-10-09状态及更早内容是历史快照，保留供追溯，不代表本轮结论或当前执行进度。
+
 ## 当前恢复状态与可推进任务（2026-10-09）
 
 当前待交付 source/config SHA `6668c70da306473977eb55c3b6073be3d5fd535f`的fresh本地QA通过：`fiscalhot_zhejiang_finalqa_20261009_test`有35 migrations/61 tables；typecheck、backend 351/351、Web build、Web tests 15/15、浙江focus 5/5通过，P4 opt-in unset。该SHA的唯一GitHub Check run [37935221740](https://github.com/revercgy-hub/MYHOT/actions/runs/37935221740)已确认headSha精确匹配，Check job 113835474656与Docker job 113835474297均success，CI smoke通过。本机smoke未运行。来源目录48/42 strict opt-ins，全部disabled且全文关闭。Gate 2仍仅为[GATE_2_REVIEW.md](GATE_2_REVIEW.md)规定的三个来源逐篇合格文章边界，不代表全源准入、无人值守采集或Gate 3/4。

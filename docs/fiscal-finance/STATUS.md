@@ -1,5 +1,11 @@
 # 项目状态
 
+## 2026-10-17 后续任务安排审查（运行时只读检查；计划文档已更新）
+
+本轮对计划和Git基线做运行时只读检查，并更新本段及相关计划文档；不代表今日live采集库、preview、服务或cursor复核。计数引用2026-10-16已核快照：主隔离采集库442篇（375 `ok`、54 `pending`、13 `unconfirmed`）；独立分页隔离库129篇（全部`pending`）；preview库104篇。三库统计不合并。Gate 2仍为`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3–5未通过；没有因本次计划审查改变Gate或来源状态。
+
+后续安排见[项目计划](PROJECT_PLAN.md)及[任务安排交接](HANDOFFS/NEXT_TASKS_REVIEW_2026-10-17.md)：第一批A验证CLI隔离执行正向路径，B配对两库已保存证据，C独立QA并维护文档/Git；验收前不进入后续回填/正文批，也不先扩来源数量。当前Git基线为`24ac9e7`，文档提交后以Git读取为准。本轮未改代码/数据库、未发HTTP、未运行测试或服务。
+
 ## 2026-10-16 第2/3页续跑QA与本机服务恢复检查点
 
 CURRENT_BRANCH=feat/fiscal-finance-hot

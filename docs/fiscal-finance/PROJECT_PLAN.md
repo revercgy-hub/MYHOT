@@ -2,7 +2,23 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
+## 2026-10-17 当前任务安排
+
+本轮任务排序与依赖见[10月17日任务安排审查](HANDOFFS/NEXT_TASKS_REVIEW_2026-10-17.md)。本节取代下方10月08日旧检查点作为当前计划索引；旧检查点及更早日期段落是历史证据，不能作为今日日活核验。
+
+| 顺序/槽位 | 工作与依赖 | 退出条件 |
+|---|---|---|
+| 第一批 A：Luna High | 在 loopback `_test` 隔离库，用现有 collector 与固定 fixture 验证 `scripts/fiscal/p3-page-continuation.ts` execute 正向路径；不请求官方来源。A 独占该CLI、`tests/fiscal-page-continuation.test.ts` focused test 与隔离运行证据。 | 冻结正向 scope；验证 capture 解码、collector写入、cursor与manifest一致、queue保持unstarted，以及cap/锁/失败时非零退出。独立 QA 通过后才安排历史回填。 |
+| 第一批 B：Luna High | 与 A 并行，分别审计主库54条 `pending` 与分页隔离库129条 `pending`，逐项配对完整已存 raw；13条 `unconfirmed`保留hold，不盲目重试。B仅拥有自己的证据矩阵与grounded正文处理scope。 | 两库分列；每项记录证据路径、URL、title、date、hash、身份判断和明确下一动作；无缓存证据就说明缺口，不造新框架。独立 QA 通过后才安排grounded正文批。 |
+| 第一批 C：Luna High | 独立 QA A/B 产物并整理文档；独占所有计划/交接文档和Git提交操作权。Lead只处理S1、Gate与冲突裁定。 | 关键断言独立复核、文档索引一致；按实际改动做必要检查，不重复已有全套QA。第一批通过后，A按原cursor范围做历史回填，B做有证据支撑的正文批；不先扩来源数量。 |
+
+同一隔离数据库的写入串行执行：一批写入完成并经独立 QA 后才开始下一批。A向分页隔离库做历史回填时，B可处理主库或做离线工作；若B要处理分页库129篇正文，必须与A错开，并遵循“同库一批写入→独立QA→下一批”，避免写入和验收基线相互漂移。
+
+P4故障用例已有10月09日记录；不得按10月08日旧表重复补做。`scripts/eval-selection.ts`通用评测工具已存在，P4/P5当前仅准备已有工具与候选DRAFT。真实provider调用仍按用户决定deferred，Human Gold需人工确认；这些不阻挡上述离线验证与证据整理。项目计数以10月16日已核快照分库记录，非10月17日live核验。Gate 2维持`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3–5未通过，来源开关状态未由本计划审查改变。
+
 ## 2026-10-08 连续 P3 当前检查点
+
+**历史检查点；不作为2026-10-17当前状态。**
 
 代码SHA `edd0644ddcdee42de03eb21ad4704108f08000a5`的46项来源（45 HTML、1 JSON）中，exact strict body-ready opt-in共40项：35个地方局ID与5个中央/核心ID。全部source保持disabled且站内/转发全文关闭，没有seed到preview或production。fresh 35-migration本机QA：typecheck、backend 310/310、Web build、Web tests15/15、loopback smoke通过；同SHA GitHub Check+Docker run [37709884742](https://github.com/revercgy-hub/MYHOT/actions/runs/37709884742)成功。Xiamen finance debt实际配置helper返回`identity_missing`且无body，strict hold为true；既有205字符历史假正文未改。新保存的两份current-list snapshot只作为有限页面观察，不证明历史覆盖或source pass。详细软件QA、失败历史和边界见[连续P3交接](HANDOFFS/CONTINUOUS_P3_HANDOFF_2026-10-07.md)。正式审查裁定Gate 2=`PASSED_FOR_BOUNDED_P4_PILOT`：仅允许三个指定核心来源中逐篇核验合格文章的小样验证，详见[Gate 2正式审查](GATE_2_REVIEW.md)。这不构成全量source admission或无人值守采集授权。用户明确浙江首期主栏目为“监管工作”，图片新闻后续补充。
 

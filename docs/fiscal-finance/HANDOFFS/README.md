@@ -1,8 +1,14 @@
 # 阶段任务交接制度
 
+## 2026-10-17 最新任务索引
+
+最新计划审查为[2026-10-17 后续任务安排](NEXT_TASKS_REVIEW_2026-10-17.md)：第一批A验证分页CLI execute正向路径（仅loopback `_test`/fixture），B并行完成主库与分页隔离库pending证据配对，C独立QA、更新文档并担任唯一Git操作者。A/B通过后再分别按既有cursor范围回填历史、按缓存证据开展正文批；不先扩来源数量。项目数据以10月16日已核分库快照为准，并非10月17日live状态。最新技术检查点仍是[10月16日正文与分页续跑QA](P3_BODY_AND_PAGINATION_CONTINUATION_2026-10-16.md)；此前交接按各自时间点保留。
+
 ## 最新阶段状态
 
-最新检查点为[2026-10-13全目录48源单页巡检](CATALOG_SWEEP_2026-10-13.md)：fresh隔离库一次完成48/48来源单页collector，88次HTTP dispatch，499 found/413 stored；28 body `ok`、378 pending、7 unconfirmed。整体manifest及两项violations原样保留；精确cancelled 28个意外`content.analyze` jobs，378个extract jobs未消费。独立QA通过raw/parser/SQL/config恢复与队列核对。此前六库425条与本轮413条有394 URL交集，合计838条/444 distinct URL；local preview59条仍独立。所有source仍disabled/fulltext-off，无source admission或Gate变化。
+最新已核技术检查点为[2026-10-16正文与分页续跑QA](P3_BODY_AND_PAGINATION_CONTINUATION_2026-10-16.md)：主隔离采集库442篇（375 `ok`、54 `pending`、13 `unconfirmed`）；另一分页隔离库129篇且均为pending；preview库104篇，三组计数互不相加。四源第2/3页补充raw QA通过，coverage仍unproven；天津日期冲突保持hold。状态仅代表各报告所记时点，不是今日live复核。后续任务与依赖见[2026-10-17任务安排](NEXT_TASKS_REVIEW_2026-10-17.md)。
+
+以下[2026-10-13全目录48源单页巡检](CATALOG_SWEEP_2026-10-13.md)及更早检查点均为历史记录：fresh隔离库48/48来源单页collector、88次HTTP dispatch、499 found/413 stored；28 body `ok`、378 pending、7 unconfirmed。整体manifest及两项violations原样保留；精确cancelled 28个意外`content.analyze` jobs，378个extract jobs未消费。此前六库425条与该轮413条有394 URL交集，合计838条/444 distinct URL；当时local preview59条独立。该历史快照不覆盖10月16日分库状态。所有source仍disabled/fulltext-off，无source admission或Gate变化。
 
 较早的福建运行记录见[2026-10-12福建两页有界collector实际运行](FUJIAN_BOUNDED_PAGINATION_2026-10-12.md)：一次fresh 35-migration隔离运行请求两页列表2/12次、均200/EOF；离线独立复核20候选中17条窗口内新建，3条窗外未入库。17篇正文仍pending、17个extract job未消费；`partial=true`、coverage unproven、source disabled且全文关闭。QA也确认`rowsOutsideWindow` metadata计数漏记3条的原因，以及标题关键词检查仅为启发式提示。Gate与source admission不变。当前状态见[STATUS](../STATUS.md)、来源细节见[来源矩阵](../SOURCE_MATRIX.md)和[区域覆盖矩阵](../REGIONAL_BUREAU_COVERAGE_MATRIX.md)。
 
