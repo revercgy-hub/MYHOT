@@ -2,9 +2,19 @@
 
 ## 2026-10-16 当前核验增量
 
-隔离主采集库现为442篇：373 ok、57 pending、12 unconfirmed。GovCN固定文章 ifxp3rg71sg6grhlply3qkkeg 经人工复核的PDF附件正文resolution写入rev2并经独立只读SQL QA；原附件解析失败provenance保留，不推广为通用附件放行规则，来源仍disabled。
+隔离主采集库现为442篇：375 ok、54 pending、13 unconfirmed、786 revisions、315 publications。GovCN固定文章 ifxp3rg71sg6grhlply3qkkeg 经人工复核的PDF附件正文resolution写入rev2并经独立只读SQL QA；本轮山东文章`wmlrrnb42kids842rgml54xa6`另经一次单条manual short-body resolution写入rev2/ok，并由独立post SQL QA核验；原附件/短正文失败原因均留在各自provenance，不推广为通用放行规则，来源仍disabled。
 
-广西、海南、重庆、四川各抓取列表第0/1页，每页10条、每源20条列表项，独立分页测试库共80条全部pending、80个正文抽取job未消费；四源disabled、全文关闭、cursor到page index 2、coverage=unproven。8份原始响应哈希/EOF及单页候选复算通过；页面审计字段sourceId为空，独立QA按响应URL映射复核。此证据不代表栏目准入、90日或整栏覆盖。独立复核报告 `.data/fiscal-qa/qa-luna-expansion-followup-20261016/html-four-and-pagination-audit.json`。
+### 地方局来源第2/3页续跑
+
+广西、海南、重庆、四川在既有page0/1基础上，各请求第2/3页一次，共8个同域列表GET；均HTTP200，实测最小dispatch间隔1101.361ms。保存响应均为gzip；原execution manifest的pageAudits误以压缩wire body运行HTML解析，故candidateCount=0，该字段保留为历史执行报告，不作为真实候选计数。独立QA按header解压8份新raw，并一并复放此前page0/1 raw：每页当前selector找到10项，新页间重复0、与旧80个material identity重叠0。按现有三个月cutoff，广西9、海南7、重庆0、四川15条超窗口，合计31；其余49条位于该有界窗口内。执行found=80、created=49、revised=0；四源正文/历史页并非80条全部去重写入。独立fresh库80→129篇、四源fetch run各增加1且均ok，129条body仍pending、extract-body job保持created；source disabled、站内/转发全文关闭。cursor至index4、coverage仍unproven。第2/3页交接与raw解析补充QA见[续跑独立QA](HANDOFFS/P3_BODY_AND_PAGINATION_CONTINUATION_2026-10-16.md)；不构成90日覆盖或source admission。
+
+正文v1冻结scope于执行前因non-target摘要fingerprint不匹配而停止，0 HTTP，旧baseline未改。随后Root批准独立v2 scope和完整19列438行投影baseline：scope SHA `88000ed26b91c61b1f07435ecd35a42788537b104e425f93bdcb380bbe7abd28`、baseline SHA `c846e42048631b3ce0e50b18e0ea4a160b3425079930186e1b66dc716b5f7f4c`，投影读回与SHA `d717788c8d27022c59c0d1c0b24485bf18ed48ff6db7b0234b4bc342dde427e4`一致。本轮顺序实际为天津三年行动`qhvo…`、天津内控`tatd…`、山东非税`wml…`；scope candidate数组将山东ID列在首位，但没有显式跨来源sourceOrder字段，执行按每源first-non-ok停源，来源内天津次序保持qhvo→tatd→oa。独立gzip raw重放与SQL核实：qhvo抽取成功、2071字、rev2；tatd因`identity_mismatch`停止天津后续，oa未请求；wml因`short_body_not_allowed`为unconfirmed。共3/10 GET，0 retry/redirect/reject/domain violation，间隔≥1295.428ms。target jobs及全局427 jobs不变，来源配置/cursor恢复，48来源均关闭，downstream全0，新增publication保持summary-only且未eligible/selected/indexable。v2前后438篇non-target SHA均为`d717788…`。独立复核报告 `.data/fiscal-qa/qa-luna-expansion-followup-20261016/body-v2-independent-qa.json` SHA `3a25036f8c216ed955af616fba65c08b132252fc0ca1f9d24ce89dc5f28a1281`；原v1与旧冻结摘要差异原因仍未知，不推断v1范围历史上无变更。
+
+广西、海南、重庆、四川各抓取列表第0/1页，是较早一轮历史快照：每页10条、每源20条列表项，该时点独立分页测试库共80条pending、80个正文抽取job未消费、cursor到page index 2。其后page2/3续跑使同一隔离库增至129条；当前129条均pending且extract-body jobs仍created，cursor至index 4、coverage=unproven。四源disabled、全文关闭。原始响应哈希/EOF和候选复算由独立QA核验；早期page0/1报告见`.data/fiscal-qa/qa-luna-expansion-followup-20261016/html-four-and-pagination-audit.json`。该历史快照与当前状态不可相加，也不代表栏目准入、90日或整栏覆盖。
+
+### Guarded pagination continuation CLI verification
+
+代码提交`0c72992fa4f720a22e7d93c5f19dbb187e84dcd2`加入受限分页续跑CLI和5项focused测试。focused test 5/5通过；执行Agent完成typecheck与真实只读plan，Lead审阅了结果。本轮在fresh `fiscal_page_cli_final_20261016_test`完成35 migrations及backend suite 401/401、0失败。CLI拒绝/plan路径已验证；真实execute happy path未验收，不能视为正式采集工具已放开。既有四源page2/3数据执行与CLI代码验收是不同证据。
 
 ## 2026-10-14 正文修复与手工复核增量
 

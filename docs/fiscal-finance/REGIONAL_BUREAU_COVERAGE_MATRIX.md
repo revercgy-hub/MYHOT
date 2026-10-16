@@ -1,5 +1,17 @@
 # 财政部地方监管局新闻栏目覆盖矩阵
 
+## 2026-10-16 四源继续到第2/3页（fresh隔离库）
+
+广西、海南、重庆、四川在既有page0/1之后分别请求列表page2、page3，共8次同域GET，8/8 HTTP200，实际最小请求间隔1101.361ms。原始gzip wire文件hash/EOF匹配manifest；独立QA用记录的`content-encoding:gzip`解压，并按当前source selector离线解析，每页10条，共80项。四源各自page2与page3之间无URL重复，新页相对之前page0/1共80个身份也无重叠。按当前冻结cutoff，旧于cutoff的候选为广西9、海南7、重庆0、四川15，合计31；执行新建49、revised0，不能把31条窗口外项写成去重命中。
+
+该独立库从80条增至129条，新增四个成功fetch run；129条正文均`pending`且129个extract-body jobs仍`created`未消费。四源保持disabled、全文关闭。cursor从page index 2续到4、pagesCommitted由2到4，coverage仍`unproven`；这只增加有限两页观察，不证明90日完整、历史终点、source准入或栏目质量。
+
+原execution manifest的`pageAudits`因把gzip压缩wire直接送入HTML selector而记0候选；原manifest保留不改。补充独立QA使用现有`p3-content-encoding.ts`、当前`fromHtml`和`identityKeyForUrl`离线复核，共16份既有/新增raw，报告 `.data/fiscal-qa/qa-luna-expansion-followup-20261016/pagination-independent-qa.json` SHA-256 `381b1d608da651a4fede3db66d074b1abf25736c8085f495d964547174da3c40`。详见[第2/3页续跑handoff](HANDOFFS/P3_BODY_AND_PAGINATION_CONTINUATION_2026-10-16.md)。
+
+### 受限分页续跑CLI的代码验证边界
+
+代码提交`0c72992fa4f720a22e7d93c5f19dbb187e84dcd2`增加loopback `_test`数据库约束、冻结source/page候选范围、redirect/interval admission、CAS以及失败关闭路径。focused测试5/5通过；执行Agent完成typecheck与只读plan，Lead审阅了结果。fresh隔离库backend suite 401/401通过。已验证plan/rejection，不代表真实execute happy path已验收；四源第2/3页采集发生在该CLI正式执行验收之前，不能用作CLI运行证明。后续若执行须有单独审核的冻结scope和明确授权，coverage仍unproven。
+
 ## 2026-10-16 四源有界分页实测（fresh隔离库）
 
 广西、海南、重庆、四川分别请求列表第0页和第1页，共8次HTTP 200 GET；原始8个gzip响应完整、hash匹配，按当前目录选择器复算每页10项，每源20个唯一URL、跨页无重叠。隔离库写入80条metadata文章，全部 body_status=pending，80个 content.extract-body 任务保持 created 未消费；4条fetch run均为ok，每源pagesCommitted=2、nextPageIndex=2、coverage=unproven。source均disabled且全文关闭；没有详情正文请求、精选、publication、分析或worker动作。请求最小间隔1003ms，符合冻结的≥1000ms。原manifest逐页pageAudit因sourceId映射为空未填充，本次独立QA按response origin/path读取8份raw重算。此观察不证明90日/整栏覆盖或source准入；80条位于独立测试库，不并入主采集库。证据：`.data/fiscal-qa/regional-pagination4-20261016/evidence/manifest.json` SHA `EFC9A832132E7EC5424D0DA0056A03180290D70A4CCD0C09B0C93263CB378CD0`；独立QA `.data/fiscal-qa/qa-luna-expansion-followup-20261016/html-four-and-pagination-audit.json`。

@@ -1,5 +1,26 @@
 # 项目状态
 
+## 2026-10-16 第2/3页续跑QA与本机服务恢复检查点
+
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_SHA=0c72992fa4f720a22e7d93c5f19dbb187e84dcd2（2026-10-16本轮分页CLI代码提交；后续仅文档提交）
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+WORKSPACE=D:\AI-work\MYHOT\AIHOT
+STAGE=P3正文与bounded分页逐项核验；本次分页仅推进四个来源的有限已保存页，不推进来源准入或Gate
+REVIEW=分页gzip raw、候选身份/窗口、正文v2及WML单篇manual resolution均完成独立QA；source admission与Gate不变。
+COMPLETED=既有API/Web/PG已恢复并只读健康确认；四源page2/3独立raw/SQL QA通过；WML单篇manual事务完成并独立post SQL QA通过；分页CLI plan/rejection测试及full backend QA完成。
+SERVICES=既有cluster经pg_ctl正常启动并完成unclean-shutdown WAL recovery；pg_isready ready。API PID22416监听127.0.0.1:3001，/api/health为200/db ok；Web PID12356监听0.0.0.0:3000。LAN IP 192.168.3.47 的/all同机直连200、带noindex；PowerShell默认代理访问产生502，curl显式绕过客户端代理直连后为200。没有改防火墙/系统配置或启动worker。
+RECOVERY=启动等待30秒时仍有持续fsync，pg_ctl返回但进程继续；日志显示数据库此前未正常关闭，之后WAL redo、recovery checkpoint完成且ready。OS LastBootUpTime为2026-10-15 01:32:55，与数据库停止原因没有可证实因果。旧日志最后正常记录为10月16日18:07:36 checkpoint complete；之后无有序shutdown记录。停机根因未知。
+PAGINATION=广西/海南/重庆/四川在独立`fiscal_pagination4_20261016_test`中各续跑page index 2/3：8/8 GET HTTP200，最小实际间隔1101.361ms，0 rejected/retry/redirect。对8个新gzip响应及此前8个页面raw解压后用当前fromHtml/identity逻辑独立复核，每页10项；新页间重复0、对原page0/1的80个material identity重叠0。四源共found80，49条在当前窗口内新建、31条超cutoff（9/7/0/15），revise0；文章80→129，fetch run 4→8，129篇body pending、129个extract job created未消费。cursor index4/pagesCommitted4/coverage=unproven；source disabled/fulltext-off。独立复核 `.data/fiscal-qa/qa-luna-expansion-followup-20261016/pagination-independent-qa.json` SHA `381b1d608da651a4fede3db66d074b1abf25736c8085f495d964547174da3c40`。原manifest的pageAudits因错误解析gzip wire保持candidateCount0，未篡改；该有限分页不证明90日或整栏覆盖。
+BODY=旧v1冻结scope因438篇non-target摘要SHA由历史baseline `8a540299bf0b0be01f73933de221f8e82374459f92efe4e73642d9e863524401`变为`d717788c8d27022c59c0d1c0b24485bf18ed48ff6db7b0234b4bc342dde427e4`而停止，0 HTTP；差异原因仍未知，旧scope保留。Root随后批准独立v2完整19列438行基线；正文v2三次同域HTML GET、最小间隔1295.428ms，qhvo抽取2071字、rev2/body ok；tatd因`identity_mismatch`停止该源，oa1未请求；wml因`short_body_not_allowed`先为unconfirmed。其后Root审阅单篇manual proposal并授权一次提交：wml经existing serializable CAS事务更新至rev2/ok，保存正文为selector parser原文178字；159字可见DOM归一文本及空白变换另存为provenance，未调整200字阈值。独立post SQL核实通过：主库442篇，375 ok/54 pending/13 unconfirmed，786 revisions/315 publications；441篇non-target投影hash `e7906d2b2f153401b3cf9d98e0114d0bfcc16de7866d201e4c10b26f1325d692`不变，global 427 jobs SHA `f388f62e0febf38601f185015ab1fa612b02d06ade34974c200171625315b038`不变，source config/cursor与selection/ledger不变，48 source flags全false，summary publication仍不可选/索引/转发，下游为0。QA `.data/fiscal-qa/pending-audit-20261016/html-business-four-v2/manual-wml-short-v2/post-commit-independent-qa.json` SHA `3515755643b3c492325f7bf2169d16a94224f35527218463f92ae3912f026e7b`。
+COLLECTOR=主隔离采集库442篇：375 ok、54 pending、13 unconfirmed、786 revisions、315 publications。正文v2 HTTP前为373/57/12，HTTP后、WML单篇manual前为374/54/14；独立分页实验库129条不与主库相加。
+SOFTWARE_QA=本轮提交分页CLI与5项测试后，在新`fiscal_page_cli_final_20261016_test`库完成35 migrations及完整backend suite 401/401、0失败，exit 0；日志SHA `fb62df3aa8105a6b5cc4a2f3b92d9d5356a23abd44a6dec5f553a4d492682f95`。suite运行时fixture文件时间戳19:07:18、进程于19:07:26启动；suite后又在当前代码状态focused 5/5通过。执行Agent完成typecheck和真实只读plan，Lead审阅了结果。CLI rejection/plan路径已验证；真实执行happy path未验证，不作正式分页采集交付。前两次runner尝试仅在pre-spawn断言停止，未迁移/未启动测试，不计失败。Web17/17与build沿用此前结果，应用/Web代码未变。本轮另做健康检查、raw QA及只读SQL。
+BLOCKERS=天津`tatd…`详情页日期2026-10-09与DB/列表日期2026-10-08冲突，继续保持unconfirmed日期hold，不重抓；oa1仍因同源首个非ok而未请求。优先用已保存证据评估其他54条pending与分页隔离库129条正文候选，不启动worker。分页CLI仍缺真实执行happy-path验证；本次仅通过候选范围/拒绝/plan路径，不等于新collector执行验收。旧v1 fingerprint差异根因未查明，不把v2稳定性追认为v1无变化。原分页manifest gzip pageAudits为0候选的缺陷仍以补充raw QA解释，manifest未改。
+NEXT=保留48 sources disabled/fulltext-off与Gate不变；tatd日期冲突继续hold，不补抓；优先逐项评估其他pending及分页129篇的已保存证据。分页CLI真实执行须另有reviewed scope与明确授权；当前2/3页样本不证明90日完整。保留上一批四HTML `750ms configured / 294ms observed`节奏违规历史。
+GATE=Gate 2仍`PASSED_FOR_BOUNDED_P4_PILOT`；Gate 3—5未通过，48项来源保持disabled/fulltext-off。
+MODEL=requested Luna High；本轮不调用项目模型/provider；内容非Human Gold。
+HANDOFF=[P3正文冻结检查与地方局第2/3页独立QA交接](HANDOFFS/P3_BODY_AND_PAGINATION_CONTINUATION_2026-10-16.md)
+
 ## 2026-10-16 验收收尾与采集余额检查点
 
 CURRENT_BRANCH=feat/fiscal-finance-hot
