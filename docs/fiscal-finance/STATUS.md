@@ -7,7 +7,7 @@ CURRENT_BRANCH=feat/fiscal-finance-hot
 CURRENT_SHA=227daafa492bb25064fde3cec293c14e4042b97d（代码提交；docs提交完成后以Git实际HEAD为当前SHA）
 CURRENT_CODE_SHA=227daafa492bb25064fde3cec293c14e4042b97d（本地软件QA按下述各自范围对应，不表示Gate 3–5验收）
 CLI_FILE_SHA256=6DAC5C91D5EDC86076E2D025EE8E9CB1D9DC15D9683154FAE980E85BED2ACB2A
-TEST_FILE_SHA256=BE4182200AAB7ED96E55B133E9F7B237C794B5CD7DCA6615DBE2DF54C9B2D6A9
+TEST_FILE_SHA256=34801B5DD1A74FA6B2E713492534B116DA4D88C88E1E9097F5371D36409A0455
 HELPER_FILE_SHA256=DFFFFCC8B9D998D4C610FB961BE510BC3F4C5BFF712D2D3F050E7DDD99C0CA76
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 ROUND_BASE_SHA=b079b29ac2c15f83502f79f50c3d5d95065677a5
@@ -18,8 +18,10 @@ REVIEW=Root已审阅并批准变更范围；Gate 3–5未验收
 BLOCKERS=领域labeler确认100条候选decision/eventGroup/split；实际NAS Staging target/网络/存储/备份/secret注入信息；API/Web health和smoke NOT_RUN（启动命令被执行策略拒绝）
 COMPLETED=批准scope page4/5真实列表批次独立QA PASS；Gold100 metadata-only DRAFT及独立QA；fresh backend 402项（401 pass/1 skip）、typecheck、隔离Web build和Web17/17；测试guard负向及fresh正向focused证明
 IN_PROGRESS=候选人工审阅与NAS参数等待用户回复；T1.5/T2质量、真实provider及90日coverage仍缺证
-NEXT=Root完成两次分组commit并一次push后核对remote/CI；获得人工labels与NAS目标后单独推进相应Gate验收
+NEXT=取得人工labels与NAS目标后单独推进对应Gate验收；Gate 3–5继续维持未通过，直至外部证据满足退出条件
 ```
+
+CI_HISTORY=GitHub Check run 39057725549（tested head `4f1017f8cfa2d0a287069f3f7c9650e32a66f3b4`）backend tests失败1项：CLI测试假设忽略目录`.data/fiscal-qa`已存在，fresh checkout首次mkdir子目录时报ENOENT。修复只在测试setup先递归创建QA_DATA_DIR，再用`recursive:false`创建PID唯一子目录；旧失败保留，未追认为通过。新run的准确tested SHA和状态见本轮交接/ignored CI状态记录。
 
 当前Gate 2仍为`PASSED_FOR_BOUNDED_P4_PILOT`；Gate 3、4、5均未通过。Gate 3仍缺领域人员确认的Gold标签、事件组/分割及真实provider质量证据；Gate 4仍缺25–35个高质量来源、可靠的90日覆盖证据和页面验收；Gate 5仍缺实际NAS Staging目标、稳定运行/恢复及备份演练。人工审阅候选扩为100条metadata-only DRAFT、0 confirmed，7篇旧样本可读且1篇附件失败hold不入评测；该批100条sourceTier全为T1，不是Gold或质量校准结论（见[P5 readiness](P5_GOLD_DATASET_READINESS.md)）。付费route/OCR按用户决定继续延期。
 

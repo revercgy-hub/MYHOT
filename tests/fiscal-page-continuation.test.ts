@@ -112,6 +112,7 @@ test("CLI exits nonzero for stale scope, wrong DB URL, and existing lock or clai
   fixtureHits = 0;
   const base = path.resolve(QA_DATA_DIR, `page-continuation-cli-test-${process.pid}`);
   assert.equal(path.relative(QA_DATA_DIR, base), `page-continuation-cli-test-${process.pid}`);
+  mkdirSync(QA_DATA_DIR, { recursive: true });
   mkdirSync(base, { recursive: false });
   const lockDir = path.join(REPO_ROOT, ".data", "fiscal-qa", "locks");
   mkdirSync(lockDir, { recursive: true });
