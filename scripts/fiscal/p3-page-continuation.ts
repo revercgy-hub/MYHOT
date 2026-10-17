@@ -521,9 +521,10 @@ async function executeScope(scopePath: string, expectedSha: string, outDirPath: 
       await queue.stopBoss().catch(() => {});
       const afterSnapshot = await readBaseline(sql, scope.sourceIds);
       after = afterSnapshot.counts;
-      queueJobs = await sql`SELECT j.name,j.state,j.started_on,a.source_id,count(*)::int AS count
+      const [jobTable] = await sql`SELECT to_regclass('pgboss.job') IS NOT NULL AS present`;
+      queueJobs = jobTable.present ? await sql`SELECT j.name,j.state,j.started_on,a.source_id,count(*)::int AS count
         FROM pgboss.job j LEFT JOIN articles a ON a.id=j.data->>'articleId'
-        WHERE a.source_id=ANY(${scope.sourceIds}) GROUP BY j.name,j.state,j.started_on,a.source_id ORDER BY a.source_id,j.name,j.state`;
+        WHERE a.source_id=ANY(${scope.sourceIds}) GROUP BY j.name,j.state,j.started_on,a.source_id ORDER BY a.source_id,j.name,j.state` : [];
     } catch (error) {
       failure = error instanceof Error ? error.message : String(error);
       activeSource = null;

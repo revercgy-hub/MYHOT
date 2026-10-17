@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import http from "node:http";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { after, before, test } from "node:test";
 import {
   assertLoopbackTestDatabase,
@@ -13,6 +14,8 @@ import {
   type PaginationContinuationScope,
 } from "../scripts/fiscal/p3-page-continuation.ts";
 import { sha256 } from "../packages/backend/src/lib/ids.ts";
+import { gunzipSync } from "node:zlib";
+/// <reference path="./helpers/fiscal-page-continuation-transport-preload.ts" />
 
 let fixtureHits = 0;
 let fixturePort = 0;
@@ -32,6 +35,7 @@ after(async () => {
 const REPO_ROOT = path.resolve(import.meta.dirname, "..");
 const QA_DATA_DIR = path.resolve(REPO_ROOT, ".data", "fiscal-qa");
 const CLI_PATH = path.join(REPO_ROOT, "scripts", "fiscal", "p3-page-continuation.ts");
+const TRANSPORT_PRELOAD_PATH = path.join(REPO_ROOT, "tests", "helpers", "fiscal-page-continuation-transport-preload.ts");
 
 function scopeFixture(databaseName = "fiscal_test"): PaginationContinuationScope {
   const listUrl = "https://fixture.example/dir/";
@@ -168,5 +172,164 @@ test("CLI exits nonzero for stale scope, wrong DB URL, and existing lock or clai
     const resolvedBase = path.resolve(base);
     assert.ok(resolvedBase.startsWith(`${QA_DATA_DIR}${path.sep}`), "recursive test cleanup must stay inside repo .data/fiscal-qa");
     rmSync(resolvedBase, { recursive: true });
+  }
+});
+
+test("execute captures and decodes fixed gzip pages, commits through the collector, and leaves jobs unstarted",
+  { skip: !process.env.P3_PAGE_CONTINUATION_TEST_DATABASE_URL }, async () => {
+  const databaseUrl = process.env.P3_PAGE_CONTINUATION_TEST_DATABASE_URL ?? "";
+  const databaseIdentity = assertLoopbackTestDatabase(databaseUrl);
+  assert.equal(databaseIdentity.name.endsWith("_test"), true);
+  process.env.DATABASE_URL = databaseUrl;
+  process.env.P3_TEST_DATABASE_URL = databaseUrl;
+  const { sql, closeDb } = await import("../packages/backend/src/db.ts");
+  const { newWebListBackfillCursor } = await import("../packages/backend/src/sources/web-list-pagination.ts");
+  try {
+    const [{ count: migrationCount }] = await sql<{ count: number }[]>`SELECT count(*)::int AS count FROM schema_migrations`;
+    const [{ count: sourceCount }] = await sql<{ count: number }[]>`SELECT count(*)::int AS count FROM sources`;
+    const [{ count: articleCount }] = await sql<{ count: number }[]>`SELECT count(*)::int AS count FROM articles`;
+    const [{ present: hasPgBossJobs }] = await sql<{ present: boolean }[]>`SELECT to_regclass('pgboss.job') IS NOT NULL AS present`;
+    const [{ count: jobCount }] = hasPgBossJobs
+      ? await sql<{ count: number }[]>`SELECT count(*)::int AS count FROM pgboss.job`
+      : [{ count: 0 }];
+    assert.equal(Number(migrationCount), 35, "execute runs only against the fresh 35-migration test database");
+    assert.equal(Number(sourceCount), 0, "use a fresh database; refuse to write when sources already exist");
+    assert.equal(Number(articleCount), 0, "use a fresh database; refuse to write when articles already exist");
+    assert.equal(Number(jobCount), 0, "use a fresh database; refuse to write when pgboss jobs already exist");
+  } catch (error) {
+    await closeDb();
+    throw error;
+  }
+
+  const evidenceRoot = path.resolve(process.env.P3_PAGE_CONTINUATION_EVIDENCE_DIR ??
+    path.join(QA_DATA_DIR, `page-continuation-execute-${process.pid}`));
+  assert.ok(evidenceRoot.startsWith(`${QA_DATA_DIR}${path.sep}`), "evidence must remain under .data/fiscal-qa");
+  mkdirSync(evidenceRoot, { recursive: false });
+  const sourceIds = [`p3-continuation-${process.pid}`, `p3-continuation-failure-${process.pid}`];
+  const listUrl = "https://fiscal-fixture.mof.gov.cn/dir/";
+  const config: Record<string, any> = {
+    url: listUrl,
+    allowUrlPrefixes: [listUrl],
+    itemSelector: "li",
+    linkSelector: "a",
+    titleSelector: "a",
+    publishedAtSelector: "time",
+    publishedAtUtcOffset: "+08:00",
+    pagination: { mode: "mof_index_v1", maxPagesPerRun: 2, maxDispatches: 12, maxPageIndex: 8 },
+    _aihot: { initialBackfillRequirePublishedAt: true },
+  };
+  const source = { id: sourceIds[0]!, name: "Synthetic pagination fixture", kind: "web_list" as const,
+    config, cursor: {} as Record<string, unknown> };
+  const sourceCursors = new Map(sourceIds.map((sourceId) => {
+    const newCursor = newWebListBackfillCursor(source as never);
+    return [sourceId, { webListBackfill: { ...newCursor,
+      nextPageIndex: 2, pagesCommitted: 2, lastPageFingerprint: "c".repeat(64), lastPageIdentityHashes: ["a".repeat(64)] } }];
+  }));
+  for (const sourceId of sourceIds) {
+    await sql`INSERT INTO sources (id, name, kind, config, tier, first_party, participation_mode, interval_minutes,
+      enabled, site_fulltext, syndicate_fulltext, cursor, next_fetch_at)
+      VALUES (${sourceId}, ${source.name}, 'web_list', ${sql.json(config)}, 'T1', false, 'editorial', 1440,
+        false, false, false, ${sql.json(sourceCursors.get(sourceId) as never)}, '2100-01-01')`;
+  }
+
+  const run = (args: string[], mode = "success") => {
+    const outDirIndex = args.indexOf("--out-dir");
+    const outDir = outDirIndex >= 0 ? args[outDirIndex + 1]! : "unknown-output";
+    const transportLogPath = path.join(evidenceRoot, `${path.basename(outDir)}-${mode}-transport.jsonl`);
+    return spawnSync(process.execPath,
+    ["--import", pathToFileURL(TRANSPORT_PRELOAD_PATH).href, CLI_PATH, ...args], {
+      cwd: REPO_ROOT, encoding: "utf8", timeout: 120_000, windowsHide: true,
+      env: { ...process.env, DATABASE_URL: databaseUrl, P3_TEST_DATABASE_URL: databaseUrl,
+        P3_CONTINUATION_TRANSPORT_LOG: transportLogPath,
+        P3_CONTINUATION_FIXTURE_MODE: mode, ALLOW_PRIVATE_NETWORK_FETCH: "false", COLLECT_ENABLED: "false",
+        MODEL_CALLS_ENABLED: "false", INDEXNOW_SUBMIT_ENABLED: "false", JINA_BODY_FALLBACK: "false" },
+    });
+  };
+  const freezeScope = (sourceId: string, prefix: string) => {
+    const planDir = path.join(evidenceRoot, `${prefix}-plan`);
+    const planned = run(["--database-url", databaseUrl, "--source-ids", sourceId, "--out-dir", planDir]);
+    assert.equal(planned.status, 0, planned.stderr || planned.stdout);
+    const plan = JSON.parse(planned.stdout) as { scopeSha256: string; scopePath: string };
+    const frozen = JSON.parse(readFileSync(plan.scopePath, "utf8"));
+    assert.equal(canonicalScopeSha256(frozen), plan.scopeSha256);
+    return { plan, frozen };
+  };
+
+  try {
+    const { plan, frozen } = freezeScope(sourceIds[0]!, "success");
+    const executionDir = path.join(evidenceRoot, "success-execution");
+    const executed = run(["--execute", "--scope", plan.scopePath, "--scope-sha", plan.scopeSha256,
+      "--out-dir", executionDir]);
+    assert.equal(executed.status, 0, executed.stderr || executed.stdout);
+    const manifest = JSON.parse(readFileSync(path.join(executionDir, "manifest.json"), "utf8")) as any;
+    assert.equal(manifest.result, "bounded_continuation_complete");
+    assert.deepEqual(manifest.scopeSha256, plan.scopeSha256);
+    assert.equal(manifest.failure, null);
+    assert.deepEqual(manifest.safetyViolations, []);
+    assert.deepEqual(manifest.responseCaptures.map((row: any) => [row.path, row.statusCode, row.headers["content-encoding"]]), [
+      ["/dir/index_2.htm", 200, "gzip"], ["/dir/index_3.htm", 200, "gzip"],
+    ]);
+    const transportLog = readFileSync(path.join(evidenceRoot, "success-execution-success-transport.jsonl"), "utf8")
+      .trim().split("\n").map((line) => JSON.parse(line));
+    assert.deepEqual(transportLog.map((row: any) => [row.origin, row.path, row.method]), [
+      ["https://fiscal-fixture.mof.gov.cn", "/dir/index_2.htm", "GET"], ["https://fiscal-fixture.mof.gov.cn", "/dir/index_3.htm", "GET"],
+    ], "all child-process HTTP dispatches are handled by the fixed fixture transport");
+    for (const capture of manifest.responseCaptures as Array<any>) {
+      const wire = readFileSync(path.join(executionDir, capture.rawFile));
+      assert.equal(sha256(wire), capture.sha256, "manifest hash matches the complete captured wire bytes");
+      assert.deepEqual([...wire.subarray(0, 2)], [0x1f, 0x8b], "capture stores compressed wire bytes");
+      assert.match(gunzipSync(wire).toString("utf8"), /Fixture fiscal update/u);
+    }
+    const sourceRun = manifest.sourceRuns[0];
+    assert.deepEqual([sourceRun.sourceId, sourceRun.result.status, sourceRun.result.created, sourceRun.dispatchesUsed,
+      sourceRun.cursorValid, sourceRun.flags.enabled, sourceRun.flags.siteFulltext, sourceRun.flags.syndicateFulltext],
+      [sourceIds[0], "ok", 2, 2, true, false, false, false]);
+    assert.deepEqual(manifest.pageAudits[0].pages.map((page: any) => [page.candidateCount, page.candidateUrls.length, page.auditError]), [
+      [1, 1, null], [1, 1, null],
+    ], "the executor decodes captured gzip before auditing parsed candidates");
+    assert.deepEqual(frozen.sources[0].pageIndices, [2, 3]);
+    const [persistedSource] = await sql<{ cursor: Record<string, any> }[]>`
+      SELECT id, cursor FROM sources WHERE id = ${sourceIds[0]}`;
+    assert.deepEqual([persistedSource.cursor.webListBackfill.nextPageIndex, persistedSource.cursor.webListBackfill.pagesCommitted,
+      persistedSource.cursor.webListBackfill.coverage], [4, 4, "unproven"]);
+    const articles = await sql<{ url: string; body_status: string; body_text: string | null }[]>`
+      SELECT url, body_status, body_text FROM articles WHERE source_id = ${sourceIds[0]} ORDER BY url`;
+    assert.equal(articles.length, 2);
+    assert.ok(articles.every((article) => article.body_status === "pending" && article.body_text === null));
+    assert.ok(manifest.queueJobs.length > 0);
+    assert.ok(manifest.queueJobs.every((job: any) => job.state === "created" && job.started_on === null));
+    assert.equal(manifest.queueJobs.reduce((count: number, job: any) => count + Number(job.count), 0), 2);
+    assert.equal(manifest.interpretation.workerStarted, false);
+    assert.equal(manifest.interpretation.jobsConsumed, false);
+
+    const { plan: failedPlan } = freezeScope(sourceIds[1]!, "transport-failure");
+    const failureDir = path.join(evidenceRoot, "transport-failure-execution");
+    const failed = run(["--execute", "--scope", failedPlan.scopePath, "--scope-sha", failedPlan.scopeSha256,
+      "--out-dir", failureDir], "failure");
+    assert.notEqual(failed.status, 0, "a failed source execution must return a nonzero exit status");
+    const failureManifest = JSON.parse(readFileSync(path.join(failureDir, "manifest.json"), "utf8")) as any;
+    assert.equal(failureManifest.result, "partial_or_failed");
+    assert.ok(failureManifest.responseCaptures.some((row: any) => row.statusCode === 503));
+    assert.ok(failureManifest.safetyViolations.includes("source_run_or_flags_violation"));
+    assert.ok(failureManifest.safetyViolations.includes("non_html_or_non_200_response"));
+    const [failedSource] = await sql<{ cursor: Record<string, any> }[]>`SELECT cursor FROM sources WHERE id = ${sourceIds[1]}`;
+    assert.equal(failedSource!.cursor.webListBackfill.nextPageIndex, 2, "failed page fetch does not advance the collector cursor");
+
+    writeFileSync(path.join(evidenceRoot, "fixture-assertions.json"), `${JSON.stringify({
+      database: databaseIdentity,
+      databaseUrlSha256: sha256(databaseUrl),
+      scopeSha256: plan.scopeSha256,
+      successExitCode: executed.status,
+      successArticles: articles.length,
+      successJobsCreatedUnstarted: manifest.queueJobs.reduce((count: number, job: any) => count + Number(job.count), 0),
+      successWireCaptures: manifest.responseCaptures.map((row: any) => ({ path: row.path, sha256: row.sha256, encoding: row.headers["content-encoding"] })),
+      failureExitCode: failed.status,
+      failureStatusCode: failureManifest.responseCaptures.find((row: any) => row.statusCode === 503)?.statusCode,
+      fixtureOnlyTransport: true,
+      controlledHttpDispatches: transportLog,
+      unmatchedNetworkEnabled: false,
+    }, null, 2)}\n`);
+  } finally {
+    await closeDb();
   }
 });
