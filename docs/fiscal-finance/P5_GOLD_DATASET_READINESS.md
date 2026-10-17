@@ -1,12 +1,26 @@
 # P5 Gold Dataset readiness（2026-10-03）
 
+## 2026-10-18 当前状态补充
+
+本页后续旧段落按各自日期保留。尤其是原始“Gate 2仍未通过”只代表2026-10-03时点；正式当前结论以[Gate 2 review](GATE_2_REVIEW.md)为准：`PASSED_FOR_BOUNDED_P4_PILOT`，不表示Gate 3通过。
+
+8条现有DRAFT中，7条有可读非空正文且通过身份与内容证据比对，另1条附件失败候选只有DOM观察、无正文/内容hash/canonical Article ID，继续作为hold，不加入可评测样本。7条分为4条中央政策/财政监管业务候选和3条内部活动噪声候选；都仍待人工标注，未确认选择、事件组或开发/留出划分。清单验证仍为`DRAFT_INCOMPLETE`（8 candidates、0 confirmed、8 pending、0 schema issues）。2026-10-18本地只读核验按article ID、URL、source ID、日期、content hash、body SHA和非空状态逐项匹配7篇；厦门养老财政监督候选的错误title已按source artifact及同ID数据库字段修正，before/after与证据定位见本地完整性报告。审阅包与正文仅保存在忽略目录`.data/fiscal-qa/p5-gold-review-20261018/review-packet.md`；不得将正文复制进Git。每例提供既有schema所需`humanAnnotation.confirmedBy/confirmedAt`、event group与split确认栏；这些是留空待标注，不是预填值。该7篇可启动人工审阅，但远少于100–200条评估目标，不能做质量/校准结论。
+
+`scripts/eval-selection.ts`及原有gold review packet validator继续作为现成工具；在真实人工labels、event groups、split确认落定前不运行评测，也不新建导入/评测框架。付费provider route及OCR维持用户延期决定。
+
+### 2026-10-18 100条分层候选更新
+
+本轮基于现有主隔离库只读快照生成了100条可供人工审阅的metadata-only候选，版本化清单为[`gold/candidates-2026-10-18.json`](gold/candidates-2026-10-18.json)，正文和本地review packet仍只在忽略目录`.data/fiscal-qa/gold-candidates-20261018/`。独立核验100个case/article/URL唯一、40个来源，100个body文本SHA与逐篇source snapshot一致，原8模板中7个可读正文候选均保持同article/hash/标题，附件失败hold被排除；validator为`DRAFT_INCOMPLETE`、0 issues、0 confirmed、100 pending。分层为financial-debt 31、regional-fiscal-supervision-business 34、internal-activity-noise 20、policy-and-institutional-updates 15；宽泛的政策与机构动态桶不表示其中每条都是中央材料，真正中央机构候选仅7条（mof-policy-release 4、mof-accounting-notices 2、mof-budget-work 1）。
+
+该次快照中100/100 sourceTier为T1；不能据此声称T1.5/T2门槛已校准、样本代表性已证明、8种ITEM_TYPES都已覆盖，或NFRA、中国政府网/未来来源覆盖完成。它不是Gold、development/holdout或评测集。正式Gold仍为0；领域人员尚未确认decision、eventGroup与split，真实provider评测未运行。`eval-selection.ts`及既有validator保留为后续人工完成后的工具，当前selection thresholds 60/65/76/floor50不变。
+
 ## 范围与结论
 
-P5目前仅完成元数据准备与离线校验工具，`P5=NOT_STARTED`、实际模型评测/校准=`NOT_RUN`、Gate 3未通过。Gate 2仍未通过；本工作不打开采集、worker、模型或OCR，不写业务数据库，不改来源配置、选择标准、提示词或真实阈值。
+P5正式人工标签、开发/留出集评测和校准仍`NOT_STARTED`，实际模型评测/校准=`NOT_RUN`、Gate 3未通过。Gate 2当前正式结论为`PASSED_FOR_BOUNDED_P4_PILOT`；下方旧文字中“Gate 2仍未通过”是本页2026-10-03历史时点，按页面首段所指的正式review更新。候选准备不打开采集、worker、模型或OCR，不写业务数据库，不改来源配置、选择标准、提示词或真实阈值。
 
 仓库已有 `docs/selection.md` 和 `scripts/eval-selection.ts` 规定的Gold JSONL合同：每行含`caseId`、`material`、`sourceFacts`、`samplingContext`及人工`gold.decision`，并带可评测正文；决定值为`select`、`reject`、`either`。示例`industry/gold.example.jsonl`明确是虚构示例，不能当作真实金标。新文件`gold/metadata-template.json`是有意标注为`p5.gold-metadata-draft/v1`的**准备清单**，沿用现有字段名/含义并补充证据引用、事件组、建议和确认状态；不复制受忽略目录中的正文，因此它不是`.data/gold.jsonl`，也不能直接传给`eval-selection.ts`。确认人工标签后仍需经单独授权的整理步骤，把正文填入既有合同并将人工决策映射到`gold.decision`。
 
-当前清单含8条可追溯候选，覆盖中央预算、福建监管、厦门监管业务、内部活动噪声和附件保护失败。8条`humanAnnotation`均为`decision=null/status=needs_review`；Luna建议独立存于`proposal`，任何候选判断都不被计作人工真值。事件组和开发/留出分配也都待人工确认，避免未经审阅的分组被误当成无泄漏划分。
+原`gold/metadata-template.json`仍含8条可追溯候选，覆盖中央预算、福建监管、厦门监管业务、内部活动噪声和附件保护失败；另有metadata-only 100候选清单供人工扩展审阅，详见本页2026-10-18最新段落及`gold/candidates-2026-10-18.json`。原8条及新100条`humanAnnotation`均为`decision=null/status=needs_review`；Luna建议独立存于`proposal`，任何候选判断都不被计作人工真值。事件组和开发/留出分配也都待人工确认，避免未经审阅的分组被误当成无泄漏划分。
 
 ## 候选及证据引用
 

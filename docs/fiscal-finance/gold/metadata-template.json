@@ -51,7 +51,7 @@
       "caseId": "fiscal-xiamen-elderly-budget-supervision-20260918",
       "eventGroupId": "event-xiamen-rural-elderly-supervision-2026",
       "eventGroupStatus": "needs_review",
-      "material": { "title": "财政部厦门监管局：深入推进人口老龄化背景下农村养老服务体系建设情况调研", "originalTitle": null, "publishedAt": "2026-09-18T00:00:00+08:00", "sourceName": "财政部厦门监管局·工作动态", "bodyZh": null, "bodyOriginal": null },
+      "material": { "title": "财政部厦门监管局：办公室组织开展厦门市农村养老保障情况专项调研", "originalTitle": null, "publishedAt": "2026-09-18T00:00:00+08:00", "sourceName": "财政部厦门监管局·工作动态", "bodyZh": null, "bodyOriginal": null },
       "sourceFacts": { "sourceKind": "web_list", "sourceTier": "T1", "firstParty": true, "language": "zh" },
       "samplingContext": { "benchmarkSplit": "holdout", "samplingStratum": "regional-supervision-business", "splitStatus": "needs_review" },
       "evidence": { "sourceArticleId": "zb3fipqqz448d9np18nmtbb5m", "sourceId": "mof-xiamen-supervision-dynamics", "url": "https://xm.mof.gov.cn/caizhengjiancha/202609/t20260918_3997727.htm", "sourceArtifact": ".data/fiscal-regional-batch-20260930/result.json#bodies[id=zb3fipqqz448d9np18nmtbb5m]", "contentHash": "12c24f121fa4032a814fe2051e16a5e550fd895b62010bd4d789db0e8e7825b2", "bodySha256": "7a8a5fd98f155ab3b38094114a4a0625f20ad1effa3838d1833f940b52769bd8", "bodyReference": "fiscalhot_regional_batch_test.articles:zb3fipqqz448d9np18nmtbb5m/body_text", "bodyStatus": "ok" },

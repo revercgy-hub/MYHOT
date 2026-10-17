@@ -1,5 +1,38 @@
 # 项目状态
 
+## 2026-10-18 Gate 3/4/5证据与运行时QA
+
+```text
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_SHA=227daafa492bb25064fde3cec293c14e4042b97d（代码提交；docs提交完成后以Git实际HEAD为当前SHA）
+CURRENT_CODE_SHA=227daafa492bb25064fde3cec293c14e4042b97d（本地软件QA按下述各自范围对应，不表示Gate 3–5验收）
+CLI_FILE_SHA256=6DAC5C91D5EDC86076E2D025EE8E9CB1D9DC15D9683154FAE980E85BED2ACB2A
+TEST_FILE_SHA256=BE4182200AAB7ED96E55B133E9F7B237C794B5CD7DCA6615DBE2DF54C9B2D6A9
+HELPER_FILE_SHA256=DFFFFCC8B9D998D4C610FB961BE510BC3F4C5BFF712D2D3F050E7DDD99C0CA76
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+ROUND_BASE_SHA=b079b29ac2c15f83502f79f50c3d5d95065677a5
+WORKSPACE=D:\AI-work\MYHOT\AIHOT
+STAGE=Gate 3–5本地证据复核；不代表P5评测、本地页面验收或NAS Staging
+GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5 NOT_PASSED
+REVIEW=Root已审阅并批准变更范围；Gate 3–5未验收
+BLOCKERS=领域labeler确认100条候选decision/eventGroup/split；实际NAS Staging target/网络/存储/备份/secret注入信息；API/Web health和smoke NOT_RUN（启动命令被执行策略拒绝）
+COMPLETED=批准scope page4/5真实列表批次独立QA PASS；Gold100 metadata-only DRAFT及独立QA；fresh backend 402项（401 pass/1 skip）、typecheck、隔离Web build和Web17/17；测试guard负向及fresh正向focused证明
+IN_PROGRESS=候选人工审阅与NAS参数等待用户回复；T1.5/T2质量、真实provider及90日coverage仍缺证
+NEXT=Root完成两次分组commit并一次push后核对remote/CI；获得人工labels与NAS目标后单独推进相应Gate验收
+```
+
+当前Gate 2仍为`PASSED_FOR_BOUNDED_P4_PILOT`；Gate 3、4、5均未通过。Gate 3仍缺领域人员确认的Gold标签、事件组/分割及真实provider质量证据；Gate 4仍缺25–35个高质量来源、可靠的90日覆盖证据和页面验收；Gate 5仍缺实际NAS Staging目标、稳定运行/恢复及备份演练。人工审阅候选扩为100条metadata-only DRAFT、0 confirmed，7篇旧样本可读且1篇附件失败hold不入评测；该批100条sourceTier全为T1，不是Gold或质量校准结论（见[P5 readiness](P5_GOLD_DATASET_READINESS.md)）。付费route/OCR按用户决定继续延期。
+
+本机既有PostgreSQL `.data/test-pg/cluster` 已通过一次正常`pg_ctl start`恢复，监听仅`127.0.0.1:5432`，`fiscalhot_preview_test`迁移35项、sources均disabled且全文关闭。运行时创建API/Web进程的命令在shell启动前被执行策略拒绝；没有另换工具绕过。故本轮API/Web健康和smoke为`NOT_RUN`。已有loopback启动说明见[P3 local preview](P3_LOCAL_PREVIEW.md)；当前机器没有`192.168.3.47`地址，不应运行LAN绑定launcher。
+
+B的一次获批福建正文GET已独立核验：target从pending到ok、非目标441篇文章/source config/cursor/queue哈希保持一致、下游新增0，target publication仍不可选/不可索引/不转发；唯一publication计数315→316变化属于目标同步。因写前未保存315条non-target publication逐行基线，本轮保留原`unexpected_global_count_change`失败，独立结论限定为`PASS_TARGET_AND_GUARD_EVIDENCE_WITH_PUBLICATION_BASELINE_GAP`，不追认全字段PASS，也不重复该正文操作。详情见[10/18 handoff](HANDOFFS/GATES_3_5_QA_2026-10-18.md)。
+
+截至2026-10-18最终QA，A经Root批准的隔离分页`fiscal_pagination4_20261016_test` page4/5批次已独立核验PASS：scope SHA `6734af062efb13fcf59b2f6245898c01a3d9c2b54c410dbfeae806f5ff5c3199`，8/8精确GET为200且gzip raw hash/EOF匹配、最小间隔1104.078ms；四源cursor 4→6，只有重庆新增16条metadata，旧129 articles/133 revisions/129 jobs及6 publications逐行投影均不变。四源仍disabled、全文关闭；145 jobs全部created且未started，models/downstream为0，coverage仍unproven。独立报告见`.data/fiscal-qa/page45-execute-20261018-approved/independent-qa-luna-final.json`。
+
+同一生产CLI SHA `6DAC5C…`的fresh backend完整suite为402项（401 pass、1 skipped、0 failed）；该全套是在仅测试文件增加fresh非空DB失败关闭guard之前运行。最终test SHA `BE418220…`在之后fresh focused 6/6和typecheck通过；负向复用非空库在preflight失败，before/after sources/articles/pgboss.job完整JSON hash均为`151713…DCBEE`，fresh库仍通过两页成功/503失败fixture。隔离Web build通过、Web tests 17/17使用的也是相同生产CLI SHA；隔离副本位于`.data/fiscal-qa/webbuild-gatesqa-20261018`。API/Web进程创建在shell启动前被执行策略拒绝，按既有指示未绕过；本机live health和smoke保持`NOT_RUN`。这些软件检查不等于来源质量、Gate 3或NAS验收。
+
+Gold人工审阅准备扩充为100条metadata-only DRAFT：40个唯一来源、100个唯一文章/URL、正文SHA及source snapshot逐项匹配；分层为financial-debt 31、regional-fiscal-supervision-business 34、internal-activity-noise 20、policy-and-institutional-updates 15。来源等级100/100均为T1，真正中央机构候选仅7条；不得据此声称T1.5/T2质量门槛、来源代表性或NFRA/中国政府网/未来全部来源覆盖已校准。validator为`DRAFT_INCOMPLETE`、0 confirmed、100 pending；正式Gold仍为0，开发集/留出集未建，provider评测未运行。版本化metadata为`gold/candidates-2026-10-18.json`，不含正文；本地可读packet与ignored正文、完整独立QA见`.data/fiscal-qa/gold-candidates-20261018/`。付费route/OCR继续deferred，selection thresholds 60/65/76/floor50未变。
+
 ## 2026-10-17 后续任务安排审查（运行时只读检查；计划文档已更新）
 
 本轮对计划和Git基线做运行时只读检查，并更新本段及相关计划文档；不代表今日live采集库、preview、服务或cursor复核。计数引用2026-10-16已核快照：主隔离采集库442篇（375 `ok`、54 `pending`、13 `unconfirmed`）；独立分页隔离库129篇（全部`pending`）；preview库104篇。三库统计不合并。Gate 2仍为`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3–5未通过；没有因本次计划审查改变Gate或来源状态。

@@ -1,5 +1,11 @@
 # 财政部地方监管局新闻栏目覆盖矩阵
 
+## 2026-10-18 有界分页/正文增量（仍非来源准入）
+
+广西、海南、重庆、四川在page2/3正文批后按批准scope继续list page4/5，各GET两页，共8/8 HTTP200 gzip响应；具体raw、cursor、full before/after行投影及独立QA见`.data/fiscal-qa/page45-execute-20261018-approved/`。cursor index4→6，只有重庆新建16条metadata，其他三源无新行；coverage均`unproven`，四源仍disabled、fulltext-off，145个jobs全部未启动。该分页库独立于442条主采集库和preview，不得合并计数。
+
+正文状态按另一个B批次记录：重庆列表/DB日期2026-09-17与详情PubDate 2026-10-15冲突，广西正文selector仅18字符且无结构节点并判`non_article_container`；两者各触发停源并留unconfirmed。海南和四川各2篇正文ok。独立报告`.data/fiscal-qa/body-progress-20261018/independent-pagination-qa-luna-v6.json`。这只证明各自限定target结果，不代表任一完整栏目通过、25–35个高质量来源或近90日coverage通过。
+
 ## 2026-10-16 四源继续到第2/3页（fresh隔离库）
 
 广西、海南、重庆、四川在既有page0/1之后分别请求列表page2、page3，共8次同域GET，8/8 HTTP200，实际最小请求间隔1101.361ms。原始gzip wire文件hash/EOF匹配manifest；独立QA用记录的`content-encoding:gzip`解压，并按当前source selector离线解析，每页10条，共80项。四源各自page2与page3之间无URL重复，新页相对之前page0/1共80个身份也无重叠。按当前冻结cutoff，旧于cutoff的候选为广西9、海南7、重庆0、四川15，合计31；执行新建49、revised0，不能把31条窗口外项写成去重命中。

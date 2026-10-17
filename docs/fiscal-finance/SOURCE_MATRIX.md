@@ -1,5 +1,11 @@
 # 官方信源验证矩阵
 
+## 2026-10-18 四源增量与正文证据
+
+`fiscal_pagination4_20261016_test`上的B第2/3页正文GET和A page4/5列表续页是两个独立获批批次，不与主采集库或preview合并。B的6个正文GET及独立报告`.data/fiscal-qa/body-progress-20261018/independent-pagination-qa-luna-v6.json`：重庆文章`gpd74krwr9xqzekwgkquced4z`列表/DB日期2026-09-17与详情PubDate 2026-10-15冲突，保持unconfirmed；广西`mwb5qrtub4obpxkbqgz7fhbdc`标题/日期匹配，但正文selector仅18字符、无结构节点，按`non_article_container`保持unconfirmed并停止本源；海南、四川各2篇正文`ok`。B另在主库为福建通知`fujian-finance-notices`文章`tgeiy876jupck9vsd9nq6d827`做一次获准GET，225字符正文ok；独立报告`.data/fiscal-qa/body-progress-20261018/independent-qa-v2.json`保留了non-target publication写前逐行基线缺失的限定，不代表该来源整体通过。
+
+随后A仅对四个既有disabled来源的list page4/5执行获批8次GET，8/8 HTTP200、raw gzip/hash/EOF和请求间隔通过。四源cursor index4→6、coverage仍`unproven`；仅重庆新增16条列表metadata，旧129文章/133修订/129 jobs及6 publications投影保持不变，新增extract jobs均未消费。来源配置仍disabled，站内/转发全文关闭。scope/manifest/raw与独立QA见`.data/fiscal-qa/page45-execute-20261018-approved/`；详情与当前限定结论见[10/18 Gate handoff](HANDOFFS/GATES_3_5_QA_2026-10-18.md)。以上有限结果不构成25–35高质量来源、90日覆盖或source admission证明。
+
 ## 2026-10-16 当前核验增量
 
 隔离主采集库现为442篇：375 ok、54 pending、13 unconfirmed、786 revisions、315 publications。GovCN固定文章 ifxp3rg71sg6grhlply3qkkeg 经人工复核的PDF附件正文resolution写入rev2并经独立只读SQL QA；本轮山东文章`wmlrrnb42kids842rgml54xa6`另经一次单条manual short-body resolution写入rev2/ok，并由独立post SQL QA核验；原附件/短正文失败原因均留在各自provenance，不推广为通用放行规则，来源仍disabled。

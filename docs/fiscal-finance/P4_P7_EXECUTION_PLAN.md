@@ -1,6 +1,12 @@
 # P4–P7 执行与准入计划（2026-10-03）
 
-## 最新任务安排索引（2026-10-17）
+## 2026-10-17 历史任务安排索引
+
+## 2026-10-18 QA更新
+
+10月18日结果及完整限定见[Gate 3–5 QA交接](HANDOFFS/GATES_3_5_QA_2026-10-18.md)。Root批准的真实page4/5隔离续页8/8 GET已独立核验：仅重庆新建16条摘要元数据，四源cursor从4到6，旧articles/revisions/jobs/publications投影保持不变；source仍disabled且全文关闭，所有队列任务未消费，90日coverage仍unproven。真实来源内容质量、25–35个质量合格来源及页面验收仍未完成。
+
+生产CLI SHA `6DAC5C…`对应的fresh backend完整suite为402项（401 pass、1 skipped、0 failed），该套发生在test-only fresh nonempty DB guard之前；最终测试SHA `BE418220…` guard后focused 6/6、typecheck通过，非空库负向执行拒绝写入且before/after行快照SHA一致。隔离副本Web build和Web 17/17使用同一生产CLI SHA。API/Web服务启动被执行策略拒绝，smoke为`NOT_RUN`；不得将本机软件QA描述为Gate 4页面验收。P5现有100条DRAFT、0个人确认，全部sourceTier=T1，正式Gold/评测/阈值校准均未完成。Gate 2仍为`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3–5未通过；人工标签及NAS目标参数等待用户提供。
 
 当前P3/P4/P5后续安排以[项目计划文首](PROJECT_PLAN.md)和[10月17日任务安排审查](HANDOFFS/NEXT_TASKS_REVIEW_2026-10-17.md)为准：A先在隔离`_test`库验证`p3-page-continuation.ts` execute正向路径（A独占该CLI、focused test和隔离运行证据），B并行配对两库pending证据且仅拥有自己的证据/正文处理scope，C独立QA并独占文档和Git操作。通过后才分别进入原cursor历史回填和grounded正文批，同一隔离库一批写入后须独立QA再开展下一批；不先扩来源数量。本文下方2026-10-09状态及更早内容是历史快照，保留供追溯，不代表本轮结论或当前执行进度。
 

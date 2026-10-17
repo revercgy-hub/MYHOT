@@ -1,5 +1,9 @@
 # 阶段任务交接制度
 
+## 2026-10-18 最新Gate QA交接
+
+当前最新状态见[Gate 3–5本地证据与运行时QA](GATES_3_5_QA_2026-10-18.md)：Gate 2仍为`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3–5未通过；本机PG已恢复loopback，API/Web进程启动被执行策略拒绝，smoke记`NOT_RUN`。A获批page4/5批次8个GET经独立QA PASS，仅重庆新增16条metadata、四源cursor 4→6，coverage仍unproven。Gold审阅candidate增至100条metadata-only DRAFT、0 confirmed、100来源等级均T1，正式Gold仍0。软件QA及其与页面/NAS验收的边界、B正文批局限、尚需人工提供的labeler/NAS参数详见该交接。
+
 ## 2026-10-17 最新任务索引
 
 最新计划审查为[2026-10-17 后续任务安排](NEXT_TASKS_REVIEW_2026-10-17.md)：第一批A验证分页CLI execute正向路径（仅loopback `_test`/fixture），B并行完成主库与分页隔离库pending证据配对，C独立QA、更新文档并担任唯一Git操作者。A/B通过后再分别按既有cursor范围回填历史、按缓存证据开展正文批；不先扩来源数量。项目数据以10月16日已核分库快照为准，并非10月17日live状态。最新技术检查点仍是[10月16日正文与分页续跑QA](P3_BODY_AND_PAGINATION_CONTINUATION_2026-10-16.md)；此前交接按各自时间点保留。

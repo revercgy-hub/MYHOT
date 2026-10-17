@@ -2,9 +2,13 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
-## 2026-10-17 当前任务安排
+## 2026-10-18 当前Gate证据更新
 
-本轮任务排序与依赖见[10月17日任务安排审查](HANDOFFS/NEXT_TASKS_REVIEW_2026-10-17.md)。本节取代下方10月08日旧检查点作为当前计划索引；旧检查点及更早日期段落是历史证据，不能作为今日日活核验。
+本段以[10月18日Gate 3–5 QA交接](HANDOFFS/GATES_3_5_QA_2026-10-18.md)为当前结果索引；下方10月17日任务顺序及更早检查点保留历史，不覆盖本轮实际结果。Root批准的分页CLI page4/5批次已在专用`_test`库完成8个精确GET并经独立QA；旧数据投影保持不变、仅重庆新增16条metadata、coverage仍`unproven`。100条候选是待人工审阅DRAFT，全部sourceTier=T1、0 confirmed、正式Gold=0，不代表质量校准、development/holdout或来源代表性。软件QA完成backend 401/402、typecheck、Web build及Web 17/17；运行API/Web health及smoke因执行策略拒绝保持`NOT_RUN`。Gate 2维持`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3–5未通过。人工Gold审阅人和NAS部署目标等待用户回复；付费route/OCR延期。
+
+## 2026-10-17 任务安排（历史）
+
+本轮任务排序与依赖见[10月17日任务安排审查](HANDOFFS/NEXT_TASKS_REVIEW_2026-10-17.md)。本段是当时的任务安排；当前状态以上方10月18日证据更新为准，下方10月08日及更早检查点保留为历史证据。
 
 | 顺序/槽位 | 工作与依赖 | 退出条件 |
 |---|---|---|

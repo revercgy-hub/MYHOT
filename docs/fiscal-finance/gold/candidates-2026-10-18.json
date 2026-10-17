@@ -1,0 +1,4507 @@
+{
+  "schemaVersion": "p5.gold-metadata-draft/v1",
+  "datasetStatus": "DRAFT",
+  "formatNote": "100条候选草稿；不是Gold数量、评测集或可用于eval-selection的gold.jsonl。正文仅以body-text/*.txt本地文件提供人工阅读，不复制进此metadata。所有事件组统一使用unassigned-needs-human-review，development只是防止草稿泄漏的占位值；事件组/切分均未确认，不代表这些URL为同一事件或不同事件。所有decision/group/split状态均needs_review；proposal不是真值，所有人工decision/确认人/时间保持空。候选仅为分层覆盖，后续需人工独立判定并核验事件组与切分。",
+  "candidates": [
+    {
+      "caseId": "body-a2u2sqm6ptn0ivb1k7541khr3",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "福建厦门以特区蓝色金融之笔 绘海洋经济发展之图",
+        "originalTitle": null,
+        "publishedAt": "2026-08-06T16:00:00.000Z",
+        "sourceName": "人民银行厦门市分行·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "policy-and-institutional-updates",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "a2u2sqm6ptn0ivb1k7541khr3",
+        "sourceId": "pboc-xiamen-work",
+        "url": "https://xiamen.pbc.gov.cn/xiamen/127699/2026081217165849451/index.html",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=a2u2sqm6ptn0ivb1k7541khr3]",
+        "contentHash": "5cb0516c06b4290fce73bc315906bb44e655f37e7d2d33da3fd8531d5ee2c4c3",
+        "bodySha256": "a95999c670358e1b647a5a1d06e4270535494b3558ac6c1f33b98a8cf885b69c",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:a2u2sqm6ptn0ivb1k7541khr3/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-b9xeicvnj3t2z68xnr14lkndh",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "关于征求《企业会计准则解释第21号（征求意见稿）》意见的函",
+        "originalTitle": null,
+        "publishedAt": "2026-09-15T16:00:00.000Z",
+        "sourceName": "财政部会计司·工作通知",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "policy-and-institutional-updates",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "b9xeicvnj3t2z68xnr14lkndh",
+        "sourceId": "mof-accounting-notices",
+        "url": "https://kjs.mof.gov.cn/gongzuotongzhi/202609/t20260915_3997440.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=b9xeicvnj3t2z68xnr14lkndh]",
+        "contentHash": "6332346c3b27ec839206620678e8ea8715016929390e7bb4349c010016f9e719",
+        "bodySha256": "7855b54e20465fbc9244aba3bcfb65b29205515feb2404abf4fa9dad7e84349d",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:b9xeicvnj3t2z68xnr14lkndh/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-ebtwbnudqgmlkzj60wviji165",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "福建省财政厅 中国人民银行福建省分行关于2026年第十一期福建省省级国库现金管理商业银行定期存款招标结果的公告",
+        "originalTitle": null,
+        "publishedAt": "2026-09-14T16:00:00.000Z",
+        "sourceName": "福建省财政厅·通知公告",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "policy-and-institutional-updates",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "ebtwbnudqgmlkzj60wviji165",
+        "sourceId": "fujian-finance-notices",
+        "url": "https://czt.fujian.gov.cn/zwgk/tzgg/202609/P020260915683599278277.pdf",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=ebtwbnudqgmlkzj60wviji165]",
+        "contentHash": "b5178bae86714c74115b803507ddf1ad5802e19ae6cec816cb01a16019cab145",
+        "bodySha256": "13d0315d40c9bc690a3c47d7bbf155cbdbac7fc6df49753c76f51592af334452",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:ebtwbnudqgmlkzj60wviji165/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-fn6rshoxnk425y3ui1cxr6mpp",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "省直考区关于领取2026年度全国会计专业技术初级资格证书的通知",
+        "originalTitle": null,
+        "publishedAt": "2026-09-28T16:00:00.000Z",
+        "sourceName": "福建省财政厅·通知公告",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "policy-and-institutional-updates",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "fn6rshoxnk425y3ui1cxr6mpp",
+        "sourceId": "fujian-finance-notices",
+        "url": "https://czt.fujian.gov.cn/zwgk/tzgg/202609/t20260929_7219534.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=fn6rshoxnk425y3ui1cxr6mpp]",
+        "contentHash": "f63f0db5251fed4480d4c9d855f4a34db3b24524dcfdfd13b93472233446e3e0",
+        "bodySha256": "c45cf48da8fb58e95d1765e8d9d88388731270717d63c83b6125cbbe09a8a339",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:fn6rshoxnk425y3ui1cxr6mpp/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-ha5x06po0omrjjrf9a6lw4eae",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "关于就国际会计准则理事会发布的金融工具准则实施后审议意见征询稿公开征求意见的函",
+        "originalTitle": null,
+        "publishedAt": "2026-10-11T16:00:00.000Z",
+        "sourceName": "财政部会计司·工作通知",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "policy-and-institutional-updates",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "ha5x06po0omrjjrf9a6lw4eae",
+        "sourceId": "mof-accounting-notices",
+        "url": "https://kjs.mof.gov.cn/gongzuotongzhi/202610/t20261012_4002610.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=ha5x06po0omrjjrf9a6lw4eae]",
+        "contentHash": "dc1066eb45fac58a99aeaec00e9fb280050ec55d0aef8dd39ab2e7a155eff53c",
+        "bodySha256": "bcffb1994b06a88778c4f0990861727e3b53602ae8ca6b032f876eae68c2e5a9",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:ha5x06po0omrjjrf9a6lw4eae/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-j33dctglguvwqfa4ksqsdlwdf",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部关于印发《彩票市场调控资金管理办法》的通知",
+        "originalTitle": null,
+        "publishedAt": "2026-08-13T16:00:00.000Z",
+        "sourceName": "财政部·政策发布",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "policy-and-institutional-updates",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "j33dctglguvwqfa4ksqsdlwdf",
+        "sourceId": "mof-policy-release",
+        "url": "https://zhs.mof.gov.cn/zhengcefabu/202608/t20260814_3995456.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=j33dctglguvwqfa4ksqsdlwdf]",
+        "contentHash": "07460295b76cf0462f2745a40c9a4aaead2cc58f1a96bafd69c13739b17c3cea",
+        "bodySha256": "2eb40bbc46df54e9b0548bd64e033eaf9616be6147f1232df3a56555b6275eab",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:j33dctglguvwqfa4ksqsdlwdf/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-j53z7cyp523j06d0li0obfkyf",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "中华人民共和国财政部公告2026年第24号",
+        "originalTitle": null,
+        "publishedAt": "2026-08-25T16:00:00.000Z",
+        "sourceName": "财政部·政策发布",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "policy-and-institutional-updates",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "j53z7cyp523j06d0li0obfkyf",
+        "sourceId": "mof-policy-release",
+        "url": "https://zhs.mof.gov.cn/zhengcefabu/202608/t20260826_3996112.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=j53z7cyp523j06d0li0obfkyf]",
+        "contentHash": "2e32c25fa1cee53bd5d65b86ffeeae32ea1428a0a814d044e3d17e3ba2b2feec",
+        "bodySha256": "07fe4123fa78fd45f6ec6b866edbc6e5db92602a31a1592402b0c4ef5555e6a9",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:j53z7cyp523j06d0li0obfkyf/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-musb5eldci12opkxbld5c4dbq",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "福建省财政厅 中国人民银行福建省分行关于开展2026年第十二期福建省省级国库现金管理商业银行定期存款招标工作的通知",
+        "originalTitle": null,
+        "publishedAt": "2026-10-07T16:00:00.000Z",
+        "sourceName": "福建省财政厅·通知公告",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "policy-and-institutional-updates",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "musb5eldci12opkxbld5c4dbq",
+        "sourceId": "fujian-finance-notices",
+        "url": "https://czt.fujian.gov.cn/zwgk/tzgg/202610/P020261008323836383143.pdf",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=musb5eldci12opkxbld5c4dbq]",
+        "contentHash": "2bae0bdc632c88534a863f2ac51d06bbc862c05177c27a60c22070454bba597f",
+        "bodySha256": "a9de800d1941b72701bba92dda3da989e6632734045c7f0ebd17bc70202d5e7f",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:musb5eldci12opkxbld5c4dbq/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-oigcp5jfk0xr0fhmblks32ruw",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "人民银行厦门市分行：支付护航投洽会 便利服务迎嘉宾",
+        "originalTitle": null,
+        "publishedAt": "2026-09-13T16:00:00.000Z",
+        "sourceName": "人民银行厦门市分行·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "policy-and-institutional-updates",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "oigcp5jfk0xr0fhmblks32ruw",
+        "sourceId": "pboc-xiamen-work",
+        "url": "https://xiamen.pbc.gov.cn/xiamen/127699/2026091714532820798/index.html",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=oigcp5jfk0xr0fhmblks32ruw]",
+        "contentHash": "70a47305c6b49a9a24d5f3a59ac4bad9a9c79ec21a408a2f4932b66847d9e986",
+        "bodySha256": "6f0457d0988e06c436a50bad1cc9eb84e698ed0d0748668f7564af67bb4d0749",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:oigcp5jfk0xr0fhmblks32ruw/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-okiokyqweer6d72d930r5j5xl",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "更主动、更集成、更标准、更贴心 厦门市推出首批台胞金融服务中心",
+        "originalTitle": null,
+        "publishedAt": "2026-09-06T16:00:00.000Z",
+        "sourceName": "人民银行厦门市分行·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "policy-and-institutional-updates",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "okiokyqweer6d72d930r5j5xl",
+        "sourceId": "pboc-xiamen-work",
+        "url": "https://xiamen.pbc.gov.cn/xiamen/127699/2026090914353948871/index.html",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=okiokyqweer6d72d930r5j5xl]",
+        "contentHash": "150cafae0d80647b99532feecb8d7e31fcc52e346d2652037aa3a722f7949d8e",
+        "bodySha256": "39b975e35a7782b1ae051c63560f57bbde4d1392c4f551830f47b9d282d766a7",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:okiokyqweer6d72d930r5j5xl/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-tgeiy876jupck9vsd9nq6d827",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "关于第八次全国优秀财政理论研究成果拟推荐名单的公示",
+        "originalTitle": null,
+        "publishedAt": "2026-09-20T16:00:00.000Z",
+        "sourceName": "福建省财政厅·通知公告",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "policy-and-institutional-updates",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "tgeiy876jupck9vsd9nq6d827",
+        "sourceId": "fujian-finance-notices",
+        "url": "https://czt.fujian.gov.cn/zwgk/tzgg/202609/t20260921_7216502.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=tgeiy876jupck9vsd9nq6d827]",
+        "contentHash": "b3618258f0456da53311e1da95f4164e566990e514cfd24eecd003d0fce236b2",
+        "bodySha256": "fdb15f4e55eefcd0de82aefb1990f8d2c4530135594e9563dae94b8741cb8c62",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:tgeiy876jupck9vsd9nq6d827/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-vgo9e87wdx411i668gacky8r6",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "人民银行厦门市分行：金融赋能巾帼志 鹭岛芳华竞绽放",
+        "originalTitle": null,
+        "publishedAt": "2026-09-29T16:00:00.000Z",
+        "sourceName": "人民银行厦门市分行·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "policy-and-institutional-updates",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "vgo9e87wdx411i668gacky8r6",
+        "sourceId": "pboc-xiamen-work",
+        "url": "https://xiamen.pbc.gov.cn/xiamen/127699/2026093017150638837/index.html",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=vgo9e87wdx411i668gacky8r6]",
+        "contentHash": "8d4b00136263d4b35e39b6ffb41f68fa0811ebfbeb138fa4bcb94626034cfa85",
+        "bodySha256": "92e9e94ab6c5ab720171ff68f056e9b9bdcf3ea28d74f3de66cbcaac38328927",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:vgo9e87wdx411i668gacky8r6/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-x7qdnvd2bqibumtsmwy4hm5he",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部关于中国福利彩票发行管理中心发行“四方有喜”等19款即开型福利彩票游戏的审批意见",
+        "originalTitle": null,
+        "publishedAt": "2026-07-16T16:00:00.000Z",
+        "sourceName": "财政部·政策发布",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "policy-and-institutional-updates",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "x7qdnvd2bqibumtsmwy4hm5he",
+        "sourceId": "mof-policy-release",
+        "url": "https://zhs.mof.gov.cn/zhengcefabu/202607/t20260717_3993764.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=x7qdnvd2bqibumtsmwy4hm5he]",
+        "contentHash": "02e6b2a84b97daf7f13376fed1d95f49cd15f5f7c19c8367cb169a90fdab6eff",
+        "bodySha256": "58057c6914f70e65938b00e8612bc90794034e8260d5d829344f90d239810cf5",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:x7qdnvd2bqibumtsmwy4hm5he/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-xkm1grgd10aj3ua4nwg5gfofd",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部关于中国福利彩票发行管理中心停止销售“联合销售15选5”等9款游戏的审批意见",
+        "originalTitle": null,
+        "publishedAt": "2026-07-28T16:00:00.000Z",
+        "sourceName": "财政部·政策发布",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "policy-and-institutional-updates",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "xkm1grgd10aj3ua4nwg5gfofd",
+        "sourceId": "mof-policy-release",
+        "url": "https://zhs.mof.gov.cn/zhengcefabu/202607/t20260729_3994493.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=xkm1grgd10aj3ua4nwg5gfofd]",
+        "contentHash": "74bb7cdc0bc12a16c595a87af8a9c81f7e5d6cc7f7d39a7a681f121e9e3f26ff",
+        "bodySha256": "2ff690cbe17dc2f480f9a0fd3fb14441fa6eb8c5afda50339acae1d756c7155b",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:xkm1grgd10aj3ua4nwg5gfofd/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "fiscal-budget-qa-20260326",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部有关负责人就2026年中央预算公开答记者问",
+        "originalTitle": null,
+        "publishedAt": "2026-03-26T00:00:00+08:00",
+        "sourceName": "财政部预算司·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "policy-and-institutional-updates",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "h7rei2mhmazonk5k4gzc8v0sg",
+        "sourceId": "mof-budget-work",
+        "url": "https://yss.mof.gov.cn/gongzuodongtai/202603/t20260326_3986132.htm",
+        "sourceArtifact": ".data/fiscal-qa/core-batch-20260930/result.json#bodies[articleId=h7rei2mhmazonk5k4gzc8v0sg]",
+        "contentHash": "1bf1511ecdd7eea448e229e85eaa0991506b0f656f305a3f3a8cf6491439af10",
+        "bodySha256": "b1d0a0f03f12897e30bac5faf4c65900495e1f9d259ec53cebde10969933fe08",
+        "bodyReference": "fiscalhot_core_batch_test.articles:h7rei2mhmazonk5k4gzc8v0sg/body_text",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": "select",
+        "proposedBy": "Luna High",
+        "rationale": "中央预算公开的财政部负责人答记者问；仅为待审提案，不作为人工真值。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-anyymdbii82vbx6g7mvc29u7h",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "深圳监管局：凝聚共识真抓实干 深入贯彻落实财政科学管理试点座谈会精神",
+        "originalTitle": null,
+        "publishedAt": "2026-09-19T16:00:00.000Z",
+        "sourceName": "财政部深圳监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "anyymdbii82vbx6g7mvc29u7h",
+        "sourceId": "mof-shenzhen-supervision-dynamics",
+        "url": "https://sz.mof.gov.cn/caizhengjiancha/202609/t20260920_3997808.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=anyymdbii82vbx6g7mvc29u7h]",
+        "contentHash": "e9764949806841ad7738fcdee84e958e832650c3a1dc1fb30dbbb1a1e959c56d",
+        "bodySha256": "138cb108e045a5f62994638b381a16ddc113626f5964db422f29e21375f81c9c",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:anyymdbii82vbx6g7mvc29u7h/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-aw684qd2igzhj4jhtaa1dcn49",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部青岛监管局：青岛市以财政科学管理综合试点为牵引 推动财政发展提质增效",
+        "originalTitle": null,
+        "publishedAt": "2026-09-28T16:00:00.000Z",
+        "sourceName": "财政部青岛监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "aw684qd2igzhj4jhtaa1dcn49",
+        "sourceId": "mof-qingdao-supervision-dynamics",
+        "url": "https://qd.mof.gov.cn/gzdt/caizhengjiancha/202609/t20260929_3998276.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=aw684qd2igzhj4jhtaa1dcn49]",
+        "contentHash": "e7f5d8ebda9eb4849fce740dc5294b3761344644b68b685689185721b92bb8f7",
+        "bodySha256": "3b0fcd57e3f38ae972adad2df1169b11c75bd68575f6e634c04bb6d5f736f6ec",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:aw684qd2igzhj4jhtaa1dcn49/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-b0nzh4zxq5ywytb8mqa3sj9a4",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部甘肃监管局认真学习贯彻财政科学管理试点座谈会精神",
+        "originalTitle": null,
+        "publishedAt": "2026-09-03T16:00:00.000Z",
+        "sourceName": "财政部甘肃监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "b0nzh4zxq5ywytb8mqa3sj9a4",
+        "sourceId": "mof-gansu-supervision-dynamics",
+        "url": "https://gs.mof.gov.cn/gzdt/caizhengjiancha/202609/t20260928_3998251.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=b0nzh4zxq5ywytb8mqa3sj9a4]",
+        "contentHash": "8263f210b3d09aa75d98e3d06d2ffeb84ae302061990d6acf41d307c4de39cbb",
+        "bodySha256": "d70a9d28800eda4c0b49ba6653abbdaecc2edde2235b501dd32562546f94f704",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:b0nzh4zxq5ywytb8mqa3sj9a4/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-bsl2i9bujcit27evza56m2d6t",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部安徽监管局：派员现场观察安徽省2026年第九批地方政府债券发行工作",
+        "originalTitle": null,
+        "publishedAt": "2026-09-29T16:00:00.000Z",
+        "sourceName": "财政部安徽监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "bsl2i9bujcit27evza56m2d6t",
+        "sourceId": "mof-anhui-supervision-dynamics",
+        "url": "https://ah.mof.gov.cn/caizhengjiancha/202609/t20260930_3998374.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=bsl2i9bujcit27evza56m2d6t]",
+        "contentHash": "3043f8475305f5b9c535a14105c29baec29b9dcce3706dcf2b21b9a6cdb3bbf7",
+        "bodySha256": "b5ac2b51a745a9359b7b9467d191ba89fb5d19d33bc663a56500206bf5964c3c",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:bsl2i9bujcit27evza56m2d6t/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-dl6ni808ga8hizqh1598778mj",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "中国人民银行厦门市分行召开2026年下半年工作会议暨外汇管理工作会议",
+        "originalTitle": null,
+        "publishedAt": "2026-08-27T16:00:00.000Z",
+        "sourceName": "人民银行厦门市分行·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "dl6ni808ga8hizqh1598778mj",
+        "sourceId": "pboc-xiamen-work",
+        "url": "https://xiamen.pbc.gov.cn/xiamen/127699/2026082815345960355/index.html",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=dl6ni808ga8hizqh1598778mj]",
+        "contentHash": "d5471200e3e5fbacdf165516e7eaaba842066d22f9e38d1f7248e2a45fbe183b",
+        "bodySha256": "af09147c51c8dddb5af8d70d90994a938d65149d397a19abdb7cdcd00831ab1f",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:dl6ni808ga8hizqh1598778mj/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-do7dmzxm5ysbilsj496finqek",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部福建监管局：厚植机关文化底蕴 涵养向上向善机关风尚",
+        "originalTitle": null,
+        "publishedAt": "2026-09-22T16:00:00.000Z",
+        "sourceName": "财政部福建监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "do7dmzxm5ysbilsj496finqek",
+        "sourceId": "mof-fujian-supervision-dynamics",
+        "url": "https://fj.mof.gov.cn/gzdt/caizhengjiancha/202609/t20260923_3998020.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=do7dmzxm5ysbilsj496finqek]",
+        "contentHash": "3cfd9cddb74da0605b4bb039dd4c4008d6479186bcebedf2f852b61bed554fa8",
+        "bodySha256": "8064ced53be1d8e49a8a1d771ad2a15d7dd6079058e093743dcefb1ca26d1f16",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:do7dmzxm5ysbilsj496finqek/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-e6m9y6yefapp2na6asqpes6fd",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部青海监管局：组织召开超长期特别国债联合监管碰头会",
+        "originalTitle": null,
+        "publishedAt": "2026-10-11T16:00:00.000Z",
+        "sourceName": "财政部青海监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "e6m9y6yefapp2na6asqpes6fd",
+        "sourceId": "mof-qinghai-supervision-dynamics",
+        "url": "https://qh.mof.gov.cn/gzdt/caizhengjiancha/202610/t20261012_4002649.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=e6m9y6yefapp2na6asqpes6fd]",
+        "contentHash": "675329c2a70b9d1308c4210d47e12310aff7414113c375d42e3c6920092cda1a",
+        "bodySha256": "5b42d756c2e0591ae1322b60d781fe4a059d0bc9519d200eb9a549da8c884338",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:e6m9y6yefapp2na6asqpes6fd/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-g18r4b5lm23nvhfewonc8t18u",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部吉林监管局：“四维发力”持续巩固属地中央预算单位过紧日子监管成效",
+        "originalTitle": null,
+        "publishedAt": "2026-09-23T16:00:00.000Z",
+        "sourceName": "财政部吉林监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "g18r4b5lm23nvhfewonc8t18u",
+        "sourceId": "mof-jilin-supervision-dynamics",
+        "url": "https://jl.mof.gov.cn/caizhengjiancha/202609/t20260921_3997820.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=g18r4b5lm23nvhfewonc8t18u]",
+        "contentHash": "6e005c231485946916a7696546c9c53f187ee0160f89436934a2ca593177c7a7",
+        "bodySha256": "3593955eefdea7507802dfc6bb12b35ce6968f63347b0eaab51e4dfa4772fbc5",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:g18r4b5lm23nvhfewonc8t18u/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-i08bj6qzzzfszpityrp08ja1e",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部湖北监管局：切实提高政治站位 深入贯彻落实财政科学管理试点座谈会精神",
+        "originalTitle": null,
+        "publishedAt": "2026-09-15T16:00:00.000Z",
+        "sourceName": "财政部湖北监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "i08bj6qzzzfszpityrp08ja1e",
+        "sourceId": "mof-hubei-supervision-dynamics",
+        "url": "https://hb.mof.gov.cn/gzdt2019/caizhengjiancha/202609/t20260910_3997189.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=i08bj6qzzzfszpityrp08ja1e]",
+        "contentHash": "1363d176bf82bd74d3594e22a3a5ce19c2f3482b8e5927b3cd48530948c3c8c3",
+        "bodySha256": "5386d60352c3b375dbcead236a5ee60e9eb5f54162a3093a40fa716cb882502a",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:i08bj6qzzzfszpityrp08ja1e/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-k6suqcvluqmzkvhcsj9nrc78s",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "广东监管局：健全“四个突出”监管体系，持续提升中央转移支付资金监管质效",
+        "originalTitle": null,
+        "publishedAt": "2026-09-27T16:00:00.000Z",
+        "sourceName": "财政部广东监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "k6suqcvluqmzkvhcsj9nrc78s",
+        "sourceId": "mof-guangdong-supervision-dynamics",
+        "url": "https://gd.mof.gov.cn/caizhengjiancha/202609/t20260928_3998195.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=k6suqcvluqmzkvhcsj9nrc78s]",
+        "contentHash": "bae80d8174b5d29e1422b21db9f8c8716a9685e866a8f3ee3cd2df8fe51910f4",
+        "bodySha256": "2c94535707038f1324de272a6eb8481b31a267510c04920f4025279eec73d86a",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:k6suqcvluqmzkvhcsj9nrc78s/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-lwaq9qzjek6xm4wm09jyff4p1",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部江西监管局：党建引领风帆劲 改革攻坚勇争先",
+        "originalTitle": null,
+        "publishedAt": "2026-10-11T16:00:00.000Z",
+        "sourceName": "财政部江西监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "lwaq9qzjek6xm4wm09jyff4p1",
+        "sourceId": "mof-jiangxi-supervision-dynamics",
+        "url": "https://jx.mof.gov.cn/gzdt/caizhengjiancha/202610/t20261012_4002606.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=lwaq9qzjek6xm4wm09jyff4p1]",
+        "contentHash": "bfe1254fcae4409380bae2a3d15e5e945d96e0d3511e9f7264c82dafebd8b821",
+        "bodySha256": "a237ed3da1fe2f34517a09e04e3b268753027ad537fd0e9bec0b03c559c60a13",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:lwaq9qzjek6xm4wm09jyff4p1/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-muajhjgt1kai2lf034eonc9xt",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "贯彻落实财政科学管理试点座谈会精神 不折不扣抓好财政监管工作",
+        "originalTitle": null,
+        "publishedAt": "2026-09-22T16:00:00.000Z",
+        "sourceName": "财政部贵州监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "muajhjgt1kai2lf034eonc9xt",
+        "sourceId": "mof-guizhou-supervision-dynamics",
+        "url": "https://gz.mof.gov.cn/caizhengjiancha/202609/t20260923_3997997.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=muajhjgt1kai2lf034eonc9xt]",
+        "contentHash": "ad780b2b4e59515423ee94e412712398f5b67629ad91c3eefc35ee019672b73c",
+        "bodySha256": "864f58b3b6be1a93671251b2a58b980f3b9fa855032be6854366e22c0e69b21c",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:muajhjgt1kai2lf034eonc9xt/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-mya4tc0e1zcyd11nm964qnmlu",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部黑龙江监管局：监管一处专题学习《紧急采购管理暂行办法》",
+        "originalTitle": null,
+        "publishedAt": "2026-09-23T16:00:00.000Z",
+        "sourceName": "财政部黑龙江监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "mya4tc0e1zcyd11nm964qnmlu",
+        "sourceId": "mof-heilongjiang-supervision-dynamics",
+        "url": "https://hlj.mof.gov.cn/caizhengjiancha/202609/t20260924_3998051.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=mya4tc0e1zcyd11nm964qnmlu]",
+        "contentHash": "ea10f2ca7d10fb3fd91d5e2178c0b1e9e0267aaf18c0e5c48b9ff96766979711",
+        "bodySha256": "83d8e5eeaee199d818193dc215fa2356733892a55a32886f15edcb32ca2a9b46",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:mya4tc0e1zcyd11nm964qnmlu/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-n5l68rq8wz6g57cmyq9bsqky2",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部河北监管局：“四个坚持”服务推动财政科学管理试点工作走深走实",
+        "originalTitle": null,
+        "publishedAt": "2026-10-07T16:00:00.000Z",
+        "sourceName": "财政部河北监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "n5l68rq8wz6g57cmyq9bsqky2",
+        "sourceId": "mof-hebei-supervision-dynamics",
+        "url": "https://he.mof.gov.cn/caizhengjiancha/202610/t20261008_3998545.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=n5l68rq8wz6g57cmyq9bsqky2]",
+        "contentHash": "e6046952ac3f74414354fc5f5abfd473c18fe4c4764934486f73e6bf244879a1",
+        "bodySha256": "12b1236b839b9c6359460309811d0d7457a88a28eebfbf38f5f99fbaeb8b745c",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:n5l68rq8wz6g57cmyq9bsqky2/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-no45b0yc3qlkjt9w0upfkdzgb",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "福建监管局：聚焦三维发力 推动政治监督具体化精准化常态化",
+        "originalTitle": null,
+        "publishedAt": "2026-09-07T16:00:00.000Z",
+        "sourceName": "财政部福建监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "no45b0yc3qlkjt9w0upfkdzgb",
+        "sourceId": "mof-fujian-supervision-dynamics",
+        "url": "https://fj.mof.gov.cn/gzdt/caizhengjiancha/202609/t20260904_3996672.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=no45b0yc3qlkjt9w0upfkdzgb]",
+        "contentHash": "a665c31899fc47d4ac7b1ab87b3a6333aa195c9f39bd5d33102db3df11a3bb57",
+        "bodySha256": "7761efaa6c774ed30b1e6a41468bddd76e4e18ad923ba10719fb966b55ae17ba",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:no45b0yc3qlkjt9w0upfkdzgb/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-o5ptz0hgc35av4uiq3qw4g999",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "上海监管局：迅速传达学习 认真贯彻落实财政科学管理试点座谈会精神",
+        "originalTitle": null,
+        "publishedAt": "2026-09-14T16:00:00.000Z",
+        "sourceName": "财政部上海监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "o5ptz0hgc35av4uiq3qw4g999",
+        "sourceId": "mof-shanghai-supervision-dynamics",
+        "url": "https://sh.mof.gov.cn/gzdt/caizhengjiancha/202609/t20260909_3996995.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=o5ptz0hgc35av4uiq3qw4g999]",
+        "contentHash": "fe7af14fb77fa5d7364c00db25dca35db3f2e11e9e0392f6a2bfa0ba139f8b9a",
+        "bodySha256": "d1e4bb7f9913eece51a05cc1d4da771723db9a95bfbddff2a2c65b8ddd7080f9",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:o5ptz0hgc35av4uiq3qw4g999/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-q5he9brmvl9deqn1izlk7vosc",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "内蒙古监管局：坚持党建引领 深化多维赋能 推动财会监督提质增效",
+        "originalTitle": null,
+        "publishedAt": "2026-09-16T16:00:00.000Z",
+        "sourceName": "财政部内蒙古监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "q5he9brmvl9deqn1izlk7vosc",
+        "sourceId": "mof-inner-mongolia-supervision-dynamics",
+        "url": "https://nmg.mof.gov.cn/caizhengjiancha/202609/t20260911_3997277.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=q5he9brmvl9deqn1izlk7vosc]",
+        "contentHash": "530c5cdafe2865bb65395c0a8a71279a919aad0b67f130a33920a456b8866754",
+        "bodySha256": "2032c52dcf6422ecd3a812b49fbbf1708b9292ad255571b82d05a34c0e94217a",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:q5he9brmvl9deqn1izlk7vosc/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-rsdeba0h7slk0agjau3p935eq",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "坚持正风肃纪 以廉赋能监管 ——局党组成员、纪检组长马连杰听取国债资金核查组 廉政工作汇报",
+        "originalTitle": null,
+        "publishedAt": "2026-09-20T16:00:00.000Z",
+        "sourceName": "财政部河南监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "rsdeba0h7slk0agjau3p935eq",
+        "sourceId": "mof-henan-supervision-dynamics",
+        "url": "https://ha.mof.gov.cn/caizhengjiancha/202609/t20260921_3997863.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=rsdeba0h7slk0agjau3p935eq]",
+        "contentHash": "6af9a0fb31d1fdd781081d3dce12a6b49e76c3de37e8998d4c02a1c30ef9d8b0",
+        "bodySha256": "ac78113672ab787882faccb57b902e41b36eaf444a5f98e73958c768a274f6ba",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:rsdeba0h7slk0agjau3p935eq/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-ry6j2kgiuk2nwc5qkzbhwu4a9",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部山西监管局监管四处集中学习中央纪委、财政部通报地方政府隐性债务追责问责典型案例",
+        "originalTitle": null,
+        "publishedAt": "2026-09-23T16:00:00.000Z",
+        "sourceName": "财政部山西监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "ry6j2kgiuk2nwc5qkzbhwu4a9",
+        "sourceId": "mof-shanxi-supervision-dynamics",
+        "url": "https://sn.mof.gov.cn/gzdt/caizhengjiancha/202609/t20260924_3998126.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=ry6j2kgiuk2nwc5qkzbhwu4a9]",
+        "contentHash": "a32788a1bb4ce16a7ec16734eac01f9e2be5c9d845d2bebba9790d6ea363a0e3",
+        "bodySha256": "ef445e9dacd0b5d7763d3e96213952b23b7f93d162a44a745a5c4db99bfb3920",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:ry6j2kgiuk2nwc5qkzbhwu4a9/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-s04udc2r6z8tree149ij6iiq6",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "四川监管局：认真贯彻落实财政科学管理试点座谈会精神进一步提升财政监管质效",
+        "originalTitle": null,
+        "publishedAt": "2026-10-11T16:00:00.000Z",
+        "sourceName": "财政部四川监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "s04udc2r6z8tree149ij6iiq6",
+        "sourceId": "mof-sichuan-supervision-dynamics",
+        "url": "https://sc.mof.gov.cn/caizhengjiancha/202610/t20261012_4002637.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=s04udc2r6z8tree149ij6iiq6]",
+        "contentHash": "e47afb0bd08da03790eb547ae30ca74381863a24b340c73eae85dfea569f2005",
+        "bodySha256": "5bfbd7e928fb8dbd6227bf0c8cbc21a84e6d651bea7bf055b3f7371d1d5d1c6a",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:s04udc2r6z8tree149ij6iiq6/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-se7wcb9z8vwqeldydct9b6byz",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部海南监管局：以内控“硬约束”落实落细财政科学管理要求",
+        "originalTitle": null,
+        "publishedAt": "2026-10-08T16:00:00.000Z",
+        "sourceName": "财政部海南监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "se7wcb9z8vwqeldydct9b6byz",
+        "sourceId": "mof-hainan-supervision-dynamics",
+        "url": "https://hq.mof.gov.cn/caizhengjiancha/202610/t20261009_4002457.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=se7wcb9z8vwqeldydct9b6byz]",
+        "contentHash": "b86fda3fccc865962b2c61c122c4defe888c29a654cd32b214d7fe00ca9077ab",
+        "bodySha256": "3a2591d97b0632aa2086f01d92df318ed51cc88cb5376d61f8283371caaa5abc",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:se7wcb9z8vwqeldydct9b6byz/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-ss2xzkxmn9jv0dc2x5eqle5mz",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部云南监管局：线上赋能 线下核查 多维统筹持续提升转移支付预算执行常态化监督质效",
+        "originalTitle": null,
+        "publishedAt": "2026-08-26T16:00:00.000Z",
+        "sourceName": "财政部云南监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "ss2xzkxmn9jv0dc2x5eqle5mz",
+        "sourceId": "mof-yunnan-supervision-dynamics",
+        "url": "https://yn.mof.gov.cn/caizhengjiancha/202608/t20260821_3995882.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=ss2xzkxmn9jv0dc2x5eqle5mz]",
+        "contentHash": "c653d1d5effd4dcd19c531437e72211880df4446004af93fb3352da9e66172f8",
+        "bodySha256": "7367b12730cb47cceea0218e4a18744060169593efd91eef2314000173323e14",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:ss2xzkxmn9jv0dc2x5eqle5mz/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-tmeh677vdtppkalawg4526z9o",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部海南监管局：“五个注重”扎实推进财政科学管理",
+        "originalTitle": null,
+        "publishedAt": "2026-10-11T16:00:00.000Z",
+        "sourceName": "财政部海南监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "tmeh677vdtppkalawg4526z9o",
+        "sourceId": "mof-hainan-supervision-dynamics",
+        "url": "https://hq.mof.gov.cn/caizhengjiancha/202610/t20261012_4002621.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=tmeh677vdtppkalawg4526z9o]",
+        "contentHash": "c06e3a03a94d617bb03fc5ff5178938c0a0cd4826b046f0e5a55c2fbed1d1369",
+        "bodySha256": "8ce6f20eda98cca43e524684f7cba336a88cfdff2111c341e1f1ddd6003510c7",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:tmeh677vdtppkalawg4526z9o/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-uz75uc12mph9rb5fmq8vjn8pw",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "浙江监管局：认真贯彻落实财政科学管理试点座谈会精神",
+        "originalTitle": null,
+        "publishedAt": "2026-09-17T16:00:00.000Z",
+        "sourceName": "财政部浙江监管局·监管工作",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "uz75uc12mph9rb5fmq8vjn8pw",
+        "sourceId": "mof-zhejiang-supervision-dynamics",
+        "url": "https://zj.mof.gov.cn/caizhengjiancha/202609/t20260918_3997664.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=uz75uc12mph9rb5fmq8vjn8pw]",
+        "contentHash": "711de23a02bc93b2cd05f42f28310bec7c9721455b7aeef1d926cf822ff08af8",
+        "bodySha256": "fd0a5db19a938546c6e7ef5b84ce7df6cc7a8de94a085d2eb54d38983342e23b",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:uz75uc12mph9rb5fmq8vjn8pw/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-vynkluz0lhfrxo8xkm0iauymb",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部安徽监管局：立足派驻监管职责 精准赋能改革实践 助力财政科学管理试点走深走实",
+        "originalTitle": null,
+        "publishedAt": "2026-10-09T16:00:00.000Z",
+        "sourceName": "财政部安徽监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "vynkluz0lhfrxo8xkm0iauymb",
+        "sourceId": "mof-anhui-supervision-dynamics",
+        "url": "https://ah.mof.gov.cn/caizhengjiancha/202610/t20261010_4002561.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=vynkluz0lhfrxo8xkm0iauymb]",
+        "contentHash": "b73363985e7c82af3eeda6765231f3e3b8bcd9bd7c857e0ce864c9bef060c1de",
+        "bodySha256": "70c0b897ceaeb6f15cf65e41a53d5e38a97451714bf513e9ca072e9b828d6fd5",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:vynkluz0lhfrxo8xkm0iauymb/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-wqc6afaq1fqulsqxa4nytgpy2",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部甘肃监管局：构建“一二三”监管体系 推动甘肃中央财政监管工作提质增效",
+        "originalTitle": null,
+        "publishedAt": "2026-09-03T16:00:00.000Z",
+        "sourceName": "财政部甘肃监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "wqc6afaq1fqulsqxa4nytgpy2",
+        "sourceId": "mof-gansu-supervision-dynamics",
+        "url": "https://gs.mof.gov.cn/gzdt/caizhengjiancha/202608/t20260821_3995880.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=wqc6afaq1fqulsqxa4nytgpy2]",
+        "contentHash": "3428144bdab692cad6c0dc45569dfa69077c925d4fd873f5c24bdb8b8410cf54",
+        "bodySha256": "915ef8b8ed4df330ff36dfa3982ab541e94e2ea2280a62cf5f1baba014bfec4d",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:wqc6afaq1fqulsqxa4nytgpy2/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-wrwtm6t4q5w5bfx5skr604i4j",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部新疆监管局：政治领航 多点攻坚 协同筑防扎实做好财政金融监管工作",
+        "originalTitle": null,
+        "publishedAt": "2026-09-22T16:00:00.000Z",
+        "sourceName": "财政部新疆监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "wrwtm6t4q5w5bfx5skr604i4j",
+        "sourceId": "mof-xinjiang-supervision-dynamics",
+        "url": "https://xj.mof.gov.cn/caizhengjiancha/202607/t20260713_3993416.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=wrwtm6t4q5w5bfx5skr604i4j]",
+        "contentHash": "3ba107261ba27f26f73114ae3442bf0f8c2c3a65aa2a046ed04b6c2a93911b36",
+        "bodySha256": "562285120d1489396e5df22391e3f2da619b4573317aae86c5c5b126df64c503",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:wrwtm6t4q5w5bfx5skr604i4j/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-xxqdv2ljsc4amchrqc1q7alez",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "山东监管局组织青年干部专题学习蓝佛安部长在财政部青年干部座谈会上的讲话",
+        "originalTitle": null,
+        "publishedAt": "2026-09-29T16:00:00.000Z",
+        "sourceName": "财政部山东监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "xxqdv2ljsc4amchrqc1q7alez",
+        "sourceId": "mof-shandong-supervision-dynamics",
+        "url": "https://sd.mof.gov.cn/gzdt/caizhengjiancha/202609/t20260930_3998403.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=xxqdv2ljsc4amchrqc1q7alez]",
+        "contentHash": "a6d79b93d3387fad08b5af9f9f7905e17a04e60a8152fe439db25d5d316fd896",
+        "bodySha256": "8603dc3a9cc8a2ed02915dded4d4a7f626c0cfe8915a83e22bb45cc88d9abae9",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:xxqdv2ljsc4amchrqc1q7alez/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-z070ig1fx6ph9gry0pjzz0iwb",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "广东监管局：监管三处专题学习《财政部广东监管局关于加强财会监督末端管理的规定》",
+        "originalTitle": null,
+        "publishedAt": "2026-10-09T16:00:00.000Z",
+        "sourceName": "财政部广东监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "z070ig1fx6ph9gry0pjzz0iwb",
+        "sourceId": "mof-guangdong-supervision-dynamics",
+        "url": "https://gd.mof.gov.cn/caizhengjiancha/202610/t20261010_4002494.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=z070ig1fx6ph9gry0pjzz0iwb]",
+        "contentHash": "4adca60d4ebfc6e131606380ae879a662371c812b7eb27d7a1ef9a7aa0158875",
+        "bodySha256": "af56ca13f4362ba104988de6061c78535190d04470c677a26b4c987cab746d01",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:z070ig1fx6ph9gry0pjzz0iwb/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-zlm36tddk97at0d65rplma73m",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部广西监管局召开树立和践行正确政绩观学习教育总结会",
+        "originalTitle": null,
+        "publishedAt": "2026-09-17T16:00:00.000Z",
+        "sourceName": "财政部广西监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "zlm36tddk97at0d65rplma73m",
+        "sourceId": "mof-guangxi-supervision-dynamics",
+        "url": "https://gx.mof.gov.cn/gzdt/caizhengjiancha/202609/t20260918_3997656.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=zlm36tddk97at0d65rplma73m]",
+        "contentHash": "d3890d6a922de17448fbffce69f78358c466b57d772106b8cdc6d327a03fd8a4",
+        "bodySha256": "da8a213cf0a6e7e000903a8acbeb7930dc4e440e76a5e756d0076682c861cb98",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:zlm36tddk97at0d65rplma73m/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-zud2ucxfh2x0utr6y23ag0vrn",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部天津监管局：三维联动抓培训 多点发力促落实——以高质量培训推动过紧日子要求见行见效",
+        "originalTitle": null,
+        "publishedAt": "2026-09-28T16:00:00.000Z",
+        "sourceName": "财政部天津监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "financial-debt",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "zud2ucxfh2x0utr6y23ag0vrn",
+        "sourceId": "mof-tianjin-supervision-dynamics",
+        "url": "https://tj.mof.gov.cn/gzdt2/caizhengjiancha/202609/t20260929_3998309.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=zud2ucxfh2x0utr6y23ag0vrn]",
+        "contentHash": "8ddaf214281a417a72114564c6102e00804f9ef0271624e77464bb6498060a49",
+        "bodySha256": "0ad9fcffa623d301b2df87766cec8db0e2bfaf1c3538b8298932acf1d94c21b2",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:zud2ucxfh2x0utr6y23ag0vrn/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-ajak9rax7v0lpxc0zy81grskt",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部重庆监管局：监管一处党支部召开三季度党员大会",
+        "originalTitle": null,
+        "publishedAt": "2026-10-11T16:00:00.000Z",
+        "sourceName": "财政部重庆监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "internal-activity-noise",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "ajak9rax7v0lpxc0zy81grskt",
+        "sourceId": "mof-chongqing-supervision-dynamics",
+        "url": "https://cq.mof.gov.cn/gzdt2019/caizhengjiancha/202610/t20261012_4002605.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=ajak9rax7v0lpxc0zy81grskt]",
+        "contentHash": "34476bd690882e71311d6d3664b102e14a5715303e4271c0e8e78b6cec1826f5",
+        "bodySha256": "7f6900f8f72511e4da89305f93a2f8bd38f19b3366dc966dd01f53ae7b8fcd7e",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:ajak9rax7v0lpxc0zy81grskt/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-b79l2moebca95l6oqjbomwkkk",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部江西监管局：监管一处、监管三处党支部召开联席会议",
+        "originalTitle": null,
+        "publishedAt": "2026-10-09T16:00:00.000Z",
+        "sourceName": "财政部江西监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "internal-activity-noise",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "b79l2moebca95l6oqjbomwkkk",
+        "sourceId": "mof-jiangxi-supervision-dynamics",
+        "url": "https://jx.mof.gov.cn/gzdt/caizhengjiancha/202610/t20261010_4002514.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=b79l2moebca95l6oqjbomwkkk]",
+        "contentHash": "86e5fc12f7aeca6db1c6ec4d5fae8179e846852d9fea503a2dbf6a069a676766",
+        "bodySha256": "310bd5ae648ac84a3e49aae340a41990761e53ee6ee4e24cd1dd358c9cb85bc8",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:b79l2moebca95l6oqjbomwkkk/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-g6kch2dzjmkhib4pusit84j02",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "研学实践拓视野 分享交流促提升 ——财政部青岛监管局开展青年理论学习小组活动",
+        "originalTitle": null,
+        "publishedAt": "2026-09-20T16:00:00.000Z",
+        "sourceName": "财政部青岛监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "internal-activity-noise",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "g6kch2dzjmkhib4pusit84j02",
+        "sourceId": "mof-qingdao-supervision-dynamics",
+        "url": "https://qd.mof.gov.cn/gzdt/caizhengjiancha/202609/t20260921_3997816.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=g6kch2dzjmkhib4pusit84j02]",
+        "contentHash": "95c7522a84b078a437fe5a7c8692ecbcd72a96839c7ef3a081b474e2284f466d",
+        "bodySha256": "e2399dab85a9d94440d51a32f4184eaee8a31ce4733b5987cdbf194970ad5ef6",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:g6kch2dzjmkhib4pusit84j02/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-icpxhnzxjdbly5iccj3b04eb1",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部黑龙江监管局：监管二处党支部专题学习《习近平党建文选》第一卷",
+        "originalTitle": null,
+        "publishedAt": "2026-09-17T16:00:00.000Z",
+        "sourceName": "财政部黑龙江监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "internal-activity-noise",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "icpxhnzxjdbly5iccj3b04eb1",
+        "sourceId": "mof-heilongjiang-supervision-dynamics",
+        "url": "https://hlj.mof.gov.cn/caizhengjiancha/202609/t20260918_3997659.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=icpxhnzxjdbly5iccj3b04eb1]",
+        "contentHash": "0a21d0089955027210e786d9ce32733344fdc0d7ebd2b319027e2ab314938d98",
+        "bodySha256": "3f75d342e8ecd986fb487397d3ea0381e398eafbbefe1c84f59aaa7d3b3458d3",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:icpxhnzxjdbly5iccj3b04eb1/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-if0wpp1dztn0en7qrkpnqq3q4",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部河北监管局举办青年沙龙 深化财政科学管理试点座谈会精神学习研讨",
+        "originalTitle": null,
+        "publishedAt": "2026-10-09T16:00:00.000Z",
+        "sourceName": "财政部河北监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "internal-activity-noise",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "if0wpp1dztn0en7qrkpnqq3q4",
+        "sourceId": "mof-hebei-supervision-dynamics",
+        "url": "https://he.mof.gov.cn/caizhengjiancha/202610/t20261010_4002545.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=if0wpp1dztn0en7qrkpnqq3q4]",
+        "contentHash": "94de9c335bf6d80dbb2c781568f40998667736246de9e848cf0a8930171d258c",
+        "bodySha256": "088dc8f4a37682d4d13024aec08ef01f777684a8d2f177bceba6991335512233",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:if0wpp1dztn0en7qrkpnqq3q4/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-in9lzdyfie6ks8u79rmywx5hf",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部内蒙古监管局：监管一处党支部开展财政科学管理专题学习",
+        "originalTitle": null,
+        "publishedAt": "2026-09-29T16:00:00.000Z",
+        "sourceName": "财政部内蒙古监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "internal-activity-noise",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "in9lzdyfie6ks8u79rmywx5hf",
+        "sourceId": "mof-inner-mongolia-supervision-dynamics",
+        "url": "https://nmg.mof.gov.cn/caizhengjiancha/202609/t20260930_3998391.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=in9lzdyfie6ks8u79rmywx5hf]",
+        "contentHash": "f1db4fbd2de96b625b732f36fd642c4438b39e700a2d91ba14599e1820775385",
+        "bodySha256": "2b3808c5498b3097794da2220d9909d525215336884f850f54d183831dd2cd2e",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:in9lzdyfie6ks8u79rmywx5hf/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-op8e6bngk2tabazslvdvncegc",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部天津监管局：监管四处党支部与中国银行天津市分行授信管理与资产保全部党支部联合开展主题党日活动",
+        "originalTitle": null,
+        "publishedAt": "2026-09-28T16:00:00.000Z",
+        "sourceName": "财政部天津监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "internal-activity-noise",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "op8e6bngk2tabazslvdvncegc",
+        "sourceId": "mof-tianjin-supervision-dynamics",
+        "url": "https://tj.mof.gov.cn/gzdt2/caizhengjiancha/202609/t20260929_3998308.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=op8e6bngk2tabazslvdvncegc]",
+        "contentHash": "648576b06c2fb069068916baa3c5ba826e293b7a4caf661242256944a5b55f6b",
+        "bodySha256": "636c1647411fb8a5422e2e15697ba7fd363de3e7dcadcc5da788fa2aa714c9db",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:op8e6bngk2tabazslvdvncegc/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-pkjw5ybpdtgdm5th89j74304j",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部厦门监管局：办公室党支部深学细悟财政科学管理试点座谈会精神",
+        "originalTitle": null,
+        "publishedAt": "2026-09-28T16:00:00.000Z",
+        "sourceName": "财政部厦门监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "internal-activity-noise",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "pkjw5ybpdtgdm5th89j74304j",
+        "sourceId": "mof-xiamen-supervision-dynamics",
+        "url": "https://xm.mof.gov.cn/caizhengjiancha/202609/t20260929_3998338.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=pkjw5ybpdtgdm5th89j74304j]",
+        "contentHash": "7699e5cb967087ad533663118a62181880527417fcf627321012c644061ab902",
+        "bodySha256": "aca113405c49974eee794ebadcb2e76c14da0c7a628c5ed20cf05cd560d7f70d",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:pkjw5ybpdtgdm5th89j74304j/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-rr1iw9u6vt2hc95wlnhzmbb1o",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部青海监管局：第二党支部开展铸牢 中华民族共同体意识专题学习研讨",
+        "originalTitle": null,
+        "publishedAt": "2026-10-09T16:00:00.000Z",
+        "sourceName": "财政部青海监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "internal-activity-noise",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "rr1iw9u6vt2hc95wlnhzmbb1o",
+        "sourceId": "mof-qinghai-supervision-dynamics",
+        "url": "https://qh.mof.gov.cn/gzdt/caizhengjiancha/202610/t20261010_4002476.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=rr1iw9u6vt2hc95wlnhzmbb1o]",
+        "contentHash": "1dc0c033081ce1e1b23b2da2162d7988e789c08d6d793601d816d885b253c029",
+        "bodySha256": "629af7ba58adbd089828bc71dd4284690bd2554d6502e8cb73655ed49bebc62d",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:rr1iw9u6vt2hc95wlnhzmbb1o/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-sapwsfz60v3a2a3dztungp5ih",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部湖北监管局：传承财政文化 赓续财政精神——财政部湖北监管局“荆楚讲堂”举办专题讲座",
+        "originalTitle": null,
+        "publishedAt": "2026-10-07T16:00:00.000Z",
+        "sourceName": "财政部湖北监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "internal-activity-noise",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "sapwsfz60v3a2a3dztungp5ih",
+        "sourceId": "mof-hubei-supervision-dynamics",
+        "url": "https://hb.mof.gov.cn/gzdt2019/caizhengjiancha/202610/t20261008_3998546.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=sapwsfz60v3a2a3dztungp5ih]",
+        "contentHash": "e9f609cc12ba29c458f4476c6c80aa5093aaed1f1410d471f9f771c6d1031945",
+        "bodySha256": "de995da493ba7411fed1b5ae5275598053b76e4a338d2799e0a16f65a87b003e",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:sapwsfz60v3a2a3dztungp5ih/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-scuadnzxsk6cuxcxxk2ev0gw7",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "厚植民族团结同心底色 立足财政监管履职担当 ——财政部广西监管局开展民族团结进步宣传周主题团日暨局青年理论学习小组专题研讨活动",
+        "originalTitle": null,
+        "publishedAt": "2026-10-09T16:00:00.000Z",
+        "sourceName": "财政部广西监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "internal-activity-noise",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "scuadnzxsk6cuxcxxk2ev0gw7",
+        "sourceId": "mof-guangxi-supervision-dynamics",
+        "url": "https://gx.mof.gov.cn/gzdt/caizhengjiancha/202610/t20261010_4002526.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=scuadnzxsk6cuxcxxk2ev0gw7]",
+        "contentHash": "d89359d3bd952b9d4041b49c77993c80ceaaac9487e9987684e884d93e58c33c",
+        "bodySha256": "c5098bbcd0f4b4d1bf807951596819c1554531b14ca3165d628a5d6ee89a7efa",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:scuadnzxsk6cuxcxxk2ev0gw7/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-t2gelpi7vcah8n123miv2j9d3",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部河南监管局：监管四处党支部开展“铭记九一八勿忘国耻”主题党日活动",
+        "originalTitle": null,
+        "publishedAt": "2026-10-11T16:00:00.000Z",
+        "sourceName": "财政部河南监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "internal-activity-noise",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "t2gelpi7vcah8n123miv2j9d3",
+        "sourceId": "mof-henan-supervision-dynamics",
+        "url": "https://ha.mof.gov.cn/caizhengjiancha/202610/t20261012_4002663.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=t2gelpi7vcah8n123miv2j9d3]",
+        "contentHash": "1862b408bd57d313471cdca876065140199d2643653a63a5b8bee5552a1632e7",
+        "bodySha256": "0f9a6d18a95d30713161b99c6b25f4f793ad16a2b9e4f2a50c7f52f7ef0ad939",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:t2gelpi7vcah8n123miv2j9d3/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-t8beyi20rx4x9zcwi4bvdg2i4",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部云南监管局：监管二处党支部深入学习贯彻习近平总书记近期系列重要讲话精神",
+        "originalTitle": null,
+        "publishedAt": "2026-07-22T16:00:00.000Z",
+        "sourceName": "财政部云南监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "internal-activity-noise",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "t8beyi20rx4x9zcwi4bvdg2i4",
+        "sourceId": "mof-yunnan-supervision-dynamics",
+        "url": "https://yn.mof.gov.cn/caizhengjiancha/202607/t20260723_3994112.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=t8beyi20rx4x9zcwi4bvdg2i4]",
+        "contentHash": "abbddb8fb9c7bbe8dd9812bc978e18a3af23cdc75f32040d302611f4028b9cb0",
+        "bodySha256": "d182dc8e86c8b6772823a1a9d1d3be4d8298a3a7d873a93588f139dc20f4b487",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:t8beyi20rx4x9zcwi4bvdg2i4/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-u7rq4u61sjbn52ek3pg9ddceb",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部山西监管局党组理论学习中心组集中研学《习近平关于基层工作方法的重要论述学习读本》",
+        "originalTitle": null,
+        "publishedAt": "2026-09-14T16:00:00.000Z",
+        "sourceName": "财政部山西监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "internal-activity-noise",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "u7rq4u61sjbn52ek3pg9ddceb",
+        "sourceId": "mof-shanxi-supervision-dynamics",
+        "url": "https://sn.mof.gov.cn/gzdt/caizhengjiancha/202609/t20260915_3997429.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=u7rq4u61sjbn52ek3pg9ddceb]",
+        "contentHash": "dc43046432380a217e071c0fb7c3cc223e4dfbc4d814964a7011e76bb10639cc",
+        "bodySha256": "11b41458f77293891db8da0ff1f547eccf78be793857dcc85a6725b16169c887",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:u7rq4u61sjbn52ek3pg9ddceb/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-wmql9oc1jog40b4wrjh50wsea",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "分享学习成果 凝聚监管动能——财政部吉林监管局监管二处党支部开展正确政绩观学习教育成果线上分享",
+        "originalTitle": null,
+        "publishedAt": "2026-10-08T16:00:00.000Z",
+        "sourceName": "财政部吉林监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "internal-activity-noise",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "wmql9oc1jog40b4wrjh50wsea",
+        "sourceId": "mof-jilin-supervision-dynamics",
+        "url": "https://jl.mof.gov.cn/caizhengjiancha/202610/t20261009_4002450.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=wmql9oc1jog40b4wrjh50wsea]",
+        "contentHash": "b6aa030f523c33b9ec8a6a1001610bd16672d05917e591069c71a123d14e6cee",
+        "bodySha256": "ada0e12434a990d9d8ca7075e6a6973f0fb1f5db4b0f9f338dda404f6f06281d",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:wmql9oc1jog40b4wrjh50wsea/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-wn2kkastq5fskqgdveg1f7sdt",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "广东监管局：监管四处党支部深学细悟《习近平关于基层工作方法的重要论述学习读本》",
+        "originalTitle": null,
+        "publishedAt": "2026-10-09T16:00:00.000Z",
+        "sourceName": "财政部广东监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "internal-activity-noise",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "wn2kkastq5fskqgdveg1f7sdt",
+        "sourceId": "mof-guangdong-supervision-dynamics",
+        "url": "https://gd.mof.gov.cn/caizhengjiancha/202610/t20261010_4002492.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=wn2kkastq5fskqgdveg1f7sdt]",
+        "contentHash": "aa31bb3ab7c4ff062b91ee4e363b481a19dbb820ba563a1a94619b1125360272",
+        "bodySha256": "223bee6c0929bd1642250e923653d7835ffc85464bf3e717d405ac875173aa64",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:wn2kkastq5fskqgdveg1f7sdt/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-x1w33j2ps5usa7lqvhfazi6ei",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部海南监管局：第三党支部开展集体学习暨支部书记讲党课活动",
+        "originalTitle": null,
+        "publishedAt": "2026-10-08T16:00:00.000Z",
+        "sourceName": "财政部海南监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "internal-activity-noise",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "x1w33j2ps5usa7lqvhfazi6ei",
+        "sourceId": "mof-hainan-supervision-dynamics",
+        "url": "https://hq.mof.gov.cn/caizhengjiancha/202610/t20261009_4002403.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=x1w33j2ps5usa7lqvhfazi6ei]",
+        "contentHash": "ca63bcb18cbfd5c731fd8a76e6b2aee2aa036e6638ffa5941d75b38b66ee36a5",
+        "bodySha256": "0de7427595eeae9b3cdd795f85e45973c6dab653397c587bb3e7840532bdf0e9",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:x1w33j2ps5usa7lqvhfazi6ei/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "fiscal-xiamen-internal-lecture-20260901",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部厦门监管局：组织干部职工收看公共机构绿色低碳讲堂",
+        "originalTitle": null,
+        "publishedAt": "2026-09-01T00:00:00+08:00",
+        "sourceName": "财政部厦门监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "internal-activity-noise",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "hno9ui8zm9zpkrul3dk06xpab",
+        "sourceId": "mof-xiamen-supervision-dynamics",
+        "url": "https://xm.mof.gov.cn/caizhengjiancha/202609/t20260901_3996429.htm",
+        "sourceArtifact": ".data/fiscal-regional-batch-20260930/result.json#bodies[id=hno9ui8zm9zpkrul3dk06xpab]",
+        "contentHash": "508bc99255e086d0b5aab24ce8b9413e3fd8790e314c539ad5b05b19cc9980e4",
+        "bodySha256": "5cedb03ddd230164f260480d1a837348f4aba3fab306b72cd784a134745031e5",
+        "bodyReference": "fiscalhot_regional_batch_test.articles:hno9ui8zm9zpkrul3dk06xpab/body_text",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": "reject",
+        "proposedBy": "Luna High",
+        "rationale": "既有短正文人工复核认定为内部讲堂/节能倡议，缺少财政监管事实；此处仍仅作待审提案。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "fiscal-xiamen-party-study-20260918",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部厦门监管局：监管二处党支部组织《习近平党建文选》专题学习研讨",
+        "originalTitle": null,
+        "publishedAt": "2026-09-18T00:00:00+08:00",
+        "sourceName": "财政部厦门监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "internal-activity-noise",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "oqa76t33ohjnh062u79g3jb9f",
+        "sourceId": "mof-xiamen-supervision-dynamics",
+        "url": "https://xm.mof.gov.cn/caizhengjiancha/202609/t20260918_3997726.htm",
+        "sourceArtifact": ".data/fiscal-regional-batch-20260930/result.json#bodies[id=oqa76t33ohjnh062u79g3jb9f]",
+        "contentHash": "d39f1a734fc3ca596944b0013ecb2572651985510ab3d197bdf2947ce4d1756f",
+        "bodySha256": "db480d9d480833cd2b6229d48b107e91f6e17ae1b0acdfca42f520123d843b87",
+        "bodyReference": "fiscalhot_regional_batch_test.articles:oqa76t33ohjnh062u79g3jb9f/body_text",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": "reject",
+        "proposedBy": "Luna High",
+        "rationale": "短文人工复核认定为理论学习会议，无独立财政政策执行/监管行动；模型建议不是人工真值。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "fiscal-xiamen-research-fund-theme-day-20260911",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部厦门监管局：临时党支部加强联创联建，开展“管好用好科研经费 促进科技自主创新”主题党日活动",
+        "originalTitle": null,
+        "publishedAt": "2026-09-11T00:00:00+08:00",
+        "sourceName": "财政部厦门监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "internal-activity-noise",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "kgfp0wwi0qdicori1i54da9ev",
+        "sourceId": "mof-xiamen-supervision-dynamics",
+        "url": "https://xm.mof.gov.cn/caizhengjiancha/202609/t20260911_3997281.htm",
+        "sourceArtifact": ".data/fiscal-regional-batch-20260930/result.json#bodies[id=kgfp0wwi0qdicori1i54da9ev]",
+        "contentHash": "54a9743c9d8a14fdfbc2dc8f8f3b985f36bd9a29ace191ee8632d570d61d2bfc",
+        "bodySha256": "ec94e02b4efd00c77a0ba857961a530effa2926269f829dd9ab2a2eead08f51f",
+        "bodyReference": "fiscalhot_regional_batch_test.articles:kgfp0wwi0qdicori1i54da9ev/body_text",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": "reject",
+        "proposedBy": "Luna High",
+        "rationale": "短文人工复核指出主题党日参观/动员，没有报告科研经费监管结果；仅为建议，需人工确认。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-bengbt58v1frjrhxf3hu8bdmd",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部江西监管局：开展中秋、国庆节前集体廉政提醒",
+        "originalTitle": null,
+        "publishedAt": "2026-09-29T16:00:00.000Z",
+        "sourceName": "财政部江西监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "bengbt58v1frjrhxf3hu8bdmd",
+        "sourceId": "mof-jiangxi-supervision-dynamics",
+        "url": "https://jx.mof.gov.cn/gzdt/caizhengjiancha/202609/t20260930_3998511.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=bengbt58v1frjrhxf3hu8bdmd]",
+        "contentHash": "303c13bea740be36f852cd8e02f5407b1d5c988fae8ec3024e7f62ce271d295b",
+        "bodySha256": "8f00f657c855e29c3f34259ae232227c33d6cf5eb7317b653d629fbd0bd709ef",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:bengbt58v1frjrhxf3hu8bdmd/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-btkxth2ek9w69kpczhwgrbhpm",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部宁波监管局：以结对帮带助力新入职干部“破茧成长”",
+        "originalTitle": null,
+        "publishedAt": "2026-10-09T16:00:00.000Z",
+        "sourceName": "财政部宁波监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "btkxth2ek9w69kpczhwgrbhpm",
+        "sourceId": "mof-ningbo-supervision-dynamics",
+        "url": "https://nb.mof.gov.cn/caizhengjiancha/202610/t20261010_4002498.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=btkxth2ek9w69kpczhwgrbhpm]",
+        "contentHash": "3a9c741eea1aee54b734a3657e09acbe2f861197f96864181745735426348658",
+        "bodySha256": "df9a747df2b60a5e76e9424c8121c8d9707deeed3f0d77511862b50b9f3c266a",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:btkxth2ek9w69kpczhwgrbhpm/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-cifomaa7avwqodozefwe79hn7",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "甘肃监管局：健全机制 高效服务 扎实做好代表委员意见建议答复闭环管理",
+        "originalTitle": null,
+        "publishedAt": "2026-09-29T16:00:00.000Z",
+        "sourceName": "财政部甘肃监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "cifomaa7avwqodozefwe79hn7",
+        "sourceId": "mof-gansu-supervision-dynamics",
+        "url": "https://gs.mof.gov.cn/gzdt/caizhengjiancha/202609/t20260930_3998488.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=cifomaa7avwqodozefwe79hn7]",
+        "contentHash": "f2c49ea53b48a4fc4cd07d1f614d3b70e19f9cc3d94f724c5fb7002f7e2f0c54",
+        "bodySha256": "203be31d4aa40c0a9a4f89ed3203afb8da259910b94cb9042c021d443d39089c",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:cifomaa7avwqodozefwe79hn7/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-emll3hshd7a0nwxrl2r5nhfvo",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部安徽监管局：扎实开展会计准则意见征集 全力提升反馈工作质效",
+        "originalTitle": null,
+        "publishedAt": "2026-10-09T16:00:00.000Z",
+        "sourceName": "财政部安徽监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "emll3hshd7a0nwxrl2r5nhfvo",
+        "sourceId": "mof-anhui-supervision-dynamics",
+        "url": "https://ah.mof.gov.cn/caizhengjiancha/202610/t20261010_4002560.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=emll3hshd7a0nwxrl2r5nhfvo]",
+        "contentHash": "8dc0c9990ab1a780a9c752f7201a616fd995790add2f5781f0c3a8fbd7f9a443",
+        "bodySha256": "cdfa2a5250c3e5749ce9a32be67063f5fe488aed2b8f7585956e45023b741a0a",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:emll3hshd7a0nwxrl2r5nhfvo/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-ffxw1it314vrdvkbnt9xqg588",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部海南监管局：筑牢内控“四张网”推动部门预算管理效能持续提升",
+        "originalTitle": null,
+        "publishedAt": "2026-10-08T16:00:00.000Z",
+        "sourceName": "财政部海南监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "ffxw1it314vrdvkbnt9xqg588",
+        "sourceId": "mof-hainan-supervision-dynamics",
+        "url": "https://hq.mof.gov.cn/caizhengjiancha/202610/t20261009_4002402.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=ffxw1it314vrdvkbnt9xqg588]",
+        "contentHash": "539fa3278705c0de685440045ffcb660279fe610c55a18260648ea4abdf43394",
+        "bodySha256": "7fe641344b2c1fc8e184ae100fdff695c75622b32e8b0f57fa61a9ba867d2ce4",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:ffxw1it314vrdvkbnt9xqg588/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-gy5jw1ujk0ukwxv0gle0dc4q8",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "情暖中秋树新风 清风润家促文明 ——财政部青岛监管局开展“我们的节日·中秋”系列活动",
+        "originalTitle": null,
+        "publishedAt": "2026-09-29T16:00:00.000Z",
+        "sourceName": "财政部青岛监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "gy5jw1ujk0ukwxv0gle0dc4q8",
+        "sourceId": "mof-qingdao-supervision-dynamics",
+        "url": "https://qd.mof.gov.cn/gzdt/caizhengjiancha/202609/t20260930_3998487.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=gy5jw1ujk0ukwxv0gle0dc4q8]",
+        "contentHash": "a492b2f3ecb9f1c4f00b7171fd58ba9e707cc502db48ca323763ffead83c9ce5",
+        "bodySha256": "506dd406ce82655ee31db0e5d4c01d741b34e94563356e063373c350188711db",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:gy5jw1ujk0ukwxv0gle0dc4q8/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-h5a1qj8hiwm5viy9xdqp1tbz3",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部山西监管局组织开展2026年度会计监督检查工作",
+        "originalTitle": null,
+        "publishedAt": "2026-10-11T16:00:00.000Z",
+        "sourceName": "财政部山西监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "h5a1qj8hiwm5viy9xdqp1tbz3",
+        "sourceId": "mof-shanxi-supervision-dynamics",
+        "url": "https://sn.mof.gov.cn/gzdt/caizhengjiancha/202610/t20261012_4002643.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=h5a1qj8hiwm5viy9xdqp1tbz3]",
+        "contentHash": "f51eceffeea4f996a970b4c9bb7035cbcf61525be6cad425e5e4e982112ddc56",
+        "bodySha256": "9a667353e733b74421ed381e382fdd78ccf11aa4e60bdd36b5184e6f2aa58a77",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:h5a1qj8hiwm5viy9xdqp1tbz3/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-hmth50n4uvs6j85x3tdzc8ofk",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部宁夏监管局召开2026年中央转移支付监管工作座谈会",
+        "originalTitle": null,
+        "publishedAt": "2026-09-29T16:00:00.000Z",
+        "sourceName": "财政部宁夏监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "hmth50n4uvs6j85x3tdzc8ofk",
+        "sourceId": "mof-ningxia-supervision-dynamics",
+        "url": "https://nx.mof.gov.cn/caizhengjiancha/202609/t20260930_3998460.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=hmth50n4uvs6j85x3tdzc8ofk]",
+        "contentHash": "cf7efc4f1294e9d54d668eef565496b1129866b78d57a979e4d9389492e632d3",
+        "bodySha256": "7b14dafe2969fc5d842a5abbaa8f6d3209f783af7120c1a1418817056ac7e914",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:hmth50n4uvs6j85x3tdzc8ofk/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-hnc0qzt6s7ojp7lmzo1baoldu",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部天津监管局：召开全局干部大会开展节前廉政提醒",
+        "originalTitle": null,
+        "publishedAt": "2026-10-07T16:00:00.000Z",
+        "sourceName": "财政部天津监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "hnc0qzt6s7ojp7lmzo1baoldu",
+        "sourceId": "mof-tianjin-supervision-dynamics",
+        "url": "https://tj.mof.gov.cn/gzdt2/caizhengjiancha/202610/t20261008_3998553.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=hnc0qzt6s7ojp7lmzo1baoldu]",
+        "contentHash": "3c3d35893a5bdb4e042ebc1e5a7409e146cefd8a05af71aac4191c8cc2984c40",
+        "bodySha256": "4d058525154a6b358f9aefdde2e6ea0ef0b6e06eaad8248bd71183ccd90972a2",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:hnc0qzt6s7ojp7lmzo1baoldu/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-idpmtaordfz9aioylgofvkgdq",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部河北监管局召开树立和践行正确政绩观学习教育总结大会",
+        "originalTitle": null,
+        "publishedAt": "2026-10-07T16:00:00.000Z",
+        "sourceName": "财政部河北监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "idpmtaordfz9aioylgofvkgdq",
+        "sourceId": "mof-hebei-supervision-dynamics",
+        "url": "https://he.mof.gov.cn/caizhengjiancha/202610/t20261008_3998550.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=idpmtaordfz9aioylgofvkgdq]",
+        "contentHash": "ad58dfed9c916ae8d58e2afac65dfc90ef644f3e4d89c8c0d73aee196ac063aa",
+        "bodySha256": "be47aaefbd7de9e3969742c0b79cacb1f240100df07f4eb267dda99a0fd6775f",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:idpmtaordfz9aioylgofvkgdq/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-ijjouk0vehtxb165b3lhdxt9h",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "深圳监管局：召开树立和践行正确政绩观学习教育总结会",
+        "originalTitle": null,
+        "publishedAt": "2026-10-09T16:00:00.000Z",
+        "sourceName": "财政部深圳监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "ijjouk0vehtxb165b3lhdxt9h",
+        "sourceId": "mof-shenzhen-supervision-dynamics",
+        "url": "https://sz.mof.gov.cn/caizhengjiancha/202610/t20261010_4002555.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=ijjouk0vehtxb165b3lhdxt9h]",
+        "contentHash": "0cfcd735c44f424c9ce03edef56d531dee974c7be63dc0c8dc938f0d49163197",
+        "bodySha256": "8ce26f129761b18d5f74c4a8f0cbac9adeced70bee0e948383cd2de6fcac591a",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:ijjouk0vehtxb165b3lhdxt9h/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-ik6pumon245h3j0qxtnczs1wj",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部福建监管局：持续深化“三化”建设 筑牢财政监管纪律防线",
+        "originalTitle": null,
+        "publishedAt": "2026-10-11T16:00:00.000Z",
+        "sourceName": "财政部福建监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "ik6pumon245h3j0qxtnczs1wj",
+        "sourceId": "mof-fujian-supervision-dynamics",
+        "url": "https://fj.mof.gov.cn/gzdt/caizhengjiancha/202610/t20261012_4002636.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=ik6pumon245h3j0qxtnczs1wj]",
+        "contentHash": "01955abb772ec6bf86e4f1241bd3854679a3bd4f803c921f3d052cfa624248ab",
+        "bodySha256": "a40f727e85a33357e3fccf3944cad123ed0c2455e574851da134290229952d82",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:ik6pumon245h3j0qxtnczs1wj/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-inpgk81jtbkc79h4u5nmx6dyl",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部上海监管局：把握“三个维度” 持续推进转移支付预算执行常态化监督提质增效",
+        "originalTitle": null,
+        "publishedAt": "2026-10-11T16:00:00.000Z",
+        "sourceName": "财政部上海监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "inpgk81jtbkc79h4u5nmx6dyl",
+        "sourceId": "mof-shanghai-supervision-dynamics",
+        "url": "https://sh.mof.gov.cn/gzdt/caizhengjiancha/202610/t20261012_4002600.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=inpgk81jtbkc79h4u5nmx6dyl]",
+        "contentHash": "9589a2229c6028bf14a0829e411e02fadbe6849b44aa1dd7fc9e8d5a45c738ab",
+        "bodySha256": "b1a62432c8ba105bc380ae8de13993335dd2a6dfc5d0d909d78a7dd7db690d81",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:inpgk81jtbkc79h4u5nmx6dyl/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-j2kzv33ya1pmujxarups938fw",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "笃学善研练笔力 实干担当促辅政——财政部北京监管局举办2026年“财青论坛”活动",
+        "originalTitle": null,
+        "publishedAt": "2026-10-12T02:13:00.000Z",
+        "sourceName": "财政部北京监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "j2kzv33ya1pmujxarups938fw",
+        "sourceId": "mof-beijing-supervision-dynamics",
+        "url": "https://bj.mof.gov.cn/caizhengjiancha/202610/t20261012_4002607.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=j2kzv33ya1pmujxarups938fw]",
+        "contentHash": "3e117112b4ef95ff7632c0b2381f7dfc468dad204e6c89a7f8e184706a2d435c",
+        "bodySha256": "ab3a7a2b11ea8c645987403b0ae7aecf9b874eaa32a095d03f913caa0e682ec9",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:j2kzv33ya1pmujxarups938fw/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-k250c52f1p4ju8wvh9zqr3qr5",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部河南监管局：监管一处深入学习贯彻财政科学管理试点座谈会精神",
+        "originalTitle": null,
+        "publishedAt": "2026-10-11T16:00:00.000Z",
+        "sourceName": "财政部河南监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "k250c52f1p4ju8wvh9zqr3qr5",
+        "sourceId": "mof-henan-supervision-dynamics",
+        "url": "https://ha.mof.gov.cn/caizhengjiancha/202610/t20261012_4002661.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=k250c52f1p4ju8wvh9zqr3qr5]",
+        "contentHash": "e4b592e0cf5746a03b9e83ec070a7be30f831b10709cf9fb4ca2b4dc33d5a351",
+        "bodySha256": "39f0e5c5f0ad697ae8e5f90744018f7b4fee966e97c3981b90f7c178c0151cd2",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:k250c52f1p4ju8wvh9zqr3qr5/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-k2n9acd19p94dqufcvm5qfgd3",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部大连监管局：监管三处开展网络安全警示教育活动",
+        "originalTitle": null,
+        "publishedAt": "2026-10-11T16:00:00.000Z",
+        "sourceName": "财政部大连监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "k2n9acd19p94dqufcvm5qfgd3",
+        "sourceId": "mof-dalian-supervision-dynamics",
+        "url": "https://dl.mof.gov.cn/caizhengjiancha/202610/t20261012_4002654.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=k2n9acd19p94dqufcvm5qfgd3]",
+        "contentHash": "e6ef1567e330c73c85f3aaf4e4acda5ac1454ede510ad9f31fb90f83a310e66c",
+        "bodySha256": "b94667d729c030bc147525e0f2255fcda9c064dc15d50e201f05471434ada257",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:k2n9acd19p94dqufcvm5qfgd3/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-liqkenw0xxa036ko7o50bhmol",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "广东监管局：加强“四个落实” 高质量做好部门预算编制审核工作",
+        "originalTitle": null,
+        "publishedAt": "2026-09-27T16:00:00.000Z",
+        "sourceName": "财政部广东监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "liqkenw0xxa036ko7o50bhmol",
+        "sourceId": "mof-guangdong-supervision-dynamics",
+        "url": "https://gd.mof.gov.cn/caizhengjiancha/202609/t20260928_3998190.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=liqkenw0xxa036ko7o50bhmol]",
+        "contentHash": "234f3956bacff3d7ec1305ec374886fc9bf0c9f1593e7377f30048867094c985",
+        "bodySha256": "0c8d39baa3dbcc6121f3eb9f722b9197b3efdb8fd20a29bc33f2391254bc2952",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:liqkenw0xxa036ko7o50bhmol/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-mljorl8oqu43wn0w2982mt3di",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部吉林监管局：主动服务，为吉林省生态环保部门开展绩效评价工作培训",
+        "originalTitle": null,
+        "publishedAt": "2026-10-08T16:00:00.000Z",
+        "sourceName": "财政部吉林监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "mljorl8oqu43wn0w2982mt3di",
+        "sourceId": "mof-jilin-supervision-dynamics",
+        "url": "https://jl.mof.gov.cn/caizhengjiancha/202610/t20261009_4002432.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=mljorl8oqu43wn0w2982mt3di]",
+        "contentHash": "4987dc75715772c0a1067f69de13d548788ef69de329c07d5a6723b03c827f36",
+        "bodySha256": "26f0013ff751a9b05fa4e5f0c4c356cc2da52f4d06cdf627c239d8b810848fd5",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:mljorl8oqu43wn0w2982mt3di/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-mmqxlwqgxvxz25xjryt36jlxq",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部厦门监管局：召开学习贯彻习近平党建思想专题党课",
+        "originalTitle": null,
+        "publishedAt": "2026-10-09T16:00:00.000Z",
+        "sourceName": "财政部厦门监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "mmqxlwqgxvxz25xjryt36jlxq",
+        "sourceId": "mof-xiamen-supervision-dynamics",
+        "url": "https://xm.mof.gov.cn/caizhengjiancha/202610/t20261010_4002551.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=mmqxlwqgxvxz25xjryt36jlxq]",
+        "contentHash": "cbc9e796af77b3c21d9f76e12d7baa2f04da2a58b3777061e9fadce87183bb33",
+        "bodySha256": "dd41f00bb556b300e9092960a279edd2a3a9387a3853c5fb00d4d2fc69b46e09",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:mmqxlwqgxvxz25xjryt36jlxq/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-n9u0p0sb2d3e5tot1ou2duvmy",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部黑龙江监管局监管四处组织学习《银行业信贷资产登记流转中心银行业信贷资产流转集中登记规则》",
+        "originalTitle": null,
+        "publishedAt": "2026-10-08T16:00:00.000Z",
+        "sourceName": "财政部黑龙江监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "n9u0p0sb2d3e5tot1ou2duvmy",
+        "sourceId": "mof-heilongjiang-supervision-dynamics",
+        "url": "https://hlj.mof.gov.cn/caizhengjiancha/202610/t20261009_4002407.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=n9u0p0sb2d3e5tot1ou2duvmy]",
+        "contentHash": "c3d31f498851f6ed9f4ae61486f52ea75f179fd68554b212129eeb84612177b2",
+        "bodySha256": "bea1c063fc95efcf95dd7cad104c9cc342f6feed015ec2fb86b05326761dfe12",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:n9u0p0sb2d3e5tot1ou2duvmy/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-nwi3t8da1sxstkwv6dn0auacc",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部湖北监管局：强身健体添活力 携手同行向未来 ——局机关工会举办2026年秋季趣味运动会",
+        "originalTitle": null,
+        "publishedAt": "2026-10-07T16:00:00.000Z",
+        "sourceName": "财政部湖北监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "nwi3t8da1sxstkwv6dn0auacc",
+        "sourceId": "mof-hubei-supervision-dynamics",
+        "url": "https://hb.mof.gov.cn/gzdt2019/caizhengjiancha/202610/t20261008_3998552.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=nwi3t8da1sxstkwv6dn0auacc]",
+        "contentHash": "51414b8877ebc5ab867f74cf080a352833793a4e154a68e24f51cfa429b57f33",
+        "bodySha256": "a820f1c303dda87f9b124dd8f2f5de36a9358f6bb3bec75008907445d353353e",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:nwi3t8da1sxstkwv6dn0auacc/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-qcewulf4jrgk7pk5osnnnl2yy",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部江苏监管局：“三个强化”提升地方财政运行分析评估工作质效",
+        "originalTitle": null,
+        "publishedAt": "2026-10-08T16:00:00.000Z",
+        "sourceName": "财政部江苏监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "qcewulf4jrgk7pk5osnnnl2yy",
+        "sourceId": "mof-jiangsu-supervision-dynamics",
+        "url": "https://jsz.mof.gov.cn/caizhengjiancha/202610/t20261009_4002430.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=qcewulf4jrgk7pk5osnnnl2yy]",
+        "contentHash": "79098bb5f9cee61f10da7968e0aca79ea83764868cdc5afabdcdb98572cd8dd3",
+        "bodySha256": "d5846ec2ffe30df42955e332c155eca0cb22becc96673bcdb061b9293967a6ac",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:qcewulf4jrgk7pk5osnnnl2yy/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-rfqtuvz6oeko6fh4ew4cj2hon",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "湖南监管局深入衡阳市开展国有金融资本产权登记监督调研",
+        "originalTitle": null,
+        "publishedAt": "2026-10-07T16:00:00.000Z",
+        "sourceName": "财政部湖南监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "rfqtuvz6oeko6fh4ew4cj2hon",
+        "sourceId": "mof-hunan-supervision-dynamics",
+        "url": "https://hn.mof.gov.cn/caizhengjiancha/202610/t20261008_3999374.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=rfqtuvz6oeko6fh4ew4cj2hon]",
+        "contentHash": "6ad80607541fb17ae623c79f341faa871bfaef6f725eb9ae754d7acdf915b3de",
+        "bodySha256": "df1ae4663ddfd556cce6f7fed0fc0b943a99453f49ebe9397fb3402fcbf8ab04",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:rfqtuvz6oeko6fh4ew4cj2hon/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-s1sioeln9pg7dmvdmnefxjsuy",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部青海监管局：走访青海省人大常委会代表工作委员会",
+        "originalTitle": null,
+        "publishedAt": "2026-10-11T16:00:00.000Z",
+        "sourceName": "财政部青海监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "s1sioeln9pg7dmvdmnefxjsuy",
+        "sourceId": "mof-qinghai-supervision-dynamics",
+        "url": "https://qh.mof.gov.cn/gzdt/caizhengjiancha/202610/t20261012_4002652.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=s1sioeln9pg7dmvdmnefxjsuy]",
+        "contentHash": "8fb0f9fb733530fd55d6d2b4f6894648047955e103c56430dd08df5090c4ee5c",
+        "bodySha256": "c3e5c782aa1dc0de7d657bb94b248ce99c4fde5d3b6c6b47b06dfa88dd37c4fd",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:s1sioeln9pg7dmvdmnefxjsuy/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-scp96nwuhxyw76i6n7v3zjiq8",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部陕西监管局牢记“国之大者”以高质量财政监管护航美丽中国建设",
+        "originalTitle": null,
+        "publishedAt": "2026-10-09T16:00:00.000Z",
+        "sourceName": "财政部陕西监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "scp96nwuhxyw76i6n7v3zjiq8",
+        "sourceId": "mof-shaanxi-supervision-dynamics",
+        "url": "https://sx.mof.gov.cn/gzdt/caizhengjiancha/202610/t20261010_4002530.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=scp96nwuhxyw76i6n7v3zjiq8]",
+        "contentHash": "4129561d9259e43f357c0481af41461afaf6a3d72d18419cecbc9163d33ff73a",
+        "bodySha256": "664e8adfb490601a51abb394240d02513505158b8f4181a8f083eae30f65a0cf",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:scp96nwuhxyw76i6n7v3zjiq8/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-sjt8xoqnh0nr708kykl4r1dz7",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部重庆监管局：监管一处传达学习财政科学管理试点座谈会精神",
+        "originalTitle": null,
+        "publishedAt": "2026-09-27T16:00:00.000Z",
+        "sourceName": "财政部重庆监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "sjt8xoqnh0nr708kykl4r1dz7",
+        "sourceId": "mof-chongqing-supervision-dynamics",
+        "url": "https://cq.mof.gov.cn/gzdt2019/caizhengjiancha/202609/t20260928_3998238.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=sjt8xoqnh0nr708kykl4r1dz7]",
+        "contentHash": "d88ddc3b5967f8aca9908e6a7a4e059971773bab0a704ea3a6542d31017f00b9",
+        "bodySha256": "86a6f6fdd512b128b79d7df0780e4322fb1061624d840fc729f213d7f3071982",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:sjt8xoqnh0nr708kykl4r1dz7/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-sujbudzwiijmmplzhhds33s3r",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部四川监管局：监管三处组织学习《耕地建设与利用资金管理办法》",
+        "originalTitle": null,
+        "publishedAt": "2026-10-08T16:00:00.000Z",
+        "sourceName": "财政部四川监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "sujbudzwiijmmplzhhds33s3r",
+        "sourceId": "mof-sichuan-supervision-dynamics",
+        "url": "https://sc.mof.gov.cn/caizhengjiancha/202610/t20261009_4002421.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=sujbudzwiijmmplzhhds33s3r]",
+        "contentHash": "5dab9b9249e5ada5395d5e4072168b6dbd27b630834d9201d289c113e1823d1b",
+        "bodySha256": "d1b8a2e0105abda3f0b62eac45fd26749a03d04d0b766442798dfa288c923b79",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:sujbudzwiijmmplzhhds33s3r/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-uq4ce9jskz8jakb5tnha1yksr",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "拒做“守株人” 谱写人生新篇章——读《梁启超家书》有感",
+        "originalTitle": null,
+        "publishedAt": "2026-10-08T16:00:00.000Z",
+        "sourceName": "财政部山东监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "uq4ce9jskz8jakb5tnha1yksr",
+        "sourceId": "mof-shandong-supervision-dynamics",
+        "url": "https://sd.mof.gov.cn/gzdt/caizhengjiancha/202610/t20261009_4002464.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=uq4ce9jskz8jakb5tnha1yksr]",
+        "contentHash": "043fc0b0e4dec3f21301e0307de7c8e5622611db0c202c15ab253be39097687f",
+        "bodySha256": "6fed2e25d67b722fa071a2a71c447e41d06cbf90c33d3133747050954c347b72",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:uq4ce9jskz8jakb5tnha1yksr/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-wvf11z33af432b1q1vhmjqcd8",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部内蒙古监管局：监管四处组织开展财政金融监管专题培训",
+        "originalTitle": null,
+        "publishedAt": "2026-09-29T16:00:00.000Z",
+        "sourceName": "财政部内蒙古监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "wvf11z33af432b1q1vhmjqcd8",
+        "sourceId": "mof-inner-mongolia-supervision-dynamics",
+        "url": "https://nmg.mof.gov.cn/caizhengjiancha/202609/t20260930_3998416.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=wvf11z33af432b1q1vhmjqcd8]",
+        "contentHash": "9ea7cb4803fa1c84bd5208920822d65e0dc0867f0a54f8046f82622df23018da",
+        "bodySha256": "a0e267051cb933506daddcb808924d9aae833a647b427fe6f3cb653ce8d36815",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:wvf11z33af432b1q1vhmjqcd8/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-xgjd68ujrl80wcehm5k1hno7o",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "互学互鉴促提升 凝心聚力助振兴 ——财政部广西监管局与自治区财政厅联合召开驻村工作经验交流座谈会",
+        "originalTitle": null,
+        "publishedAt": "2026-10-12T16:00:00.000Z",
+        "sourceName": "财政部广西监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "xgjd68ujrl80wcehm5k1hno7o",
+        "sourceId": "mof-guangxi-supervision-dynamics",
+        "url": "https://gx.mof.gov.cn/gzdt/caizhengjiancha/202610/t20261013_4002679.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=xgjd68ujrl80wcehm5k1hno7o]",
+        "contentHash": "5cf53a31e2c2ccc3a67665d2628b6895c74086ba62b635ab2f9a75c268391fe0",
+        "bodySha256": "d5e39298aac552b2aabac5e37f4c21575344ea14e0185c2d9c79a9ac2dd3efaf",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:xgjd68ujrl80wcehm5k1hno7o/body_text@revision=1",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "body-y47w03w39pui3waz5btbtfhxd",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部贵州监管局：坚持学用结合 提升档案工作规范化标准化水平",
+        "originalTitle": null,
+        "publishedAt": "2026-09-22T16:00:00.000Z",
+        "sourceName": "财政部贵州监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "y47w03w39pui3waz5btbtfhxd",
+        "sourceId": "mof-guizhou-supervision-dynamics",
+        "url": "https://gz.mof.gov.cn/caizhengjiancha/202609/t20260923_3997999.htm",
+        "sourceArtifact": ".data/fiscal-qa/gold-candidates-20261018/source-snapshot.json#articles[id=y47w03w39pui3waz5btbtfhxd]",
+        "contentHash": "a703c8b284c1716f287ab3fccf54fb1defe79f4c78a700e8e7750ccd43f13c27",
+        "bodySha256": "a50b4f8ed54244b84f0613a8f32fa790b0bfaf8c8f10efcff206f9bce0842a4f",
+        "bodyReference": "fiscalhot_catalog_sweep_20261013_test.articles:y47w03w39pui3waz5btbtfhxd/body_text@revision=2",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": null,
+        "proposedBy": "Luna High",
+        "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "fiscal-fujian-tax-refund-review-20260922",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部福建监管局：“三强化”提升资源综合利用增值税即征即退政策复查工作质量",
+        "originalTitle": null,
+        "publishedAt": "2026-09-22T00:00:00+08:00",
+        "sourceName": "财政部·各地监管局动态（官网选登汇总）",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "ezr1be73mfw81fptbt5ht1zom",
+        "sourceId": "mof-regional-supervision-dynamics",
+        "url": "http://fj.mof.gov.cn/gzdt/caizhengjiancha/202608/t20260828_3996275.htm",
+        "sourceArtifact": ".data/fiscal-regional-batch-20260930/result.json#bodies[id=ezr1be73mfw81fptbt5ht1zom]",
+        "contentHash": "f3a9a462156ecbdf334ede65e2880bbf10283aeaf9e0952ca68163e5f1ccae0c",
+        "bodySha256": "8293e165f849d4f7882ff519cbab2397ae269d59a14e8ccc2dbc0f37cceb6e09",
+        "bodyReference": "fiscalhot_regional_batch_test.articles:ezr1be73mfw81fptbt5ht1zom/body_text",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": "select",
+        "proposedBy": "Luna High",
+        "rationale": "资源综合利用增值税即征即退复查及风险整改；为模型建议，仍需人工判断新闻价值。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "fiscal-xiamen-elderly-budget-supervision-20260918",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部厦门监管局：办公室组织开展厦门市农村养老保障情况专项调研",
+        "originalTitle": null,
+        "publishedAt": "2026-09-18T00:00:00+08:00",
+        "sourceName": "财政部厦门监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "zb3fipqqz448d9np18nmtbb5m",
+        "sourceId": "mof-xiamen-supervision-dynamics",
+        "url": "https://xm.mof.gov.cn/caizhengjiancha/202609/t20260918_3997727.htm",
+        "sourceArtifact": ".data/fiscal-regional-batch-20260930/result.json#bodies[id=zb3fipqqz448d9np18nmtbb5m]",
+        "contentHash": "12c24f121fa4032a814fe2051e16a5e550fd895b62010bd4d789db0e8e7825b2",
+        "bodySha256": "7a8a5fd98f155ab3b38094114a4a0625f20ad1effa3838d1833f940b52769bd8",
+        "bodyReference": "fiscalhot_regional_batch_test.articles:zb3fipqqz448d9np18nmtbb5m/body_text",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": "select",
+        "proposedBy": "Luna High",
+        "rationale": "保存正文描述农村养老财政保障调研与补助资金绩效跟踪；这是候选判断，不是gold。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    },
+    {
+      "caseId": "fiscal-xiamen-performance-review-20260911",
+      "eventGroupId": "unassigned-needs-human-review",
+      "eventGroupStatus": "needs_review",
+      "material": {
+        "title": "财政部厦门监管局：监管一处开展财政重点绩效评价工作调研",
+        "originalTitle": null,
+        "publishedAt": "2026-09-11T00:00:00+08:00",
+        "sourceName": "财政部厦门监管局·工作动态",
+        "bodyZh": null,
+        "bodyOriginal": null
+      },
+      "sourceFacts": {
+        "sourceKind": "web_list",
+        "sourceTier": "T1",
+        "firstParty": true,
+        "language": "zh"
+      },
+      "samplingContext": {
+        "benchmarkSplit": "development",
+        "samplingStratum": "regional-fiscal-supervision-business",
+        "splitStatus": "needs_review"
+      },
+      "evidence": {
+        "sourceArticleId": "g508u1u2h9se3q8s24jnc5e5j",
+        "sourceId": "mof-xiamen-supervision-dynamics",
+        "url": "https://xm.mof.gov.cn/caizhengjiancha/202609/t20260911_3997284.htm",
+        "sourceArtifact": ".data/fiscal-regional-batch-20260930/result.json#bodies[id=g508u1u2h9se3q8s24jnc5e5j]",
+        "contentHash": "d8ce161aa77d944825ff8845fdc1bc8946ea239edb7a12b347eb96069b0f6a0b",
+        "bodySha256": "d9fc3af991cea2eb9afb5c5d880c340422a963edc31cec674b5bb9e7d3ab68e2",
+        "bodyReference": "fiscalhot_regional_batch_test.articles:g508u1u2h9se3q8s24jnc5e5j/body_text",
+        "bodyStatus": "ok"
+      },
+      "proposal": {
+        "decision": "select",
+        "proposedBy": "Luna High",
+        "rationale": "具体消费品以旧换新绩效评价调研对象及资金/项目核查范围；提案不代表用户确认。"
+      },
+      "humanAnnotation": {
+        "status": "needs_review",
+        "decision": null,
+        "confirmedBy": null,
+        "confirmedAt": null
+      }
+    }
+  ]
+}

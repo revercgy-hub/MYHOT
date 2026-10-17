@@ -19,6 +19,12 @@
 
 ## 当前证据
 
+### 2026-10-18追加证据
+
+Gate 2状态仍为`PASSED_FOR_BOUNDED_P4_PILOT`；Gate 3、4、5均未通过。当前100条`gold/candidates-2026-10-18.json`仅为metadata DRAFT，validator `DRAFT_INCOMPLETE`、0 confirmed、100 pending；全部100条来源等级为T1，不能作为T1.5/T2校准或25–35高质量来源验收，也不代表NFRA、中国政府网及未来所有信源覆盖。正式Gold、真实development/holdout、provider质量评测均未完成。10/18人工审阅材料与精确证据见[本轮handoff](HANDOFFS/GATES_3_5_QA_2026-10-18.md)。
+
+Root批准的分页page4/5隔离批次经独立QA通过，实际8个GET全部200；cursor 4→6，唯一新增16条重庆列表metadata，旧文章/修订/job队列和6条publication投影不变；来源继续disabled/fulltext-off，job未消费，90日coverage仍unproven。软件QA为backend 401/402通过、1 skipped，typecheck、隔离Web build、Web 17/17通过。API/Web进程创建被执行策略拒绝，健康和smoke记`NOT_RUN`；不能据此勾选Gate 4页面验收。NAS未执行，目标和访问信息待确认。
+
 本节以 2026-10-16 检查点为准，详细运行状态及其边界见 [STATUS.md](STATUS.md) 与[本轮验收 handoff](HANDOFFS/FISCAL_ACCEPTANCE_QA_2026-10-16.md)。行业目录目前有48项来源配置，JSON中全部disabled且站内/转发全文均关闭；目录规模和配置测试不等于来源准入或覆盖完成。预览库有104条摘要型预览记录；这些记录不含正文，首页精选目前仍为空，也不代表正式模型分析、receipt、评分、精选或Gold。预览库记录及安全字段以本次导入和独立核验材料为准。
 
 现有P4/P5工具边界彼此独立：`scripts/fiscal/p4-pilot.ts`只对显式文章ID生成只读就绪/调用预算计划；它不调用provider、不写分析或发布结果，也不保留预算。`scripts/fiscal/p4-execute.ts`是单独的显式授权执行入口；没有执行报告时不能据pilot报告声称已完成评分或receipt。`gold/metadata-template.json`仍是待人工标注的草稿，`scripts/fiscal/gold-dataset.ts`只能核验其结构/完整性；proposal不等于人工Gold，validator就绪也不等于Gold评测或Gate 3通过。以上工具存在、测试通过或网页预览成功均不改变Gate。
