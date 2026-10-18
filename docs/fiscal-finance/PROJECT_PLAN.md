@@ -4,7 +4,7 @@
 
 ## 2026-10-18 当前Gate证据更新
 
-本段以[10月18日Gate 3–5 QA交接](HANDOFFS/GATES_3_5_QA_2026-10-18.md)为当前结果索引；下方10月17日任务顺序及更早检查点保留历史，不覆盖本轮实际结果。Root批准的分页CLI page4/5批次已在专用`_test`库完成8个精确GET并经独立QA；旧数据投影保持不变、仅重庆新增16条metadata、coverage仍`unproven`。100条候选是待人工审阅DRAFT，全部sourceTier=T1、0 confirmed、正式Gold=0，不代表质量校准、development/holdout或来源代表性。用户本人已确认担任Gold标注人，但未确认单条decision/eventGroup/split；首批5例batch-01 review packet由B维护为ignored输出，逐条标注仍为0 confirmed。软件QA最新GitHub Check run [39058082747](https://github.com/revercgy-hub/MYHOT/actions/runs/39058082747)在精确head `ba395eac9d978e986bc217b30a42a518b2ae4624`全绿：backend 400 pass/2 skipped/0 fail，Check与Docker通过。用户提供NAS信息铭凡N5/64GB/飞牛NAS支持Docker/IP `192.168.3.100`，但系统版本、实际Staging/volume目录和管理/SSH方式待确认；未连接或部署。只读runtime：PG loopback ready，API/Web无listener，health/noindex/smoke `NOT_RUN`；用户会手动启动是未来承诺而非已运行事实。Gate 2维持`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3–5未通过；付费route/OCR延期。
+本段以[10月18日Gate 3–5 QA交接](HANDOFFS/GATES_3_5_QA_2026-10-18.md)为当前结果索引；下方10月17日任务顺序及更早检查点保留历史，不覆盖本轮实际结果。Root批准的分页CLI page4/5批次已在专用`_test`库完成8个精确GET并经独立QA；旧数据投影保持不变、仅重庆新增16条metadata、coverage仍`unproven`。100条候选全部sourceTier=T1；首批5条decision已由用户确认均为reject（理由缺失），其余95条待审。validator为`DRAFT_INCOMPLETE`、5 confirmed/95 pending；全部eventGroup/split未确认，完整可评测数据集和校准均未就绪。用户本人为标注人。batch-01用户决定审计和batch-02独立资料QA详见STATUS及本轮handoff。软件QA最新GitHub Check run [39058082747](https://github.com/revercgy-hub/MYHOT/actions/runs/39058082747)在精确head `ba395eac9d978e986bc217b30a42a518b2ae4624`全绿：backend 400 pass/2 skipped/0 fail，Check与Docker通过。用户提供NAS信息铭凡N5/64GB/飞牛NAS支持Docker/IP `192.168.3.100`，但系统版本、实际Staging/volume目录和管理/SSH方式待确认；未连接或部署。只读runtime：PG loopback ready，API/Web无listener，health/noindex/smoke `NOT_RUN`；用户会手动启动是未来承诺而非已运行事实。Gate 2维持`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3–5未通过；付费route/OCR延期。
 
 ## 2026-10-17 任务安排（历史）
 
