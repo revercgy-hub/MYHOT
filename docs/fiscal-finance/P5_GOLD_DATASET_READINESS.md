@@ -12,7 +12,7 @@
 
 本轮基于现有主隔离库只读快照生成了100条可供人工审阅的metadata-only候选，版本化清单为[`gold/candidates-2026-10-18.json`](gold/candidates-2026-10-18.json)，正文和本地review packet仍只在忽略目录`.data/fiscal-qa/gold-candidates-20261018/`。独立核验100个case/article/URL唯一、40个来源，100个body文本SHA与逐篇source snapshot一致，原8模板中7个可读正文候选均保持同article/hash/标题，附件失败hold被排除；当前validator为`DRAFT_INCOMPLETE`、0 issues、5 confirmed、95 pending。分层为financial-debt 31、regional-fiscal-supervision-business 34、internal-activity-noise 20、policy-and-institutional-updates 15；宽泛的政策与机构动态桶不表示其中每条都是中央材料，真正中央机构候选仅7条（mof-policy-release 4、mof-accounting-notices 2、mof-budget-work 1）。
 
-该次快照中100/100 sourceTier为T1；不能据此声称T1.5/T2门槛已校准、样本代表性已证明、8种ITEM_TYPES都已覆盖，或NFRA、中国政府网/未来来源覆盖完成。用户已对首批5条确认decision均为reject，理由未提供；其余95条decision仍pending。全部eventGroup与split仍待确认，完整可评测数据集尚未就绪，真实provider评测未运行。`eval-selection.ts`及既有validator保留为后续人工完成后的工具，当前selection thresholds 60/65/76/floor50不变。
+该次快照中100/100 sourceTier为T1；不能据此声称T1.5/T2门槛已校准、样本代表性已证明、8种ITEM_TYPES都已覆盖，或NFRA、中国政府网/未来来源覆盖完成。用户已对首批5条确认decision均为reject，并提供共同理由“不是需要关注的重点工作”，只存入ignored理由审计；现有`humanAnnotation`不包含reason字段，未扩展候选schema。其余95条decision仍pending。全部eventGroup与split仍待确认，完整可评测数据集尚未就绪，真实provider评测未运行。`eval-selection.ts`及既有validator保留为后续人工完成后的工具，当前selection thresholds 60/65/76/floor50不变。
 
 ## 范围与结论
 

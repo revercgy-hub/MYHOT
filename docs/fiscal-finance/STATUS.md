@@ -4,7 +4,7 @@
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=c3f2da308c0083e6b7200b7d1ada554a526f3fea（此前CI tested code+docs checkpoint；本轮docs commit后以Git实际HEAD为当前SHA）
+CURRENT_SHA=a9af6370d11971db73afa01e566c55c8642f9db2（当前代码+docs提交；本轮docs commit后以Git实际HEAD为当前SHA）
 CURRENT_CODE_SHA=ba395eac9d978e986bc217b30a42a518b2ae4624（仅含测试setup修复，不表示Gate 3–5验收）
 CLI_FILE_SHA256=6DAC5C91D5EDC86076E2D025EE8E9CB1D9DC15D9683154FAE980E85BED2ACB2A
 TEST_FILE_SHA256=34801B5DD1A74FA6B2E713492534B116DA4D88C88E1E9097F5371D36409A0455
@@ -15,19 +15,19 @@ WORKSPACE=D:\AI-work\MYHOT\AIHOT
 STAGE=Gate 3–5本地证据复核；不代表P5评测、本地页面验收或NAS Staging
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5 NOT_PASSED
 REVIEW=Root已审阅并批准变更范围；Gate 3–5未验收
-GOLD_REVIEWER=用户本人是领域标注人；batch-01五项decision均已用户确认reject，理由未提供；95项仍待decision。全部100项eventGroup/split仍needs_review。
-GOLD_REVIEW_BATCH_01=原冻结审阅材料`.data/fiscal-qa/gold-review-batches-20261018/batch-01.md`和`batch-01.json`的hash保持不变；用户回复原文“都不精选”按固定序号映射5项reject，记录UTC `2026-10-18T03:52:49Z`，confirmedBy=`user-in-this-chat`，5项reason缺失。冻结审计`.data/fiscal-qa/gold-review-batches-20261018/human-decisions-batch-01.json` SHA-256 `8DA9AFE12CF99B7BFABAE674B564D283B4AB4AED8CA8CB1AEC21E99E939A2518`；独立差异QA `.data/fiscal-qa/user-reviews-20261018/candidate-manifest-independent-qa.json`通过。
+GOLD_REVIEWER=用户本人是领域标注人；batch-01五项decision均已用户确认reject，用户后续为五项补充同一理由；95项仍待decision。全部100项eventGroup/split仍needs_review。
+GOLD_REVIEW_BATCH_01=原冻结审阅材料`.data/fiscal-qa/gold-review-batches-20261018/batch-01.md`和`batch-01.json`的hash保持不变；用户回复“都不精选”按固定序号映射5项reject，confirmedAt UTC `2026-10-18T03:52:49Z`。其后用户共同理由原文“不是需要关注的重点工作”，记录UTC `2026-10-18T10:21:09Z`，仅追加在ignored sidecar `.data/fiscal-qa/gold-review-batches-20261018/human-reasons-batch-01.json`，SHA-256 `C78E9078E031DD882345175C6886FA8EA09F088653F8FDE3898E3B97D7EFB59B`。既有`humanAnnotation` schema没有reason字段，未扩展schema；原decision审计保留记录当时reason missing。独立QA `.data/fiscal-qa/user-reviews-20261018/human-reasons-batch01-independent-qa.json`通过。
 GOLD_REVIEW_BATCH_02=待审5例为编号6–10；ignored MD SHA-256 `FC0EF126500657B41F7A45CF29B826C0C8BC785AE7DC65B3FBE475E13AC0F39F`、JSON SHA-256 `C841BA4DE7EAC43064EB2A58F170AA49619CC1798CEC4403DADAAF9F4840C8C8`；5/5内容和身份独立QA PASS，报告`.data/fiscal-qa/user-reviews-20261018/batch02-independent-qa.json`。
 NAS_TARGET_PARTIAL=用户提供铭凡N5、64GB内存、飞牛NAS支持Docker、IP 192.168.3.100；具体OS版本、staging/数据卷目录、管理/SSH方式、备份目标及secret注入仍未知。未连接或部署。
-BLOCKERS=95条候选decision仍待审；5条reject理由未提供；全部100项eventGroup/split未确认、真实provider质量评测未运行；NAS staging OS版本/目录/管理访问/持久卷备份/secret方式待确认；T1.5/T2质量及90日coverage仍缺证
-COMPLETED=首批5项decision已确认reject；第8项历史bodyReference按实际DB名作最小纠错；validator 0 issues/5 confirmed/95 pending；第二批5例审阅包经独立QA
-IN_PROGRESS=等待用户补充首批拒选理由（若愿意）并审阅batch-02 5项；NAS部署信息待补齐；当前PG loopback就绪、API/Web无监听，health/page noindex/smoke仍NOT_RUN
+BLOCKERS=95条候选decision仍待审；全部100项eventGroup/split未确认、真实provider质量评测未运行；NAS staging OS版本/目录/管理访问/持久卷备份/secret方式待确认；T1.5/T2质量及90日coverage仍缺证
+COMPLETED=首批5项decision已确认reject、共同理由已单独留存；第8项历史bodyReference按实际DB名作最小纠错；validator 0 issues/5 confirmed/95 pending；第二批5例审阅包经独立QA
+IN_PROGRESS=等待用户审阅batch-02 5项；NAS部署信息待补齐；当前PG loopback就绪、API/Web无监听，health/page noindex/smoke仍NOT_RUN
 NEXT=审阅并记录batch-02逐项决定/理由（如提供）；后续单独确认eventGroup/split；补齐NAS staging部署/卷/备份/访问参数后再制定计划；Gate 3–5状态不变
 ```
 
 CI_HISTORY=run 39057725549在旧head `4f1017f8cfa2d0a287069f3f7c9650e32a66f3b4` backend 399 pass/2 skipped/1 fail，原因是fresh checkout不存在忽略的`.data/fiscal-qa`父目录；测试setup现先递归建父目录，并以`recursive:false`建PID唯一目录。修复后run [39058082747](https://github.com/revercgy-hub/MYHOT/actions/runs/39058082747)精确tested head `ba395eac9d978e986bc217b30a42a518b2ae4624` success：backend 400 pass/2 skipped/0 fail，Check与Docker job均通过。两个run的原始日志分别保存在`.data/fiscal-qa/github-ci-39057725549/`和`.data/fiscal-qa/github-ci-39058082747/`。
 
-当前Gate 2仍为`PASSED_FOR_BOUNDED_P4_PILOT`；Gate 3、4、5均未通过。Gate 3中已有5条人工decision（均reject），其理由缺失；另95条decision待确认，全部eventGroup/split及真实provider质量评测仍未完成。Gate 4仍缺25–35个高质量来源、可靠的90日覆盖证据和页面验收；Gate 5已有部分NAS设备目标信息，但仍缺系统版本、实际部署目录/管理访问与Staging运行、稳定性/恢复及备份演练。100条metadata-only候选全部sourceTier为T1；validator为`DRAFT_INCOMPLETE`、5 confirmed/95 pending，完整可评测数据集未就绪（见[P5 readiness](P5_GOLD_DATASET_READINESS.md)）。付费route/OCR按用户决定继续延期。
+当前Gate 2仍为`PASSED_FOR_BOUNDED_P4_PILOT`；Gate 3、4、5均未通过。Gate 3中已有5条人工decision（均reject），共同理由已另存于ignored审计；另95条decision待确认，全部eventGroup/split及真实provider质量评测仍未完成。Gate 4仍缺25–35个高质量来源、可靠的90日覆盖证据和页面验收；Gate 5已有部分NAS设备目标信息，但仍缺系统版本、实际部署目录/管理访问与Staging运行、稳定性/恢复及备份演练。100条metadata-only候选全部sourceTier为T1；validator为`DRAFT_INCOMPLETE`、5 confirmed/95 pending，完整可评测数据集未就绪（见[P5 readiness](P5_GOLD_DATASET_READINESS.md)）。付费route/OCR按用户决定继续延期。
 
 本机既有PostgreSQL `.data/test-pg/cluster` 已运行于`127.0.0.1:5432`（只读复查PID6368、`pg_isready` accepting；`fiscalhot_preview_test` 35 migrations）。此前API/Web启动命令曾在shell创建前被策略拒绝；本次重新只读检查时3001/3000无listener，用户表示会按文档手动启动，但尚未观察到运行进程，本次没有尝试启动/重启或改用其他工具。API health、Web页面noindex和smoke仍`NOT_RUN`。preview DB只读安全明细及listener报告见`.data/fiscal-qa/user-followup-20261018/`。`192.168.3.100`是用户提供的NAS地址，不是本机地址；未做LAN绑定或NAS探测。loopback启动说明见[P3 local preview](P3_LOCAL_PREVIEW.md)。
 
@@ -37,7 +37,7 @@ B的一次获批福建正文GET已独立核验：target从pending到ok、非目�
 
 同一生产CLI SHA `6DAC5C…`的fresh backend完整suite为402项（401 pass、1 skipped、0 failed）；该全套是在仅测试文件增加fresh非空DB失败关闭guard之前运行。最终test SHA `BE418220…`在之后fresh focused 6/6和typecheck通过；负向复用非空库在preflight失败，before/after sources/articles/pgboss.job完整JSON hash均为`151713…DCBEE`，fresh库仍通过两页成功/503失败fixture。隔离Web build通过、Web tests 17/17使用的也是相同生产CLI SHA；隔离副本位于`.data/fiscal-qa/webbuild-gatesqa-20261018`。API/Web进程创建在shell启动前被执行策略拒绝，按既有指示未绕过；本机live health和smoke保持`NOT_RUN`。这些软件检查不等于来源质量、Gate 3或NAS验收。
 
-Gold人工审阅准备扩充为100条metadata-only DRAFT：40个唯一来源、100个唯一文章/URL、正文SHA及source snapshot逐项匹配；分层为financial-debt 31、regional-fiscal-supervision-business 34、internal-activity-noise 20、policy-and-institutional-updates 15。来源等级100/100均为T1，真正中央机构候选仅7条；不得据此声称T1.5/T2质量门槛、来源代表性或NFRA/中国政府网/未来全部来源覆盖已校准。用户已确认其中5条decision均为reject，理由缺失；其余95条decision pending。validator为`DRAFT_INCOMPLETE`、5 confirmed/95 pending；全部eventGroup/split未确认，完整可评测数据集未就绪，provider评测未运行。版本化metadata为`gold/candidates-2026-10-18.json`，不含正文；本地可读packet与ignored正文、完整独立QA见`.data/fiscal-qa/gold-candidates-20261018/`。付费route/OCR继续deferred，selection thresholds 60/65/76/floor50未变。
+Gold人工审阅准备扩充为100条metadata-only DRAFT：40个唯一来源、100个唯一文章/URL、正文SHA及source snapshot逐项匹配；分层为financial-debt 31、regional-fiscal-supervision-business 34、internal-activity-noise 20、policy-and-institutional-updates 15。来源等级100/100均为T1，真正中央机构候选仅7条；不得据此声称T1.5/T2质量门槛、来源代表性或NFRA/中国政府网/未来全部来源覆盖已校准。用户已确认其中5条decision均为reject，并补充同一共同理由（见ignored理由审计）；其余95条decision pending。validator为`DRAFT_INCOMPLETE`、5 confirmed/95 pending；全部eventGroup/split未确认，完整可评测数据集未就绪，provider评测未运行。版本化metadata为`gold/candidates-2026-10-18.json`，不含正文；本地可读packet与ignored正文、完整独立QA见`.data/fiscal-qa/gold-candidates-20261018/`。付费route/OCR继续deferred，selection thresholds 60/65/76/floor50未变。
 
 ## 2026-10-17 后续任务安排审查（运行时只读检查；计划文档已更新）
 
