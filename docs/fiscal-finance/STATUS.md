@@ -1,11 +1,11 @@
 # 项目状态
 
-## 2026-10-18 Gate 3/4/5证据与运行时QA
+## 2026-10-18 Gate 3/4/5证据、用户决定与运行时复查
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=227daafa492bb25064fde3cec293c14e4042b97d（代码提交；docs提交完成后以Git实际HEAD为当前SHA）
-CURRENT_CODE_SHA=227daafa492bb25064fde3cec293c14e4042b97d（本地软件QA按下述各自范围对应，不表示Gate 3–5验收）
+CURRENT_SHA=ba395eac9d978e986bc217b30a42a518b2ae4624（CI tested code+docs checkpoint；本轮docs commit后以Git实际HEAD为当前SHA）
+CURRENT_CODE_SHA=ba395eac9d978e986bc217b30a42a518b2ae4624（仅含测试setup修复，不表示Gate 3–5验收）
 CLI_FILE_SHA256=6DAC5C91D5EDC86076E2D025EE8E9CB1D9DC15D9683154FAE980E85BED2ACB2A
 TEST_FILE_SHA256=34801B5DD1A74FA6B2E713492534B116DA4D88C88E1E9097F5371D36409A0455
 HELPER_FILE_SHA256=DFFFFCC8B9D998D4C610FB961BE510BC3F4C5BFF712D2D3F050E7DDD99C0CA76
@@ -15,17 +15,20 @@ WORKSPACE=D:\AI-work\MYHOT\AIHOT
 STAGE=Gate 3–5本地证据复核；不代表P5评测、本地页面验收或NAS Staging
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5 NOT_PASSED
 REVIEW=Root已审阅并批准变更范围；Gate 3–5未验收
-BLOCKERS=领域labeler确认100条候选decision/eventGroup/split；实际NAS Staging target/网络/存储/备份/secret注入信息；API/Web health和smoke NOT_RUN（启动命令被执行策略拒绝）
-COMPLETED=批准scope page4/5真实列表批次独立QA PASS；Gold100 metadata-only DRAFT及独立QA；fresh backend 402项（401 pass/1 skip）、typecheck、隔离Web build和Web17/17；测试guard负向及fresh正向focused证明
-IN_PROGRESS=候选人工审阅与NAS参数等待用户回复；T1.5/T2质量、真实provider及90日coverage仍缺证
-NEXT=取得人工labels与NAS目标后单独推进对应Gate验收；Gate 3–5继续维持未通过，直至外部证据满足退出条件
+GOLD_REVIEWER=用户本人已确认担任领域标注人；这是角色确认，不是任何逐条decision/eventGroup/split确认。100项仍0 confirmed。
+GOLD_REVIEW_BATCH_01=首批5例由B生成ignored审阅材料`.data/fiscal-qa/gold-review-batches-20261018/batch-01.md`和`.data/fiscal-qa/gold-review-batches-20261018/batch-01.json`；MD SHA-256 `35DF65A16C93E1DCE3F671FCAAF4775EEDA52DFE9E21F761DA8DC00C25EB2E80`，JSON SHA-256 `E044F54E66C65698C4BAF979F532BF274FC1632ECC45B31A950D01E0DB201DA1`；独立内容QA PASS，5项仍0 decision。
+NAS_TARGET_PARTIAL=用户提供铭凡N5、64GB内存、飞牛NAS支持Docker、IP 192.168.3.100；具体OS版本、staging/数据卷目录、管理/SSH方式、备份目标及secret注入仍未知。未连接或部署。
+BLOCKERS=100条候选仍需用户逐项填写decision/eventGroup/split；NAS staging OS版本/目录/管理访问/持久卷备份/secret方式待确认；T1.5/T2质量、真实provider及90日coverage仍缺证
+COMPLETED=批准scope page4/5真实列表批次独立QA PASS；Gold100 metadata-only DRAFT及独立QA；本机preview数据库只读安全核验；fresh backend本地与CI结果、typecheck、隔离Web build/tests；测试guard负向及fresh正向focused证明
+IN_PROGRESS=用户本人可开始review packet逐条标注；NAS部署信息待补齐；当前PG loopback就绪、API/Web无监听，health/page noindex/smoke仍NOT_RUN
+NEXT=接收并核验逐条人工标签；补齐NAS staging部署/卷/备份/访问参数后再制定计划；用户手动启动API/Web后再执行有限本机页面验收；Gate 3–5状态不变
 ```
 
-CI_HISTORY=GitHub Check run 39057725549（tested head `4f1017f8cfa2d0a287069f3f7c9650e32a66f3b4`）backend tests失败1项：CLI测试假设忽略目录`.data/fiscal-qa`已存在，fresh checkout首次mkdir子目录时报ENOENT。修复只在测试setup先递归创建QA_DATA_DIR，再用`recursive:false`创建PID唯一子目录；旧失败保留，未追认为通过。新run的准确tested SHA和状态见本轮交接/ignored CI状态记录。
+CI_HISTORY=run 39057725549在旧head `4f1017f8cfa2d0a287069f3f7c9650e32a66f3b4` backend 399 pass/2 skipped/1 fail，原因是fresh checkout不存在忽略的`.data/fiscal-qa`父目录；测试setup现先递归建父目录，并以`recursive:false`建PID唯一目录。修复后run [39058082747](https://github.com/revercgy-hub/MYHOT/actions/runs/39058082747)精确tested head `ba395eac9d978e986bc217b30a42a518b2ae4624` success：backend 400 pass/2 skipped/0 fail，Check与Docker job均通过。两个run的原始日志分别保存在`.data/fiscal-qa/github-ci-39057725549/`和`.data/fiscal-qa/github-ci-39058082747/`。
 
-当前Gate 2仍为`PASSED_FOR_BOUNDED_P4_PILOT`；Gate 3、4、5均未通过。Gate 3仍缺领域人员确认的Gold标签、事件组/分割及真实provider质量证据；Gate 4仍缺25–35个高质量来源、可靠的90日覆盖证据和页面验收；Gate 5仍缺实际NAS Staging目标、稳定运行/恢复及备份演练。人工审阅候选扩为100条metadata-only DRAFT、0 confirmed，7篇旧样本可读且1篇附件失败hold不入评测；该批100条sourceTier全为T1，不是Gold或质量校准结论（见[P5 readiness](P5_GOLD_DATASET_READINESS.md)）。付费route/OCR按用户决定继续延期。
+当前Gate 2仍为`PASSED_FOR_BOUNDED_P4_PILOT`；Gate 3、4、5均未通过。Gate 3仍缺领域人员逐条确认的Gold标签、事件组/分割及真实provider质量证据；Gate 4仍缺25–35个高质量来源、可靠的90日覆盖证据和页面验收；Gate 5已有部分NAS设备目标信息，但仍缺系统版本、实际部署目录/管理访问与Staging运行、稳定性/恢复及备份演练。人工审阅候选扩为100条metadata-only DRAFT、0 confirmed，7篇旧样本可读且1篇附件失败hold不入评测；该批100条sourceTier全为T1，不是Gold或质量校准结论（见[P5 readiness](P5_GOLD_DATASET_READINESS.md)）。付费route/OCR按用户决定继续延期。
 
-本机既有PostgreSQL `.data/test-pg/cluster` 已通过一次正常`pg_ctl start`恢复，监听仅`127.0.0.1:5432`，`fiscalhot_preview_test`迁移35项、sources均disabled且全文关闭。运行时创建API/Web进程的命令在shell启动前被执行策略拒绝；没有另换工具绕过。故本轮API/Web健康和smoke为`NOT_RUN`。已有loopback启动说明见[P3 local preview](P3_LOCAL_PREVIEW.md)；当前机器没有`192.168.3.47`地址，不应运行LAN绑定launcher。
+本机既有PostgreSQL `.data/test-pg/cluster` 已运行于`127.0.0.1:5432`（只读复查PID6368、`pg_isready` accepting；`fiscalhot_preview_test` 35 migrations）。此前API/Web启动命令曾在shell创建前被策略拒绝；本次重新只读检查时3001/3000无listener，用户表示会按文档手动启动，但尚未观察到运行进程，本次没有尝试启动/重启或改用其他工具。API health、Web页面noindex和smoke仍`NOT_RUN`。preview DB只读安全明细及listener报告见`.data/fiscal-qa/user-followup-20261018/`。`192.168.3.100`是用户提供的NAS地址，不是本机地址；未做LAN绑定或NAS探测。loopback启动说明见[P3 local preview](P3_LOCAL_PREVIEW.md)。
 
 B的一次获批福建正文GET已独立核验：target从pending到ok、非目标441篇文章/source config/cursor/queue哈希保持一致、下游新增0，target publication仍不可选/不可索引/不转发；唯一publication计数315→316变化属于目标同步。因写前未保存315条non-target publication逐行基线，本轮保留原`unexpected_global_count_change`失败，独立结论限定为`PASS_TARGET_AND_GUARD_EVIDENCE_WITH_PUBLICATION_BASELINE_GAP`，不追认全字段PASS，也不重复该正文操作。详情见[10/18 handoff](HANDOFFS/GATES_3_5_QA_2026-10-18.md)。
 
