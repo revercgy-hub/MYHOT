@@ -1,5 +1,9 @@
 # 阶段任务交接制度
 
+## 2026-10-19 最新P5 Gold审阅检查点
+
+最新Gold人工决定和审阅批次见[batch-02决定及batch-03准备检查点](P5_GOLD_BATCH02_REVIEW_2026-10-19.md)：batch-02编号6–10均由用户确认select，100项当前10 confirmed/90 pending，全部eventGroup/split仍需确认；validator为`DRAFT_INCOMPLETE`，Gate 3未通过。batch-03编号11–15经独立body/hash/date/summary QA通过，等待用户审阅。此增量不更新10月18日记录的本地runtime或Gate 4–5证据。
+
 ## 2026-10-18 最新Gate QA交接
 
 当前最新状态见[Gate 3–5本地证据与运行时QA](GATES_3_5_QA_2026-10-18.md)：Gate 2仍为`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3–5未通过；本机PG已恢复loopback，API/Web进程启动被执行策略拒绝，smoke记`NOT_RUN`。A获批page4/5批次8个GET经独立QA PASS，仅重庆新增16条metadata、四源cursor 4→6，coverage仍unproven。Gold审阅candidate增至100条metadata-only DRAFT、0 confirmed、100来源等级均T1，正式Gold仍0。软件QA及其与页面/NAS验收的边界、B正文批局限、尚需人工提供的labeler/NAS参数详见该交接。

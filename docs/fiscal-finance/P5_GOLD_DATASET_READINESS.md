@@ -1,5 +1,13 @@
 # P5 Gold Dataset readiness（2026-10-03）
 
+## 2026-10-19 batch-02人工决定与batch-03准备
+
+用户对已展示的 batch-02 编号6–10回复“都精选”。五条仅记录`select`、`confirmedBy=user-in-this-chat`及审计观察时间`2026-10-19T01:22:23Z`；没有理由字段或理由推断。原批次JSON/Markdown hash、用户原文和逐项映射见ignored `.data/fiscal-qa/gold-review-batches-20261018/human-decisions-batch-02.json`。独立QA报告见`.data/fiscal-qa/luna-gold-record-qa-20261019/independent-qa.json`。
+
+版本化metadata只有batch-02五项annotation发生变化：100条中10 confirmed、90 pending；batch-01五项reject未变，全部eventGroup/split仍`needs_review`。既有Gold validator结果为`DRAFT_INCOMPLETE`、0 issues（预期exit 3）。这没有完成P5评测/校准，Gate 3仍未通过，阈值保持60/65/76/floor50。
+
+batch-03编号11–15已建立，仅供用户后续人工审阅；不含建议标签，decision/reason均空，没有设置事件组或split。独立QA将每篇原文与冻结候选和source snapshot交叉核对，5/5身份、来源、URL、UTC时间及Asia/Shanghai日期、content hash、正文SHA/reference匹配；完整本地正文存在，5条中性摘要均经逐篇阅读核实。日期显示为北京时间：9月15日、9月29日、10月12日、8月26日、10月8日。详见[10月19日Gold检查点](HANDOFFS/P5_GOLD_BATCH02_REVIEW_2026-10-19.md)和ignored QA报告。材料与正文仍只保存在ignored目录，不将正文复制到Git。
+
 ## 2026-10-18 当前状态补充
 
 本页后续旧段落按各自日期保留。尤其是原始“Gate 2仍未通过”只代表2026-10-03时点；正式当前结论以[Gate 2 review](GATE_2_REVIEW.md)为准：`PASSED_FOR_BOUNDED_P4_PILOT`，不表示Gate 3通过。

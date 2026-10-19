@@ -1,5 +1,25 @@
 # 项目状态
 
+## 2026-10-19 Gold 人工审阅增量
+
+用户对已展示的 batch-02 编号6–10回复“都精选”，五项均记为`select`，审计观察时间`2026-10-19T01:22:23Z`；用户未给理由，因此不填reason。审计文件位于ignored `.data/fiscal-qa/gold-review-batches-20261018/human-decisions-batch-02.json`，独立QA见`.data/fiscal-qa/luna-gold-record-qa-20261019/independent-qa.json`。tracked元数据仅更新这五项；batch-01五项reject不变，100项中10 confirmed/90 pending，全部eventGroup/split仍`needs_review`。既有validator返回`DRAFT_INCOMPLETE`、0 issues；Gate 3仍未通过，未运行模型评测或校准。
+
+batch-03编号11–15已准备为中性、无标签的待审材料。独立QA核对5/5标题、来源、URL、精确UTC时间与北京时间、content/body hashes、正文引用，并对照本地完整正文审查摘要；结果PASS。材料和正文仍在ignored `.data/fiscal-qa/gold-review-batches-20261018/`。本地预览运行时、Gate 4–5和NAS状态沿用下方10月18日检查点，不代表今天重测。
+
+```text
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_SHA=560222eb04fde728a9d7a9fc305c3c16ce31a8b1（本次commit前；提交后以Git实测HEAD为准）
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+WORKSPACE=D:\AI-work\MYHOT\AIHOT
+STAGE=P5人工标签记录与Gold候选准备；Gate 3尚未通过
+GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过
+REVIEW=batch-02编号6–10五项select经独立审计映射；batch-03编号11–15身份/hash/UTC+08日期/摘要QA PASS；reason未提供，未推断
+BLOCKERS=90条decision仍pending；全部eventGroup/split未确认；Gate 3评测和校准未完成
+COMPLETED=Gold metadata 10 confirmed/90 pending；validator DRAFT_INCOMPLETE、0 issues；batch-03待审包QA PASS
+IN_PROGRESS=等待用户审阅batch-03；不触及P4 provider或NAS运行
+NEXT=用户逐项确认batch-03；其后完成全部decision及eventGroup/split审查，才可整理评测样本
+```
+
 ## 2026-10-18 Gate 3/4/5证据、用户决定与运行时复查
 
 ```text
