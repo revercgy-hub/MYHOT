@@ -132,10 +132,10 @@
         "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
       },
       "humanAnnotation": {
-        "status": "needs_review",
-        "decision": null,
-        "confirmedBy": null,
-        "confirmedAt": null
+        "status": "user_confirmed",
+        "decision": "select",
+        "confirmedBy": "user-in-this-chat",
+        "confirmedAt": "2026-10-19T12:18:04Z"
       }
     },
     {
@@ -177,10 +177,10 @@
         "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
       },
       "humanAnnotation": {
-        "status": "needs_review",
-        "decision": null,
-        "confirmedBy": null,
-        "confirmedAt": null
+        "status": "user_confirmed",
+        "decision": "reject",
+        "confirmedBy": "user-in-this-chat",
+        "confirmedAt": "2026-10-19T12:18:04Z"
       }
     },
     {
@@ -222,10 +222,10 @@
         "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
       },
       "humanAnnotation": {
-        "status": "needs_review",
-        "decision": null,
-        "confirmedBy": null,
-        "confirmedAt": null
+        "status": "user_confirmed",
+        "decision": "select",
+        "confirmedBy": "user-in-this-chat",
+        "confirmedAt": "2026-10-19T12:18:04Z"
       }
     },
     {
@@ -312,10 +312,10 @@
         "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
       },
       "humanAnnotation": {
-        "status": "needs_review",
-        "decision": null,
-        "confirmedBy": null,
-        "confirmedAt": null
+        "status": "user_confirmed",
+        "decision": "select",
+        "confirmedBy": "user-in-this-chat",
+        "confirmedAt": "2026-10-19T12:18:04Z"
       }
     },
     {
@@ -357,10 +357,10 @@
         "rationale": "只为覆盖分层候选；proposal 未经人工确认，不代表Gold决策、事件独立性或质量判断。"
       },
       "humanAnnotation": {
-        "status": "needs_review",
-        "decision": null,
-        "confirmedBy": null,
-        "confirmedAt": null
+        "status": "user_confirmed",
+        "decision": "select",
+        "confirmedBy": "user-in-this-chat",
+        "confirmedAt": "2026-10-19T12:18:04Z"
       }
     },
     {

@@ -4,7 +4,7 @@
 
 ## 2026-10-19 P5 Gold 审阅状态
 
-用户对 batch-02 编号6–10确认均为`select`，理由未提供；ignored审计记录原文“都精选”及观察时间`2026-10-19T01:22:23Z`。100条候选现为10 confirmed/90 pending，全部事件组与split仍待确认；validator为`DRAFT_INCOMPLETE`、0 issues，Gate 3未通过。batch-03编号11–15为中性待审材料，body/hash/date/summary独立QA通过；详见[10月19日Gold检查点](HANDOFFS/P5_GOLD_BATCH02_REVIEW_2026-10-19.md)。
+batch-02编号6–10为五项`select`；batch-03编号11–15按用户原文“11精选 12不 13精选 14精选 15精选”映射为四项select、一项reject，均未提供理由。metadata现为15 confirmed（9 select、6 reject）/85 pending；全部事件组与split仍待确认，validator为`DRAFT_INCOMPLETE`、0 issues，Gate 3未通过。batch-04编号16–20的正文身份、hash、日期及摘要已通过独立QA，等待用户决定；见[10月19日Gold检查点](HANDOFFS/P5_GOLD_BATCH02_REVIEW_2026-10-19.md)。
 
 ## 2026-10-18 当前Gate证据更新
 

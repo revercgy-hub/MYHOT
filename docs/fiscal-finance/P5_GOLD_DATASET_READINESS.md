@@ -2,11 +2,11 @@
 
 ## 2026-10-19 batch-02人工决定与batch-03准备
 
-用户对已展示的 batch-02 编号6–10回复“都精选”。五条仅记录`select`、`confirmedBy=user-in-this-chat`及审计观察时间`2026-10-19T01:22:23Z`；没有理由字段或理由推断。原批次JSON/Markdown hash、用户原文和逐项映射见ignored `.data/fiscal-qa/gold-review-batches-20261018/human-decisions-batch-02.json`。独立QA报告见`.data/fiscal-qa/luna-gold-record-qa-20261019/independent-qa.json`。
+用户对batch-02编号6–10回复“都精选”，五项记为`select`；batch-03编号11–15原文“11精选 12不 13精选 14精选 15精选”按固定编号映射为select、reject、select、select、select。两批均由`user-in-this-chat`确认，未提供理由；审计与批次hash见ignored `.data/fiscal-qa/gold-review-batches-20261018/human-decisions-batch-02.json`及`human-decisions-batch-03.json`。batch-03审计SHA-256为`E074AC050EA82213A8774BA049887CF5A95197706A5CF7373B46B3D31E3B6BF6`，确认观察时间`2026-10-19T12:18:04Z`。独立资料QA汇总见`.data/fiscal-qa/luna-gold-record-qa-20261019/independent-qa.json`。
 
-版本化metadata只有batch-02五项annotation发生变化：100条中10 confirmed、90 pending；batch-01五项reject未变，全部eventGroup/split仍`needs_review`。既有Gold validator结果为`DRAFT_INCOMPLETE`、0 issues（预期exit 3）。这没有完成P5评测/校准，Gate 3仍未通过，阈值保持60/65/76/floor50。
+版本化metadata仅更新batch-02及batch-03共10项annotation：100条中15 confirmed（9 select、6 reject）、85 pending；batch-01五项reject未变，全部eventGroup/split仍`needs_review`。既有Gold validator结果为`DRAFT_INCOMPLETE`、0 issues（预期exit 3）。这没有完成P5评测/校准，Gate 3仍未通过，阈值保持60/65/76/floor50。
 
-batch-03编号11–15已建立，仅供用户后续人工审阅；不含建议标签，decision/reason均空，没有设置事件组或split。独立QA将每篇原文与冻结候选和source snapshot交叉核对，5/5身份、来源、URL、UTC时间及Asia/Shanghai日期、content hash、正文SHA/reference匹配；完整本地正文存在，5条中性摘要均经逐篇阅读核实。日期显示为北京时间：9月15日、9月29日、10月12日、8月26日、10月8日。详见[10月19日Gold检查点](HANDOFFS/P5_GOLD_BATCH02_REVIEW_2026-10-19.md)和ignored QA报告。材料与正文仍只保存在ignored目录，不将正文复制到Git。
+batch-03编号11–15已完成用户标签和决定审计；batch-04编号16–20经独立QA核对来源身份、URL、UTC时间、北京时间、hash、正文引用与摘要均通过。独立QA报告见`.data/fiscal-qa/luna-gold-record-qa-20261019/batch04-independent-qa.json`，详细状态见[10月19日Gold检查点](HANDOFFS/P5_GOLD_BATCH02_REVIEW_2026-10-19.md)。材料与正文仍只保存在ignored目录，不将正文复制到Git。
 
 ## 2026-10-18 当前状态补充
 

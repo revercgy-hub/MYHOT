@@ -23,7 +23,15 @@ node scripts/fiscal/gold-dataset.ts validate docs/fiscal-finance/gold/candidates
 
 ignored batch-03继续编号11–15，五项decision/reason均空，不设置event group或split。独立核对版本化metadata、保存source snapshot和本地完整body，5/5的文章ID、标题、source ID/name、URL、UTC时间、北京时间日期、content hash、body SHA-256与body reference相符。此前发现日期显示早一天，材料已修正后再次核验通过：#11 9月15日、#12 9月29日、#13 10月12日、#14 8月26日、#15 10月8日（Asia/Shanghai）。五条摘要均与全文事实相符，不包含标签建议。
 
-完整审计产物仅在忽略目录：`.data/fiscal-qa/gold-review-batches-20261018/`。独立结果在`.data/fiscal-qa/luna-gold-record-qa-20261019/independent-qa.json`，包括逐项hash/date/identity结果及正文长度。batch-03尚未获得用户决策，仍为待审草稿。
+完整审计产物仅在忽略目录：`.data/fiscal-qa/gold-review-batches-20261018/`。独立结果在`.data/fiscal-qa/luna-gold-record-qa-20261019/independent-qa.json`，包括逐项hash/date/identity结果及正文长度。用户随后对batch-03逐项决策，见下一节。
+
+## batch-03用户决定与batch-04独立QA
+
+用户原文为“11精选 12不 13精选 14精选 15精选”，observedAt UTC=`2026-10-19T12:18:04Z`。batch-03冻结JSON/Markdown SHA-256分别为`8200A0E27B0D81537AE3F53DCA0DB6FF4257B13A25B41725F9F4C9E4F5C33F1C`与`C552817040677E7455A9C925C3EEF8F39E93EB1EC5E9AC589A85AE1F2E49E953`；ignored用户决定审计SHA-256为`E074AC050EA82213A8774BA049887CF5A95197706A5CF7373B46B3D31E3B6BF6`，审计中source hashes与冻结文件匹配。编号11–15映射为四项`select`、一项`reject`，五项理由均missing。tracked metadata只改这五项四个humanAnnotation字段，前十项与其它字段保持不变。
+
+batch-04编号16–20仍为中性待审草稿，decision/reason均空，eventGroup/split未填。独立QA 5/5核对了标题、source ID/name、URL、UTC瞬时和北京时间、content hash、正文SHA-256及body reference，均与冻结候选和source snapshot一致；五条摘要均对照本地全文核验且无标签建议。batch-04 JSON/Markdown SHA-256分别为`4885095F06F83F58882C57273BCB24318E22577C59F92950437F9FFCE5D81EC8`和`678B85D3AF2058550FD3E2AFEA4ED74DED9201E9500CB537FF26E119637C9AB2`。北京时间依次为#16 9月14日、#17 9月7日、#18 9月21日、#19 9月30日、#20 7月17日。详细逐项QA在ignored `.data/fiscal-qa/luna-gold-record-qa-20261019/batch04-independent-qa.json`。
+
+当前100项metadata为15 confirmed（9 select、6 reject）/85 pending；所有eventGroup/split仍`needs_review`。Gold validator为`DRAFT_INCOMPLETE`、0 issues、预期exit 3。Gate 3仍未通过，未运行评测或校准。
 
 ## 环境与边界
 
@@ -31,4 +39,4 @@ ignored batch-03继续编号11–15，五项decision/reason均空，不设置eve
 
 ## 下一步
 
-由用户逐条审阅batch-03后再记录逐条决定与理由（如有）。100条全部decision确认后，仍需单独核对eventGroup及development/holdout切分，再按既有Gold合同整理正文并评测；在此之前不运行selection评测、校准或调整门槛。
+等待用户逐条审阅batch-04后记录逐条决定与理由（如有）。100条全部decision确认后，仍需单独核对eventGroup及development/holdout切分，再按既有Gold合同整理正文并评测；在此之前不运行selection评测、校准或调整门槛。
