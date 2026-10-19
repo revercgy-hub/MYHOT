@@ -39,4 +39,6 @@ batch-04编号16–20仍为中性待审草稿，decision/reason均空，eventGro
 
 ## 下一步
 
-等待用户逐条审阅batch-04后记录逐条决定与理由（如有）。100条全部decision确认后，仍需单独核对eventGroup及development/holdout切分，再按既有Gold合同整理正文并评测；在此之前不运行selection评测、校准或调整门槛。
+85条首轮机器建议QA完成：A 43条（11 select/31 reject/1未分类、20需复核）、B 42条（18 select/19 reject/5未分类、10需复核），合并为29 select/50 reject/6未分类。manifest顺序覆盖85个未确认case，无seed重复；两分片的文章身份、标题/来源/URL、contentHash/body SHA、正文hash和Asia/Shanghai日期已独立核验，0 mismatch。30个低/中置信标志对应正文均已核；另按可用性对高置信抽查A select 1、A reject 2、B select 2、B reject 2，合计37篇正文事实核查，摘要有据。抽查按既有[Gate 2用户内容边界](../GATE2_USER_DECISIONS.md)处理：无实质业务事实的内部活动排除，新政策、问题发现、监管措施和调研成果纳入；未新增硬阈值。唯一待用户确认的主题是地方金融服务稿优先级，三个中性例子见ignored `.data/fiscal-qa/experience-assisted-review-20261019/neutral-preference-examples.json`。
+
+合并机器建议保存在ignored `.data/fiscal-qa/experience-assisted-review-20261019/auto-suggestions.json`（SHA-256 `51d7e5c8865449e98997d698a158a610c72cbc44929444e1f7f3a905fe3b84a3`）；保留原分片`part-a.json`、`part-b.json`。每项附有未改写的`sourceShardRecord`，保留A分片的`reason/inferenceOnly`及B分片的`reason/bodyEvidence/basisType`等原生字段，避免把不同字段名合并时丢失依据；这些是分类器记录，不是正文逐字引文。原始30个`needsHumanReview`标志现已由独立QA按正文/已确认规则检查完成，其中27项无待答偏好、另3篇地方金融服务稿合并为一个主题问题。中性内部QA索引为`neutral-review-queue.json`，不显示机器标签、置信度或理由；提供给用户的三例中性主题说明为`neutral-preference-examples.json`。用户无需逐条判断30条，更不需逐条重读85条。15条人工confirmed（9 select/6 reject）仍是偏好归纳样本；85条建议不写入`humanAnnotation`，也不计Gold。未来独立holdout须盲审并按事件组隔离，本轮不自动分配`split`。本轮为本机Luna基于已确认偏好样本的经验辅助初判；未用provider/eval/receipt，未运行selection评测或校准。Gate 3评测、错例复核及阈值确认尚未完成；本轮没有修改prompt/阈值。

@@ -8,16 +8,16 @@ batch-03决定已记录；batch-04编号16–20已完成独立QA：五篇原文�
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=cc0b00c8543c695574e75b86c35eb357f41205c2（本轮修改开始前；提交后以Git实测HEAD为准）
+CURRENT_SHA=079f8b6becdf93562dee3da8541400954f86ebc3（本轮修改开始前；提交后以Git实测HEAD为准）
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
 STAGE=P5人工标签记录与Gold候选准备；Gate 3尚未通过
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过
 REVIEW=batch-02、batch-03十项决定均经审计映射；batch-04五篇正文与摘要独立QA PASS；决定未提供理由，未推断
-BLOCKERS=85条decision仍pending；全部eventGroup/split未确认；Gate 3评测和校准未完成
-COMPLETED=Gold metadata 15 confirmed（9 select/6 reject）/85 pending；validator DRAFT_INCOMPLETE、0 issues
-IN_PROGRESS=等待用户逐项审阅batch-04编号16–20；不触及P4 provider或NAS运行
-NEXT=按用户决定记录batch-04；其后完成全部decision及eventGroup/split审查，才可整理评测样本
+BLOCKERS=Gate 3独立人审验证、事件组隔离、真实评测与校准未完成；85条机器建议不计人标；全部eventGroup/split未确认
+COMPLETED=Gold metadata 15 confirmed（9 select/6 reject）/85 pending；机器建议29/50/6，85项身份/hash/日期QA通过；30个复核标志及7个高置信抽样已内容QA（27按已确认规则处理）
+IN_PROGRESS=等待用户确认一组地方金融服务稿优先级边界；机器建议及中性材料留在ignored QA目录
+NEXT=按用户答复更新偏好边界；保持85条建议与人工Gold分离；未来holdout盲审并按事件组隔离，本轮不分配split
 ```
 
 ## 2026-10-18 Gate 3/4/5证据、用户决定与运行时复查
