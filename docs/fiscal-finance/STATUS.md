@@ -8,6 +8,8 @@ batch-03决定已记录；batch-04编号16–20已完成独立QA：五篇原文�
 
 用户确认地方金融服务稿放入“全部动态”，精选优先政策、资金和监管重点。偏好审计SHA `271f2034a2408905e9496fe4334dc2f4a3bcbbb1bd87997301f65d36460bf570`，observedAt UTC `2026-10-19T14:26:07Z`；原文SHA `37d44d53d7f6a49ec99c2496f0717303a1b307e5546423d032e5704a3e3b6562`。三个示例仅作为偏好应用在ignored `auto-suggestions-v2.json`（SHA `88d8051b50300598bbc581a51090091c582b4170eeee5fc4e72988edb24d5c15`）；其余82条相对原建议deep-equal。随后QA核对6个null提案的正文/哈希/日期与既有内容规则，5项写入机器建议v3，1项北京调研成果边界仍保留null；v3 SHA `e1a3e1bc1f80a20676459d4712c0f9bc901b6389d47cc907c79b1483127ad993`，其余79项相对v2 deep-equal。85条机器建议现为30 select、54 reject、1未分类，不计人标；Gold仍15 confirmed（9/6）/85 pending，所有eventGroup/split未确认，Gate 3未通过。三个示例不构成独立人标。
 
+Commit `13fa76ae931e61abe7fb75fb0a144338d8f3cdc2`已推送到`origin/revercgy-hub/MYHOT`的`feat/fiscal-finance-hot`。GitHub Check run [39269783657](https://github.com/revercgy-hub/MYHOT/actions/runs/39269783657)以精确tested SHA `13fa76ae931e61abe7fb75fb0a144338d8f3cdc2`成功：Check与Docker jobs均通过；fresh backend 402项（400 pass、2 skipped、0 fail）、typecheck、Web build和17/17 Web tests、migration/seed及built-site smoke通过。CI为throwaway环境；本机API/Web/Postgres未启动，本机live smoke `NOT_RUN`。此CI不表示Gate 3或来源验收通过。
+
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
 CURRENT_SHA=cbd7502eed216b1a91fce25200c48040af051bda（本轮修改开始前；提交后以Git实测HEAD为准）
@@ -17,9 +19,9 @@ STAGE=P5人工标签记录与Gold候选准备；Gate 3尚未通过
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过
 REVIEW=batch-02、batch-03十项决定均经审计映射；batch-04五篇正文与摘要独立QA PASS；三例金融服务稿和6个null建议QA通过，仅北京调研报道保留null
 BLOCKERS=Gate 3独立人审验证、事件组隔离、真实评测与校准未完成；85条机器建议不计人标；全部eventGroup/split未确认
-COMPLETED=Gold metadata 15 confirmed（9 select/6 reject）/85 pending；机器建议v3 30/54/1，v3 needsHumanReview=27（原30个classifier flags已完成正文QA）；85项身份/hash/日期QA通过，43篇事实核查；typecheck与Web build/tests17/17通过
-IN_PROGRESS=评分prompt文字修订已独立核对；CI完整检查待本轮push后dispatch；机器建议与审计留在ignored QA目录
-NEXT=提交并推送已核销的prompt/docs，dispatch明确仓库feature分支CI并核对全部结果；真实服务smoke未运行；保持机器建议与Gold分离，未来holdout盲审并按事件组隔离，本轮不分配split
+COMPLETED=Gold metadata 15 confirmed（9 select/6 reject）/85 pending；机器建议v3 30/54/1，v3 needsHumanReview=27（原30个classifier flags已完成正文QA）；85项身份/hash/日期QA通过，43篇事实核查；typecheck、Web build/tests17/17及GitHub Check run39269783657均通过
+IN_PROGRESS=保持机器建议与人工Gold分离；当前tested SHA与CI结果见本段
+NEXT=继续Gold人工决定与事件组/split独立审核；未来holdout盲审并按事件组隔离，本轮不分配split；本机live smoke仍NOT_RUN
 ```
 
 ## 2026-10-18 Gate 3/4/5证据、用户决定与运行时复查

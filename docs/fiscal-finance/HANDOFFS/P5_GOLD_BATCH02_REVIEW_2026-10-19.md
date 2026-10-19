@@ -5,7 +5,7 @@ STAGE=P5 Gold metadata与人工标注准备
 GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`；Gate 3/4/5未通过  
 BRANCH=`feat/fiscal-finance-hot`  
 BASE_SHA=`589f79eff09470b31ba8a7f1d9eb62d36ff2be6c`  
-WORKTREE=本轮6个tracked prompt/docs文件待提交与CI；所有偏好/机器建议产物留在ignored `.data/fiscal-qa/experience-assisted-review-20261019/`
+WORKTREE=prompt/docs commit `13fa76ae931e61abe7fb75fb0a144338d8f3cdc2`已推送且CI通过；本段CI收尾docs改动另行提交；机器建议产物仍在ignored `.data/fiscal-qa/experience-assisted-review-20261019/`
 
 ## 用户决定与审计
 
@@ -48,3 +48,5 @@ batch-04编号16–20仍为中性待审草稿，decision/reason均空，eventGro
 随后独立复核ignored `null-resolution-proposals.json`（SHA-256 `0fa4ae5e005d3bf4767483d6db5fce38a7134b356854d86c48fa81d4310376d5`）的6篇正文、body SHA、标题/来源、北京时间和依据：新疆监管综述按用户确认的监管重点优先给出中置信select建议；吉林/海南党支部学习与内蒙古仅泛谈政策案例的培训按既有内部活动边界为reject；甘肃代表建议闭环流程无政策、资金或监管结果，为中置信推断reject；北京财青论坛虽列调研和量化复盘，但未展示结论或结果，仍保留null。证据是正文意译摘要，不是逐字引文。v3保留v2及每条此前建议，SHA-256 `e1a3e1bc1f80a20676459d4712c0f9bc901b6389d47cc907c79b1483127ad993`；仅6条相对v2变化，其余79条deep-equal，建议数为30 select、54 reject、1未分类。所有85条仍为机器建议，不写入Gold或人工annotation。用户偏好只适用于所述地方金融服务稿，甘肃扩展仍标为推断。
 
 评分提示词在`industry/prompts/selection-score.md`增加一条文字规则：服务便利和覆盖面本身不抬高政策/资金/监管重点相关性，出现实质制度、资金、监管问题或风险处置时按事实评价。未添加维度分数上限/权重或prefilter门槛，评分器不直接决定精选，地方范围也不按传播度扣分。B运行typecheck及diff check通过；A本地Web build通过、Web tests 17/17通过；API/Web/Postgres均未启动，真实smoke `NOT_RUN`。本轮不是provider evaluation或Gate 3校准；15人工标签仍为9 select/6 reject，85仍pending于Gold metadata，eventGroup/split未分配。
+
+prompt/docs commit `13fa76ae931e61abe7fb75fb0a144338d8f3cdc2`已推送到`origin/revercgy-hub/MYHOT`的`feat/fiscal-finance-hot`。GitHub Check run [39269783657](https://github.com/revercgy-hub/MYHOT/actions/runs/39269783657)对该精确SHA成功：Check与Docker jobs均通过；backend 402项（400 pass、2 skipped、0 fail），typecheck、Web build、Web tests 17/17、fresh migration/seed及built-site smoke通过。此处built-site smoke是CI throwaway服务检查；本机live API/Web/Postgres未启动，live smoke `NOT_RUN`。随后状态文档收尾是docs-only，未触碰tested代码；Gate 3仍未通过。
