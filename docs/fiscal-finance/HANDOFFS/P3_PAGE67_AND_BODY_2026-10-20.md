@@ -4,14 +4,14 @@ STATUS=IN_PROGRESS
 STAGE=P3 bounded pagination continuation and saved-body verification
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT; Gate 3/4/5 not passed
 BRANCH=feat/fiscal-finance-hot
-HANDOFF_HEAD=928cff90818275ab0b188a879f8e435af209042d（代码/文档改动前HEAD；本交接未提交）
-STAGE_CODE_SHA=待本轮代码提交后读取
+HANDOFF_HEAD=80e7458c805bae057a3d898d3d32ae2f69e7b163（代码提交；本次docs尚未提交）
+STAGE_CODE_SHA=80e7458c805bae057a3d898d3d32ae2f69e7b163
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
-WORKTREE=有未提交改动；3个CLI/test/helper文件、STATUS、PROJECT_PLAN、handoff索引及本文件
+WORKTREE=有未提交改动；仅本次STATUS、PROJECT_PLAN、handoff索引及本文件
 
 ## 范围、退出条件和下一步
 
-本轮仅验证专用测试库受限分页及主隔离库两篇精确正文，不宣称来源准入或90日覆盖。分页raw/SQL独立QA与两篇人工CAS post-QA均通过；本机软件检查已完成，剩余退出条件是本轮精确代码SHA的GitHub Check。Root负责范围复核与CI裁定；B完成fresh backend suite，C维护交接、独立复核并操作唯一Git。下一步Root review后提交/推送并dispatch明确repo/branch Check。
+本轮仅验证专用测试库受限分页及主隔离库两篇精确正文，不宣称来源准入或90日覆盖。分页raw/SQL独立QA与两篇人工CAS post-QA均通过；代码和测试改动已提交并推送，精确SHA GitHub Check通过。四源历史页覆盖复核报告已指出重复、逆序与跨观察日问题，单次base-page观察待执行/QA后用于形成下一步范围。Root负责范围复核；C维护交接、独立复核并操作唯一Git。完成最新列表证据后提交一次docs-only checkpoint，不再为纯文档更新重复dispatch CI。
 
 本检查点记录分页续页、两篇正文的有限验证以及相关软件变更。它不表示来源准入、90日覆盖或Gate完成。忽略目录中的raw响应、SQL快照和独立QA报告为本机证据，不提交 `.data/`。
 
@@ -33,7 +33,17 @@ Root批准的离线人工CAS依据v2 proposal绑定captured HTML和独立正文Q
 
 ## 代码验证与边界
 
-CLI/test/helper目前有3个tracked修改；page continuation scope schema升为v2，预算固定绑定冻结page URL数量（本scope 2/源、8全局），dispatch仅允许确切冻结列表页，拒绝重复、额外URL和任何redirect；fixture helper原生支持redirect mode。fresh DB focused集成测试7/7、typecheck通过；Web build通过，Web tests 17/17。Backend full-suite尝试均在空`_test`库进行，保留三次失败及其环境原因：A的`.data/fiscal-qa/full-local-qa-20261020/npm-test.log`为377/403通过、25失败、1跳过，`MODEL_CALLS_ENABLED=false`；B第一轮`.data/qa/local-backend-acceptance-20261020/npm-test.log`为389通过、13失败、1跳过，embedding endpoint被配置为bad port；第二轮`npm-test-second.log`为399通过、3失败、1跳过，额外embedding环境变量导致signals测试未接管repo-local mock并尝试连接loopback:65001。B第三轮使用新空库`fiscal_oct20_guard_acceptance3_test`、35 migrations和本地mock通过：403项、402通过、0失败、1跳过；日志SHA `fda38dcc51ed1b47e4ab941f108f22a2d39d325b8eca2d008e5d95c706e61e0a`，manifest SHA `795cf0260db4489c463f84608dea722a207e444996f33549bd6ec4099e99f3ce`。manifest列出package/tests/helper，但未列生产CLI脚本；CLI当前hash为`6904446feabf1a2953afc6d8ae3d50a011fde58d8b3af34dacbcca7ea54f3af0`，由A的fresh DB focused integration 7/7与typecheck核验。唯一skip为`tests/fiscal-page-continuation.test.ts`中需`P3_PAGE_CONTINUATION_TEST_DATABASE_URL`的单独集成用例；A的focused集成套件包含该用例并7/7通过。三次失败日志SHA依次为A `0138A7111B72F6E8BC62D4F7FF7C084BC99A1287BE9DECE684E7C5E0BEB06967`、B `3ECB724A3DAC76B285961B8A46236470C940223D19CEEAE0EA0881EB4FD4B961`、B `2E9667CE3A2C4CBCAA1F1899A7B8DB16468CE380759682E854CFC363AF5D6268`；失败历史不覆盖第三轮结果。此前代码SHA `13fa76ae931e61abe7fb75fb0a144338d8f3cdc2` 的GitHub Check通过；本轮3文件代码变更尚无新Check，提交后需对准确remote/branch dispatch新CI。API/Web未启动，live health/noindex/smoke均`NOT_RUN`。
+分页guard改动在commit `41dec8a`，selected-body提取和既有长度断言修复在commit `80e7458c805bae057a3d898d3d32ae2f69e7b163`；没有改apps/schema、source config、全局sanitizer、数值门槛或历史正文。page continuation scope schema为v2，预算固定绑定冻结page URL数（本scope 2/源、8全局），dispatch仅允许确切冻结URL，拒绝重复、额外URL和redirect；fixture helper有原生redirect mode。fresh DB focused分页集成7/7、typecheck通过。selected-body相关focused suite 30/30；新增长度边界断言确认三段归一长度199拒绝、200通过，保留段落分隔输出。Backend full-suite尝试均在空`_test`库进行，保留全部失败及其环境原因：A的`.data/fiscal-qa/full-local-qa-20261020/npm-test.log`为377/403通过、25失败、1跳过，`MODEL_CALLS_ENABLED=false`；B第一轮`.data/qa/local-backend-acceptance-20261020/npm-test.log`为389通过、13失败、1跳过，embedding endpoint被配置为bad port；第二轮`npm-test-second.log`为399通过、3失败、1跳过，额外embedding环境变量导致signals测试未接管repo-local mock并尝试连接loopback:65001；B第三轮为403项、402通过、0失败、1跳过；第四轮为405项、401通过、3失败、1跳过，三失败是accounting测试仍断言旧的raw长度473，而保留段落换行后raw长度482、归一化仍473。B随后只改这两个测试的语义断言，focused15/15通过；C又独立运行selected-body、两份accounting测试共30/30通过。错误full-suite结果和日志原样保留，不表述成本机full-suite成功。
+
+最终GitHub Check run [39356710341](https://github.com/revercgy-hub/MYHOT/actions/runs/39356710341) 的workflow head精确为`80e7458c805bae057a3d898d3d32ae2f69e7b163`，Check与Docker jobs均成功；backend403/403 pass、0 fail、2 skipped，typecheck、Web build/tests、migration/seed、built-site smoke、Docker build/smoke全部通过。该workflow run作为最终精确代码SHA软件回归证据。API/Web未启动，本机live health/noindex/smoke均`NOT_RUN`。
+
+四源page0–7覆盖差异只读分析见`.data/fiscal-qa/page67-coverage-next-20261020/coverage-gap.md`（SHA `278b30df033e022d5906f8e54f7a93cd9aea34d6ff4c8d12cc884ed23621913d`）及JSON（SHA `5568e27e996a9ee0a52215566edeef3956d5598f5c6bd3d97ab8ca03a57780ee`）。不同日期采集的页样本不能视为稳定快照：GX page5→6有4条重复和10条逆序，CQ有6条逆序，SC有1条重复，海南未见此类重复/逆序；CQ page6显示日期2026-07-30而URL token为07-02，继续hold。各源page7都有早于既定cutoff的行，但这不证明无缝覆盖；固定观察窗与当前滚动90日窗也不能混为一谈。下一步应定义覆盖完成/稳定快照和增量更新证据契约，不机械增加index8/9。
+
+Root核准的latest base-page一次只读观察使用一次性脚本`.data/fiscal-qa/latest-lists-20261020/capture-lists-once.ts`（SHA `2E06BF74660BE63A8D3F478F9141C220681CBB3C3053B49F086593E1512C84D3`）。结果manifest `.data/fiscal-qa/latest-lists-20261020/capture/manifest.json` SHA `82C0264FD0E81E82A4BD84D9802443593BE0AE9C63FB14A61E0B3F395C3C8314`：四个既定URL各一次GET，均HTTP200 HTML，wire bytes/SHA、独立gzip解码和decoded/text hash匹配；dispatch间隔1378.153/1386.890/1376.796ms，零redirect/retry/extra dispatch、零DB写。C独立文件/运输QA报告见`.data/fiscal-qa/qa-luna-20261020/independent-page-and-body-qa.json`（SHA `C29447998ECD4AB47619D3AA61433B495FF696815596B2E6A39252037F281944`）。
+
+listing分析`.data/fiscal-qa/latest-lists-20261020/capture/listing-analysis.json` SHA `20F5277BDBE1099DE1BF7BC784AF73E2E08C955BB3E4BAF95154D36B74F12692`：每源parser读到10项，40条与分页库146条既有文章对照，读表限`articles`/`sources`且transaction read-only。四条本页未见metadata候选为GX 3条（10/20敬老慰问、10/20学习品牌、10/19产业奖补验收）和四川1条（10/19财政金融协同促内需），它们未入库、未精选；CQ和海南本页0新增不证明没有遗漏。四川另两条既有候选list日10/12、10/08与URL date token 9/28、9/09不一致，维持hold，不更新DB状态。固定90日窗口和本次滚动90日cutoff分开计算。
+
+历史正文影响审计`.data/fiscal-qa/inline-text-spacing-audit-20261020/persisted-impact/impact.json` SHA `D3CF945802CABAF72A304B6972ABF0D73591FA6B39A1E4907C327945BC72DEF2`检查378篇`ok`中排除本日已人工修复两篇后的376条保存HTML。374条raw text不同：171仅格式、203归一化后仍不同，后者不都证明空格错误。严格DOM邻接筛查列出11篇、总57个数字/数字单位边界候选；artifact包含24段示例证据，未逐条人工核查57项。山东标题“2026年8月份征收入库中央非税收入7.70亿元”是强例，sanitized HTML相邻`7.70`与`亿元`文本节点而stored body在中间插空格。该离线重放用synthetic wrapper，title/date取自DB且HTML是已sanitized正文；不能声称重新确认来源身份，也未对历史body批量回填。C对该统计与示例的独立复核也记录在上述qa报告。后续仅按原始来源/捕获证据逐项核对这11篇，不依据候选数自动更改DB。
 
 本轮前HEAD为`928cff90818275ab0b188a879f8e435af209042d`，分支`feat/fiscal-finance-hot`，`origin/feat/fiscal-finance-hot`当时一致。Gate 2仍`PASSED_FOR_BOUNDED_P4_PILOT`；Gate 3/4/5未通过。分页sample不证明90日覆盖或source admission；Gold仍15人工confirmed、85项机器建议不计人标，事件组/split未确认。
 
@@ -45,9 +55,9 @@ Root核准后只读核实原cluster无postgres进程、loopback 5432无listener�
 TASK=P3 finite pagination and two grounded body cases
 MODEL=Luna; no project model/provider was called
 FILES_CHANGED=scripts/fiscal/p3-page-continuation.ts; tests/fiscal-page-continuation.test.ts; tests/helpers/fiscal-page-continuation-transport-preload.ts; this handoff and current status/plan index
-TESTS_RUN=fresh pagination integration 7/7; typecheck passed; Web build passed; Web tests 17/17; backend fresh local-mock suite 402/403 pass, 0 fail, 1 skip
+TESTS_RUN=pagination focused 7/7; selected-body/accounting focused 30/30; fresh backend full suite latest local attempt 401/405 pass, 3 fail, 1 skip; GitHub Check 39356710341 on 80e7458 passed (403 pass, 0 fail, 2 skipped); typecheck/Web build/Web17 pass
 RESULT=page6/7 bounded execution and two manually approved body CAS writes independently verified; coverage unproven and all source flags remain disabled
 RISKS=one newly inserted Chongqing list candidate has list date 2026-07-30 vs URL token 2026-07-02; keep pending and do not rewrite date without detail evidence
-BLOCKERS=new-code GitHub Check; Gate 3–5 requirements remain incomplete
-NEXT=Root final diff review, then separate code/docs commits and dispatch Check for exact code SHA
+BLOCKERS=Gate 3–5 requirements remain incomplete; source coverage completion evidence and remaining source/body quality review remain open
+NEXT=verify the 4 latest metadata candidates and 11 historical numeric-boundary candidates against their original evidence; design latest incremental inspection compatible with the active backfill cursor plus coverage completion evidence; continue Gold/source coverage/NAS work without changing split/admission state or mechanically fetching page8/9
 ```

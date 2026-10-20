@@ -6,22 +6,26 @@
 
 主库陕西、天津各自仅有一个获批GET。自动详情parser均因短正文而留`unconfirmed`；原执行报告`completed_with_violations`原样保留。独立字节QA确认runner的raw字段检查与public visibility检查是false positive，两个publication均不eligible/selected/indexable/syndicate。之后Root批准的离线人工CAS只绑定captured HTML的两篇正文：陕西785字、天津154字，均已核对标题/正文/哈希、上海日历日和无导航/附件；保留列表入库时刻。CAS后两项`ok`/rev2；最终442篇为378 `ok`、51 `pending`、13 `unconfirmed`。318条publication、所有非目标行及关联表不变，publication保持summary mode且不可精选/索引/转发，summary原为null并未被填造。正文报告、原decline、独立QA和CAS报告路径均列在本日handoff。
 
-CLI/test/transport fixture helper有3个tracked候选修改：v2 scope绑定每源2次、全局8次、仅冻结URL及redirect=0；fixture重定向用helper原生模式测试。fresh隔离库focused 7/7、typecheck、Web build、Web tests 17/17及fresh backend 402/403（0失败、1个focused集成skip）已过；该skip的同一集成用例由A的7/7 focused suite覆盖。API/Web未启动，本机live smoke `NOT_RUN`。此前绿色CI对应旧代码SHA `13fa76ae931e61abe7fb75fb0a144338d8f3cdc2`，不能代表本轮diff；新代码提交后需新的精确SHA Check。Gate 2维持`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3/4/5仍未通过。
+本轮3个分页CLI/test/helper文件和4个selected-body/test文件已提交，代码提交为`80e7458c805bae057a3d898d3d32ae2f69e7b163`。正文提取修复保留inline文本和金额（如`1.66亿元`），以归一化长度执行既有门槛；没有改全局sanitizer、阈值、来源配置或旧数据库正文。分页scope v2固定每源2次、总计8次、仅冻结URL且redirect=0，fixture重定向由helper原生模式测试。分页fresh focused 7/7与typecheck通过；selected-body相关本机测试30/30通过，Web build及Web tests 17/17通过。第四次本机fresh full suite保留原结果401/405通过、3失败、1跳过；三项均是accounting用例对段落分隔后原始482字符和归一化473字符的旧精确长度断言，之后相应focused 15/15通过。GitHub Check run [39356710341](https://github.com/revercgy-hub/MYHOT/actions/runs/39356710341) 对精确SHA `80e7458c805bae057a3d898d3d32ae2f69e7b163` 成功：backend 403/403通过、0失败、2跳过，typecheck、Web build/tests、migrate/seed、built-site smoke及Docker build/smoke通过。API/Web未启动，本机live smoke `NOT_RUN`。Gate 2维持`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3/4/5仍未通过。
+
+coverage复核之后，经Root核准对四个固定base list URL各做一次GET：4/4 HTTP200 HTML、raw/decoded SHA和独立gzip解码逐项一致，实际dispatch间隔1378.153/1386.890/1376.796ms，无重试/重定向/额外请求；listing与146篇分页库只读对照。GX发现3个未见身份（2026-10-20两条、10-19一条），四川发现1条（10-19）；重庆和海南该首页观察为0新增，不能据此推全源完整。四条仍仅metadata候选，未入库/未精选。四川另两条现有候选显示列表日10-12、10-08，URL date token为9-28、9-09，维持hold、不改既有DB。
+
+历史正文parser影响审计对378篇 `ok` 中排除本日两篇手工修复后，离线重放376条保存HTML：374条raw text不同，其中171条仅空白格式差异、203条归一化后仍有差异。严格DOM邻接筛查列出11篇、57个数字/数字单位边界候选（产物仅有24个例子，不代表57项全都已逐条人工复核）；山东7.70与亿元相邻span的样本显示stored文本额外插入空格。HTML是已保存的sanitized正文，重跑sanitize造成的差异不等于spacing bug；本轮未批量改写任何旧正文。下一步按原始来源/捕获证据逐项核对11篇候选，再决定是否有具体manual CAS范围。
 
 本轮开始前，PostgreSQL PID文件位于原cluster；经一次Root核准的同目录可逆改名后，`pg_ctl`一次正常start等待unclean-shutdown fsync/WAL recovery，最终loopback 5432 ready。原PID `6368`属于`SearchProtocolHost`而非postgres；备份`postmaster.pid.stale-20261020`与原文件SHA相同。没有删除、重建或强杀数据文件，恢复不代表查明停机根因。API/Web无listener，未启动。
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=928cff90818275ab0b188a879f8e435af209042d（本轮代码与文档修改前；提交后以Git实测HEAD为准）
+CURRENT_SHA=80e7458c805bae057a3d898d3d32ae2f69e7b163（代码提交；文档checkpoint提交后以Git实测HEAD为准）
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
 STAGE=P3有限分页续页及两篇正文人工CAS；不代表全源准入或90日覆盖
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过
-REVIEW=scope v2、8 GET raw/dispatch/SQL行差异、两篇离线正文及CAS均经独立QA；fresh backend suite402/403通过、1 skip由focused suite覆盖
-BLOCKERS=本轮精确代码SHA Check待运行；Gate 3人工/隔离评测、Gate 4来源质量与90日覆盖、Gate 5 NAS验收仍缺
-COMPLETED=分页库146文章/150 revisions/146 jobs；主库442文章（378/51/13）/789 revisions/318 publications/427 jobs；fresh backend suite 402通过/0失败/1跳过；typecheck、Web build、Web17/17通过；分页focused integration 7/7
-IN_PROGRESS=本轮新代码精确SHA Check尚未运行；API/Web/worker未启动；三次失败suite尝试保留为环境问题历史
-NEXT=Root final diff review后提交/推送代码与阶段docs，并对明确remote/branch dispatch新Check
+REVIEW=scope v2、8 GET raw/dispatch/SQL行差异、两篇离线正文及CAS均经独立QA；代码SHA 80e7458的GitHub Check通过；coverage仍unproven
+BLOCKERS=Gate 3人工/隔离评测、Gate 4来源质量与90日覆盖、Gate 5 NAS验收仍缺
+COMPLETED=分页库146文章/150 revisions/146 jobs；主库442文章（378/51/13）/789 revisions/318 publications/427 jobs；CI run39356710341对80e7458通过（backend403通过/0失败/2跳过）；相关本机focused30/30，typecheck、Web build及Web17/17通过
+IN_PROGRESS=四条最新列表metadata候选、11篇历史正文数字边界候选及P3 cursor兼容的latest incremental/backfill设计待逐项核验；API/Web/worker未启动，live smoke NOT_RUN
+NEXT=逐项核对4条候选和11个正文候选的身份/原始证据；设计兼容既有active backfill cursor的latest增量检查与覆盖完成证据，不机械续抓page8/9；继续Gate3人标/隔离评测、Gate4来源质量与90日覆盖、Gate5 NAS真实缺口，不改变Gold/Split/source状态
 ```
 
 ## 2026-10-19 Gold 人工审阅与内容优先级更新

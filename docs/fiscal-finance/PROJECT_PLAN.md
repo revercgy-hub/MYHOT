@@ -4,7 +4,9 @@
 
 ## 2026-10-20 P3 有界分页与正文核验
 
-本轮在专用分页测试库按冻结scope v2续跑四源page6/7（8个精确GET），cursor到8、coverage仍`unproven`；重庆新增列表候选的列表日与URL日期token冲突，正文保持pending。主库两篇正文详情的自动parser decline及原始`completed_with_violations`均保留；独立核验后仅按Root批准的captured HTML做两条人工CAS，未调整来源阈值、publication资格或下游状态。详细raw/hash、行级基线和独立报告见[10月20日检查点](HANDOFFS/P3_PAGE67_AND_BODY_2026-10-20.md)。CLI dispatch guard、fresh backend suite402/403（0失败、1 skip由focused suite覆盖）、typecheck及Web检查已通过；提交后本轮精确SHA CI仍待运行。Gate 2仍为`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3–5未通过。
+本轮在专用分页测试库按冻结scope v2续跑四源page6/7（8个精确GET），cursor到8、coverage仍`unproven`；重庆新增列表候选的列表日与URL日期token冲突，正文保持pending。主库两篇正文详情的自动parser decline及原始`completed_with_violations`均保留；独立核验后仅按Root批准的captured HTML做两条人工CAS，未调整来源阈值、publication资格或下游状态。selected-body修复保留inline金额、不改全局sanitizer/门槛或历史正文。详细raw/hash、行级基线和独立报告见[10月20日检查点](HANDOFFS/P3_PAGE67_AND_BODY_2026-10-20.md)。GitHub Check run39356710341对精确SHA `80e7458c805bae057a3d898d3d32ae2f69e7b163`通过（backend403通过/0失败/2跳过；typecheck、Web、迁移、built-site与Docker检查均通过）。本机full-suite最近一次为401/405通过、3失败、1跳过，三失败为随后经focused15/15解决的旧raw-length断言，不写成本机full-suite通过。四源分页观察和数据库inline影响分析继续进行。Gate 2仍为`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3–5未通过。
+
+Root批准的最新base-page一次观察已完成并独立复核：四个固定URL各1个GET，间隔超过1秒，无redirect/retry/DB写；与分页测试库146篇只读身份对照发现广西3条、四川1条未见metadata候选，重庆/海南首页0新增不证明完整。四川两条既有列表项日历日与URL token不一致，保持hold。历史正文offline影响审计的376条保存HTML有374条raw text差异，其中171仅格式、203归一化后仍不同；11篇包含57个严格DOM数字边界候选，不能据这些数字批量回填。后续按source evidence核4条候选身份和11篇历史正文候选，另明确兼容active backfill cursor的latest增量检查/覆盖完成证据；不可把它替代90日覆盖验收，不机械增加续页。来源仍disabled，Gate状态不变。
 
 ## 2026-10-19 P5 Gold 审阅状态
 

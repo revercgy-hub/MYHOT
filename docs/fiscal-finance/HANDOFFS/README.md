@@ -2,7 +2,7 @@
 
 ## 2026-10-20 最新P3分页与正文检查点
 
-当前技术进展见[10月20日P3分页与正文检查点](P3_PAGE67_AND_BODY_2026-10-20.md)：专用分页库按冻结scope v2完成四源page6/7共8个精确GET，cursor到8、coverage仍`unproven`；主库两篇正文先保留自动decline与执行报告，随后仅对精确captured HTML完成两条Root批准的人工CAS。两库分别统计，不合并；来源保持disabled/fulltext-off，Gate 2仍仅为`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3–5未通过。本机fresh backend suite 402/403（0失败、1个focused integration skip由单独7/7覆盖）、typecheck、Web build和17项Web tests通过；提交后新代码SHA Check待运行。API/Web live smoke未运行。
+当前技术进展见[10月20日P3分页与正文检查点](P3_PAGE67_AND_BODY_2026-10-20.md)：专用分页库按冻结scope v2完成四源page6/7共8个精确GET，cursor到8、coverage仍`unproven`；主库两篇正文先保留自动decline与执行报告，随后仅对精确captured HTML完成两条Root批准的人工CAS。经Root批准的四base list URL各一次观察与raw独立QA通过，新增候选GX 3条、四川1条（均仅列表元数据，未入库/精选）；历史正文影响审计已标出11篇、57个数字边界候选供原始证据逐项审查，不批量回填。两库分别统计，不合并；来源保持disabled/fulltext-off，Gate 2仍仅为`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3–5未通过。代码SHA `80e7458c805bae057a3d898d3d32ae2f69e7b163` 的GitHub Check run39356710341已通过：backend403/403、typecheck、Web build/tests、migrate/seed、built-site smoke及Docker检查均成功；本机full suite保留401/405通过、3失败、1跳过的历史结果，不冒称本机全套通过。下一步核对4条metadata候选与11篇历史正文候选，设计兼容active backfill cursor的latest增量检查与coverage completion证据；不机械续抓page8/9。API/Web live smoke未运行。
 
 ## 2026-10-19 最新P5 Gold审阅检查点
 
