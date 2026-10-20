@@ -17,8 +17,7 @@ const REPO_ROOT = path.resolve(import.meta.dirname, "../..");
 const LOCK_DIR = path.join(REPO_ROOT, ".data", "fiscal-qa", "locks");
 const MAX_SOURCES = 4;
 const MAX_PAGES = 2;
-const PER_SOURCE_DISPATCH_CAP = 12;
-const GLOBAL_DISPATCH_CAP = 48;
+const MAX_CONFIG_DISPATCH_CAP = 12;
 const MIN_DISPATCH_INTERVAL_MS = 1_000;
 const ACTIVE_WAIT_MS = 1_100;
 const MAX_CAPTURE_BYTES = 6 * 1024 * 1024;
@@ -58,7 +57,7 @@ export interface PaginationContinuationSource {
 }
 
 export interface PaginationContinuationScope {
-  v: 1;
+  v: 2;
   createdAtUtc: string;
   databaseUrlSha256: string;
   database: PaginationContinuationDatabase;
@@ -66,8 +65,10 @@ export interface PaginationContinuationScope {
   sources: PaginationContinuationSource[];
   limits: {
     pagesPerSource: 2;
-    perSourceDispatchCap: 12;
-    globalDispatchCap: 48;
+    perSourceDispatchCap: number;
+    globalDispatchCap: number;
+    maxRedirects: 0;
+    urlAllowlist: "frozen_page_urls_only";
     minDispatchIntervalMs: 1_000;
     activeWaitMs: 1_100;
     maxCapturedResponseBytes: 6_291_456;
@@ -111,14 +112,15 @@ export function canonicalScopeSha256(scope: unknown): string {
 export function validateContinuationScope(scope: unknown, expectedSha256: string): PaginationContinuationScope {
   if (!scope || typeof scope !== "object" || Array.isArray(scope)) throw new Error("scope must be a JSON object");
   const value = scope as PaginationContinuationScope;
-  if (value.v !== 1 || !/^[a-f\d]{64}$/iu.test(expectedSha256) || canonicalScopeSha256(value) !== expectedSha256.toLowerCase()) {
+  if (value.v !== 2 || !/^[a-f\d]{64}$/iu.test(expectedSha256) || canonicalScopeSha256(value) !== expectedSha256.toLowerCase()) {
     throw new Error("scope hash or schema version mismatch");
   }
   if (!/^[a-f\d]{64}$/iu.test(value.databaseUrlSha256) || !/^[A-Za-z0-9_]+_test$/u.test(value.database.name) ||
       !["127.0.0.1", "::1"].includes(value.database.address) || !Number.isSafeInteger(value.database.port) || value.database.port < 1 ||
       value.database.port > 65_535 || value.database.migrations !== 35 ||
-      !isDeepStrictEqual(value.limits, { pagesPerSource: MAX_PAGES, perSourceDispatchCap: PER_SOURCE_DISPATCH_CAP,
-        globalDispatchCap: GLOBAL_DISPATCH_CAP, minDispatchIntervalMs: MIN_DISPATCH_INTERVAL_MS,
+      !Number.isSafeInteger(value.limits.perSourceDispatchCap) || !Number.isSafeInteger(value.limits.globalDispatchCap) ||
+      !isDeepStrictEqual({ ...value.limits, perSourceDispatchCap: undefined, globalDispatchCap: undefined }, { pagesPerSource: MAX_PAGES, perSourceDispatchCap: undefined, globalDispatchCap: undefined,
+        maxRedirects: 0, urlAllowlist: "frozen_page_urls_only", minDispatchIntervalMs: MIN_DISPATCH_INTERVAL_MS,
         activeWaitMs: ACTIVE_WAIT_MS, maxCapturedResponseBytes: MAX_CAPTURE_BYTES })) {
     throw new Error("scope database identity or migration count is invalid");
   }
@@ -144,22 +146,35 @@ export function validateContinuationScope(scope: unknown, expectedSha256: string
       throw new Error(`scope cursor, flags, or page range is invalid for ${source.id}`);
     }
   }
+  const perSourceDispatchCap = Math.max(...value.sources.map((source) => source.pageUrls.length));
+  const globalDispatchCap = value.sources.reduce((total, source) => total + source.pageUrls.length, 0);
+  if (value.limits.perSourceDispatchCap !== perSourceDispatchCap || value.limits.globalDispatchCap !== globalDispatchCap) {
+    throw new Error("scope dispatch budgets do not match the frozen page URL plan");
+  }
   return value;
 }
 
-export function isAllowedContinuationDispatch(source: PaginationContinuationSource, dispatch: ContinuationDispatch, parsedMetadataUrls: ReadonlySet<string> = new Set()): boolean {
+export function isAllowedContinuationDispatch(source: PaginationContinuationSource, dispatch: ContinuationDispatch): boolean {
   if (String(dispatch.method).toUpperCase() !== "GET") return false;
   let url: URL;
   try { url = new URL(dispatch.path, dispatch.origin); } catch { return false; }
   let origin: URL;
   try { origin = new URL(source.listUrl); } catch { return false; }
   if (url.protocol !== "https:" || url.origin !== origin.origin || url.search || url.hash || url.username || url.password) return false;
-  if (source.pageUrls.includes(url.toString())) return true;
-  if (!url.pathname.startsWith(source.pathPrefix) || /\/index_\d+\.htm$/iu.test(url.pathname) || !parsedMetadataUrls.has(url.toString())) return false;
-  return source.allowUrlPrefixes.some((prefix) => {
-    try { const allowedPrefix = new URL(prefix); return allowedPrefix.origin === url.origin && url.pathname.startsWith(allowedPrefix.pathname); }
-    catch { return false; }
-  });
+  return source.pageUrls.includes(url.toString());
+}
+
+export function continuationDispatchRejection(scope: PaginationContinuationScope, source: PaginationContinuationSource,
+  dispatch: ContinuationDispatch, alreadyDispatchedUrls: ReadonlySet<string>, redirectPending = false): string | null {
+  if (redirectPending) return "redirect_forbidden";
+  if (!isAllowedContinuationDispatch(source, dispatch)) return "outside_frozen_scope";
+  let url: string;
+  try { url = new URL(dispatch.path, dispatch.origin).toString(); } catch { return "outside_frozen_scope"; }
+  if (alreadyDispatchedUrls.has(url)) return "duplicate_or_per_source_budget_exhausted";
+  if (alreadyDispatchedUrls.size >= scope.limits.globalDispatchCap) return "global_dispatch_budget_exhausted";
+  const sourceUsed = source.pageUrls.filter((pageUrl) => alreadyDispatchedUrls.has(pageUrl)).length;
+  if (sourceUsed >= source.pageUrls.length) return "per_source_budget_exhausted";
+  return null;
 }
 
 function timestamp(): string { return new Date().toISOString().replace(/[:.]/gu, "-"); }
@@ -229,7 +244,7 @@ export async function buildContinuationScope(databaseUrl: string, sourceIds: str
         if (row.kind !== "web_list" || row.enabled || row.site_fulltext || row.syndicate_fulltext ||
             pagination?.mode !== "mof_index_v1" || !Number.isSafeInteger(maxPageIndex) || maxPageIndex < start ||
             Number(pagination?.maxPagesPerRun) < 1 || Number(pagination.maxPagesPerRun) > MAX_PAGES ||
-            Number(pagination?.maxDispatches) < 1 || Number(pagination.maxDispatches) > PER_SOURCE_DISPATCH_CAP ||
+            Number(pagination?.maxDispatches) < 1 || Number(pagination.maxDispatches) > MAX_CONFIG_DISPATCH_CAP ||
             !backfill || backfill.state !== "active" || backfill.coverage !== "unproven" || backfill.pendingPage !== undefined ||
             backfill.pagesCommitted !== start || !Number.isSafeInteger(start) || !Number.isFinite(Date.parse(String(backfill.anchorAt))) ||
             !Number.isFinite(Date.parse(String(backfill.cutoffAt)) ) ||
@@ -265,7 +280,7 @@ export async function buildContinuationScope(databaseUrl: string, sourceIds: str
         };
       });
       return {
-        v: 1 as const,
+        v: 2 as const,
         createdAtUtc: new Date().toISOString(),
         databaseUrlSha256: sha256(databaseUrl),
         database: { name: identity.name, address: identity.address, port: Number(identity.port), migrations },
@@ -273,8 +288,10 @@ export async function buildContinuationScope(databaseUrl: string, sourceIds: str
         sources,
         limits: {
           pagesPerSource: 2 as const,
-          perSourceDispatchCap: 12 as const,
-          globalDispatchCap: 48 as const,
+          perSourceDispatchCap: Math.max(...sources.map((source) => source.pageUrls.length)),
+          globalDispatchCap: sources.reduce((total, source) => total + source.pageUrls.length, 0),
+          maxRedirects: 0 as const,
+          urlAllowlist: "frozen_page_urls_only" as const,
           minDispatchIntervalMs: 1_000 as const,
           activeWaitMs: 1_100 as const,
           maxCapturedResponseBytes: 6_291_456,
@@ -353,29 +370,26 @@ async function executeScope(scopePath: string, expectedSha: string, outDirPath: 
     const sourceConfigById = new Map<string, Record<string, any>>();
     const blockedDispatches: Array<Record<string, unknown>> = [];
     const activeRequests = new Set<number>();
-    const allowedMetadataUrlsBySource = new Map(scope.sources.map((source) => [source.id, new Set<string>()]));
+    const dispatchedPageUrls = new Set<string>();
     let maxConcurrentRequests = 0;
     let activeSource: PaginationContinuationSource | null = null;
+    let redirectPending = false;
     let lastDispatchAt: number | null = null;
     const waitCell = new Int32Array(new SharedArrayBuffer(4));
-    const budget = installP3HttpBudget(GLOBAL_DISPATCH_CAP, { minDispatchIntervalMs: MIN_DISPATCH_INTERVAL_MS });
+    const budget = installP3HttpBudget(scope.limits.globalDispatchCap, { minDispatchIntervalMs: MIN_DISPATCH_INTERVAL_MS });
     const originalDispatch = prototypes.map((prototype) => prototype.dispatch);
     const dispatchPacer = (original: (...args: any[]) => unknown) => function (this: unknown, options: any, handler: any) {
       const source = activeSource;
       const url = sourceForUrl(scope, options?.origin, options?.path);
-      const allowed = source && url?.id === source.id && isAllowedContinuationDispatch(source, {
+      const dispatch = {
         origin: String(options?.origin ?? ""), path: String(options?.path ?? ""), method: String(options?.method ?? ""),
-      }, allowedMetadataUrlsBySource.get(source.id));
-      if (!allowed) {
-        blockedDispatches.push({ atUtc: new Date().toISOString(), sourceId: source?.id ?? null, origin: String(options?.origin ?? ""), path: safeRequestPath(options?.path), method: String(options?.method ?? ""), reason: "outside_frozen_scope" });
+      };
+      const reason = source && url?.id === source.id
+        ? continuationDispatchRejection(scope, source, dispatch, dispatchedPageUrls, redirectPending)
+        : "outside_frozen_scope";
+      if (reason) {
+        blockedDispatches.push({ atUtc: new Date().toISOString(), sourceId: source?.id ?? null, origin: String(options?.origin ?? ""), path: safeRequestPath(options?.path), method: String(options?.method ?? ""), reason });
         const error = Object.assign(new Error("pagination_continuation_scope_rejected"), { code: "PAGINATION_CONTINUATION_SCOPE_REJECTED" });
-        if (typeof handler?.onResponseError === "function") { handler.onResponseError(null, error); return false; }
-        throw error;
-      }
-      const sourceUsed = actualDispatches.filter((row) => row.sourceId === source.id).length;
-      if (sourceUsed >= PER_SOURCE_DISPATCH_CAP || budget.snapshot().dispatched >= GLOBAL_DISPATCH_CAP) {
-        blockedDispatches.push({ atUtc: new Date().toISOString(), sourceId: source.id, origin: String(options.origin), path: safeRequestPath(options.path), method: String(options.method), reason: "dispatch_cap" });
-        const error = Object.assign(new Error("pagination_continuation_dispatch_cap"), { code: "PAGINATION_CONTINUATION_DISPATCH_CAP" });
         if (typeof handler?.onResponseError === "function") { handler.onResponseError(null, error); return false; }
         throw error;
       }
@@ -390,7 +404,8 @@ async function executeScope(scopePath: string, expectedSha: string, outDirPath: 
       const usedAfter = budget.snapshot().dispatched;
       if (usedAfter > usedBefore) {
         lastDispatchAt = monotonicMs;
-        actualDispatches.push({ sequence: actualDispatches.length + 1, atUtc: started, monotonicMs, sourceId: source.id, origin: String(options.origin), path: safeRequestPath(options.path), method: String(options.method) });
+        dispatchedPageUrls.add(new URL(String(options.path), String(options.origin)).toString());
+        actualDispatches.push({ sequence: actualDispatches.length + 1, atUtc: started, monotonicMs, sourceId: source?.id ?? null, origin: String(options.origin), path: safeRequestPath(options.path), method: String(options.method) });
       }
       return result;
     };
@@ -421,6 +436,7 @@ async function executeScope(scopePath: string, expectedSha: string, outDirPath: 
       if (Array.isArray(pairs)) for (let index = 0; index + 1 < pairs.length; index += 2) row.headers[String(pairs[index]).toLowerCase()] = String(pairs[index + 1] ?? "");
       else for (const [key, value] of Object.entries(pairs ?? {})) row.headers[key.toLowerCase()] = String(value ?? "");
       row.contentType = row.headers["content-type"] ?? null;
+      if (row.statusCode !== null && row.statusCode >= 300 && row.statusCode < 400 && row.headers.location) redirectPending = true;
     });
     observe("undici:request:bodyChunkReceived", (message) => {
       const row = message?.request && responseByRequest.get(message.request);
@@ -442,27 +458,6 @@ async function executeScope(scopePath: string, expectedSha: string, outDirPath: 
         const filename = `dispatch-${String(row.id).padStart(3, "0")}.body`;
         writeFileSync(path.join(rawDir, filename), Buffer.concat(row.chunks), { flag: "wx" });
         row.rawFile = `responses/${filename}`;
-        const source = scope.sources.find((candidate) => candidate.pageUrls.includes(new URL(row.path, row.origin).toString()));
-        if (source && row.statusCode === 200 && /^\s*text\/html(?:\s*;|\s*$)/iu.test(String(row.contentType ?? ""))) {
-          try {
-            const config = sourceConfigById.get(source.id);
-            if (!config) throw new Error("source configuration was not pinned in memory before list parse");
-            const sourceRow = { id: source.id, name: source.id, kind: "web_list", config, tier: "", participation_mode: "editorial", first_party: false, interval_minutes: 1440, enabled: false, cursor: source.cursor, fail_count: 0 } as SourceRow;
-            const decoded = decodeContentEncoding(Buffer.concat(row.chunks), row.headers["content-encoding"] ?? "identity");
-            const charset = /charset\s*=\s*["']?([\w-]+)/iu.exec(row.contentType ?? "")?.[1] ?? "utf-8";
-            const html = new TextDecoder(charset.toLowerCase() === "gb2312" ? "gbk" : charset).decode(decoded);
-            const candidates = fromHtml(html, new URL(row.path, row.origin).toString(), sourceRow, source.listUrl);
-            const allowedUrls = allowedMetadataUrlsBySource.get(source.id)!;
-            for (const candidate of candidates) {
-              const target = new URL(candidate.url);
-              if (target.origin === new URL(source.listUrl).origin && !target.search && !target.hash &&
-                  !/\.(?:pdf|docx?|xlsx?|pptx?|zip|rar|7z|png|jpe?g|gif)$/iu.test(target.pathname) &&
-                  source.allowUrlPrefixes.some((prefix) => { const allowedPrefix = new URL(prefix); return allowedPrefix.origin === target.origin && target.pathname.startsWith(allowedPrefix.pathname); })) {
-                allowedUrls.add(target.toString());
-              }
-            }
-          } catch (error) { row.metadataCandidateParseError = error instanceof Error ? error.message : String(error); }
-        }
       }
       delete row.chunks;
       delete row.digest;
@@ -493,7 +488,7 @@ async function executeScope(scopePath: string, expectedSha: string, outDirPath: 
         sourceConfigById.set(source.id, row.config);
       }
       for (const source of scope.sources) {
-        if (budget.snapshot().dispatched >= GLOBAL_DISPATCH_CAP) break;
+        if (budget.snapshot().dispatched >= scope.limits.globalDispatchCap) break;
         const [row] = await sql`SELECT id,kind,config,cursor,enabled,site_fulltext,syndicate_fulltext FROM sources WHERE id=${source.id}`;
         if (!row || sourceSha(row as SourceRow) !== source.configSha256 || !sourceTargetMatchesScope(source, row as SourceRow) ||
             validateWebListPagination(row.kind, row.config).length > 0 || !isDeepStrictEqual(row.cursor, source.cursor) ||
@@ -538,14 +533,16 @@ async function executeScope(scopePath: string, expectedSha: string, outDirPath: 
       const sortedDispatches = actualDispatches.map((row) => Number(row.monotonicMs));
       const gapsMs = sortedDispatches.slice(1).map((current, index) => Math.round((current - sortedDispatches[index]) * 1_000) / 1_000);
       const violations: string[] = [];
-      if (budgetSnapshot.dispatched > GLOBAL_DISPATCH_CAP || budgetSnapshot.rejected > 0 || budgetSnapshot.minDispatchIntervalMs !== MIN_DISPATCH_INTERVAL_MS) violations.push("global_dispatch_guard_violation");
+      if (budgetSnapshot.dispatched !== scope.limits.globalDispatchCap || budgetSnapshot.rejected > 0 || budgetSnapshot.minDispatchIntervalMs !== MIN_DISPATCH_INTERVAL_MS) violations.push("global_dispatch_guard_violation");
+      if (dispatchedPageUrls.size !== scope.limits.globalDispatchCap || scope.sources.some((source) => source.pageUrls.some((url) => !dispatchedPageUrls.has(url)))) violations.push("planned_page_dispatch_set_mismatch");
       if (actualDispatches.length !== budgetSnapshot.dispatched || actualDispatches.some((request) => request.method !== "GET")) violations.push("dispatch_capture_mismatch_or_non_get");
       if (gapsMs.some((gap) => gap < MIN_DISPATCH_INTERVAL_MS)) violations.push("dispatch_interval_below_guard");
       if (maxConcurrentRequests > 1) violations.push("requests_overlapped");
       if (blockedDispatches.length) violations.push("out_of_scope_dispatch_blocked");
+      if (redirectPending || blockedDispatches.some((dispatch) => dispatch.reason === "redirect_forbidden")) violations.push("redirect_forbidden");
       if (requestRows.some((row) => !row.finished || row.truncated || (row.statusCode !== null && !row.rawFile))) violations.push("response_capture_not_complete_or_over_limit");
       if (requestRows.some((row) => row.statusCode !== 200 || !/^\s*text\/html(?:\s*;|\s*$)/iu.test(String(row.contentType ?? "")))) violations.push("non_html_or_non_200_response");
-      if (sourceRuns.some((run) => run.result?.status !== "ok" || run.dispatchesUsed > PER_SOURCE_DISPATCH_CAP || run.flags?.enabled || run.flags?.siteFulltext || run.flags?.syndicateFulltext)) violations.push("source_run_or_flags_violation");
+      if (sourceRuns.some((run) => run.result?.status !== "ok" || run.dispatchesUsed !== scope.sources.find((source) => source.id === run.sourceId)?.pageUrls.length || run.flags?.enabled || run.flags?.siteFulltext || run.flags?.syndicateFulltext)) violations.push("source_run_or_flags_violation");
       if (sourceRuns.some((run) => !run.cursorValid)) violations.push("cursor_generation_or_window_violation");
       if (after && ["analyses","receipts","publications","selected","job_runs"].some((key) => Number(after?.[key]) !== Number(before?.[key]))) violations.push("downstream_rows_changed");
       if (queueJobs.some((job) => job.started_on !== null || job.state !== "created")) violations.push("job_was_consumed");

@@ -48,11 +48,12 @@ const listing = (page: number): string => {
 
 for (const page of [2, 3]) {
   const path = `/dir/index_${page}.htm`;
+  const redirect = mode === "redirect" && page === 2;
   const failed = mode === "failure" && page === 2;
   mockAgent.get(`https://${FIXTURE_HOST}`).intercept({ path, method: "GET" }).reply(
-    failed ? 503 : 200,
-    failed ? "synthetic fixture failure" : gzipSync(Buffer.from(listing(page), "utf8")),
-    { headers: failed
+    redirect ? 302 : failed ? 503 : 200,
+    redirect ? "" : failed ? "synthetic fixture failure" : gzipSync(Buffer.from(listing(page), "utf8")),
+    { headers: redirect ? { location: "/dir/index_3.htm" } : failed
       ? { "content-type": "text/plain; charset=utf-8" }
       : { "content-type": "text/html; charset=utf-8", "content-encoding": "gzip" } },
   );

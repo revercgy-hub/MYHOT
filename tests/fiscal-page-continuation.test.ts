@@ -8,6 +8,7 @@ import { after, before, test } from "node:test";
 import {
   assertLoopbackTestDatabase,
   canonicalScopeSha256,
+  continuationDispatchRejection,
   isAllowedContinuationDispatch,
   parseExplicitSourceIds,
   validateContinuationScope,
@@ -47,7 +48,7 @@ function scopeFixture(databaseName = "fiscal_test"): PaginationContinuationScope
     updatedAt: "2026-10-16T00:00:00.000Z",
   } };
   return {
-    v: 1,
+    v: 2,
     createdAtUtc: "2026-10-16T00:00:00.000Z",
     databaseUrlSha256: sha256(databaseUrl),
     database: { name: databaseName, address: "127.0.0.1", port: 5432, migrations: 35 },
@@ -56,7 +57,7 @@ function scopeFixture(databaseName = "fiscal_test"): PaginationContinuationScope
       enabled: false, siteFulltext: false, syndicateFulltext: false, cursor, listUrl, allowUrlPrefixes: [listUrl],
       pageIndices: [2, 3], pageUrls: ["https://fixture.example/dir/index_2.htm", "https://fixture.example/dir/index_3.htm"],
       host: "fixture.example", pathPrefix: "/dir/", maxPageIndex: 8 }],
-    limits: { pagesPerSource: 2, perSourceDispatchCap: 12, globalDispatchCap: 48, minDispatchIntervalMs: 1000, activeWaitMs: 1100, maxCapturedResponseBytes: 6_291_456 },
+    limits: { pagesPerSource: 2, perSourceDispatchCap: 2, globalDispatchCap: 2, maxRedirects: 0, urlAllowlist: "frozen_page_urls_only", minDispatchIntervalMs: 1000, activeWaitMs: 1100, maxCapturedResponseBytes: 6_291_456 },
     baselineCounts: { migrations: 35, sources: 1, articles: 0, fetch_runs: 0, revisions: 0, discoveries: 0, analyses: 0, receipts: 0, publications: 0, selected: 0, job_runs: 0 },
   };
 }
@@ -83,19 +84,40 @@ test("pins the full cursor/config snapshot and rejects stale scope hashes", () =
   assert.throws(() => validateContinuationScope(invalidRange, canonicalScopeSha256(invalidRange)), /cursor|range/u);
   const invalidLimits = structuredClone(scope);
   (invalidLimits.limits as any).globalDispatchCap = 100;
-  assert.throws(() => validateContinuationScope(invalidLimits, canonicalScopeSha256(invalidLimits)), /database identity|migration/u);
+  assert.throws(() => validateContinuationScope(invalidLimits, canonicalScopeSha256(invalidLimits)), /dispatch budgets|database identity|migration/u);
+  const previousWideScope = structuredClone(scope);
+  (previousWideScope as any).v = 1;
+  (previousWideScope.limits as any).perSourceDispatchCap = 12;
+  (previousWideScope.limits as any).globalDispatchCap = 48;
+  assert.throws(() => validateContinuationScope(previousWideScope, canonicalScopeSha256(previousWideScope)), /schema version/u,
+    "previous wide-budget scope versions cannot execute under the tightened runner");
 });
 
-test("allows only exact frozen list pages and same-origin HTML metadata paths", () => {
+test("allows only exact frozen list pages and rejects same-origin metadata/detail URLs", () => {
   const source = scopeFixture().sources[0]!;
   assert.equal(isAllowedContinuationDispatch(source, { origin: "https://fixture.example", path: "/dir/index_2.htm", method: "GET" }), true);
   assert.equal(isAllowedContinuationDispatch(source, { origin: "https://fixture.example", path: "/dir/article.html", method: "GET" }), false);
-  assert.equal(isAllowedContinuationDispatch(source, { origin: "https://fixture.example", path: "/dir/article.html", method: "GET" }, new Set(["https://fixture.example/dir/article.html"])), true);
+  assert.equal(isAllowedContinuationDispatch(source, { origin: "https://fixture.example", path: "/dir/index_2.htm?x=1", method: "GET" }), false);
   assert.equal(isAllowedContinuationDispatch(source, { origin: "http://fixture.example", path: "/dir/article.html", method: "GET" }), false);
   assert.equal(isAllowedContinuationDispatch(source, { origin: "https://other.example", path: "/dir/article.html", method: "GET" }), false);
   assert.equal(isAllowedContinuationDispatch(source, { origin: "https://fixture.example", path: "/dir/article.pdf", method: "GET" }), false);
   assert.equal(isAllowedContinuationDispatch(source, { origin: "https://fixture.example", path: "/dir/article.html?download=1", method: "GET" }), false);
   assert.equal(isAllowedContinuationDispatch(source, { origin: "https://fixture.example", path: "/dir/article.html", method: "POST" }), false);
+});
+
+test("runtime dispatch admission consumes exactly the frozen budget and rejects repeats, extra URLs, and redirect hops", () => {
+  const scope = scopeFixture();
+  const source = scope.sources[0]!;
+  const sent = new Set<string>();
+  const dispatch = (url: string) => ({ origin: new URL(url).origin, path: new URL(url).pathname, method: "GET" });
+  assert.equal(scope.limits.globalDispatchCap, source.pageUrls.length);
+  assert.equal(continuationDispatchRejection(scope, source, dispatch(source.pageUrls[0]!), sent), null);
+  sent.add(source.pageUrls[0]!);
+  assert.equal(continuationDispatchRejection(scope, source, dispatch(source.pageUrls[1]!), sent), null);
+  sent.add(source.pageUrls[1]!);
+  assert.equal(continuationDispatchRejection(scope, source, dispatch(source.pageUrls[0]!), sent), "duplicate_or_per_source_budget_exhausted", "N+1 repeated dispatch is refused before transport");
+  assert.equal(continuationDispatchRejection(scope, source, dispatch("https://fixture.example/dir/article.html"), sent), "outside_frozen_scope");
+  assert.equal(continuationDispatchRejection(scope, source, dispatch(source.pageUrls[1]!), new Set([source.pageUrls[0]!]), true), "redirect_forbidden", "redirect to a separately planned page still cannot consume its slot");
 });
 
 test("a loopback HTTP page is denied before the fixture server receives a request", async () => {
@@ -206,7 +228,7 @@ test("execute captures and decodes fixed gzip pages, commits through the collect
     path.join(QA_DATA_DIR, `page-continuation-execute-${process.pid}`));
   assert.ok(evidenceRoot.startsWith(`${QA_DATA_DIR}${path.sep}`), "evidence must remain under .data/fiscal-qa");
   mkdirSync(evidenceRoot, { recursive: false });
-  const sourceIds = [`p3-continuation-${process.pid}`, `p3-continuation-failure-${process.pid}`];
+  const sourceIds = [`p3-continuation-${process.pid}`, `p3-continuation-failure-${process.pid}`, `p3-continuation-redirect-${process.pid}`];
   const listUrl = "https://fiscal-fixture.mof.gov.cn/dir/";
   const config: Record<string, any> = {
     url: listUrl,
@@ -216,7 +238,7 @@ test("execute captures and decodes fixed gzip pages, commits through the collect
     titleSelector: "a",
     publishedAtSelector: "time",
     publishedAtUtcOffset: "+08:00",
-    pagination: { mode: "mof_index_v1", maxPagesPerRun: 2, maxDispatches: 12, maxPageIndex: 8 },
+    pagination: { mode: "mof_index_v1", maxPagesPerRun: 2, maxDispatches: 2, maxPageIndex: 8 },
     _aihot: { initialBackfillRequirePublishedAt: true },
   };
   const source = { id: sourceIds[0]!, name: "Synthetic pagination fixture", kind: "web_list" as const,
@@ -233,12 +255,12 @@ test("execute captures and decodes fixed gzip pages, commits through the collect
         false, false, false, ${sql.json(sourceCursors.get(sourceId) as never)}, '2100-01-01')`;
   }
 
-  const run = (args: string[], mode = "success") => {
+  const run = (args: string[], mode = "success", preloadPath = TRANSPORT_PRELOAD_PATH) => {
     const outDirIndex = args.indexOf("--out-dir");
     const outDir = outDirIndex >= 0 ? args[outDirIndex + 1]! : "unknown-output";
     const transportLogPath = path.join(evidenceRoot, `${path.basename(outDir)}-${mode}-transport.jsonl`);
     return spawnSync(process.execPath,
-    ["--import", pathToFileURL(TRANSPORT_PRELOAD_PATH).href, CLI_PATH, ...args], {
+    ["--import", pathToFileURL(preloadPath).href, CLI_PATH, ...args], {
       cwd: REPO_ROOT, encoding: "utf8", timeout: 120_000, windowsHide: true,
       env: { ...process.env, DATABASE_URL: databaseUrl, P3_TEST_DATABASE_URL: databaseUrl,
         P3_CONTINUATION_TRANSPORT_LOG: transportLogPath,
@@ -258,6 +280,7 @@ test("execute captures and decodes fixed gzip pages, commits through the collect
 
   try {
     const { plan, frozen } = freezeScope(sourceIds[0]!, "success");
+    assert.deepEqual([frozen.limits.perSourceDispatchCap, frozen.limits.globalDispatchCap, frozen.limits.maxRedirects, frozen.limits.urlAllowlist], [2, 2, 0, "frozen_page_urls_only"]);
     const executionDir = path.join(evidenceRoot, "success-execution");
     const executed = run(["--execute", "--scope", plan.scopePath, "--scope-sha", plan.scopeSha256,
       "--out-dir", executionDir]);
@@ -315,6 +338,22 @@ test("execute captures and decodes fixed gzip pages, commits through the collect
     assert.ok(failureManifest.safetyViolations.includes("non_html_or_non_200_response"));
     const [failedSource] = await sql<{ cursor: Record<string, any> }[]>`SELECT cursor FROM sources WHERE id = ${sourceIds[1]}`;
     assert.equal(failedSource!.cursor.webListBackfill.nextPageIndex, 2, "failed page fetch does not advance the collector cursor");
+
+    const { plan: redirectPlan } = freezeScope(sourceIds[2]!, "redirect");
+    const redirectDir = path.join(evidenceRoot, "redirect-execution");
+    const redirected = run(["--execute", "--scope", redirectPlan.scopePath, "--scope-sha", redirectPlan.scopeSha256,
+      "--out-dir", redirectDir], "redirect");
+    assert.notEqual(redirected.status, 0, "a redirect response must fail bounded execution");
+    const redirectManifest = JSON.parse(readFileSync(path.join(redirectDir, "manifest.json"), "utf8")) as any;
+    const redirectTransport = readFileSync(path.join(evidenceRoot, "redirect-execution-redirect-transport.jsonl"), "utf8")
+      .trim().split("\n").map((line) => JSON.parse(line));
+    assert.deepEqual(redirectTransport.map((row: any) => [row.path, row.method]), [["/dir/index_2.htm", "GET"]],
+      "a 302 pointing at the other planned page causes no second HTTP dispatch");
+    assert.deepEqual(redirectManifest.responseCaptures.map((row: any) => row.statusCode), [302]);
+    assert.ok(redirectManifest.safetyViolations.includes("non_html_or_non_200_response"));
+    assert.ok(redirectManifest.safetyViolations.includes("redirect_forbidden"));
+    const [redirectSource] = await sql<{ cursor: Record<string, any> }[]>`SELECT cursor FROM sources WHERE id = ${sourceIds[2]}`;
+    assert.equal(redirectSource!.cursor.webListBackfill.nextPageIndex, 2, "redirect response does not advance the cursor");
 
     writeFileSync(path.join(evidenceRoot, "fixture-assertions.json"), `${JSON.stringify({
       database: databaseIdentity,
