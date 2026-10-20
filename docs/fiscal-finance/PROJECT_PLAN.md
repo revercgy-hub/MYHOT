@@ -2,6 +2,10 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
+## 2026-10-20 P3 有界分页与正文核验
+
+本轮在专用分页测试库按冻结scope v2续跑四源page6/7（8个精确GET），cursor到8、coverage仍`unproven`；重庆新增列表候选的列表日与URL日期token冲突，正文保持pending。主库两篇正文详情的自动parser decline及原始`completed_with_violations`均保留；独立核验后仅按Root批准的captured HTML做两条人工CAS，未调整来源阈值、publication资格或下游状态。详细raw/hash、行级基线和独立报告见[10月20日检查点](HANDOFFS/P3_PAGE67_AND_BODY_2026-10-20.md)。CLI dispatch guard、fresh backend suite402/403（0失败、1 skip由focused suite覆盖）、typecheck及Web检查已通过；提交后本轮精确SHA CI仍待运行。Gate 2仍为`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3–5未通过。
+
 ## 2026-10-19 P5 Gold 审阅状态
 
 batch-02编号6–10为五项`select`；batch-03编号11–15按用户原文“11精选 12不 13精选 14精选 15精选”映射为四项select、一项reject，均未提供理由。metadata仍只记录15条人工confirmed（9 select、6 reject）/85 pending；全部事件组与split仍待确认，validator为`DRAFT_INCOMPLETE`、0 issues，Gate 3未通过。85条经验辅助建议经身份/hash/日期QA；三篇地方金融服务稿适用用户已确认的“全部动态、精选优先政策/资金/监管”偏好，另外6个null候选按正文和既有规则复核，其中5项形成推断建议、北京调研报道保留null。最新v3为30 select、54 reject、1未分类，建议仍不构成人工标签；15条seed已参与偏好归纳，不能作为独立holdout。未来holdout须盲审并按事件组隔离，本轮不自动分配split。供用户抽查的材料隐藏机器建议/置信度/理由，机器建议另存。详见[10月19日Gold检查点](HANDOFFS/P5_GOLD_BATCH02_REVIEW_2026-10-19.md)。

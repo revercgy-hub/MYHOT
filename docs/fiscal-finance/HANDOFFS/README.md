@@ -1,5 +1,9 @@
 # 阶段任务交接制度
 
+## 2026-10-20 最新P3分页与正文检查点
+
+当前技术进展见[10月20日P3分页与正文检查点](P3_PAGE67_AND_BODY_2026-10-20.md)：专用分页库按冻结scope v2完成四源page6/7共8个精确GET，cursor到8、coverage仍`unproven`；主库两篇正文先保留自动decline与执行报告，随后仅对精确captured HTML完成两条Root批准的人工CAS。两库分别统计，不合并；来源保持disabled/fulltext-off，Gate 2仍仅为`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3–5未通过。本机fresh backend suite 402/403（0失败、1个focused integration skip由单独7/7覆盖）、typecheck、Web build和17项Web tests通过；提交后新代码SHA Check待运行。API/Web live smoke未运行。
+
 ## 2026-10-19 最新P5 Gold审阅检查点
 
 最新Gold人工决定和审阅批次见[batch-02决定及batch-03准备检查点](P5_GOLD_BATCH02_REVIEW_2026-10-19.md)：batch-02编号6–10均由用户确认select，100项当前10 confirmed/90 pending，全部eventGroup/split仍需确认；validator为`DRAFT_INCOMPLETE`，Gate 3未通过。batch-03编号11–15经独立body/hash/date/summary QA通过，等待用户审阅。此增量不更新10月18日记录的本地runtime或Gate 4–5证据。

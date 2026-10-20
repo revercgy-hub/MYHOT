@@ -1,5 +1,29 @@
 # 项目状态
 
+## 2026-10-20 P3分页与正文CAS检查点
+
+本日详细证据见[分页与正文检查点](HANDOFFS/P3_PAGE67_AND_BODY_2026-10-20.md)。两项工作使用不同专用数据库，计数不合并：主正文库最终442篇（378 `ok`、51 `pending`、13 `unconfirmed`）、789 revisions、318 publications、427 jobs；分页库146篇，仅重庆新增1条列表metadata、cursor四源均6→8、coverage `unproven`。四源仍disabled且站内/转发全文关闭，job未消费。分页共8个scope内GET，raw逐项匹配、无redirect/额外dispatch；独立行级QA通过。新增重庆候选标题正确但list日期`2026-07-30`与URL date token `2026-07-02`不同，正文仍pending，不据URL改写日期。
+
+主库陕西、天津各自仅有一个获批GET。自动详情parser均因短正文而留`unconfirmed`；原执行报告`completed_with_violations`原样保留。独立字节QA确认runner的raw字段检查与public visibility检查是false positive，两个publication均不eligible/selected/indexable/syndicate。之后Root批准的离线人工CAS只绑定captured HTML的两篇正文：陕西785字、天津154字，均已核对标题/正文/哈希、上海日历日和无导航/附件；保留列表入库时刻。CAS后两项`ok`/rev2；最终442篇为378 `ok`、51 `pending`、13 `unconfirmed`。318条publication、所有非目标行及关联表不变，publication保持summary mode且不可精选/索引/转发，summary原为null并未被填造。正文报告、原decline、独立QA和CAS报告路径均列在本日handoff。
+
+CLI/test/transport fixture helper有3个tracked候选修改：v2 scope绑定每源2次、全局8次、仅冻结URL及redirect=0；fixture重定向用helper原生模式测试。fresh隔离库focused 7/7、typecheck、Web build、Web tests 17/17及fresh backend 402/403（0失败、1个focused集成skip）已过；该skip的同一集成用例由A的7/7 focused suite覆盖。API/Web未启动，本机live smoke `NOT_RUN`。此前绿色CI对应旧代码SHA `13fa76ae931e61abe7fb75fb0a144338d8f3cdc2`，不能代表本轮diff；新代码提交后需新的精确SHA Check。Gate 2维持`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3/4/5仍未通过。
+
+本轮开始前，PostgreSQL PID文件位于原cluster；经一次Root核准的同目录可逆改名后，`pg_ctl`一次正常start等待unclean-shutdown fsync/WAL recovery，最终loopback 5432 ready。原PID `6368`属于`SearchProtocolHost`而非postgres；备份`postmaster.pid.stale-20261020`与原文件SHA相同。没有删除、重建或强杀数据文件，恢复不代表查明停机根因。API/Web无listener，未启动。
+
+```text
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_SHA=928cff90818275ab0b188a879f8e435af209042d（本轮代码与文档修改前；提交后以Git实测HEAD为准）
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+WORKSPACE=D:\AI-work\MYHOT\AIHOT
+STAGE=P3有限分页续页及两篇正文人工CAS；不代表全源准入或90日覆盖
+GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过
+REVIEW=scope v2、8 GET raw/dispatch/SQL行差异、两篇离线正文及CAS均经独立QA；fresh backend suite402/403通过、1 skip由focused suite覆盖
+BLOCKERS=本轮精确代码SHA Check待运行；Gate 3人工/隔离评测、Gate 4来源质量与90日覆盖、Gate 5 NAS验收仍缺
+COMPLETED=分页库146文章/150 revisions/146 jobs；主库442文章（378/51/13）/789 revisions/318 publications/427 jobs；fresh backend suite 402通过/0失败/1跳过；typecheck、Web build、Web17/17通过；分页focused integration 7/7
+IN_PROGRESS=本轮新代码精确SHA Check尚未运行；API/Web/worker未启动；三次失败suite尝试保留为环境问题历史
+NEXT=Root final diff review后提交/推送代码与阶段docs，并对明确remote/branch dispatch新Check
+```
+
 ## 2026-10-19 Gold 人工审阅与内容优先级更新
 
 用户对batch-02编号6–10确认五项均为`select`；对batch-03编号11–15的逐项决定为select、reject、select、select、select。后一审计原文“11精选 12不 13精选 14精选 15精选”，观察时间`2026-10-19T12:18:04Z`，五项都没有理由。tracked metadata累计15 confirmed（9 select、6 reject）/85 pending，batch-01前五项决定不变，全部eventGroup/split仍`needs_review`。最新validator结果`DRAFT_INCOMPLETE`、0 issues；Gate 3未通过，未运行模型评测或校准。batch-03决策审计位于ignored `.data/fiscal-qa/gold-review-batches-20261018/human-decisions-batch-03.json`；batch-04独立QA见`.data/fiscal-qa/luna-gold-record-qa-20261019/batch04-independent-qa.json`。
