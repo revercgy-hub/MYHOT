@@ -4,6 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import { extractSelectedBody } from "../packages/backend/src/content/selected-body.ts";
+import { collapseWhitespace } from "../packages/backend/src/lib/text.ts";
 
 // S1 selector characterization only: the positive false-positive controls below are expected to
 // produce a body and therefore block applying either CSS candidate to industry/sources.json.
@@ -67,7 +68,9 @@ test("the approved union rejects the real title-only page with an XLSX attachmen
 test("the approved union preserves the real nested, table-free 473-character notice", async () => {
   const result = await runFixture("real-nested-paragraph.html", expected.nestedParagraph);
   assert.equal(result.reason, null);
-  assert.equal(result.body?.text.length, 473);
+  assert.equal(result.body?.text.length, 482, "the returned body preserves its nine paragraph breaks");
+  assert.equal(collapseWhitespace(result.body!.text).length, 473);
+  assert.equal(result.body!.text.split("\n\n").length, 10);
   assert.match(result.body!.text, /财政部关于加快推进会计数智化工作的指导意见/);
   assert.match(result.body!.text, /2026年10月20日前将意见反馈至财政部会计司/);
   assert.match(result.body!.text, /2026年9月17日/);
@@ -98,10 +101,13 @@ test("a narrower structural CSS candidate rejects the short prose control but st
   for (const [filename, identity, expectedLength] of [
     ["real-short-table.html", expected.shortTable, 180],
     ["real-title-xlsx.html", expected.titleXlsx, null],
-    ["real-nested-paragraph.html", expected.nestedParagraph, 473],
+    ["real-nested-paragraph.html", expected.nestedParagraph, 482],
   ] as const) {
     const real = await runFixture(filename, identity, conservativeSelector);
     if (expectedLength === null) assert.equal(real.body, null, filename);
-    else assert.equal(real.body?.text.length, expectedLength, filename);
+    else {
+      assert.equal(real.body?.text.length, expectedLength, filename);
+      if (filename === "real-nested-paragraph.html") assert.equal(collapseWhitespace(real.body!.text).length, 473, filename);
+    }
   }
 });

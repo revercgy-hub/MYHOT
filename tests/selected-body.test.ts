@@ -60,6 +60,45 @@ test("verified short structured bodies preserve table columns, empty cells, and 
   assert.match(result.body!.html, /<table>/);
 });
 
+test("selected body text joins inline nodes, decodes entities once, and preserves block and table-row separators", () => {
+  const body = `<p>天津<span>监管局</span>征收 <span>1.</span><b>66</b>亿元，彩票公益金1.<span>5</span>亿元，业务费0.<em>1</em>亿元，罚没收入0.06亿元，增长5.<span>25</span>%。</p>` +
+    `<p>实体 A &amp; B &amp;lt; C。</p><script>PRIVATE_SCRIPT_SENTINEL</script>` +
+    `<table><tr><th>期限</th><th>利率</th><th>操作量</th></tr><tr><td>7天</td><td>1.<span>40</span>%</td><td>905亿元</td></tr><tr><td>隔夜</td><td></td><td>6985亿元</td></tr></table>`;
+  const page = `<html><head><meta name="ArticleTitle" content="${title}"><meta name="PubDate" content="2026-09-29"></head><body><div id="zoom">${body}</div></body></html>`;
+  const result = extractSelectedBody(page, URL, config, expected);
+
+  assert.equal(result.reason, null);
+  assert.equal(result.body!.text,
+    "天津监管局征收 1.66亿元，彩票公益金1.5亿元，业务费0.1亿元，罚没收入0.06亿元，增长5.25%。\n\n" +
+    "实体 A & B &lt; C。\n\n" +
+    "期限 | 利率 | 操作量\n7天 | 1.40% | 905亿元\n隔夜 | | 6985亿元");
+  assert.doesNotMatch(result.body!.text, /PRIVATE_SCRIPT_SENTINEL|1\. 66|5\. 25/);
+});
+
+test("inline markup and block separators do not inflate the established body length floors", () => {
+  const inlineText = Array.from({ length: 195 }, () => "<span>财</span>").join("");
+  const page = (body: string) => `<html><head><meta name="ArticleTitle" content="${title}"><meta name="PubDate" content="2026-09-29"></head><body><div id="zoom">${body}</div></body></html>`;
+  assert.equal(extractSelectedBody(page(`<p>${inlineText}</p>`), URL, { bodySelector: "#zoom" }, expected).reason, "short_body_not_allowed");
+
+  const belowBoundary = extractSelectedBody(page(`<p>${"财".repeat(66)}</p><p>${"财".repeat(66)}</p><p>${"财".repeat(65)}</p>`), URL, { bodySelector: "#zoom" }, expected);
+  assert.equal(belowBoundary.reason, "short_body_not_allowed", "197 visible characters plus two raw double-newline separators must measure 199, not 201");
+  const atBoundary = extractSelectedBody(page(`<p>${"财".repeat(66)}</p><p>${"财".repeat(66)}</p><p>${"财".repeat(66)}</p>`), URL, { bodySelector: "#zoom" }, expected);
+  assert.equal(atBoundary.reason, null, "198 visible characters plus two normalized block separators meet the existing 200-char floor");
+  assert.equal(atBoundary.body!.text.length, 202, "the returned body keeps paragraph breaks even though the gate normalizes them");
+
+  const source = (JSON.parse(readFileSync(new globalThis.URL("../industry/sources.json", import.meta.url), "utf8")) as {
+    sources: Array<{ id: string; config: Record<string, any> }>;
+  }).sources.find((row) => row.id === "mof-shaanxi-supervision-dynamics");
+  assert.ok(source);
+  const shortBlock = `<div>${Array.from({ length: 39 }, () => "<span>财</span>").join("")}</div>`;
+  const pageWithBlocks = (blocks: string) => `<html><head><meta name="ArticleTitle" content="财政部陕西监管局开展财政监督工作"><meta name="PubDate" content="2026-10-12"></head><body><div class="my_doccontent"><div class="TRS_Editor">${blocks}</div></div></body></html>`;
+  const blockResult = extractSelectedBody(pageWithBlocks(shortBlock.repeat(3)), URL, {
+    bodyPolicies: source.config.detail.bodyPolicies,
+    publishedAtUtcOffset: "+08:00",
+  }, { title: "财政部陕西监管局开展财政监督工作", publishedAt: new Date("2026-10-12T00:00:00+08:00") });
+  assert.equal(blockResult.reason, "body_policy_div_blocks_invalid");
+});
+
 test("selector extraction fails closed on title/date identity mismatch or missing identity", () => {
   assert.equal(extractSelectedBody(omo("公开市场业务交易公告 [2026]第190号"), URL, config, expected).reason, "identity_mismatch");
   assert.equal(extractSelectedBody(omo(), URL, config, { title, publishedAt: new Date("2026-09-28T00:00:00+08:00") }).reason, "identity_mismatch");

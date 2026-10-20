@@ -6,6 +6,7 @@ import { test } from "node:test";
 import { extractSelectedBody, validateBodyPolicies, type SelectedBodyPolicy } from "../packages/backend/src/content/selected-body.ts";
 import { extractFromUrl } from "../packages/backend/src/content/extract.ts";
 import { extractConfiguredHtmlBody } from "../packages/backend/src/content/pdf-body.ts";
+import { collapseWhitespace } from "../packages/backend/src/lib/text.ts";
 import { unsupportedConfig } from "../packages/backend/src/sources/config-keys.ts";
 
 const fixtureDir = join(dirname(fileURLToPath(import.meta.url)), "fixtures/fiscal-accounting-body");
@@ -51,7 +52,9 @@ test("the configured policy accepts the real 180-character table only with its e
 test("the prose policy keeps the real 473-character notice and rejects a short multi-paragraph control", async () => {
   const prose = await extract(await sourceHtml("real-nested-paragraph.html"), expected.nestedParagraph);
   assert.equal(prose.reason, null);
-  assert.equal(prose.body?.text.length, 473);
+  assert.equal(prose.body?.text.length, 482, "the returned text retains nine explicit paragraph separators");
+  assert.equal(collapseWhitespace(prose.body!.text).length, 473, "the visible-character count collapses block separators");
+  assert.equal(prose.body!.text.split("\n\n").length, 10);
   const short = await extract(await sourceHtml("negative-short-multip.html"), expected.shortMultip);
   assert.equal(short.body, null);
   assert.equal(short.reason, "short_body_not_allowed");

@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { collapseWhitespace, escapeHtml, stripTags } from "../lib/text.ts";
+import { collapseWhitespace } from "../lib/text.ts";
 import { parseLooseDate } from "../sources/date.ts";
 import { sanitizeBody, trimTrailingChrome } from "./sanitize.ts";
 import type { ExtractedBody } from "./extract.ts";
@@ -159,17 +159,37 @@ function pdfLinks($: cheerio.CheerioAPI, baseUrl: string, within?: cheerio.Cheer
 
 function textKeepingTableCells(html: string): string {
   const $ = cheerio.load(html, null, false);
-  $("table").each((_, table) => {
-    const rows = $(table).find("tr").toArray().map((row) =>
-      $(row).find("th,td").toArray().map((cell) => collapseWhitespace($(cell).text())).join(" | "),
-    ).filter((row) => row.replace(/[|\s]/g, "").length > 0);
-    $(table).replaceWith(`<div>${escapeHtml(rows.join("\n"))}</div>`);
-  });
-  return stripTags($.root().html() ?? "")
-    .replace(/[\t\f\v ]+/g, " ")
-    .replace(/ *\n */g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  const source = $.root().html() ?? "";
+  const uniqueMarker = (name: string) => {
+    let marker = `\u0000selected-body-${name}\u0000`;
+    while (source.includes(marker)) marker = `\u0000${marker}`;
+    return marker;
+  };
+  const blockBreak = uniqueMarker("block");
+  const lineBreak = uniqueMarker("line");
+  const blockTags = new Set([
+    "p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li", "blockquote", "pre",
+    "figure", "figcaption", "hr", "dl", "dt", "dd",
+  ]);
+  const readText = (node: any): string => {
+    if (node.type === "text") return String(node.data ?? "");
+    if (node.type !== "tag") return "";
+    const element = $(node);
+    if (node.name === "br") return lineBreak;
+    if (node.name === "table") {
+      const rows = element.find("tr").toArray().map((row) =>
+        $(row).find("th,td").toArray().map((cell) => collapseWhitespace($(cell).text())).join(" | "),
+      ).filter((row) => row.replace(/[|\s]/g, "").length > 0);
+      return rows.length ? `${blockBreak}${rows.join(lineBreak)}${blockBreak}` : "";
+    }
+    const children = (node.children ?? []).map(readText).join("");
+    return blockTags.has(node.name) ? `${blockBreak}${children}${blockBreak}` : children;
+  };
+  const raw = $.root().contents().toArray().map(readText).join("");
+  return raw.split(blockBreak)
+    .map((block) => block.split(lineBreak).map(collapseWhitespace).filter(Boolean).join("\n"))
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 function imagesFromHtml(html: string): ExtractedBody["images"] {
@@ -263,7 +283,7 @@ function policyDivTextBlocksAreComplete(html: string, pageUrl: string): boolean 
   for (const block of blocks) {
     const sanitized = trimTrailingChrome(sanitizeBody($(block).html() ?? "", pageUrl));
     const text = textKeepingTableCells(sanitized);
-    if (text.length >= 40) effectiveBlocks += 1;
+    if (collapseWhitespace(text).length >= 40) effectiveBlocks += 1;
   }
   return effectiveBlocks >= 3;
 }
@@ -381,7 +401,8 @@ function extractSelectedBodyCore(
   const text = textKeepingTableCells(clean);
   if (!text) return { body: null, reason: "empty_body", attachments };
   if (activePolicy?.table && !policyTableIsComplete(clean, activePolicy)) return { body: null, reason: "body_policy_table_invalid", attachments };
-  if (activePolicy ? text.length < activePolicy.minTextChars : text.length < 200 && config.allowShortBody !== true) {
+  const measuredTextLength = collapseWhitespace(text).length;
+  if (activePolicy ? measuredTextLength < activePolicy.minTextChars : measuredTextLength < 200 && config.allowShortBody !== true) {
     return { body: null, reason: "short_body_not_allowed", attachments };
   }
   return { body: { html: clean, text, images: imagesFromHtml(clean), via: "selector" }, reason: null, attachments };
