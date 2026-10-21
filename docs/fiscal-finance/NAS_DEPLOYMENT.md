@@ -2,9 +2,9 @@
 
 ## 当前状态更新（2026-10-22）
 
-用户已解锁本地SSH identity，strict SSH只读发现现已成功。NAS报告Debian 12、Docker 28.5.2、Compose 2.40.3；候选`/home/codex/fiscalhot-staging`不存在、约35 GB可用、3221当时无listener。`codex`访问Docker socket被拒，`sudo -n`需要密码，因此仍无法查看daemon中的既有project/containers/volumes、images/networks或DockerRootDir。不能从候选目录不存在推断daemon无旧资源。没有传包、创建目录/.env、运行Compose、构建镜像、创建volume或启动服务；完整证据见[10/22现场核验交接](HANDOFFS/NAS_STAGING_RUNTIME_DISCOVERY_2026-10-22.md)。
+用户解锁本地SSH identity后，strict SSH只读发现确认NAS为Debian 12、Docker 28.5.2、Compose 2.40.3；候选`/home/codex/fiscalhot-staging`为空、约35 GB可用、3221当时无listener。Root随后授权`NEW_DIRECTORY_PREPARATION_ONLY`：B已在该新目录以0700权限传入并解包固定SHA包，安全生成mode 0600 `.env`；secret值从未输出。Compose default/`--profile '*'`可选profile `config -q`与脱敏边界检查通过。详见[10/22现场与文件准备交接](HANDOFFS/NAS_STAGING_RUNTIME_DISCOVERY_2026-10-22.md)。
 
-固定SHA代码包和未执行命令草案已经在本地准备，具体哈希/路径见handoff；没有secret进入仓库或归档。Root原先的`APPROVED_FOR_PREPARATION`仅覆盖准备阶段，本轮还没有取得远端部署的最终S1批准。待取得只读daemon inventory后，先核实project/volume归属，再由Root复核effective Compose配置和精确命令。Gate 3/4/5仍未通过；Staging运行验收尚未开始。
+`codex`当前不能访问Docker socket，`sudo -n /usr/bin/docker version`也失败；fresh SSH的groups仍只有`Users`和`Administrators`。用户已选择Docker组授权，Root已发本机命令但尚未收到执行完成确认。因此containers/images/volumes/networks和DockerRootDir仍未知。B未执行`up`/build、未应用migration、未创建Docker volume、未启动任何服务；不把只读配置通过视为部署。Root的条件S1允许：新SSH确认Docker socket权限后，B只读核对现存project/volume/port/space；C独立QA若确认无资源冲突且3221空闲、fixed SHA与env/config仍匹配，可按Root授权执行隔离的`db setup api web`构建启动，不需重复确认。未知或冲突资源仍须回Root，不得覆盖或`down -v`。Gate 3/4/5仍未通过；Staging runtime健康/noindex验收尚未开始。
 
 ## 2026-10-21 初始本地准备状态（历史）
 
@@ -46,8 +46,8 @@ docker compose --project-name fiscalhot-staging --env-file .env -f docker-compos
 | 地址 | `192.168.3.100`（用户提供）；SSH连接成功 | 3221空闲仅为发现时快照，部署后未监听 |
 | Web 端口 | 目标 `3221 → 3221` | 未在 NAS 上监听或验收 |
 | SSH | 本地 alias `fnnas` 指向`codex@192.168.3.100:22`；10/22 strict只读SSH成功 | SSH可用；Docker socket需要权限，`sudo -n`需密码 |
-| Staging路径和卷 | 候选`/home/codex/fiscalhot-staging`不存在 | Docker daemon既有project/volume未能列举；资源状态未知，不能覆盖或复用 |
+| Staging路径和卷 | `/home/codex/fiscalhot-staging`新建0700，固定SHA source已解包；`.env`存在且0600 | Docker daemon既有project/volume未能列举；资源状态未知，不能覆盖或复用 |
 | 备份/恢复 | 未提供或实测 | 需在声明恢复能力前定义并验证 |
-| 凭据 | 仓库只含空值示例 | NAS 专属凭据尚未生成或注入 |
+| 凭据 | NAS Staging目录内已生成`.env`，mode 0600；真实值未输出/入Git | 需核确认owner和权限；provider key保持空 |
 
-下一步是取得不修改NAS权限/组的Docker daemon只读盘点能力，或由获授权管理员提供可核验的脱敏只读输出，核对DockerRootDir和`fiscalhot-staging`现存container/volume/image/network。Root已批准本地准备；远端目录创建、传包、写`.env`或启动服务都须待daemon资源查明及Root最终S1审查。确认隔离后才可部署Staging并做上述runtime验收。Production仍禁止部署，直至所有正式Gate要求满足并另行授权。
+下一步是用户执行其选择的Docker组授权命令并以新SSH session确认组/socket访问。B随后只读盘点DockerRootDir、`fiscalhot-staging`现存container/volume/image/network、3221绑定和空间；C独立核实。如确认无旧资源冲突且source SHA/env/config仍精确，Root条件S1已授权C执行隔离的`db setup api web`启动；若有旧或未知资源则回Root审，不覆盖、不删除卷。部署后再做上述runtime验收。Production仍禁止部署，直至所有正式Gate要求满足并另行授权。

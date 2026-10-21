@@ -2,9 +2,9 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
-## 2026-10-22 NAS Staging 只读发现（等待 daemon 只读权限）
+## 2026-10-22 NAS Staging 文件准备完成（等待 daemon 只读权限）
 
-用户已解锁本机identity，NAS SSH只读连接已工作。已核实Debian 12、Docker 28.5.2、Compose 2.40.3、候选`/home/codex/fiscalhot-staging`目录不存在、约35 GB可用空间和3221无listener；但`codex`不能访问Docker socket，`sudo -n`需要密码，因此旧Compose容器/volume/root目录仍未知。没有远端写入、Compose/build或服务启动。后续先取得只读daemon盘点，再核对项目/volume归属并由Root作最终S1。交接见[NAS Staging只读现场核验](HANDOFFS/NAS_STAGING_RUNTIME_DISCOVERY_2026-10-22.md)。Gate 3/4/5状态不变。
+SSH只读发现后，Root授权在全新`/home/codex/fiscalhot-staging`完成文件准备：固定SHA归档已传输校验/解包，`.env`为0600；默认与`--profile '*'`离线`docker compose config -q`及脱敏边界摘要通过。没有build/up或Docker daemon mutation。`codex`当前仍无Docker socket权限，因此旧containers/volumes/DockerRootDir未知；用户选择的Docker组授权尚待确认执行。Root条件S1规定：取得Docker权限后先只读inventory；C独立QA若无旧资源冲突且路径/卷/port/SHA/env/config准确，即可直接执行Staging `db setup api web`，否则回Root审。过程见[NAS Staging现场与文件准备交接](HANDOFFS/NAS_STAGING_RUNTIME_DISCOVERY_2026-10-22.md)。Gate 3/4/5未通过。
 
 ## 2026-10-21 NAS Staging 本地准备（远端未部署）
 

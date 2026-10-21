@@ -1,12 +1,10 @@
 # 项目状态
 
-## 2026-10-22 NAS Staging 只读现场核验（部署阻塞）
+## 2026-10-22 NAS Staging 文件准备完成（等待Docker daemon权限）
 
-用户已解锁本机 SSH identity；strict SSH 只读发现成功确认 NAS 为 Debian 12、Docker 28.5.2、Compose 2.40.3，根文件系统约剩35 GB。候选目录`/home/codex/fiscalhot-staging`不存在，宿主 TCP 3221 当时无listener。详细记录见[NAS Staging 现场核验交接](HANDOFFS/NAS_STAGING_RUNTIME_DISCOVERY_2026-10-22.md)。
+用户已解锁SSH identity。NAS Debian 12、Docker 28.5.2、Compose 2.40.3；`/home/codex/fiscalhot-staging`被只读发现为空后，在Root限定授权下由B原子创建为0700新目录、传输并解包固定SHA归档。仅此新目录有文件准备，无复用旧项目路径。NAS生成的`.env` mode 0600，含四个随机hex Staging secrets，provider keys为空、危险flags均false；secret值未输出。Compose默认profile和可选profile的`config -q`均PASS，脱敏摘要的所有边界检查PASS；部署命令尚未运行。详细证据见[NAS Staging现场与准备交接](HANDOFFS/NAS_STAGING_RUNTIME_DISCOVERY_2026-10-22.md)。
 
-部署仍被 Docker daemon 的只读访问阻塞：`codex` 访问`/var/run/docker.sock`返回permission denied，`sudo -n -l`要求密码。尚不能检查 daemon images、现存 containers/volumes/networks、DockerRootDir，也不能证明`fiscalhot-staging`资源不存在。没有建目录、传输固定SHA包、生成/写入`.env`、运行Compose、构建镜像或启动容器；没有任何已确认远端mutation。不得把候选目录不存在或3221空闲解释为可安全部署。
-
-固定SHA包已在本机准备并核hash：`ac14beaf1b67ef709578624b388b14767998a80c`，tar 17,541,120 bytes、976 tracked files，SHA-256 `12567959012a471d9d2bb69b057428bb64431403a69f4ea267c2aeb2ac9cc2e7`；excluded `.git`、`.env`、`.data`。详细准备路径/hash在handoff。须先以不修改NAS权限/组的方式取得 Docker daemon 只读盘点（或由获授权管理员提供可核验输出），再交Root最终S1；Gate 3/4/5保持未通过。
+Docker daemon仍被`codex`权限阻挡：fresh SSH session组仍是`Users`和`Administrators`，访问docker server permission denied，`sudo -n /usr/bin/docker version`失败。containers/images/volumes/networks/DockerRootDir未知，不能推断旧`fiscalhot-staging`资源不存在。用户已选择Docker组授权，Root已给出本机命令但尚未收到执行完成确认。B未build/up、未应用migrations、未创建Docker volume或启动服务。Root条件S1允许：待新SSH确认Docker权限，B先只读核project/volume/port/space；C独立QA若无冲突且fixed SHA/env/config仍匹配，可直接执行隔离`db setup api web`，否则回Root审。发现时3221无listener；没有Staging runtime健康或noindex验收。Gate 3/4/5保持未通过。
 
 ## 2026-10-21 NAS Staging 本地准备（未部署）
 
