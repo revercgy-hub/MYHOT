@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { requiresBodyReadinessHold } from "@aihot/backend/content/body-readiness";
-import { extractSelectedArticleEnvelope, extractSelectedBody } from "@aihot/backend/content/selected-body";
+import { extractSelectedArticleEnvelope, extractSelectedBody, textKeepingTableCells } from "@aihot/backend/content/selected-body";
 import { extractConfiguredHtmlBody } from "@aihot/backend/content/pdf-body";
 import type { GuardedResponse } from "@aihot/backend/lib/http-fetch";
 import { unsupportedConfig } from "@aihot/backend/sources/config-keys";
@@ -73,6 +73,15 @@ test("selected body text joins inline nodes, decodes entities once, and preserve
     "实体 A & B &lt; C。\n\n" +
     "期限 | 利率 | 操作量\n7天 | 1.40% | 905亿元\n隔夜 | | 6985亿元");
   assert.doesNotMatch(result.body!.text, /PRIVATE_SCRIPT_SENTINEL|1\. 66|5\. 25/);
+  assert.equal(textKeepingTableCells(result.body!.html), result.body!.text,
+    "the pure converter accepts sanitized body HTML directly and agrees with the selected-body result");
+});
+
+test("pure selected-body text projection joins saved inline numbers without rechecking identity or sanitizing", () => {
+  const sanitizedHtml = `<p>金额1.<span>66</span>亿元，费率5.<b>25</b>%。</p><p>实体 A &amp; B &amp;lt; C。</p>` +
+    `<table><tr><th>项目</th><th>金额</th></tr><tr><td>财政</td><td>0.<span>06</span>亿元</td></tr></table>`;
+  assert.equal(textKeepingTableCells(sanitizedHtml),
+    "金额1.66亿元，费率5.25%。\n\n实体 A & B &lt; C。\n\n项目 | 金额\n财政 | 0.06亿元");
 });
 
 test("inline markup and block separators do not inflate the established body length floors", () => {

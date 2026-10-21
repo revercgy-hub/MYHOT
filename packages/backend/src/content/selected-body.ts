@@ -157,7 +157,8 @@ function pdfLinks($: cheerio.CheerioAPI, baseUrl: string, within?: cheerio.Cheer
   return found;
 }
 
-function textKeepingTableCells(html: string): string {
+/** Text-only projection of already-sanitized HTML; does not validate source identity or body readiness. */
+export function textKeepingTableCells(html: string): string {
   const $ = cheerio.load(html, null, false);
   const source = $.root().html() ?? "";
   const uniqueMarker = (name: string) => {
