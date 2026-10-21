@@ -1,6 +1,10 @@
 import "./setup.ts";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { after, test } from "node:test";
+import { mkdirSync, readFileSync, rmSync } from "node:fs";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { closeDb, sql } from "@aihot/backend/db";
 import { stopBoss } from "@aihot/backend/jobs/queue";
 import { upsertMaterial } from "@aihot/backend/content/materials";
@@ -14,18 +18,18 @@ const T = tag();
 const BASE = "https://gx.mof.gov.cn/gzdt/caizhengjiancha/";
 const SOURCE_IDS: string[] = [];
 
-function config() {
+function config(listUrl = BASE) {
   return {
-    url: BASE, parseMode: "html", itemSelector: "li.item", linkSelector: "a[href]", titleSelector: "a", publishedAtSelector: "time",
-    allowUrlPrefixes: [BASE], _aihot: { initialBackfillMonths: 3, initialBackfillLimit: 30, initialBackfillRequirePublishedAt: true },
+    url: listUrl, parseMode: "html", itemSelector: "li.item", linkSelector: "a[href]", titleSelector: "a", publishedAtSelector: "time",
+    allowUrlPrefixes: [listUrl], _aihot: { initialBackfillMonths: 3, initialBackfillLimit: 30, initialBackfillRequirePublishedAt: true },
     pagination: { mode: "mof_index_v1", maxPagesPerRun: 1, maxDispatches: 2, maxPageIndex: 8 },
   };
 }
 
-async function insertSource(suffix: string, withDetailMode = false) {
+async function insertSource(suffix: string, withDetailMode = false, listUrl = BASE) {
   const id = `test-web-list-latest-${suffix}-${T}`;
   SOURCE_IDS.push(id);
-  const sourceConfig = config() as Record<string, any>;
+  const sourceConfig = config(listUrl) as Record<string, any>;
   if (withDetailMode) {
     sourceConfig.pagination.detailMode = "direct_html_metadata_v1";
     sourceConfig.detail = { maxFetches: 2, publishedAtSelector: "time.published", titleSelector: "h1" };
@@ -88,6 +92,39 @@ test("latest mode reads one base page, queues only new material, and preserves t
   assert.deepEqual(unchanged, { title: row.title, revision: 1 }, "a known material cannot be downgraded by list metadata");
   const [jobCount] = await sql<{ n: number }[]>`SELECT count(*)::int AS n FROM pgboss.job WHERE data->>'articleId' = (SELECT id FROM articles WHERE source_id = ${id})`;
   assert.equal(jobCount!.n, 1, "a duplicate latest observation adds no queue job");
+});
+
+test("latest CLI exits after creating pending material and its queue job", async () => {
+  const cliBase = "https://gx.mof.gov.cn/gzdt/caizhengjiancha/";
+  const { id } = await insertSource("cli-child", false, cliBase);
+  const repoRoot = path.resolve(import.meta.dirname, "..");
+  const logDir = path.join(repoRoot, ".data", "fiscal-qa", "latest-cli-child-tests");
+  mkdirSync(logDir, { recursive: true });
+  const transportLog = path.join(logDir, `${id}.jsonl`);
+  rmSync(transportLog, { force: true });
+  const child = spawnSync(process.execPath, [
+    "--import", pathToFileURL(path.join(repoRoot, "tests", "helpers", "fiscal-page-continuation-transport-preload.ts")).href,
+    path.join(repoRoot, "scripts", "fiscal", "p3-latest.ts"),
+    "--database-url", process.env.DATABASE_URL!, "--source-ids", id, "--execute",
+  ], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    timeout: 20_000,
+    windowsHide: true,
+    env: { ...process.env, P3_CONTINUATION_FIXTURE_MODE: "latest", P3_CONTINUATION_TRANSPORT_LOG: transportLog },
+  });
+  assert.equal(child.error, undefined, `child process error: ${child.error?.message ?? "none"}; stderr=${child.stderr}`);
+  assert.equal(child.status, 0, `latest CLI must exit cleanly; stdout=${child.stdout}; stderr=${child.stderr}`);
+  const dispatches = readFileSync(transportLog, "utf8").trim().split(/\r?\n/u).filter(Boolean).map((line) => JSON.parse(line));
+  assert.deepEqual(dispatches, [{ origin: "https://gx.mof.gov.cn", path: "/gzdt/caizhengjiancha/", method: "GET" }]);
+  const [stored] = await sql<{ id: string; body_status: string; body_text: string | null; processing_queued_at: Date | null }[]>`
+    SELECT id, body_status, body_text, processing_queued_at FROM articles WHERE source_id = ${id}`;
+  assert.ok(stored?.id, "the fixture candidate was ingested");
+  assert.deepEqual([stored.body_status, stored.body_text], ["pending", null]);
+  assert.ok(stored.processing_queued_at);
+  const [jobs] = await sql<{ n: number }[]>`SELECT count(*)::int AS n FROM pgboss.job WHERE data->>'articleId' = ${stored.id}`;
+  assert.equal(jobs!.n, 1, "new material has one pending processing job");
+  rmSync(transportLog, { force: true });
 });
 
 test("latest mode accepts existing backfill detail config but dispatches only the base page", async () => {

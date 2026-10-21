@@ -46,7 +46,14 @@ const listing = (page: number): string => {
   return `<!doctype html><html><body><ul><li><a href="./article-${page}.html" title="${title}">${title}</a><time datetime="2026-10-17">2026-10-17</time></li></ul></body></html>`;
 };
 
-for (const page of [2, 3]) {
+if (mode === "latest") {
+  const title = "Latest CLI child fixture";
+  const body = `<!doctype html><html><body><ul><li class="item"><a href="https://gx.mof.gov.cn/gzdt/caizhengjiancha/2026/10/latest-cli-child.htm">${title}</a><time datetime="2026-10-20">2026-10-20</time></li></ul></body></html>`;
+  mockAgent.get("https://gx.mof.gov.cn").intercept({ path: "/gzdt/caizhengjiancha/", method: "GET" }).reply(
+    200, gzipSync(Buffer.from(body, "utf8")),
+    { headers: { "content-type": "text/html; charset=utf-8", "content-encoding": "gzip" } },
+  );
+} else for (const page of [2, 3]) {
   const path = `/dir/index_${page}.htm`;
   const redirect = mode === "redirect" && page === 2;
   const failed = mode === "failure" && page === 2;

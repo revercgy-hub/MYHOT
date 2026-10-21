@@ -79,7 +79,12 @@ async function main() {
       if (result.status === "failed") throw new Error(`latest collection failed for ${result.sourceId}: ${result.error ?? "unknown"}`);
     }
   } finally {
-    await closeDb();
+    try {
+      const { stopBoss } = await import("../../packages/backend/src/jobs/queue.ts");
+      await stopBoss();
+    } finally {
+      await closeDb();
+    }
   }
 }
 
