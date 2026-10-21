@@ -1,5 +1,15 @@
 # 项目状态
 
+## 2026-10-21 大批量列表采集与双库正文批次（QA完成）
+
+本轮独立交接见[大批量采集与正文处理](HANDOFFS/BULK_COLLECTION_AND_BODY_2026-10-21.md)。主库`fiscalhot_catalog_sweep_20261013_test`的48个已配置源各发1次列表/base GET，48/48成功，498 found、300 known、198新增metadata；无详情请求，配置/cursor及旧文章正文不变。双库分开统计：MAIN最终640篇（407 `ok` / 211 `pending` / 22 `unconfirmed`）、1020 revisions、352 publications、588 jobs；PAGINATION最终153篇（102 `ok` / 47 `pending` / 4 `unconfirmed`）、255 revisions、106 publications、153 jobs、18 fetch runs。不得合并两库条目数。
+
+本轮详情实际GET共134次：PAGINATION 100次（98正文成功、2 `unconfirmed`、10批准目标未请求），MAIN 34次（29成功、5 `unconfirmed`、6未请求）。合计127篇成功正文原生摘要，7篇hold、16篇未请求；另有2次MAIN request error/timeout且0 response bytes，未重试。成功摘要只基于正文内容，非`analyses`、Human Gold或provider receipt，不自动精选、索引、转发或进入公开feed。采集期间来源disabled，全文、provider、OCR、Jina、worker及付费调用均关闭。
+
+MAIN列表独立post-QA为`PASS_WITH_PGBOSS_RETENTION_FINDING`：PgBoss启动内置retention清理33条已过期cancelled analyze jobs；保留精确ID/原行/哈希证据，不回填或复活。另新增194条未消费extract jobs；job_runs为0。三个分页正文批次及MAIN正文post-QA通过；日期比较、Postgres行集差异出现的两处告警经原生文本复核均为比较器表示误报，未证实数据漂移。没有代码变更，未重复运行测试/build/CI。代码tested SHA与旧CI run仍见下方历史检查点；本次文档提交不主张软件验证。
+
+Gate 2仍仅`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3/4/5未通过。48次成功列表不证明来源准入或90日覆盖。下一步在新scope/CAS下逐项复核7条正文hold与剩余pending，补来源/覆盖证据；不自动重试或发布。
+
 ## 2026-10-21 P3 latest增量与正文候选检查点（代码/数据阶段完成，最终CI通过）
 
 本轮从`93b61a6`开始，基线`589f79eff09470b31ba8a7f1d9eb62d36ff2be6c`。当前代码tested SHA为`6159de76f55601dcdcfd640d00d74e2a085afc08`，已推送至`origin/revercgy-hub/MYHOT:feat/fiscal-finance-hot`；本日文档checkpoint已同步，文档HEAD以Git为准。启动时PostgreSQL loopback 5432可用，API/Web无listener且没有worker入口进程；当前shell安全开关UNSET，`.env`未发现，未读取secret或修改env。无本机API/Web启动、无live smoke。

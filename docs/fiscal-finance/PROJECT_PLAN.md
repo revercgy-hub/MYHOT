@@ -2,6 +2,12 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
+## 2026-10-21 大批量采集与正文批次结果
+
+本轮有界执行已结束，证据与下一步见[独立交接](HANDOFFS/BULK_COLLECTION_AND_BODY_2026-10-21.md)。48个已配置官方源各1次列表/base GET均成功，新增198条metadata。随后两个隔离测试库合计134次详情GET，127篇正文成功、7篇`unconfirmed`、16个批准目标因来源停止而未请求。MAIN与PAGINATION分别为640篇（407/211/22）和153篇（102/47/4）；两库不相加，native摘要不是Gold/provider receipt，也未自动公开。MAIN列表运行另有33条PgBoss过期cancelled-job retention清理finding，原行证据已保存且未恢复。来源仍disabled，Gate 2边界不变，Gate 3–5仍未通过；成功列表请求不代表90日覆盖。
+
+**下一步：**在新的明确scope和fresh CAS下复核7条正文hold及两库剩余pending；针对来源错误决定是否需要具体诊断；继续收集来源质量和近90日覆盖证据。不可自动重试、处理附件/付费provider或把native建议提升为Gold。
+
 ## 2026-10-21 P3 latest增量与正文候选QA结果
 
 本轮代码head `6159de76f55601dcdcfd640d00d74e2a085afc08` 已推送；最终Check run [39530549243](https://github.com/revercgy-hub/MYHOT/actions/runs/39530549243) 成功（backend 416/414 pass/0 fail/2 skipped，typecheck、Web build/17 tests、migrate/seed、built-site smoke与Docker均通过），状态页与[10/21交接](HANDOFFS/P3_LATEST_INCREMENTAL_AND_BODY_REVIEW_2026-10-21.md)记录具体边界。主库当前48 sources/442 articles（378/51/13）/793 revisions/318 publications/427 jobs；4篇inline body_text投影只基于既存HTML作人工CAS修复，所有旧revision、source/raw/title/date/body_html、publication资格和其它行保持。分页库独立为4 sources/153 articles/157 revisions/6 publications/153 jobs/18 fetch runs；四源cursor仍active、coverage `unproven`。10/20四条captured metadata replay已入库，10/21旧版CLI另对GX/四川base list各发1次GET，GX新增0、四川新增3，均为pending metadata、未精选。其raw response未捕获，且旧CLI因PgBoss句柄需对自身进程Ctrl-C；新finally cleanup与child regression已实现并focused/typecheck通过，不能追认旧运行用过新代码。两库计数分开，来源仍disabled、无worker消费或provider请求。11篇历史数字边界候选已逐项审查：4篇已修正body_text投影，7篇为低影响暂不提案，除非新证据不重扫。Gate 2仍仅`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3–5未通过；下一步核验7条list-only候选的详情/正文，执行受控周期latest运行并补coverage证据，不机械抓page8/9或批量回写。
