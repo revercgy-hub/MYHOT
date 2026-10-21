@@ -2,6 +2,10 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
+## 2026-10-22 NAS Staging 只读发现（等待 daemon 只读权限）
+
+用户已解锁本机identity，NAS SSH只读连接已工作。已核实Debian 12、Docker 28.5.2、Compose 2.40.3、候选`/home/codex/fiscalhot-staging`目录不存在、约35 GB可用空间和3221无listener；但`codex`不能访问Docker socket，`sudo -n`需要密码，因此旧Compose容器/volume/root目录仍未知。没有远端写入、Compose/build或服务启动。后续先取得只读daemon盘点，再核对项目/volume归属并由Root作最终S1。交接见[NAS Staging只读现场核验](HANDOFFS/NAS_STAGING_RUNTIME_DISCOVERY_2026-10-22.md)。Gate 3/4/5状态不变。
+
 ## 2026-10-21 NAS Staging 本地准备（远端未部署）
 
 用户明确要求先部署隔离 NAS Staging，Web 映射端口为 `3221:3221`，因此当前执行顺序提前准备受限 Staging。代码准备 SHA 为 `ac14beaf1b67ef709578624b388b14767998a80c`，本机 fresh 软件检查通过；本地没有 Docker CLI，未完成实际 Compose render 或容器验收。详细边界见[NAS Staging准备交接](HANDOFFS/NAS_STAGING_PREPARATION_2026-10-21.md)和[NAS部署路线](NAS_DEPLOYMENT.md)。

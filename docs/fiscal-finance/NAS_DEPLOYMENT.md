@@ -1,6 +1,12 @@
 # NAS Staging 部署路线
 
-## 当前状态（2026-10-21）
+## 当前状态更新（2026-10-22）
+
+用户已解锁本地SSH identity，strict SSH只读发现现已成功。NAS报告Debian 12、Docker 28.5.2、Compose 2.40.3；候选`/home/codex/fiscalhot-staging`不存在、约35 GB可用、3221当时无listener。`codex`访问Docker socket被拒，`sudo -n`需要密码，因此仍无法查看daemon中的既有project/containers/volumes、images/networks或DockerRootDir。不能从候选目录不存在推断daemon无旧资源。没有传包、创建目录/.env、运行Compose、构建镜像、创建volume或启动服务；完整证据见[10/22现场核验交接](HANDOFFS/NAS_STAGING_RUNTIME_DISCOVERY_2026-10-22.md)。
+
+固定SHA代码包和未执行命令草案已经在本地准备，具体哈希/路径见handoff；没有secret进入仓库或归档。Root原先的`APPROVED_FOR_PREPARATION`仅覆盖准备阶段，本轮还没有取得远端部署的最终S1批准。待取得只读daemon inventory后，先核实project/volume归属，再由Root复核effective Compose配置和精确命令。Gate 3/4/5仍未通过；Staging运行验收尚未开始。
+
+## 2026-10-21 初始本地准备状态（历史）
 
 用户已明确请求先部署隔离的 NAS Staging，外部端口 `3221` 映射至 Web 容器 `3221`。Root 已批准本地 Staging 配置准备范围；这是部署顺序的明确变更，不代表 Gate 3、Gate 4 或 Gate 5 已通过，也不等于 NAS 实际部署通过或授权 Production。Staging 配置代码已在本地测试并提交，**尚未在 NAS 写入、构建或启动任何服务**。本地测试代码 SHA：`ac14beaf1b67ef709578624b388b14767998a80c`。
 
@@ -8,7 +14,7 @@
 
 本地已验证 YAML/Compose模型关键边界、相关 Web noindex 测试和 Web 集成测试。Docker CLI 在本地不可用，尚未运行真正的 `docker compose config` 或容器验收。Dockerfile 没有 HEALTHCHECK；容器镜像的 `EXPOSE 3000` 是元数据，Web 实际监听 `WEB_PORT`，DB 健康检查留在容器内。Gate 3/4/5 仍按各自正式证据记录，不能以 Staging 配置或本地测试代替。
 
-NAS SSH 连接信息此前已有本地 alias `fnnas`（目标 `192.168.3.100`、用户 `codex`、端口 `22`）。当前本机 `ssh-agent` 为 stopped/disabled，agent 内身份数为0；专用私钥经本地精确空passphrase验证显示需要非空passphrase。随后只做过一次 BatchMode/strict-hostkey/专用identity 的只读 SSH 尝试：TCP 曾建立，但本地进程超过3分钟没有返回可捕获输出，随后只终止了本地进程；无法判断服务器是否接受公钥或远端命令是否完成，不记作“NAS拒绝公钥”。没有读取 NAS OS、Docker/Compose 版本、现存容器、路径或卷，也没有远端写入。`scripts/nas/authorize-key.ps1` SHA `da630e770f62c098bf21a052042bd80df76757826e02ad312fb3ba8ccb4c6176` 只执行了本机 `-WhatIf`；它不会调用网络或改远端 `authorized_keys`。如用户或管理员允许使用本机agent，可在其启用后用 `ssh-add "$env:USERPROFILE\.ssh\id_ed25519_nas"` 并在交互提示中输入passphrase；本轮没有启用/改动Windows ssh-agent服务，也没有再试SSH。Root已完成本地配置审查并批准`APPROVED_FOR_PREPARATION`，不代表实际NAS部署审查或部署通过。
+截至10月21日的SSH/只读状态是历史快照，已被上方10月22日成功SSH发现更新。辅助脚本`scripts/nas/authorize-key.ps1` SHA `da630e770f62c098bf21a052042bd80df76757826e02ad312fb3ba8ccb4c6176`当时只执行本机`-WhatIf`；本轮不需要修改NAS `authorized_keys`。Root已完成本地配置审查并批准`APPROVED_FOR_PREPARATION`，不代表实际NAS部署审查或部署通过。
 
 ## Staging 运行前准备
 
@@ -36,12 +42,12 @@ docker compose --project-name fiscalhot-staging --env-file .env -f docker-compos
 | 项目 | 已知事实 | 未验证或阻塞 |
 |---|---|---|
 | 设备 | 铭凡 N5、64 GB（用户提供） | 尚未现场核验 |
-| NAS 系统 | 飞牛 NAS，用户称支持 Docker | 系统、Docker 与 Compose 版本未读取 |
-| 地址 | `192.168.3.100`（用户提供） | 当前网络/端口可达性未复验 |
+| NAS 系统 | 飞牛 NAS；只读发现报告 Debian 12、Docker 28.5.2、Compose 2.40.3 | daemon资源状态未读取，未做运行验证 |
+| 地址 | `192.168.3.100`（用户提供）；SSH连接成功 | 3221空闲仅为发现时快照，部署后未监听 |
 | Web 端口 | 目标 `3221 → 3221` | 未在 NAS 上监听或验收 |
-| SSH | 本地 alias `fnnas` 指向 `codex@192.168.3.100:22`；agent stopped/disabled、身份数0；专用key需非空passphrase | 一次strict只读SSH的TCP曾建立，但没有捕获认证或远端结果；状态未知，尚无远端读取或写入 |
-| Staging 路径和卷 | 尚无 NAS 路径或卷清单 | 需在授权访问后只读检查；已有卷不得覆盖或复用 |
+| SSH | 本地 alias `fnnas` 指向`codex@192.168.3.100:22`；10/22 strict只读SSH成功 | SSH可用；Docker socket需要权限，`sudo -n`需密码 |
+| Staging路径和卷 | 候选`/home/codex/fiscalhot-staging`不存在 | Docker daemon既有project/volume未能列举；资源状态未知，不能覆盖或复用 |
 | 备份/恢复 | 未提供或实测 | 需在声明恢复能力前定义并验证 |
 | 凭据 | 仓库只含空值示例 | NAS 专属凭据尚未生成或注入 |
 
-下一步是由用户/管理员按其权限解锁专用 SSH identity（如允许使用agent，先启用agent服务并运行上表所示 `ssh-add`），然后重新获得有效只读访问，核对 NAS 版本、目标目录、项目/卷现状。Root 已批准本地准备，但远端部署仍需在认证和只读现场检查结果明确后另行审查。现场信息与卷隔离满足要求后，才可启动 Staging 并做上述验收。Production 仍禁止部署，直至所有正式 Gate 要求满足并另行授权。
+下一步是取得不修改NAS权限/组的Docker daemon只读盘点能力，或由获授权管理员提供可核验的脱敏只读输出，核对DockerRootDir和`fiscalhot-staging`现存container/volume/image/network。Root已批准本地准备；远端目录创建、传包、写`.env`或启动服务都须待daemon资源查明及Root最终S1审查。确认隔离后才可部署Staging并做上述runtime验收。Production仍禁止部署，直至所有正式Gate要求满足并另行授权。

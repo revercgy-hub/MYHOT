@@ -1,5 +1,13 @@
 # 项目状态
 
+## 2026-10-22 NAS Staging 只读现场核验（部署阻塞）
+
+用户已解锁本机 SSH identity；strict SSH 只读发现成功确认 NAS 为 Debian 12、Docker 28.5.2、Compose 2.40.3，根文件系统约剩35 GB。候选目录`/home/codex/fiscalhot-staging`不存在，宿主 TCP 3221 当时无listener。详细记录见[NAS Staging 现场核验交接](HANDOFFS/NAS_STAGING_RUNTIME_DISCOVERY_2026-10-22.md)。
+
+部署仍被 Docker daemon 的只读访问阻塞：`codex` 访问`/var/run/docker.sock`返回permission denied，`sudo -n -l`要求密码。尚不能检查 daemon images、现存 containers/volumes/networks、DockerRootDir，也不能证明`fiscalhot-staging`资源不存在。没有建目录、传输固定SHA包、生成/写入`.env`、运行Compose、构建镜像或启动容器；没有任何已确认远端mutation。不得把候选目录不存在或3221空闲解释为可安全部署。
+
+固定SHA包已在本机准备并核hash：`ac14beaf1b67ef709578624b388b14767998a80c`，tar 17,541,120 bytes、976 tracked files，SHA-256 `12567959012a471d9d2bb69b057428bb64431403a69f4ea267c2aeb2ac9cc2e7`；excluded `.git`、`.env`、`.data`。详细准备路径/hash在handoff。须先以不修改NAS权限/组的方式取得 Docker daemon 只读盘点（或由获授权管理员提供可核验输出），再交Root最终S1；Gate 3/4/5保持未通过。
+
 ## 2026-10-21 NAS Staging 本地准备（未部署）
 
 用户明确要求先部署隔离Staging，Web端口`3221:3221`。Root批准本地准备范围；独立交接见[NAS Staging准备检查点](HANDOFFS/NAS_STAGING_PREPARATION_2026-10-21.md)，配置细节见[NAS部署路线](NAS_DEPLOYMENT.md)。代码准备提交`ac14beaf1b67ef709578624b388b14767998a80c`已完成fresh backend 35 migrations/422 tests（421 pass、0 fail、1 skip）、full typecheck、Web build和完整Web tests19/19。本机无Docker CLI；没有运行真实`docker compose config`或容器验收。
