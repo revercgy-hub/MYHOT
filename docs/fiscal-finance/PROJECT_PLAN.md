@@ -2,6 +2,12 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
+## 2026-10-21 NAS Staging 本地准备（远端未部署）
+
+用户明确要求先部署隔离 NAS Staging，Web 映射端口为 `3221:3221`，因此当前执行顺序提前准备受限 Staging。代码准备 SHA 为 `ac14beaf1b67ef709578624b388b14767998a80c`，本机 fresh 软件检查通过；本地没有 Docker CLI，未完成实际 Compose render 或容器验收。详细边界见[NAS Staging准备交接](HANDOFFS/NAS_STAGING_PREPARATION_2026-10-21.md)和[NAS部署路线](NAS_DEPLOYMENT.md)。
+
+目前没有有效 NAS SSH 认证结果：专用私钥需要非空 passphrase，agent stopped/disabled 且没有身份；一次严格只读连接没有返回可捕获结果，认证及远端命令状态未知。没有确认 NAS 读取或写入，也没有构建、启动服务或创建卷。Root 只批准本地准备，不代表 Gate 3/4/5 或实际 NAS 部署通过。**下一步**是用户/管理员按其权限解锁本地 identity；之后先只读核验 NAS 版本、现存项目/卷及端口占用，再由 Root 审查后执行 Staging。Production 仍不在本轮范围。
+
 ## 2026-10-21 P5/coverage QA补充
 
 本轮详细证据见[P5 seed guard 与分页来源观察交接](HANDOFFS/P5_SEED_GUARD_AND_COVERAGE_2026-10-21.md)。Gold manifest目前100项，其中20项用户确认、80项pending；另有50项只在ignored目录作为DRAFT proposal，不能计作Gold达标。固定15 seed不变。PBOC有限page1–5观察100个唯一列表项、63个日期在90日窗口；Xiamen page-set只有1次超时请求。两种结果都未满足Gate 3标注/评测或Gate 4完整来源覆盖条件。Gate 2边界不变，Gate 3–5仍未通过。

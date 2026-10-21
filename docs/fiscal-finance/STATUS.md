@@ -1,5 +1,13 @@
 # 项目状态
 
+## 2026-10-21 NAS Staging 本地准备（未部署）
+
+用户明确要求先部署隔离Staging，Web端口`3221:3221`。Root批准本地准备范围；独立交接见[NAS Staging准备检查点](HANDOFFS/NAS_STAGING_PREPARATION_2026-10-21.md)，配置细节见[NAS部署路线](NAS_DEPLOYMENT.md)。代码准备提交`ac14beaf1b67ef709578624b388b14767998a80c`已完成fresh backend 35 migrations/422 tests（421 pass、0 fail、1 skip）、full typecheck、Web build和完整Web tests19/19。本机无Docker CLI；没有运行真实`docker compose config`或容器验收。
+
+受限Staging配置使用独立`fiscalhot-staging` project/数据库/镜像标签；DB/API无宿主端口、Web不挂载后端`/data`或backend env、worker需显式profile；noindex开启，采集/model/provider/OCR/Jina/Feishu/IndexNow/私网/可信代理开关关闭。`.dockerignore`排除`.env`、`.env.*`和`.data`。NAS实际`.env`和凭据未创建或写入。
+
+没有NAS远端部署：专用private key需非空passphrase，当前Windows ssh-agent disabled/stopped且0身份。一次strict只读SSH TCP曾建立，但本地超过3分钟无结果后终止自有连接；远端认证/命令状态unknown，没有确认远端读取或mutation。未核OS、Docker/Compose版本、Staging目录、既存volume或3221占用。Root状态`APPROVED_FOR_PREPARATION`只覆盖本地准备，不代表NAS部署或任何Gate通过。Gate 2仍`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3/4/5未通过。待用户/管理员本机解锁identity后再做受限只读现场检查；检查通过、Root另审之后才可实际部署Staging。
+
 ## 2026-10-21 P5 seed检查与有限分页观察（本地QA完成）
 
 本轮独立交接见[P5 seed guard 与分页来源观察](HANDOFFS/P5_SEED_GUARD_AND_COVERAGE_2026-10-21.md)。当前tracked Gold metadata仍100项：batch-04后20条人工confirmed（13 select、7 reject）、80 pending；seed仍为原15条。新增50条只在ignored目录形成150项DRAFT proposal，原100项逐项deep-equal，50项均未确认标签、event group或split；该DRAFT不算任务书要求的150–200条Gold已达标，也不构成Gate 3证据。validator现在要求显式seed清单，后端全套以隔离35-migration数据库验证418 pass/0 fail/1 skip，typecheck、Web build和17项Web tests通过；旧CI run 39530549243只覆盖此前代码SHA，不代表本轮代码。
