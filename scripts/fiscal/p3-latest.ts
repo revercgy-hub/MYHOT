@@ -12,14 +12,14 @@ const args = parseArgs({
 });
 
 function assertTestLoopbackDatabase(value: string | undefined): { url: string; name: string } {
-  if (!value) throw new Error("--database-url must explicitly identify a loopback *_test database");
+  if (!value) throw new Error("--database-url must explicitly identify a loopback *_test or *_ci database");
   const parsed = new URL(value);
   if (!["postgres:", "postgresql:"].includes(parsed.protocol) ||
       !["127.0.0.1", "::1", "localhost"].includes(parsed.hostname.toLowerCase().replace(/^\[|\]$/gu, ""))) {
     throw new Error("--database-url must use loopback PostgreSQL");
   }
   const name = decodeURIComponent(parsed.pathname.replace(/^\//u, ""));
-  if (!/^[a-z0-9_]+_test$/iu.test(name)) throw new Error("--database-url must name an explicit *_test database");
+  if (!/^[a-z0-9_]+_(?:test|ci)$/iu.test(name)) throw new Error("--database-url must name an explicit *_test or *_ci database");
   return { url: parsed.toString(), name };
 }
 

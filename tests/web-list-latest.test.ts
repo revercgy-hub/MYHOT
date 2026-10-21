@@ -127,6 +127,24 @@ test("latest CLI exits after creating pending material and its queue job", async
   rmSync(transportLog, { force: true });
 });
 
+test("latest CLI refuses ordinary database names and remote *_ci databases before loading backend state", () => {
+  const repoRoot = path.resolve(import.meta.dirname, "..");
+  const cli = path.join(repoRoot, "scripts", "fiscal", "p3-latest.ts");
+  const cases = [
+    ["postgres://127.0.0.1:5432/fiscal_production", /explicit \*_test or \*_ci database/u],
+    ["postgres://db.example:5432/aihot_ci", /loopback PostgreSQL/u],
+  ] as const;
+  for (const [databaseUrl, expectedError] of cases) {
+    const child = spawnSync(process.execPath, [cli, "--database-url", databaseUrl, "--source-ids", "fixture-source"], {
+      cwd: repoRoot, encoding: "utf8", timeout: 10_000, windowsHide: true,
+      env: { ...process.env, DATABASE_URL: undefined },
+    });
+    assert.equal(child.error, undefined, child.error?.message ?? "");
+    assert.equal(child.status, 1, `invalid DB URL must be refused: ${databaseUrl}`);
+    assert.match(child.stderr, expectedError);
+  }
+});
+
 test("latest mode accepts existing backfill detail config but dispatches only the base page", async () => {
   const { id, cursor } = await insertSource("backfill-detail-mode", true);
   const calls: string[] = [];
