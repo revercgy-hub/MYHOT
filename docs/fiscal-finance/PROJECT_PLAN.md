@@ -2,9 +2,11 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
-## 2026-10-22 NAS Staging 文件准备完成（等待 daemon 只读权限）
+## 2026-10-22 NAS Staging隔离运行验收完成
 
-SSH只读发现后，Root授权在全新`/home/codex/fiscalhot-staging`完成文件准备：固定SHA归档已传输校验/解包，`.env`为0600；默认与`--profile '*'`离线`docker compose config -q`及脱敏边界摘要通过。没有build/up或Docker daemon mutation。`codex`当前仍无Docker socket权限，因此旧containers/volumes/DockerRootDir未知；用户选择的Docker组授权尚待确认执行。Root条件S1规定：取得Docker权限后由B先只读inventory；C独立QA若无旧资源冲突且路径/卷/port/SHA/env/config准确，则由B作为唯一远端执行owner启动Staging `db setup api web`，C只做独立runtime QA和docs/Git；若有冲突则回Root审。过程见[NAS Staging现场与文件准备交接](HANDOFFS/NAS_STAGING_RUNTIME_DISCOVERY_2026-10-22.md)。Gate 3/4/5未通过。
+用户指定`/vol2/1000/docker/fiscalhot-staging`；固定SHA `ac14beaf1b67ef709578624b388b14767998a80c`已部署，旧`/home/codex`准备目录保留。普通Docker bridge build首次因官方Debian源超时失败；随后Root批准build-only `--network=host`后固定源码build成功，Compose runtime仍为bridge。限定`db setup api web`启动成功，35 migrations、48 disabled sources、articles/revisions/publications/analyses/receipts/job_runs/fetch_runs均为0；api internal health 200，container smoke 30/30，LAN页面/404/robots noindex通过。唯一published port是Web 3221，DB/API无host port；worker/caddy未运行。详细见[NAS Staging部署与验收交接](HANDOFFS/NAS_STAGING_BUILD_ATTEMPT_2026-10-22.md)。
+
+隔离Staging runtime review通过，不自动满足Gate 3/4/5或授权Production。Docker bridge对外网仍不可用；所有采集/provider flags保持关闭。下一步为有控制地迁入展示数据、确定并验证备份恢复/稳定性方案，以及Root批准的runtime bridge egress修复；Gold确认、split和各Gate正式证据仍独立推进。不能将空内容数据库视为内容上线或coverage通过。
 
 ## 2026-10-21 NAS Staging 本地准备（远端未部署）
 

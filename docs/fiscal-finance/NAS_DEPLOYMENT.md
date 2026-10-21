@@ -2,9 +2,9 @@
 
 ## 当前状态更新（2026-10-22）
 
-用户解锁本地SSH identity后，strict SSH只读发现确认NAS为Debian 12、Docker 28.5.2、Compose 2.40.3；候选`/home/codex/fiscalhot-staging`为空、约35 GB可用、3221当时无listener。Root随后授权`NEW_DIRECTORY_PREPARATION_ONLY`：B已在该新目录以0700权限传入并解包固定SHA包，安全生成mode 0600 `.env`；secret值从未输出。Compose default/`--profile '*'`可选profile `config -q`与脱敏边界检查通过。详见[10/22现场与文件准备交接](HANDOFFS/NAS_STAGING_RUNTIME_DISCOVERY_2026-10-22.md)。
+用户已明确要求NAS隔离Staging，现已按用户指定目录`/vol2/1000/docker/fiscalhot-staging`部署；旧`/home/codex/fiscalhot-staging`保留。目标由固定tested code SHA `ac14beaf1b67ef709578624b388b14767998a80c`构建。第一次bridge build因容器不能连接官方Debian源超时；经Root批准，仅构建阶段使用Docker `--network=host`后成功。运行网络仍为默认Compose bridge，bridge容器外网超时尚未修复。详情见[10/22 NAS Staging部署与验收交接](HANDOFFS/NAS_STAGING_BUILD_ATTEMPT_2026-10-22.md)。
 
-`codex`当前不能访问Docker socket，`sudo -n /usr/bin/docker version`也失败；fresh SSH的groups仍只有`Users`和`Administrators`。用户已选择Docker组授权，Root已发本机命令但尚未收到执行完成确认。因此containers/images/volumes/networks和DockerRootDir仍未知。B未执行`up`/build、未应用migration、未创建Docker volume、未启动任何服务；不把只读配置通过视为部署。Root的条件S1允许：新SSH确认Docker socket权限后，B作为唯一远端执行owner只读核对现存project/volume/port/space；C独立QA若确认无资源冲突且3221空闲、fixed SHA与env/config仍匹配，通知B按Root授权执行隔离的`db setup api web`构建启动，不需重复确认。C只负责独立runtime QA与docs/Git。未知或冲突资源仍须回Root，不得覆盖或`down -v`。Gate 3/4/5仍未通过；Staging runtime健康/noindex验收尚未开始。
+当前db healthy、setup exit0、api/web运行，worker/caddy不运行；只Web发布3221:3221，DB/API没有宿主端口。35 migrations完成，48 sources disabled、fulltext/syndication均false；articles/revisions/publications/analyses/receipts/job_runs/fetch_runs为0。内部API health、容器内smoke 30/30、LAN首页/全部/分类/404/robots noindex通过。采集、模型和外部provider均关闭。此为`APPROVED_FOR_ISOLATED_STAGING_RUNTIME`，不是Gate 3/4/5通过或Production授权。
 
 ## 2026-10-21 初始本地准备状态（历史）
 
@@ -16,20 +16,18 @@
 
 截至10月21日的SSH/只读状态是历史快照，已被上方10月22日成功SSH发现更新。辅助脚本`scripts/nas/authorize-key.ps1` SHA `da630e770f62c098bf21a052042bd80df76757826e02ad312fb3ba8ccb4c6176`当时只执行本机`-WhatIf`；本轮不需要修改NAS `authorized_keys`。Root已完成本地配置审查并批准`APPROVED_FOR_PREPARATION`，不代表实际NAS部署审查或部署通过。
 
-## Staging 运行前准备
+## 已执行的隔离部署
 
-在 NAS 选择一个新的专用 Staging 目录，并从经审查的 Git SHA 检出代码。不要复用任何已有 Compose 项目目录或数据库卷。将 `.env.nas-staging.example` 复制为该目录下的 `.env`，生成只供 Staging 使用的凭据：`POSTGRES_PASSWORD` 使用字母数字（Compose 会把它直接放入数据库 URL），`ADMIN_PASSWORD` 至少 12 个字符，并为 `SESSION_SECRET`、`IMG_PROXY_SIGN_SECRET` 设置强随机值。填写本次已审查的完整 Git SHA 到 `DEPLOY_SHA`；将 provider key 保持空白，所有副作用开关保持 `false`。不要将实际 `.env`、密钥或未经脱敏的 Compose 配置输出提交到 Git 或发到聊天中。
+代码位于`/vol2/1000/docker/fiscalhot-staging`，`.env`为NAS本机生成并限制为0600，provider keys为空，副作用flags关闭。构建之前先完成Docker project/volume/port/空间冲突核验与脱敏Compose配置检查。第一次默认bridge build因容器不能访问官方Debian源而失败；后续获批的`--network=host`仅限单次镜像构建，不会改变Compose runtime bridge。
 
-部署前须只读确认该目录解析出的项目名确为 `fiscalhot-staging`，目标 image tag 为该检出 SHA，Web 仅监听/映射到预期的 `3221:3221`，DB/API 无宿主端口，worker 不在默认启动集合中。检查已有容器和卷的 Compose project 标签；如果 `fiscalhot-staging` 下已有任何容器或卷，先停下核实所有者和内容，不要复用。不得运行 `docker compose down -v`，不得删除或覆盖旧卷。
-
-完成访问授权和最终配置审查后，预期部署命令（仅在专用 NAS Staging 目录内执行；尚未执行）：
+成功的固定SHA镜像构建范围和启动服务如下；不要对该host build参数作全局/运行时推断：
 
 ```powershell
-docker compose --project-name fiscalhot-staging --env-file .env -f docker-compose.yml -f docker-compose.nas-staging.yml config
-docker compose --project-name fiscalhot-staging --env-file .env -f docker-compose.yml -f docker-compose.nas-staging.yml up -d --build db setup api web
+docker --host unix:///var/run/docker.sock build --network=host --progress=plain -t aihot-staging:ac14beaf1b67ef709578624b388b14767998a80c .
+docker compose --project-name fiscalhot-staging --env-file .env -f docker-compose.yml -f docker-compose.nas-staging.yml up -d --no-build db setup api web
 ```
 
-`config` 结果可能包含 secret，只在 NAS 本机查看并遮蔽敏感值后再分享。显式列出 `db setup api web` 是为了避免启动 worker；不要附加 `--profile manual-worker` 或 `--profile https`。执行前必须先确认构建上下文 SHA 与 `DEPLOY_SHA` 一致，并检查命令将要使用的 Docker project 和卷名。
+这里保留命令用于重现已审查部署；不要向本机之外输出完整Compose渲染或实际`.env`。显式列出`db setup api web`避免启动worker；没有附加`--profile manual-worker`或`--profile https`。不得运行`docker compose down -v`，不得删除或覆盖volume。
 
 ## Staging 验收与回退
 
@@ -42,12 +40,13 @@ docker compose --project-name fiscalhot-staging --env-file .env -f docker-compos
 | 项目 | 已知事实 | 未验证或阻塞 |
 |---|---|---|
 | 设备 | 铭凡 N5、64 GB（用户提供） | 尚未现场核验 |
-| NAS 系统 | 飞牛 NAS；只读发现报告 Debian 12、Docker 28.5.2、Compose 2.40.3 | daemon资源状态未读取，未做运行验证 |
-| 地址 | `192.168.3.100`（用户提供）；SSH连接成功 | 3221空闲仅为发现时快照，部署后未监听 |
-| Web 端口 | 目标 `3221 → 3221` | 未在 NAS 上监听或验收 |
-| SSH | 本地 alias `fnnas` 指向`codex@192.168.3.100:22`；10/22 strict只读SSH成功 | SSH可用；Docker socket需要权限，`sudo -n`需密码 |
-| Staging路径和卷 | `/home/codex/fiscalhot-staging`新建0700，固定SHA source已解包；`.env`存在且0600 | Docker daemon既有project/volume未能列举；资源状态未知，不能覆盖或复用 |
+| NAS系统/daemon | 飞牛NAS；Debian 12、Docker 28.5.2、Compose 2.40.3；DockerRootDir `/vol2/docker` | bridge容器出网到官方Debian源超时，后续启用采集/provider前须解决 |
+| 地址/端口 | `192.168.3.100`；LAN smoke通过 | 3221当前按本次检查有Web服务；需持续确认访问控制/稳定性 |
+| Web端口 | `3221 → 3221`，Web为唯一host-published服务 | 未做长期监控/重启恢复测试 |
+| SSH/Docker权限 | `codex`组包含`docker`；strict SSH可用 | 不在本轮修改daemon/组权限 |
+| Staging路径和卷 | 活动路径`/vol2/1000/docker/fiscalhot-staging`，目录0700，`.env`0600；旧`/home/codex/fiscalhot-staging`保留。Docker project `fiscalhot-staging`；卷`fiscalhot-staging_db`和`fiscalhot-staging_data`，network `fiscalhot-staging_default` | 备份/恢复目标和恢复过程尚未验证；不得复用或删除旧home准备目录 |
+| 运行状态 | db healthy、setup exit0、api/web running；worker/caddy不存在 | 稳定性/重启/备份尚未验证 |
 | 备份/恢复 | 未提供或实测 | 需在声明恢复能力前定义并验证 |
 | 凭据 | NAS Staging目录内已生成`.env`，mode 0600；真实值未输出/入Git | 需核确认owner和权限；provider key保持空 |
 
-下一步是用户执行其选择的Docker组授权命令并以新SSH session确认组/socket访问。B随后只读盘点DockerRootDir、`fiscalhot-staging`现存container/volume/image/network、3221绑定和空间；C独立核实。如确认无旧资源冲突且source SHA/env/config仍精确，B作为唯一远端执行owner按Root条件S1执行隔离的`db setup api web`启动；若有旧或未知资源则回Root审，不覆盖、不删除卷。C负责部署后runtime验收与docs/Git。Production仍禁止部署，直至所有正式Gate要求满足并另行授权。
+本次受限运行验收已通过，但数据库没有文章/分析/收据或运行记录，不能将空seed解释为内容站上线。后续需单独决定并审查内容迁入/展示方案、Docker bridge出网修复、备份/恢复与稳定性计划。所有采集/model/provider flags保持关闭。Gate 3/4/5仍需独立满足正式验收；Staging检查不授权Production。

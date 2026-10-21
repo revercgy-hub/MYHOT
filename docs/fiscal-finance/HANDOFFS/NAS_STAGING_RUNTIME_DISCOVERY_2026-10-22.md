@@ -1,5 +1,7 @@
 # NAS Staging 只读现场核验（2026-10-22）
 
+> 历史现场/文件准备快照。后续Docker组授权、/vol2部署、首次build和runtime验收已记录在[NAS Staging部署尝试交接](NAS_STAGING_BUILD_ATTEMPT_2026-10-22.md)。
+
 STATUS=FILES_PREPARED_WAITING_DOCKER_READONLY（新目录文件准备与config检查已通过；build/up仍阻塞）
 STAGE=P8 隔离NAS Staging部署准备
 GATE=Gate 2 `PASSED_FOR_BOUNDED_P4_PILOT`；Gate 3/4/5未通过
