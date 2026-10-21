@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { isLocalPreviewArticleId, resolveLocalPreviewEnabled } from "../app/lib/local-preview.server.ts";
+import { isLocalPreviewArticleId, resolveLocalPreviewEnabled, resolveStagingNoindexEnabled } from "../app/lib/local-preview.server.ts";
 import { assertLocalPreviewIds, prepareLocalPreviewSeedEnvironment } from "../../../scripts/lib/local-preview-safety.ts";
 
 const safeWebEnv = {
@@ -37,6 +37,14 @@ test("local preview remains off by default and accepts only loopback server addr
   assert.throws(() => resolveLocalPreviewEnabled({ ...safeWebEnv, API_BASE_URL: "http://api:3001" }), /loopback API_BASE_URL/);
   assert.throws(() => resolveLocalPreviewEnabled({ ...safeWebEnv, WEB_HOST: "0.0.0.0" }), /loopback WEB_HOST/);
   assert.throws(() => resolveLocalPreviewEnabled({ ...safeWebEnv, SITE_URL: "http://192.168.3.47:3000", WEB_HOST: "0.0.0.0" }), /loopback SITE_URL/);
+});
+
+test("staging noindex is opt-in and only runs in production mode", () => {
+  assert.equal(resolveStagingNoindexEnabled({}), false);
+  assert.equal(resolveStagingNoindexEnabled({ STAGING_NOINDEX: "false", NODE_ENV: "production" }), false);
+  assert.equal(resolveStagingNoindexEnabled({ STAGING_NOINDEX: "true", NODE_ENV: "production" }), true);
+  assert.throws(() => resolveStagingNoindexEnabled({ STAGING_NOINDEX: "true", NODE_ENV: "development" }), /only allowed in production mode/);
+  assert.throws(() => resolveStagingNoindexEnabled({ STAGING_NOINDEX: "yes", NODE_ENV: "production" }), /must be true or false/);
 });
 
 test("LAN local preview needs its explicit opt-in and keeps the database, SSR API, and side effects local", () => {

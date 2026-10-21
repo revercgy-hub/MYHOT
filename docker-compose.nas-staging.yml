@@ -1,0 +1,16 @@
+# Add this file only for the NAS staging environment. The worker requires an
+# explicit --profile manual-worker opt-in and is therefore not started by the
+# normal staging `up` command.
+name: fiscalhot-staging
+
+services:
+  setup:
+    image: aihot-staging:${DEPLOY_SHA:?Set DEPLOY_SHA in the deployment .env}
+  api:
+    image: aihot-staging:${DEPLOY_SHA:?Set DEPLOY_SHA in the deployment .env}
+  worker:
+    image: aihot-staging:${DEPLOY_SHA:?Set DEPLOY_SHA in the deployment .env}
+    profiles:
+      - manual-worker
+  web:
+    image: aihot-staging:${DEPLOY_SHA:?Set DEPLOY_SHA in the deployment .env}

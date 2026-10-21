@@ -8,7 +8,7 @@ import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { createRequestListener } from "@react-router/node";
 import { isApiOwned, resolveRedirect } from "@aihot/contracts/http-policy";
-import { LOCAL_PREVIEW_ENABLED } from "./app/lib/local-preview.server.ts";
+import { LOCAL_PREVIEW_ENABLED, STAGING_NOINDEX_ENABLED } from "./app/lib/local-preview.server.ts";
 
 const PORT = Number(process.env.WEB_PORT || process.env.PORT || 3000);
 const HOST = process.env.WEB_HOST || "127.0.0.1";
@@ -68,7 +68,7 @@ async function serveStatic(pathname: string, res: import("node:http").ServerResp
 
 // One bad request must never take the process down: answer it and keep serving.
 const server = createServer((req, res) => {
-  if (LOCAL_PREVIEW_ENABLED) res.setHeader("X-Robots-Tag", "noindex, nofollow");
+  if (LOCAL_PREVIEW_ENABLED || STAGING_NOINDEX_ENABLED) res.setHeader("X-Robots-Tag", "noindex, nofollow");
   handle(req, res).catch((error: unknown) => {
     const bad = error instanceof BadRequest || error instanceof URIError;
     if (!bad) console.error(JSON.stringify({ level: "error", msg: "web request failed", path: (req.url ?? "").split("?")[0]!.slice(0, 200), error: String(error).slice(0, 500) }));
@@ -141,7 +141,10 @@ async function handle(req: import("node:http").IncomingMessage, res: import("nod
     const client = TRUST_PROXY && forwarded.length ? forwarded[forwarded.length - 1]! : (req.socket.remoteAddress ?? "");
     const headers = { ...req.headers, "x-forwarded-for": client, "x-real-ip": client };
     const upstream = httpRequest({ hostname: API.hostname, port: API.port, path: raw, method: req.method, headers }, (up) => {
-      res.writeHead(up.statusCode ?? 502, up.headers);
+      const responseHeaders = LOCAL_PREVIEW_ENABLED || STAGING_NOINDEX_ENABLED
+        ? { ...up.headers, "x-robots-tag": "noindex, nofollow" }
+        : up.headers;
+      res.writeHead(up.statusCode ?? 502, responseHeaders);
       up.pipe(res);
     });
     upstream.on("error", () => {

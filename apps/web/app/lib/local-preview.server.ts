@@ -4,6 +4,7 @@ export interface LocalPreviewEnvironment {
   [key: string]: string | undefined;
   LOCAL_PREVIEW_ENABLED?: string;
   LOCAL_PREVIEW_LAN_ENABLED?: string;
+  STAGING_NOINDEX?: string;
   NODE_ENV?: string;
   SITE_URL?: string;
   WEB_HOST?: string;
@@ -87,7 +88,17 @@ export function resolveLocalPreviewEnabled(env: LocalPreviewEnvironment): boolea
   return true;
 }
 
+/** Apply a deployment-level noindex response/meta guard without changing local preview behavior. */
+export function resolveStagingNoindexEnabled(env: LocalPreviewEnvironment): boolean {
+  const value = env.STAGING_NOINDEX;
+  if (value === undefined || /^(false|0)$/i.test(value)) return false;
+  if (!/^(true|1)$/i.test(value)) throw new Error("STAGING_NOINDEX must be true or false");
+  if (env.NODE_ENV !== "production") throw new Error("STAGING_NOINDEX is only allowed in production mode");
+  return true;
+}
+
 export const LOCAL_PREVIEW_ENABLED = resolveLocalPreviewEnabled(process.env);
+export const STAGING_NOINDEX_ENABLED = resolveStagingNoindexEnabled(process.env);
 
 const LOCAL_PREVIEW_ARTICLE_IDS = new Set([
   "local-preview-pboc-omo-191",

@@ -14,7 +14,7 @@ import { RingMark } from "./components/Logo";
 import { buttonClass } from "./components/ui/Controls";
 import { THEME_BOOT_SCRIPT } from "./lib/local-state";
 import { apiGet } from "./lib/api.server";
-import { LOCAL_PREVIEW_ENABLED } from "./lib/local-preview.server";
+import { LOCAL_PREVIEW_ENABLED, STAGING_NOINDEX_ENABLED } from "./lib/local-preview.server";
 import { useHydratedFlag } from "./lib/hydration";
 
 export const links: Route.LinksFunction = () => [
@@ -31,9 +31,9 @@ interface SiteMeta {
 
 export async function loader({ request }: Route.LoaderArgs) {
   try {
-    return { ...await apiGet<SiteMeta>("/api/site/meta", { signal: request.signal }), localPreview: LOCAL_PREVIEW_ENABLED };
+    return { ...await apiGet<SiteMeta>("/api/site/meta", { signal: request.signal }), localPreview: LOCAL_PREVIEW_ENABLED, noindex: LOCAL_PREVIEW_ENABLED || STAGING_NOINDEX_ENABLED };
   } catch {
-    return { changelogVersion: null, localPreview: LOCAL_PREVIEW_ENABLED };
+    return { changelogVersion: null, localPreview: LOCAL_PREVIEW_ENABLED, noindex: LOCAL_PREVIEW_ENABLED || STAGING_NOINDEX_ENABLED };
   }
 }
 
@@ -49,7 +49,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="theme-color" media="(prefers-color-scheme: light)" content="#faf9f6" />
         <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#13191c" />
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
-        {rootData?.localPreview && <meta name="robots" content="noindex, nofollow" />}
+        {rootData?.noindex && <meta name="robots" content="noindex, nofollow" />}
         <Meta />
         <Links />
       </head>
@@ -64,9 +64,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 /** Only a page nobody matched falls back to this; every page names itself. */
 export function meta({ error, loaderData }: Route.MetaArgs) {
-  if (!error) return loaderData?.localPreview ? [{ name: "robots", content: "noindex, nofollow" }] : [];
+  if (!error) return loaderData?.noindex ? [{ name: "robots", content: "noindex, nofollow" }] : [];
   const notFound = isRouteErrorResponse(error) && error.status === 404;
-  return [{ title: titled(notFound ? "页面不存在" : "暂时无法加载") }, { name: "robots", content: loaderData?.localPreview ? "noindex, nofollow" : "noindex" }];
+  return [{ title: titled(notFound ? "页面不存在" : "暂时无法加载") }, { name: "robots", content: loaderData?.noindex ? "noindex, nofollow" : "noindex" }];
 }
 
 /** Sidebar, main column and phone tab bar around a page (or an error). */

@@ -21,6 +21,11 @@ const apiCookies: Array<string | undefined> = [];
 const api = createServer((req, res) => {
   const url = new URL(req.url!, "http://api.local");
   apiCookies.push(req.headers.cookie);
+  if (url.pathname === "/robots.txt") {
+    res.setHeader("Content-Type", "text/plain; charset=utf-8");
+    res.setHeader("X-Robots-Tag", "index, follow");
+    return res.end("User-agent: *\nAllow: /\n");
+  }
   res.setHeader("Content-Type", "application/json");
   if (url.pathname === "/api/site/meta") {
     metaRequests++;
@@ -162,6 +167,43 @@ test("local preview robots metadata survives leaf metadata and root API fallback
     if (preview.child.exitCode === null) {
       const stopped = once(preview.child, "exit");
       preview.child.kill("SIGTERM");
+      await stopped;
+    }
+  }
+});
+
+test("staging noindex covers HTML, 404s, and proxied robots responses", async () => {
+  const staging = await startWeb({
+    NODE_ENV: "production",
+    LOCAL_PREVIEW_ENABLED: "false",
+    LOCAL_PREVIEW_LAN_ENABLED: "false",
+    STAGING_NOINDEX: "true",
+    SITE_URL: "http://192.168.3.100:3221",
+  });
+  try {
+    const html = await fetch(`${staging.origin}/`);
+    assert.equal(html.status, 200);
+    assert.equal(html.headers.get("X-Robots-Tag"), "noindex, nofollow");
+    assert.match(await html.text(), /<meta name="robots" content="noindex, nofollow"\s*\/>/);
+
+    const missing = await fetch(`${staging.origin}/does-not-exist`);
+    assert.equal(missing.status, 404);
+    assert.equal(missing.headers.get("X-Robots-Tag"), "noindex, nofollow");
+
+    const robots = await fetch(`${staging.origin}/robots.txt`);
+    assert.equal(robots.status, 200);
+    assert.equal(robots.headers.get("X-Robots-Tag"), "noindex, nofollow");
+
+    metaUnavailable = true;
+    const apiError = await fetch(`${staging.origin}/api/site/meta`);
+    assert.equal(apiError.status, 503);
+    assert.equal(apiError.headers.get("X-Robots-Tag"), "noindex, nofollow");
+    await apiError.text();
+    metaUnavailable = false;
+  } finally {
+    if (staging.child.exitCode === null) {
+      const stopped = once(staging.child, "exit");
+      staging.child.kill("SIGTERM");
       await stopped;
     }
   }

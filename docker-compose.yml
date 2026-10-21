@@ -5,16 +5,11 @@ name: aihot
 x-app: &app
   build: .
   image: aihot-app
-  env_file: .env
   restart: unless-stopped
   environment: &app-env
     NODE_ENV: production
-    DATABASE_URL: postgres://aihot:${POSTGRES_PASSWORD:-aihot}@db:5432/aihot
-    AIHOT_DATA_DIR: /data
     API_BASE_URL: http://api:3001
-    LOCAL_ROUTER_URL: http://web:3000
-  volumes:
-    - data:/data
+    LOCAL_ROUTER_URL: http://web:${WEB_PORT:-3000}
   depends_on:
     db:
       condition: service_healthy
@@ -25,12 +20,12 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: aihot
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aihot}
-      POSTGRES_DB: aihot
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the deployment .env}
+      POSTGRES_DB: ${POSTGRES_DB:-aihot}
     volumes:
       - db:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U aihot -d aihot"]
+      test: ["CMD-SHELL", "pg_isready -U aihot -d ${POSTGRES_DB:-aihot}"]
       interval: 5s
       timeout: 5s
       retries: 30
@@ -38,22 +33,41 @@ services:
   # Applies the database migrations and seeds the topics and demo sources, then exits.
   setup:
     <<: *app
+    env_file: .env
+    environment:
+      <<: *app-env
+      AIHOT_DATA_DIR: /data
+      DATABASE_URL: postgres://aihot:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the deployment .env}@db:5432/${POSTGRES_DB:-aihot}
+    volumes:
+      - data:/data
     restart: "no"
     command: ["sh", "-c", "node scripts/migrate.ts && node scripts/seed.ts"]
 
   api:
     <<: *app
+    env_file: .env
     command: ["node", "apps/api/src/main.ts"]
     environment:
       <<: *app-env
+      AIHOT_DATA_DIR: /data
+      DATABASE_URL: postgres://aihot:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the deployment .env}@db:5432/${POSTGRES_DB:-aihot}
       API_HOST: 0.0.0.0
       API_PORT: "3001"
+    volumes:
+      - data:/data
     depends_on:
       setup:
         condition: service_completed_successfully
 
   worker:
     <<: *app
+    env_file: .env
+    environment:
+      <<: *app-env
+      AIHOT_DATA_DIR: /data
+      DATABASE_URL: postgres://aihot:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the deployment .env}@db:5432/${POSTGRES_DB:-aihot}
+    volumes:
+      - data:/data
     command: ["node", "apps/worker/src/main.ts"]
     depends_on:
       setup:
@@ -65,9 +79,13 @@ services:
     environment:
       <<: *app-env
       WEB_HOST: 0.0.0.0
-      WEB_PORT: "3000"
+      SITE_URL: ${SITE_URL:-http://localhost:3000}
+      WEB_PORT: ${WEB_PORT:-3000}
+      STAGING_NOINDEX: ${STAGING_NOINDEX:-false}
+      TRUST_PROXY: ${TRUST_PROXY:-false}
+      LOCAL_ROUTER_URL: http://web:${WEB_PORT:-3000}
     ports:
-      - "${PORT:-3000}:3000"
+      - "${PORT:-3000}:${WEB_PORT:-3000}"
     depends_on:
       api:
         condition: service_started
