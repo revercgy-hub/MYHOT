@@ -4,6 +4,7 @@
  * This command is intentionally offline and never runs selection or calibration.
  */
 import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -64,6 +65,11 @@ const SPLITS = new Set(["development", "holdout"]);
 const SHA256 = /^[a-f0-9]{64}$/i;
 const VALIDATOR_FILE = fileURLToPath(import.meta.url);
 
+interface SeedCheckInput {
+  caseIds: unknown;
+  fileSha256?: string | null;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -80,18 +86,28 @@ function validDecision(value: unknown): value is Decision {
   return typeof value === "string" && DECISIONS.has(value);
 }
 
-function validateManifest(input: unknown): { status: "SCHEMA_ERROR" | "DRAFT_INCOMPLETE" | "READY_FOR_EVALUATION"; issues: Issue[]; counts: Record<string, number> } {
+function validateManifest(input: unknown, seedInput?: SeedCheckInput): {
+  status: "SCHEMA_ERROR" | "DRAFT_INCOMPLETE" | "READY_FOR_EVALUATION";
+  issues: Issue[];
+  counts: Record<string, number>;
+  seedCheck: { status: "not_run" | "checked"; caseCount: number; fileSha256: string | null };
+} {
   const issues: Issue[] = [];
   let structuralError = false;
+  const seedCheck = {
+    status: seedInput === undefined ? "not_run" as const : "checked" as const,
+    caseCount: Array.isArray(seedInput?.caseIds) ? seedInput.caseIds.length : 0,
+    fileSha256: seedInput?.fileSha256 ?? null,
+  };
   if (!isRecord(input)) {
     add(issues, "manifest_type", "$", "manifest must be a JSON object");
-    return { status: "SCHEMA_ERROR", issues, counts: { candidates: 0, confirmed: 0, pending: 0 } };
+    return { status: "SCHEMA_ERROR", issues, counts: { candidates: 0, confirmed: 0, pending: 0 }, seedCheck };
   }
   if (input.schemaVersion !== "p5.gold-metadata-draft/v1") { structuralError = true; add(issues, "schema_version", "schemaVersion", "expected p5.gold-metadata-draft/v1"); }
   if (input.datasetStatus !== "DRAFT") { structuralError = true; add(issues, "dataset_status", "datasetStatus", "metadata preparation manifests must remain DRAFT"); }
   if (!Array.isArray(input.candidates) || input.candidates.length === 0) {
     add(issues, "candidates", "candidates", "must be a non-empty array");
-    return { status: "SCHEMA_ERROR", issues, counts: { candidates: 0, confirmed: 0, pending: 0 } };
+    return { status: "SCHEMA_ERROR", issues, counts: { candidates: 0, confirmed: 0, pending: 0 }, seedCheck };
   }
 
   const seenCases = new Set<string>();
@@ -177,6 +193,40 @@ function validateManifest(input: unknown): { status: "SCHEMA_ERROR" | "DRAFT_INC
     }
   });
 
+  const seedIds = new Set<string>();
+  if (seedInput !== undefined) {
+    if (!Array.isArray(seedInput.caseIds)) {
+      schemaIssue("seed_case_ids_type", "seedCaseIds", "seed case ID file must contain a JSON array of strings");
+    } else {
+      for (let i = 0; i < seedInput.caseIds.length; i++) {
+        const value: unknown = seedInput.caseIds[i];
+        if (!nonempty(value)) {
+          schemaIssue("seed_case_id", `seedCaseIds[${i}]`, "seed case IDs must be non-empty strings");
+          continue;
+        }
+        if (seedIds.has(value)) {
+          schemaIssue("duplicate_seed_case_id", `seedCaseIds[${i}]`, `seed case ID ${value} is duplicated`);
+          continue;
+        }
+        seedIds.add(value);
+      }
+      for (const caseId of seedIds) {
+        const index = input.candidates.findIndex((raw) => isRecord(raw) && raw.caseId === caseId);
+        if (index < 0) {
+          schemaIssue("unknown_seed_case_id", "seedCaseIds", `seed case ID ${caseId} is not present in the manifest`);
+          continue;
+        }
+        const candidate = input.candidates[index] as Record<string, unknown>;
+        const samplingContext = candidate.samplingContext;
+        if (isRecord(samplingContext) && samplingContext.benchmarkSplit === "holdout") {
+          schemaIssue("preference_seed_in_holdout", `candidates[${index}].samplingContext.benchmarkSplit`, `preference seed ${caseId} cannot be assigned to holdout`);
+        }
+      }
+    }
+  } else {
+    add(issues, "seed_check_not_run", "seedCaseIds", "preference-seed isolation was not checked; provide an explicit seed case ID file (use [] when there are no seeds)");
+  }
+
   for (const [group, splits] of groupSplits) if (splits.size > 1) schemaIssue("event_group_split_leak", "candidates", `eventGroupId ${group} appears in both development and holdout`);
 
   const incomplete = input.candidates.some((raw) => {
@@ -193,22 +243,41 @@ function validateManifest(input: unknown): { status: "SCHEMA_ERROR" | "DRAFT_INC
       || !c.evidence.contentHash || !SHA256.test(c.evidence.contentHash)
       || !c.evidence.bodySha256 || !SHA256.test(c.evidence.bodySha256);
   });
-  const status = structuralError ? "SCHEMA_ERROR" : incomplete ? "DRAFT_INCOMPLETE" : "READY_FOR_EVALUATION";
-  return { status, issues, counts: { candidates: input.candidates.length, confirmed, pending } };
+  const status = structuralError ? "SCHEMA_ERROR" : incomplete || seedInput === undefined ? "DRAFT_INCOMPLETE" : "READY_FOR_EVALUATION";
+  return { status, issues, counts: { candidates: input.candidates.length, confirmed, pending }, seedCheck };
 }
 
 function main(argv: string[]): number {
   if (argv[0] !== "validate" || !argv[1]) {
-    console.error("Usage: node scripts/fiscal/gold-dataset.ts validate <manifest.json>");
+    console.error("Usage: node scripts/fiscal/gold-dataset.ts validate <manifest.json> --seed-case-ids <seed-case-ids.json>");
+    return 2;
+  }
+  const seedOptionIndex = argv.indexOf("--seed-case-ids");
+  if (seedOptionIndex < 0 || !argv[seedOptionIndex + 1] || argv[seedOptionIndex + 1].startsWith("--")) {
+    console.log(JSON.stringify({ status: "SCHEMA_ERROR", issues: [{ code: "seed_file_required", path: "--seed-case-ids", message: "provide an explicit JSON file containing seed case IDs; use [] when there are no seeds" }], counts: { candidates: 0, confirmed: 0, pending: 0 }, seedCheck: { status: "not_run", caseCount: 0, fileSha256: null } }, null, 2));
     return 2;
   }
   let input: unknown;
   try { input = JSON.parse(readFileSync(path.resolve(argv[1]), "utf8")); }
   catch (error) {
-    console.log(JSON.stringify({ status: "SCHEMA_ERROR", issues: [{ code: "json_parse", path: argv[1], message: String(error) }], counts: { candidates: 0, confirmed: 0, pending: 0 } }));
+    console.log(JSON.stringify({ status: "SCHEMA_ERROR", issues: [{ code: "json_parse", path: argv[1], message: String(error) }], counts: { candidates: 0, confirmed: 0, pending: 0 }, seedCheck: { status: "not_run", caseCount: 0, fileSha256: null } }));
     return 2;
   }
-  const result = validateManifest(input);
+  let seedInput: SeedCheckInput;
+  const seedPath = path.resolve(argv[seedOptionIndex + 1]);
+  let seedBytes: Buffer;
+  try { seedBytes = readFileSync(seedPath); }
+  catch (error) {
+    console.log(JSON.stringify({ status: "SCHEMA_ERROR", issues: [{ code: "seed_file_read", path: seedPath, message: String(error) }], counts: { candidates: 0, confirmed: 0, pending: 0 }, seedCheck: { status: "not_run", caseCount: 0, fileSha256: null } }, null, 2));
+    return 2;
+  }
+  try {
+    seedInput = { caseIds: JSON.parse(seedBytes.toString("utf8")), fileSha256: createHash("sha256").update(seedBytes).digest("hex") };
+  } catch (error) {
+    console.log(JSON.stringify({ status: "SCHEMA_ERROR", issues: [{ code: "seed_file_json", path: seedPath, message: String(error) }], counts: { candidates: 0, confirmed: 0, pending: 0 }, seedCheck: { status: "not_run", caseCount: 0, fileSha256: null } }, null, 2));
+    return 2;
+  }
+  const result = validateManifest(input, seedInput);
   console.log(JSON.stringify(result, null, 2));
   if (result.status === "SCHEMA_ERROR") return 2;
   if (result.status === "DRAFT_INCOMPLETE") return 3;

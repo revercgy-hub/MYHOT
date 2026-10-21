@@ -2,6 +2,12 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
+## 2026-10-21 P5/coverage QA补充
+
+本轮详细证据见[P5 seed guard 与分页来源观察交接](HANDOFFS/P5_SEED_GUARD_AND_COVERAGE_2026-10-21.md)。Gold manifest目前100项，其中20项用户确认、80项pending；另有50项只在ignored目录作为DRAFT proposal，不能计作Gold达标。固定15 seed不变。PBOC有限page1–5观察100个唯一列表项、63个日期在90日窗口；Xiamen page-set只有1次超时请求。两种结果都未满足Gate 3标注/评测或Gate 4完整来源覆盖条件。Gate 2边界不变，Gate 3–5仍未通过。
+
+**下一步：**保持DRAFT与Gold人标/seed隔离，按Gate验收项补充人工确认及真实评测/覆盖证据；待用户手动启动API/Web并报告后再做只读live smoke。不可把有限列表观察、正文native摘要或proposal提升为Gate证据。
+
 ## 2026-10-21 大批量采集与正文批次结果
 
 本轮有界执行已结束，证据与下一步见[独立交接](HANDOFFS/BULK_COLLECTION_AND_BODY_2026-10-21.md)。48个已配置官方源各1次列表/base GET均成功，新增198条metadata。随后两个隔离测试库合计134次详情GET，127篇正文成功、7篇`unconfirmed`、16个批准目标因来源停止而未请求。MAIN与PAGINATION分别为640篇（407/211/22）和153篇（102/47/4）；两库不相加，native摘要不是Gold/provider receipt，也未自动公开。MAIN列表运行另有33条PgBoss过期cancelled-job retention清理finding，原行证据已保存且未恢复。来源仍disabled，Gate 2边界不变，Gate 3–5仍未通过；成功列表请求不代表90日覆盖。

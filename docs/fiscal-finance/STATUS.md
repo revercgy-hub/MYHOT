@@ -1,5 +1,13 @@
 # 项目状态
 
+## 2026-10-21 P5 seed检查与有限分页观察（本地QA完成）
+
+本轮独立交接见[P5 seed guard 与分页来源观察](HANDOFFS/P5_SEED_GUARD_AND_COVERAGE_2026-10-21.md)。当前tracked Gold metadata仍100项：batch-04后20条人工confirmed（13 select、7 reject）、80 pending；seed仍为原15条。新增50条只在ignored目录形成150项DRAFT proposal，原100项逐项deep-equal，50项均未确认标签、event group或split；该DRAFT不算任务书要求的150–200条Gold已达标，也不构成Gate 3证据。validator现在要求显式seed清单，后端全套以隔离35-migration数据库验证418 pass/0 fail/1 skip，typecheck、Web build和17项Web tests通过；旧CI run 39530549243只覆盖此前代码SHA，不代表本轮代码。
+
+PBOC page1–5有限观察合计100个唯一列表URL，其中63条日期在观察90日窗内；page3–5各1次GET，page6只观察未请求。page2续页旧campaign因本地URL/path comparator defect在仅1次HTTP200后误停，旧证据保留；新修复后的独立page3–5 campaign通过post-QA。Xiamen分页观察1次GET超时后按stop规则结束，后续9页未请求。两项都不证明完整90日覆盖或Gate 4通过。所有受限campaign均无数据库、cursor、详情、provider、worker、API/Web副作用，安全flag在进程中显式false。
+
+Gate 2仍仅`PASSED_FOR_BOUNDED_P4_PILOT`；Gate 3/4/5均未通过。API/Web由用户手动启动后才可做只读live检查；此前QA没有启动服务，live smoke仍待实际listener和health证据。
+
 ## 2026-10-21 大批量列表采集与双库正文批次（QA完成）
 
 本轮独立交接见[大批量采集与正文处理](HANDOFFS/BULK_COLLECTION_AND_BODY_2026-10-21.md)。主库`fiscalhot_catalog_sweep_20261013_test`的48个已配置源各发1次列表/base GET，48/48成功，498 found、300 known、198新增metadata；无详情请求，配置/cursor及旧文章正文不变。双库分开统计：MAIN最终640篇（407 `ok` / 211 `pending` / 22 `unconfirmed`）、1020 revisions、352 publications、588 jobs；PAGINATION最终153篇（102 `ok` / 47 `pending` / 4 `unconfirmed`）、255 revisions、106 publications、153 jobs、18 fetch runs。不得合并两库条目数。

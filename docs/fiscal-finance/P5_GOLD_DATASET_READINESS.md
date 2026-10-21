@@ -1,5 +1,19 @@
 # P5 Gold Dataset readiness（2026-10-03）
 
+## 2026-10-21 seed隔离校验与新增用户标注
+
+离线validator现在要求显式传入preference seed清单：`node scripts/fiscal/gold-dataset.ts validate <manifest.json> --seed-case-ids <seed-case-ids.json>`。清单必须是JSON字符串数组，元素为manifest `caseId`；没有seed时显式传`[]`。输出报告记录`seedCheck.status`、数量和原始文件SHA-256。漏传、空白/重复/未知ID、holdout seed均失败关闭；旧API调用兼容但报告`not_run`并保持`DRAFT_INCOMPLETE`，不能据此当作ready。实现未改标签、event group、split或阈值。
+
+对仍为100项的tracked manifest做了只读rehearsal，seed来源为batch-01至batch-03既有人类决定审计，按原编号顺序重建固定15个caseId。Ignored seed清单SHA-256为`f2b3272c3bfd774dba2dc8761fe1737f066d56e1561a9ef0b3cc4e7e3d4f33d5`；100候选manifest当时SHA为`3918ec45f0d28ff451c44b60159ecb0233db79c398e949781ace64b4642a7189`。CLI报告15/15 seed checked、0 seed issue，整体仍为`DRAFT_INCOMPLETE`、15 confirmed / 85 pending、exit 3；报告与来源SHA见ignored `.data/fiscal-qa/p5-seed-leakage-20261021/rehearsal.json`。seed身份完全匹配原15条用户标签，不包含batch-04新增标签，也不代表Gold评测或holdout。
+
+2026-10-21用户对冻结batch-04编号16–20回复“16不，17-20可以”，审计映射为16 `reject`、17–20 `select`，无理由。独立QA确认tracked manifest只改这5项的`humanAnnotation`，原15项保持，event group、split及Luna `proposal`均不动。批次审计SHA为`182555c7bfe482d9824a2bf25d66b504121f6f96d272f58ede43233a02498fcc`；当前100候选manifest SHA为`96c2e0914e08e22080cf91e05a6c4f419533356459406d262f81dd19ff6e2051`。当前是20 confirmed（13 select、7 reject）/80 pending；既有固定seed仍是原15条。
+
+规模目标需要区分：任务书§32要求150–200条Gold资料；`docs/selection.md`的100–200条是说明性建议。当前tracked 100候选仍低于任务书目标。Gate 3没有规定development/holdout各自的数字下限或独立质量分数线；正式条件仍是完成两集评测、错例审阅及门槛确认。新增候选草案不能当作人工Gold或正式拆分。
+
+10月21日随后生成的150条metadata-only proposal只存在于ignored `.data/fiscal-qa/p5-gold-150-20261021/`，包含原tracked 100条和50条新的人工审阅候选。对新增50条的独立QA确认原100项deep-equal、正文/current revision证据关联和body SHA逐项匹配；新增项仍全为`needs_review`、proposal decision null、event/split未确认。候选来源28个且均为T1；按明确谓词得到的strict eligible unique pool为323，选择分层10/12/12/16。它是候选提案，不是已完成Gold或合格评测样本，不能据150条总数宣称达到Gold硬目标。详见[10月21日交接](HANDOFFS/P5_SEED_GUARD_AND_COVERAGE_2026-10-21.md)。
+
+新代码fresh QA：后端418 pass、0 fail、1 skip；typecheck、Web build及Web tests 17/17通过。该代码SHA与历史CI SHA不同；不据旧CI run主张当前代码的远端CI通过。
+
 ## 2026-10-19 batch-02人工决定与batch-03准备
 
 用户对batch-02编号6–10回复“都精选”，五项记为`select`；batch-03编号11–15原文“11精选 12不 13精选 14精选 15精选”按固定编号映射为select、reject、select、select、select。两批均由`user-in-this-chat`确认，未提供理由；审计与批次hash见ignored `.data/fiscal-qa/gold-review-batches-20261018/human-decisions-batch-02.json`及`human-decisions-batch-03.json`。batch-03审计SHA-256为`E074AC050EA82213A8774BA049887CF5A95197706A5CF7373B46B3D31E3B6BF6`，确认观察时间`2026-10-19T12:18:04Z`。独立资料QA汇总见`.data/fiscal-qa/luna-gold-record-qa-20261019/independent-qa.json`。
@@ -62,10 +76,12 @@ URL、完整hash与Ignored evidence artifact位置都保存在JSON清单中。�
 新增命令：
 
 ```bash
-node scripts/fiscal/gold-dataset.ts validate docs/fiscal-finance/gold/metadata-template.json
+node scripts/fiscal/gold-dataset.ts validate docs/fiscal-finance/gold/candidates-2026-10-18.json --seed-case-ids path/to/audited-seed-case-ids.json
 ```
 
-它只读取manifest并检查字段、decision词表、HTTP(S)引用、SHA-256格式、文章/诊断身份、确认信息，以及同一`eventGroupId`不得分到development和holdout。`READY_FOR_EVALUATION`还要求人工标签、事件组和split均已确认，存在已确认文章ID、`bodyStatus=ok`、有效`contentHash`与`bodySha256`，并有非空正文；附件失败或无body hash的记录永远留在`DRAFT_INCOMPLETE`。验证器不请求网络、不读写DB、不运行模型、不触发`eval-selection.ts`，也没有任何校准/阈值写入命令。退出状态可区分结构无效（`SCHEMA_ERROR`，exit 2）、schema正确但尚未完备（`DRAFT_INCOMPLETE`，exit 3）和准备内容可送入单独评测整理流程（`READY_FOR_EVALUATION`，exit 0）。后一状态仅代表静态字段/确认/正文条件满足，绝不表示模型已评测或阈值已校准。
+它只读取manifest和显式seed清单，并检查字段、decision词表、HTTP(S)引用、SHA-256格式、文章/诊断身份、确认信息，同一`eventGroupId`不得分到development和holdout，以及任何preference seed不得进入holdout。`--seed-case-ids`必须指向JSON字符串数组，数组项是manifest的`caseId`；没有seed时也必须传显式空数组`[]`。漏传参数、无效清单、空/重复/未知ID或seed分入holdout均失败关闭。报告带`seedCheck.status`、条目数和seed文件原始字节SHA-256；旧的程序化`validateManifest(input)`调用仍可用，但seed检查显示`not_run`，不得据此把数据集视为ready。既有15条人工决定的seed身份仍以原有用户决定/审计记录为准；本次没有重建、替换或提交seed清单。
+
+`READY_FOR_EVALUATION`还要求人工标签、事件组和split均已确认，存在已确认文章ID、`bodyStatus=ok`、有效`contentHash`与`bodySha256`，并有非空正文；附件失败或无body hash的记录永远留在`DRAFT_INCOMPLETE`。验证器不请求网络、不读写DB、不运行模型、不触发`eval-selection.ts`，也没有任何校准/阈值写入命令。退出状态可区分结构无效（`SCHEMA_ERROR`，exit 2）、schema正确但尚未完备（`DRAFT_INCOMPLETE`，exit 3）和准备内容可送入单独评测整理流程（`READY_FOR_EVALUATION`，exit 0）。后一状态仅代表静态字段/确认/正文条件满足，绝不表示模型已评测或阈值已校准。
 
 **只要有任一待确认标签、未确认事件组/切分，或正文尚未按现有评测合同整理，数据集就不完整，不得开始校准或改阈值。** `proposal`永远不能填充或推导`humanAnnotation`。即使之后验证为`READY_FOR_EVALUATION`，也不能代替开发集和留出集模型评估、人工审阅错例、样本量/代表性判断或Gate 3审批。现有门槛仍为T1=60、T1.5=65、T2=76，`understandFloor=50`；本轮未改。
 
@@ -73,8 +89,8 @@ node scripts/fiscal/gold-dataset.ts validate docs/fiscal-finance/gold/metadata-t
 
 ## 验证与状态
 
-- Focused tests：`node --test tests/fiscal-gold-dataset.test.ts`，6/6通过；覆盖DRAFT不完备、提案不升级人工标签、schema错误与退出码区分、同事件跨集泄漏拒绝、完整合成样本的就绪状态、正文未确认/缺hash不得就绪。
-- Template validator：返回`DRAFT_INCOMPLETE`、8 candidates、0 confirmed、8 pending、无schema issue，exit 3（预期）。
+- 历史focused tests（seed guard加入前）：`node --test tests/fiscal-gold-dataset.test.ts`，6/6通过；历史8候选模板验证为`DRAFT_INCOMPLETE`、0 confirmed、8 pending、exit 3。当前CLI已要求`--seed-case-ids`，这条旧命令记录不再是当前可执行语法。
+- 2026-10-21 focused tests：`node --test tests/fiscal-gold-dataset.test.ts`，9/9通过，覆盖显式空seed、holdout防泄漏、缺参兼容API不冒充ready、空白/重复/未知ID拒绝及SHA审计。100候选seed rehearsal为`DRAFT_INCOMPLETE`、15 confirmed、85 pending、seed checked 15、0 seed issues、exit 3。
 - “可评测”测试使用仅存在于测试内的合成正文，不引用或复制任何存档原文；不调用模型。
 - 本轮没有运行`eval-selection.ts`、没有数据库或网络访问、没有实际阈值校准。
 

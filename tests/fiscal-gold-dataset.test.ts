@@ -45,7 +45,56 @@ test("fully confirmed synthetic row may pass readiness validation, without runni
   candidate.humanAnnotation = { status: "user_confirmed", decision: "select", confirmedBy: "reviewer-test", confirmedAt: "2026-10-03T00:00:00Z" };
   candidate.eventGroupStatus = "user_confirmed";
   candidate.samplingContext.splitStatus = "user_confirmed";
-  assert.equal(validateManifest(ready).status, "READY_FOR_EVALUATION");
+  const noSeeds = validateManifest(ready, { caseIds: [] });
+  assert.equal(noSeeds.status, "READY_FOR_EVALUATION");
+  assert.deepEqual(noSeeds.seedCheck, { status: "checked", caseCount: 0, fileSha256: null });
+});
+
+test("seed holdout assignments fail while development seed assignments remain valid", () => {
+  const ready = structuredClone(template);
+  ready.candidates = [structuredClone(ready.candidates[0])];
+  const candidate = ready.candidates[0];
+  candidate.material.bodyZh = "Synthetic test-only body; not a saved source article.";
+  candidate.humanAnnotation = { status: "user_confirmed", decision: "select", confirmedBy: "reviewer-test", confirmedAt: "2026-10-03T00:00:00Z" };
+  candidate.eventGroupStatus = "user_confirmed";
+  candidate.samplingContext.splitStatus = "user_confirmed";
+  const development = validateManifest(ready, { caseIds: [candidate.caseId] });
+  assert.equal(development.status, "READY_FOR_EVALUATION");
+  assert.equal(development.seedCheck.caseCount, 1);
+
+  candidate.samplingContext.benchmarkSplit = "holdout";
+  const holdout = validateManifest(ready, { caseIds: [candidate.caseId] });
+  assert.equal(holdout.status, "SCHEMA_ERROR");
+  assert.ok(holdout.issues.some((issue) => issue.code === "preference_seed_in_holdout"));
+});
+
+test("seed isolation is reported as not run for compatible API calls without seed input", () => {
+  const ready = structuredClone(template);
+  ready.candidates = [structuredClone(ready.candidates[0])];
+  const candidate = ready.candidates[0];
+  candidate.material.bodyZh = "Synthetic test-only body; not a saved source article.";
+  candidate.humanAnnotation = { status: "user_confirmed", decision: "select", confirmedBy: "reviewer-test", confirmedAt: "2026-10-03T00:00:00Z" };
+  candidate.eventGroupStatus = "user_confirmed";
+  candidate.samplingContext.splitStatus = "user_confirmed";
+  const result = validateManifest(ready);
+  assert.equal(result.status, "DRAFT_INCOMPLETE");
+  assert.equal(result.seedCheck.status, "not_run");
+  assert.ok(result.issues.some((issue) => issue.code === "seed_check_not_run"));
+});
+
+test("seed IDs reject unknown and duplicate values", () => {
+  const unknown = validateManifest(template, { caseIds: ["not-in-manifest"] });
+  assert.equal(unknown.status, "SCHEMA_ERROR");
+  assert.ok(unknown.issues.some((issue) => issue.code === "unknown_seed_case_id"));
+
+  const empty = validateManifest(template, { caseIds: ["  "] });
+  assert.equal(empty.status, "SCHEMA_ERROR");
+  assert.ok(empty.issues.some((issue) => issue.code === "seed_case_id"));
+
+  const known = template.candidates[0].caseId as string;
+  const duplicate = validateManifest(template, { caseIds: [known, known] });
+  assert.equal(duplicate.status, "SCHEMA_ERROR");
+  assert.ok(duplicate.issues.some((issue) => issue.code === "duplicate_seed_case_id"));
 });
 
 test("unconfirmed extraction or missing body hash cannot become evaluation-ready", () => {
@@ -66,13 +115,22 @@ test("CLI distinguishes draft incompleteness (3) from malformed schema (2)", () 
   try {
     const draftFile = path.join(dir, "draft.json");
     const badFile = path.join(dir, "bad.json");
+    const seedFile = path.join(dir, "seed-case-ids.json");
     writeFileSync(draftFile, JSON.stringify(template));
     writeFileSync(badFile, JSON.stringify({ ...template, candidates: [{ ...template.candidates[0], caseId: "" }] }));
+    writeFileSync(seedFile, "[]\n");
     const cli = path.join(repo, "scripts/fiscal/gold-dataset.ts");
-    const draft = spawnSync(process.execPath, [cli, "validate", draftFile], { cwd: repo, encoding: "utf8" });
-    const bad = spawnSync(process.execPath, [cli, "validate", badFile], { cwd: repo, encoding: "utf8" });
+    const missingSeedFile = spawnSync(process.execPath, [cli, "validate", draftFile], { cwd: repo, encoding: "utf8" });
+    const draft = spawnSync(process.execPath, [cli, "validate", draftFile, "--seed-case-ids", seedFile], { cwd: repo, encoding: "utf8" });
+    const bad = spawnSync(process.execPath, [cli, "validate", badFile, "--seed-case-ids", seedFile], { cwd: repo, encoding: "utf8" });
+    assert.equal(missingSeedFile.status, 2, missingSeedFile.stderr);
+    assert.equal(JSON.parse(missingSeedFile.stdout).issues[0].code, "seed_file_required");
     assert.equal(draft.status, 3, draft.stderr);
     assert.equal(JSON.parse(draft.stdout).status, "DRAFT_INCOMPLETE");
+    const seedCheck = JSON.parse(draft.stdout).seedCheck;
+    assert.equal(seedCheck.status, "checked");
+    assert.equal(seedCheck.caseCount, 0);
+    assert.match(seedCheck.fileSha256, /^[a-f0-9]{64}$/);
     assert.equal(bad.status, 2, bad.stderr);
     assert.equal(JSON.parse(bad.stdout).status, "SCHEMA_ERROR");
   } finally {
