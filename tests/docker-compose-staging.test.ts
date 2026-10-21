@@ -63,5 +63,3 @@ test("staging defaults to a unique database/project and keeps external work disa
     assert.match(serviceBlock(stagingCompose, name), /image: aihot-staging:\$\{DEPLOY_SHA:\?Set DEPLOY_SHA in the deployment \.env\}/);
   }
 });
-
-
