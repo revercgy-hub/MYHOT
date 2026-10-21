@@ -4,14 +4,16 @@ STATUS=IN_PROGRESS
 STAGE=P3 bounded pagination continuation and saved-body verification
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT; Gate 3/4/5 not passed
 BRANCH=feat/fiscal-finance-hot
-HANDOFF_HEAD=80e7458c805bae057a3d898d3d32ae2f69e7b163（代码提交；本次docs尚未提交）
+HANDOFF_HEAD=93b61a690ec2739c2c00d2d8595371c94fddccc4（10/20代码+文档检查点提交；10/21后续见新交接）
 STAGE_CODE_SHA=80e7458c805bae057a3d898d3d32ae2f69e7b163
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
-WORKTREE=有未提交改动；仅本次STATUS、PROJECT_PLAN、handoff索引及本文件
+WORKTREE=93b61a6提交完成时干净；10/21启动状态与未提交文档草稿见[P3 latest增量与正文候选检查点](P3_LATEST_INCREMENTAL_AND_BODY_REVIEW_2026-10-21.md)
 
+
+> 后续状态：本文件只记录10月20日结束时已完成的page6/7与两篇正文CAS事实，保持其manifest和历史结果不变。10月21日完成四条既有list metadata replay、对GX/四川各一条latest base-page观察（新增四川3条pending metadata），以及四篇既有body_text投影CAS；旧latest CLI在返回结果后因PgBoss producer未停止而需结束自身进程，raw响应未捕获。最终计数、CLI cleanup修复、tests/CI和未完成边界以[10月21日交接](P3_LATEST_INCREMENTAL_AND_BODY_REVIEW_2026-10-21.md)为当前记录；不要将10月20日146篇分页库快照当成当前计数。
 ## 范围、退出条件和下一步
 
-本轮仅验证专用测试库受限分页及主隔离库两篇精确正文，不宣称来源准入或90日覆盖。分页raw/SQL独立QA与两篇人工CAS post-QA均通过；代码和测试改动已提交并推送，精确SHA GitHub Check通过。四源历史页覆盖复核报告已指出重复、逆序与跨观察日问题，单次base-page观察待执行/QA后用于形成下一步范围。Root负责范围复核；C维护交接、独立复核并操作唯一Git。完成最新列表证据后提交一次docs-only checkpoint，不再为纯文档更新重复dispatch CI。
+本轮仅验证专用测试库受限分页及主隔离库两篇精确正文，不宣称来源准入或90日覆盖。分页raw/SQL独立QA与两篇人工CAS post-QA均通过；代码和测试改动已提交并推送，精确SHA GitHub Check通过。四源历史页覆盖复核报告指出重复、逆序和跨观察日问题；Root核准的一次base-page观察已完成，独立capture/hash QA通过并识别GX 3条、四川1条未见metadata候选。相关事实、限制和10/21只读baseline见[10/21检查点](P3_LATEST_INCREMENTAL_AND_BODY_REVIEW_2026-10-21.md)。本文件保留10/20检查点状态，后续以新交接为准。
 
 本检查点记录分页续页、两篇正文的有限验证以及相关软件变更。它不表示来源准入、90日覆盖或Gate完成。忽略目录中的raw响应、SQL快照和独立QA报告为本机证据，不提交 `.data/`。
 

@@ -1,5 +1,8 @@
 # 阶段任务交接制度
 
+## 2026-10-21 最新P3增量与正文候选检查点
+
+本轮现状见[10月21日latest增量与正文候选交接](P3_LATEST_INCREMENTAL_AND_BODY_REVIEW_2026-10-21.md)：主库442篇（378/51/13）、793 revisions、318 publications、427 jobs；4篇已有body_text投影完成受限CAS，旧来源数据及publication资格不变。分页库独立为153 articles、157 revisions、6 publications、153 jobs、18 fetch runs；10/20已有capture的4条list候选通过replay入库，10/21 latest旧CLI对GX/四川分别各观察1个base list、四川新增3条pending metadata、广西0新增，cursor仍8且coverage `unproven`。该次未保存响应raw，不能声称response hash/内容独立复核；CLI因PgBoss producer未释放需结束自身进程，stopBoss/closeDb cleanup已由mock child test覆盖。代码头`6159de76f55601dcdcfd640d00d74e2a085afc08`；最终Check run [39530549243](https://github.com/revercgy-hub/MYHOT/actions/runs/39530549243)成功，backend 416/414 pass/0 fail/2 skipped，Docker通过。Gate 2不变，Gate 3–5未通过；API/Web无本机live smoke，来源仍disabled。
 ## 2026-10-20 最新P3分页与正文检查点
 
 当前技术进展见[10月20日P3分页与正文检查点](P3_PAGE67_AND_BODY_2026-10-20.md)：专用分页库按冻结scope v2完成四源page6/7共8个精确GET，cursor到8、coverage仍`unproven`；主库两篇正文先保留自动decline与执行报告，随后仅对精确captured HTML完成两条Root批准的人工CAS。经Root批准的四base list URL各一次观察与raw独立QA通过，新增候选GX 3条、四川1条（均仅列表元数据，未入库/精选）；历史正文影响审计已标出11篇、57个数字边界候选供原始证据逐项审查，不批量回填。两库分别统计，不合并；来源保持disabled/fulltext-off，Gate 2仍仅为`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3–5未通过。代码SHA `80e7458c805bae057a3d898d3d32ae2f69e7b163` 的GitHub Check run39356710341已通过：backend403/403、typecheck、Web build/tests、migrate/seed、built-site smoke及Docker检查均成功；本机full suite保留401/405通过、3失败、1跳过的历史结果，不冒称本机全套通过。下一步核对4条metadata候选与11篇历史正文候选，设计兼容active backfill cursor的latest增量检查与coverage completion证据；不机械续抓page8/9。API/Web live smoke未运行。

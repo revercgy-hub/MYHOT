@@ -1,5 +1,32 @@
 # 项目状态
 
+## 2026-10-21 P3 latest增量与正文候选检查点（代码/数据阶段完成，最终CI通过）
+
+本轮从`93b61a6`开始，基线`589f79eff09470b31ba8a7f1d9eb62d36ff2be6c`。当前代码head为`6159de76f55601dcdcfd640d00d74e2a085afc08`，已推送至`origin/revercgy-hub/MYHOT:feat/fiscal-finance-hot`；本日文档checkpoint待提交。启动时PostgreSQL loopback 5432可用，API/Web无listener且没有worker入口进程；当前shell安全开关UNSET，`.env`未发现，未读取secret或修改env。无本机API/Web启动、无live smoke。
+
+数据分别存于两个独立测试库，不合并计数。正文主库`fiscalhot_catalog_sweep_20261013_test`保持48 sources（全部disabled、全文与转发关闭）、442 articles（378 `ok` / 51 `pending` / 13 `unconfirmed`）、793 revisions、318 publications、427 jobs。分页库`fiscal_pagination4_20261016_test`现有4 sources（disabled、全文关闭）、153 articles、157 revisions、6 publications、153 discoveries、153 jobs、18 fetch runs、0 job runs；cursor四源保持active但coverage `unproven`，GX/四川next page仍为8。
+
+主库正文投影CAS历经两次安全中止后，第三次attempt依据精确PostgreSQL `processing_queued_at::text` 比较保留微秒，才提交4条approved projection correction：4篇article revision 2→3，旧revision 1/2全保留；主库文章状态计数不变。全部来源字段、原HTML/raw、标题/日期、body status、队列时间戳不变；3条既有publication仍summary模式且`eligible/selected/indexable/syndicate=false`，第四目标无publication；jobs与其它表零差异。attempt-1是比较器preflight投影错误、事务前中止；attempt-2是JS Date毫秒截断导致首个CAS update 0行并回滚；二者均非数据损坏或业务漂移。独立post QA确认attempt-3仅新增4条revision及4个授权article投影变化。原证据与supersession均保存在`.data/fiscal-qa/inline-repair-20261021/`。
+
+分页库先回放了10/20固定capture的4条metadata候选（GX3、四川1），后按冻结scope对广西、四川各观察1个列表base URL。旧CLI精确hash `6d3f7273…07eacc33` 记录两次计划GET：GX 10 found / 10 known / 0 new；四川10 found / 7 known / 3 new。新增四川文章为pending、正文/HTML null、list title/date为临时元数据，新增3 revision/discovery及3个`created`未启动extract jobs，无publication；另新增2 fetch runs。旧文章与所有已存在关联行不变；两个来源仅`last_fetch_at`、`last_ok_at`、`updated_at`改变，config/cursor不变。完成间隔1245ms；fetch_runs记录每源一个计划base URL、redirect/detail/retry均为0、cursor保留。由于当次runner未保存wire/decoded response，`rawResponseCaptured=false`，本轮独立QA不声称能检查响应字节/hash；CLI虽完整返回两个collector结果并提交受限数据，但因未释放PgBoss producer而需对该CLI自身进程Ctrl-C（exit 1）。没有重发请求。新代码已增加`stopBoss()`后`closeDb()`的finally cleanup及child-exit regression；本地focused 10/10、typecheck通过。此处理未升级source quality、coverage或资格。
+
+实现按四次小提交演进：`d3a1ed5`修复inline文本投影，`3beb410`增加latest增量路径，`ed7dcfd`清理CLI PgBoss生命周期，`6159de7`使loopback DB guard接受`*_test`或`*_ci`且仍拒绝普通库名及远程host。CI run [39529387711](https://github.com/revercgy-hub/MYHOT/actions/runs/39529387711) 对`3beb410`成功，但不覆盖后续cleanup；run [39530121854](https://github.com/revercgy-hub/MYHOT/actions/runs/39530121854) 对`ed7dcfd`失败于CI名`aihot_ci`不符合CLI原`*_test`守卫，1个新CLI测试在DB写和网络前失败，Docker及其它检查通过。最终精确SHA `6159de76f55601dcdcfd640d00d74e2a085afc08` 的唯一最终Check run [39530549243](https://github.com/revercgy-hub/MYHOT/actions/runs/39530549243)成功：backend 416 tests / 414 pass / 0 fail / 2 skipped，typecheck、Web build、Web tests 17/17、migrate/seed、built-site smoke和Docker job均通过。失败run仍作为历史记录保留，不冒充最终树结果。
+
+本机35-migration fresh backend full suite为414 tests / 413 pass / 0 fail / 1 skipped；Web build和Web tests 17/17、typecheck通过。这轮full suite在新增cleanup/suffix test之前；新CLI生命周期 focused 10/10已通过，最终完整树由run 39530549243验证。API/Web live smoke `NOT_RUN`。有界验证不代表来源准入、90日覆盖或Gate升级：Gate 2仍`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3/4/5未通过；source disabled、Gold标注和selection状态未改；没有provider、worker消费、NAS或全文发布。
+
+```text
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_SHA=6159de76f55601dcdcfd640d00d74e2a085afc08（本轮代码tested SHA；文档commit后Git HEAD为准）
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+WORKSPACE=D:\AI-work\MYHOT\AIHOT
+STAGE=P3 latest增量及4条历史正文投影修复的有限实现/验收；latest响应raw未保留、coverage仍unproven
+GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过
+REVIEW=4目标正文CAS的attempt-3通过全行独立post QA；分页latest数据库post QA通过但raw response缺失；最终Check run 39530549243对精确代码SHA成功
+BLOCKERS=Gate 3独立人审/事件隔离/真实评测、Gate 4来源与90日覆盖、Gate 5 NAS验收仍缺
+COMPLETED=主库442/793rev/318pub/427job；分页库153/157rev/6pub/153job；正文target 4 rev2→3；latest新建四川metadata 3条；CLI cleanup与suffix focused10/10、typecheck通过
+NEXT=提交并推送本日状态/计划/交接文档；下一轮基于具体正文及来源证据核验7条list-only候选、11篇历史数字边界，继续设计不扰动active cursor的latest更新与可证明coverage；不自动精选、不批量回写、不机械续page8/9
+```
+
 ## 2026-10-20 P3分页与正文CAS检查点
 
 本日详细证据见[分页与正文检查点](HANDOFFS/P3_PAGE67_AND_BODY_2026-10-20.md)。两项工作使用不同专用数据库，计数不合并：主正文库最终442篇（378 `ok`、51 `pending`、13 `unconfirmed`）、789 revisions、318 publications、427 jobs；分页库146篇，仅重庆新增1条列表metadata、cursor四源均6→8、coverage `unproven`。四源仍disabled且站内/转发全文关闭，job未消费。分页共8个scope内GET，raw逐项匹配、无redirect/额外dispatch；独立行级QA通过。新增重庆候选标题正确但list日期`2026-07-30`与URL date token `2026-07-02`不同，正文仍pending，不据URL改写日期。
