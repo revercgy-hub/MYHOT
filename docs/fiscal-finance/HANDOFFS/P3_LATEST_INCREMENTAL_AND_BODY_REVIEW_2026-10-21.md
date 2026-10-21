@@ -7,7 +7,7 @@ BRANCH=feat/fiscal-finance-hot
 START_HEAD=93b61a690ec2739c2c00d2d8595371c94fddccc4
 CODE_HEAD=6159de76f55601dcdcfd640d00d74e2a085afc08（已push到origin；文档checkpoint未提交）
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
-WORKTREE=本日5份tracked文档组成此checkpoint；无raw或credential/env纳入Git
+WORKTREE=本日文档checkpoint已同步；无raw或credential/env纳入Git
 
 ## 结论与数据边界
 
@@ -41,7 +41,7 @@ CAS需保留三段真实尝试：attempt-1在事务前被baseline comparator误�
 
 ## 当前边界与下一步
 
-Gate 2仍为`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3、4、5未通过；7条metadata候选均不等于人审/精选，事件组/隔离holdout未变。376篇已保存正文离线投影仍只是可评估文本，不是source重新准入；11篇57个strict DOM数字相邻候选只有少量示例，不代表57项全部人工核实。
+Gate 2仍为`PASSED_FOR_BOUNDED_P4_PILOT`，Gate 3、4、5未通过；7条metadata候选均不等于人审/精选，事件组/隔离holdout未变。376篇已保存正文离线投影仍只是可评估文本，不是source重新准入。11篇历史数字边界候选已逐项审查：4篇已修正body_text投影，7篇低影响且无修复提案；除非有新证据，不重复扫描。latest兼容入口已交付，但尚无周期运行或coverage完成证据。
 
 ```text
 TASK=QA两库限定写入与P3 latest/body代码；更新状态与交接
@@ -51,5 +51,5 @@ TESTS_RUN=本机backend full 414/413/0/1（cleanup前）；Web build+17/17；typ
 RESULT=4篇正文投影仅目标rev2→3并经独立全行QA；分页库回放4旧metadata+一次latest两GET新增3 list-only pending；cursor保持8/unproven。最终代码head6159de7已push
 RISKS=latest GET未保留raw response；旧CLI在producer停止缺失时挂起后被结束自身进程；Gate 3–5仍缺；不宣称90日覆盖或source准入
 BLOCKERS=独立人工Gold/事件隔离、来源质量/90日覆盖、NAS验收仍未完成
-NEXT=提交文档checkpoint；下轮核验7条list-only候选及11篇历史数字相邻候选的source/body证据，设计不扰动active backfill cursor的latest监控/覆盖证据，不机械抓页或批量回写
+NEXT=核验7条list-only候选的详情/正文；随后进行受控周期latest运行并补coverage证据。11篇历史候选不重扫，除非有新证据；不自动精选、不批量回写、不机械续页
 ```

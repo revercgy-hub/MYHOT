@@ -2,7 +2,7 @@
 
 ## 2026-10-21 P3 latest增量与正文候选检查点（代码/数据阶段完成，最终CI通过）
 
-本轮从`93b61a6`开始，基线`589f79eff09470b31ba8a7f1d9eb62d36ff2be6c`。当前代码head为`6159de76f55601dcdcfd640d00d74e2a085afc08`，已推送至`origin/revercgy-hub/MYHOT:feat/fiscal-finance-hot`；本日文档checkpoint待提交。启动时PostgreSQL loopback 5432可用，API/Web无listener且没有worker入口进程；当前shell安全开关UNSET，`.env`未发现，未读取secret或修改env。无本机API/Web启动、无live smoke。
+本轮从`93b61a6`开始，基线`589f79eff09470b31ba8a7f1d9eb62d36ff2be6c`。当前代码tested SHA为`6159de76f55601dcdcfd640d00d74e2a085afc08`，已推送至`origin/revercgy-hub/MYHOT:feat/fiscal-finance-hot`；本日文档checkpoint已同步，文档HEAD以Git为准。启动时PostgreSQL loopback 5432可用，API/Web无listener且没有worker入口进程；当前shell安全开关UNSET，`.env`未发现，未读取secret或修改env。无本机API/Web启动、无live smoke。
 
 数据分别存于两个独立测试库，不合并计数。正文主库`fiscalhot_catalog_sweep_20261013_test`保持48 sources（全部disabled、全文与转发关闭）、442 articles（378 `ok` / 51 `pending` / 13 `unconfirmed`）、793 revisions、318 publications、427 jobs。分页库`fiscal_pagination4_20261016_test`现有4 sources（disabled、全文关闭）、153 articles、157 revisions、6 publications、153 discoveries、153 jobs、18 fetch runs、0 job runs；cursor四源保持active但coverage `unproven`，GX/四川next page仍为8。
 
@@ -24,7 +24,7 @@ GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过
 REVIEW=4目标正文CAS的attempt-3通过全行独立post QA；分页latest数据库post QA通过但raw response缺失；最终Check run 39530549243对精确代码SHA成功
 BLOCKERS=Gate 3独立人审/事件隔离/真实评测、Gate 4来源与90日覆盖、Gate 5 NAS验收仍缺
 COMPLETED=主库442/793rev/318pub/427job；分页库153/157rev/6pub/153job；正文target 4 rev2→3；latest新建四川metadata 3条；CLI cleanup与suffix focused10/10、typecheck通过
-NEXT=提交并推送本日状态/计划/交接文档；下一轮基于具体正文及来源证据核验7条list-only候选、11篇历史数字边界，继续设计不扰动active cursor的latest更新与可证明coverage；不自动精选、不批量回写、不机械续page8/9
+NEXT=核验7条list-only候选的详情/正文；后续做受控周期latest运行并补coverage证据。11篇历史数字边界已逐项审查：4篇已修正body_text投影，7篇为低影响暂不提案，除非出现新证据不重扫。latest兼容入口已交付；不自动精选、不批量回写、不机械续page8/9
 ```
 
 ## 2026-10-20 P3分页与正文CAS检查点
