@@ -9,7 +9,7 @@ import { BudgetExceededError } from "../providers/receipts.ts";
 import { fetchRss } from "./rss.ts";
 import { allowed, fetchDetail, fetchWebList, type DetailNeed } from "./web-list.ts";
 import { unsupportedConfig } from "./config-keys.ts";
-import { collectWebListBackfill, usesWebListPagination } from "./web-list-pagination.ts";
+import { collectWebListBackfill, collectWebListLatest, usesWebListPagination, type WebListLatestRunResult } from "./web-list-pagination.ts";
 import { fetchGovcnJsonPage, fetchJsonList } from "./json-list.ts";
 import { createGovcnJsonPaginationBudget, govcnCandidateInWindow, govcnJsonResumeConfigHash, isGovcnJsonPaginationSource, isGovcnJsonResumeCursor, isGovcnJsonResumeSource, newGovcnJsonResumeCursor, readGovcnJsonPagination, readGovcnJsonPages, GOVCN_JSON_RESUME_CURSOR_KEY, GOVCN_JSON_RESUME_MAX_PAGE, type GovcnJsonPaginationBudget, type GovcnJsonResumeCursor } from "./json-list-pagination.ts";
 import { fetchXSearch, planXShards, readXSearch, shardHandle, shardQuery, SHARDABLE_SQL, tweetToCandidate, type XBacklog, type XRead } from "./x.ts";
@@ -866,6 +866,19 @@ export async function collectSource(sourceId: string, opts: { force?: boolean } 
     nfraBudget?.dispose();
     govcnBudget?.dispose();
   }
+}
+
+/** Explicit latest-list entry point; normal scheduler collection continues through collectSource. */
+export async function collectLatestSource(sourceId: string, opts: { force?: boolean } = {}): Promise<WebListLatestRunResult> {
+  const source = await loadSource(sourceId);
+  if (!source) return { sourceId, status: "skipped", found: 0, created: 0, revised: 0, skippedKnown: 0, error: "missing" };
+  if (source.kind !== "web_list" || !usesWebListPagination(source)) {
+    return { sourceId, status: "skipped", found: 0, created: 0, revised: 0, skippedKnown: 0, error: "latest_mode_requires_paginated_web_list" };
+  }
+  return collectWebListLatest(sourceId, {
+    force: opts.force,
+    validateConfig: (current) => unsupportedConfig(current.kind, current.config),
+  });
 }
 
 /** X ids begin with their millisecond timestamp (since 2010-11-04): the smallest id of a post made at `ms`. */

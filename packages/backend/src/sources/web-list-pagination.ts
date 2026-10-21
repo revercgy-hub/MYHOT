@@ -109,6 +109,17 @@ export interface PaginatedWebListRunOptions {
   validateConfig?: (source: SourceRow) => string[];
 }
 
+export interface WebListLatestRunOptions {
+  force?: boolean;
+  /** Test seam; production reads exactly the configured base listing URL. */
+  fetchPage?: (source: SourceRow, listUrl: string, runBudget: GuardedFetchRunBudget) => Promise<Candidate[]>;
+  validateConfig?: (source: SourceRow) => string[];
+}
+
+export interface WebListLatestRunResult extends PaginatedWebListRunResult {
+  skippedKnown: number;
+}
+
 export function usesWebListPagination(source: Pick<SourceRow, "kind" | "config" | "cursor">): boolean {
   return (source.kind === "web_list" && Object.hasOwn(source.config ?? {}, "pagination")) ||
     Object.hasOwn(source.cursor ?? {}, BACKFILL_CURSOR_KEY);
@@ -591,6 +602,144 @@ export async function collectWebListBackfill(sourceId: string, options: Paginate
   const metadataRoute = initial?.config?.pagination?.detailMode === "direct_html_metadata_v1" ||
     !!backfill && Object.hasOwn(backfill, "pendingPage");
   return collectWebListBackfillCore(sourceId, options, metadataRoute);
+}
+
+/** Read and ingest one current base listing without advancing or rewriting its history cursor. */
+export async function collectWebListLatest(sourceId: string, options: WebListLatestRunOptions = {}): Promise<WebListLatestRunResult> {
+  const reserved = await sql.reserve();
+  const lockKey = `web-list-backfill:${sourceId}`;
+  let locked = false;
+  let runId: number | null = null;
+  let runSource: SourceRow | null = null;
+  let budget: ReturnType<typeof createWebListPaginationBudget> | null = null;
+  let found = 0;
+  let created = 0;
+  let skippedKnown = 0;
+  let stopReason = "starting";
+  let cursorBefore = "";
+  const result = (status: WebListLatestRunResult["status"], error?: string): WebListLatestRunResult => ({
+    sourceId, status, found, created, revised: 0, skippedKnown, ...(error ? { error } : {}),
+  });
+  const detail = () => ({ v: 1, mode: "latest_base_page_v1", coverage: "unproven", partial: true, stopReason,
+    pageUrl: runSource?.config.url ?? null, baseDispatches: budget?.dispatchesUsed() ?? 0, baseDispatchLimit: 1,
+    found, created, skippedKnown, cursorPreserved: true,
+    generationId: (runSource?.cursor?.[BACKFILL_CURSOR_KEY] as WebListBackfillCursor | undefined)?.generationId ?? null,
+    nextPageIndex: (runSource?.cursor?.[BACKFILL_CURSOR_KEY] as WebListBackfillCursor | undefined)?.nextPageIndex ?? null,
+  });
+  const writeRun = async (status: "running" | "ok" | "failed" | "skipped", error: string | null = null) => {
+    if (runId === null) return;
+    const row = detail();
+    await reserved`UPDATE fetch_runs SET status = ${status}, finished_at = CASE WHEN ${status} = 'running' THEN NULL ELSE now() END,
+      found_count = ${found}, new_count = ${created}, error = ${error}, detail = ${sql.json(row as never)} WHERE id = ${runId}`;
+  };
+  try {
+    const [lock] = await reserved<{ locked: boolean }[]>`SELECT pg_try_advisory_lock(hashtext(${lockKey})) AS locked`;
+    locked = !!lock?.locked;
+    if (!locked) {
+      const [row] = await reserved<{ id: number }[]>`INSERT INTO fetch_runs (source_id, status, finished_at, error, detail)
+        SELECT id, 'skipped', now(), 'pagination source already has an active collector', ${sql.json({ v: 1, mode: "latest_base_page_v1", coverage: "unproven", partial: true, stopReason: "concurrent_run", baseDispatchLimit: 1 })}
+        FROM sources WHERE id = ${sourceId} RETURNING id`;
+      runId = row?.id ?? null;
+      return result("skipped", "concurrent_run");
+    }
+    runSource = await loadPaginatedSource(reserved, sourceId);
+    if (!runSource || runSource.kind !== "web_list") return result("skipped", "missing_or_not_web_list");
+    if (!runSource.enabled && !options.force) return result("skipped", "paused");
+    const pagination = readWebListPagination(runSource.config);
+    const configErrors = options.validateConfig?.(runSource) ?? validateWebListPagination(runSource.kind, runSource.config);
+    if (configErrors.length || !pagination || pagination.mode !== "mof_index_v1") {
+      return result("failed", `latest mode requires a valid mof_index_v1 source: ${configErrors.join(", ") || "unsupported pagination mode"}`);
+    }
+    const cursor = runSource.cursor?.[BACKFILL_CURSOR_KEY] as WebListBackfillCursor | undefined;
+    if (!cursor || !isWebListBackfillCursor(cursor, runSource) || cursor.state !== "active" || cursor.configHash !== webListPaginationConfigHash(runSource)) {
+      return result("failed", "latest mode requires an unchanged active history cursor");
+    }
+    cursorBefore = stableJson(cursor);
+    const [run] = await reserved<{ id: number }[]>`INSERT INTO fetch_runs (source_id) VALUES (${sourceId}) RETURNING id`;
+    runId = run!.id;
+    stopReason = "latest_listing_read";
+    await writeRun("running");
+    const onePageBudget = { ...pagination, maxPagesPerRun: 1, maxDispatches: 1, maxPageIndex: 0 };
+    budget = createWebListPaginationBudget(runSource, onePageBudget);
+    budget.setCurrentPage(0);
+    const baseUrl = String(runSource.config.url ?? "");
+    const reader = options.fetchPage ?? ((source: SourceRow, listUrl: string, runBudget: GuardedFetchRunBudget) => fetchWebList(source, { listUrl, runBudget }));
+    let candidates = await reader(runSource, baseUrl, budget.runBudget);
+    budget.assertActive();
+    if (budget.dispatchesUsed() !== 1) throw new Error(`latest mode expected one base dispatch, got ${budget.dispatchesUsed()}`);
+    found = candidates.length;
+    const itemLimit = Math.min(Number(runSource.config._aihot?.initialBackfillLimit ?? 30), 60);
+    if (candidates.length === 0) throw new Error("latest listing page returned no candidates");
+    if (candidates.length > itemLimit) throw new Error(`latest listing page exceeds item cap ${itemLimit}`);
+    candidates = candidates.filter((candidate) => allowed(candidate.url, runSource!) && !isWebListPaginationUrl(baseUrl, candidate.url) && !sourceNoiseFiltered(candidate, runSource!));
+    const candidateByIdentity = new Map<string, Candidate>();
+    for (const candidate of candidates) {
+      const identity = identityKeyFor({ ...candidate, sourceId, via: "fetch" });
+      if (!candidateByIdentity.has(identity)) candidateByIdentity.set(identity, candidate);
+    }
+    candidates = [...candidateByIdentity.values()];
+    stopReason = "latest_page_parsed";
+    const committedCreated = await withReservedTransaction(reserved, async (tx) => {
+      await tx`SET TRANSACTION ISOLATION LEVEL SERIALIZABLE`;
+      await setTransactionDeadline(tx, budget);
+      let transactionCreated = 0;
+      const [row] = await tx<{ config: Record<string, unknown>; kind: SourceRow["kind"]; cursor: Record<string, unknown> | null }[]>`
+        SELECT config, kind, cursor FROM sources WHERE id = ${sourceId} FOR UPDATE`;
+      if (!row || row.kind !== "web_list" || webListPaginationConfigHash({ ...runSource!, config: row.config, kind: row.kind }) !== cursor.configHash ||
+          stableJson(row.cursor?.[BACKFILL_CURSOR_KEY] ?? null) !== cursorBefore) throw new PaginationConfigChangedError("source config/cursor changed before latest commit");
+      const keys = candidates.map((candidate) => identityKeyFor({ ...candidate, sourceId, via: "fetch" }));
+      const existing = keys.length ? await tx<{ identity_key: string }[]>`SELECT identity_key FROM articles WHERE identity_key IN ${tx(keys)}` : [];
+      const known = new Set(existing.map((item) => item.identity_key));
+      skippedKnown = known.size;
+      for (const candidate of candidates) {
+        budget!.assertActive();
+        const identity = identityKeyFor({ ...candidate, sourceId, via: "fetch" });
+        if (known.has(identity)) continue;
+        const originalRaw = candidate.raw;
+        const raw = {
+          latestList: {
+            mode: "latest_base_page_v1",
+            observedAt: new Date().toISOString(),
+            titleSource: "listing",
+            publishedAtSource: "listing",
+            detailFetched: false,
+          },
+          ...(originalRaw !== undefined ? { parserRaw: originalRaw } : {}),
+        };
+        const saved = await upsertMaterial({ ...candidate, sourceId, via: "fetch", bodyText: null, bodyHtml: null, bodyStatus: "pending", raw }, tx);
+        if (!saved.created) throw new Error("candidate identity appeared during latest insert; transaction rolled back");
+        transactionCreated++;
+        await queueProcessing(saved.articleId, { db: tx });
+      }
+      budget!.assertActive();
+      await tx`UPDATE sources SET last_fetch_at = now(), last_ok_at = now(), fail_count = 0, last_error = NULL, health = 'ok', updated_at = now()
+        WHERE id = ${sourceId}`;
+      stopReason = "latest_page_committed";
+      await tx`UPDATE fetch_runs SET status = 'ok', finished_at = now(), found_count = ${found}, new_count = ${transactionCreated},
+        detail = ${tx.json({ ...detail(), created: transactionCreated } as never)} WHERE id = ${runId}`;
+      return transactionCreated;
+    }, budget);
+    created = committedCreated;
+    return result("ok");
+  } catch (error) {
+    // A failed transaction rolled back every inserted article/job; do not report its staged count.
+    created = 0;
+    const message = errorMessage(error).slice(0, 1000);
+    stopReason = error instanceof PaginationConfigChangedError ? "config_changed" : /deadline|timeout|aborted/i.test(message) ? "timeout" : "run_failed";
+    if (runId !== null) await failSourceRun(reserved, sourceId, error, runId, found, created, {
+      v: 1, generationId: (runSource?.cursor?.[BACKFILL_CURSOR_KEY] as WebListBackfillCursor | undefined)?.generationId ?? "uninitialized",
+      coverage: "unproven", partial: true, stopReason, nextPageIndex: (runSource?.cursor?.[BACKFILL_CURSOR_KEY] as WebListBackfillCursor | undefined)?.nextPageIndex ?? 0,
+      pagesFetched: budget?.dispatchesUsed() ?? 0, pagesCommitted: (runSource?.cursor?.[BACKFILL_CURSOR_KEY] as WebListBackfillCursor | undefined)?.pagesCommitted ?? 0,
+      dispatchesUsed: budget?.dispatchesUsed() ?? 0, maxDispatches: 1, created, revised: 0, rowsUndated: 0, rowsOutsideWindow: 0,
+    });
+    return result(runId === null ? "skipped" : "failed", message);
+  } finally {
+    budget?.dispose();
+    if (locked) {
+      try { await reserved`SELECT pg_advisory_unlock(hashtext(${lockKey}))`; } catch { /* release also drops the lock */ }
+    }
+    reserved.release();
+  }
 }
 
 /** Shared advisory-lock/reserved-connection lifecycle for Phase A and explicit metadata continuations. */
