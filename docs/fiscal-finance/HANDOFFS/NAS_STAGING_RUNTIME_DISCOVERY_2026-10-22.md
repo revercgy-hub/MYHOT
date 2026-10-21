@@ -10,7 +10,7 @@ DEPLOY_ARCHIVE_SHA256=12567959012a471d9d2bb69b057428bb64431403a69f4ea267c2aeb2ac
 
 ## 用户指令与授权边界
 
-用户于2026-10-22解锁了本机SSH identity，继续此前明确的NAS隔离Staging请求：LAN地址`192.168.3.100`，Web宿主/容器端口目标`3221:3221`。Root先授权只读发现；之后单独S1授权`NEW_DIRECTORY_PREPARATION_ONLY`，包括仅在经确认全新的目录原子创建文件、传输固定SHA包、生成不覆盖`.env`、运行Compose `config -q`和脱敏配置摘要。随后Root再次裁定条件S1：若用户Docker组授权生效、新SSH daemon只读inventory无冲突且C独立QA通过，C可直接执行固定`db setup api web`隔离启动；否则停止并回Root。Gate 3/4/5仍按正式证据条件判定。
+用户于2026-10-22解锁了本机SSH identity，继续此前明确的NAS隔离Staging请求：LAN地址`192.168.3.100`，Web宿主/容器端口目标`3221:3221`。Root先授权只读发现；之后单独S1授权`NEW_DIRECTORY_PREPARATION_ONLY`，包括仅在经确认全新的目录原子创建文件、传输固定SHA包、生成不覆盖`.env`、运行Compose `config -q`和脱敏配置摘要。随后Root再次裁定条件S1：若用户Docker组授权生效、新SSH daemon只读inventory无冲突且C独立QA通过，B作为唯一远端执行owner执行固定`db setup api web`隔离启动；C只做独立QA、runtime验收、docs/Git。若前置条件不满足则停止并回Root。Gate 3/4/5仍按正式证据条件判定。
 
 ## 只读发现
 
@@ -50,8 +50,8 @@ compose配置静态QA结论沿用`APPROVED_FOR_PREPARATION`：项目`fiscalhot-s
 ## 下一步与阻断
 
 1. 用户已选择Docker组权限变更；在用户确认其执行后，B用新的SSH会话核实际组和Docker socket访问。不得由agent改组或调socket权限。只读读取DockerRootDir、标为`fiscalhot-staging`的容器/卷/网络及3221绑定；已有或不明资源先停下，不复用、不删除。
-2. C独立QA inventory：若确认目标路径/卷无旧资源冲突、3221空闲、固定包SHA/目录/.env/config仍精确，依Root条件S1直接执行固定SHA `db setup api web` build/up；若旧或未知资源冲突，停止并回Root审。当前`config -q`通过仅证明Compose文件与env解析有效。
-3. 启动后runtime验收检查端口映射、API/DB无host ports、Web无后端env/data卷、worker未运行、noindex头/meta、主页/`/all`/分类页/health；新Staging库内确认48 sources均disabled且fulltext flags false、0个消费job/`job_runs`、provider调用0。`/api/health`只通过容器内或Compose网络读取，不暴露API端口。
+2. C独立QA inventory：若确认目标路径/卷无旧资源冲突、3221空闲、固定包SHA/目录/.env/config仍精确，则由B这个唯一远端执行owner按Root条件S1执行固定SHA `db setup api web` build/up；C不执行远端启动命令。若旧或未知资源冲突，停止并回Root审。当前`config -q`通过仅证明Compose文件与env解析有效。
+3. B启动后由C做runtime验收：核对端口映射、API/DB无host ports、Web无后端env/data卷、worker未运行、noindex头/meta、主页/`/all`/分类页/health；新Staging库内确认48 sources均disabled且fulltext flags false、0个消费job/`job_runs`、provider调用0。`/api/health`只通过容器内或Compose网络读取，不暴露API端口。
 4. 发生任何资源冲突时停下；不复用、不删除既有volume，不执行`down -v`。Staging验收不自动满足Gate 3/4/5，也不授权Production。
 
 ## TASK / MODEL / FILES_CHANGED / TESTS_RUN / RESULT / RISKS / BLOCKERS / NEXT
@@ -70,4 +70,4 @@ compose配置静态QA结论沿用`APPROVED_FOR_PREPARATION`：项目`fiscalhot-s
 
 **BLOCKERS**：`codex`没有Docker socket权限，`sudo -n`要求密码；目前无法验证DockerRootDir和既有容器/卷。
 
-**NEXT**：等待用户确认已执行其选择的Docker组授权命令；新SSH下只读核daemon资源。C独立确认无冲突且SHA/env/config一致后按Root条件S1启动，随后完成runtime验收。Production及Gate 3/4/5状态不变。
+**NEXT**：等待用户确认已执行其选择的Docker组授权命令；新SSH下由B只读核daemon资源。若无冲突且SHA/env/config一致，B按Root条件S1作为唯一远端执行owner启动，C独立验收和更新docs/Git。Production及Gate 3/4/5状态不变。

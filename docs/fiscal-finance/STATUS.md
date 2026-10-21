@@ -4,7 +4,7 @@
 
 用户已解锁SSH identity。NAS Debian 12、Docker 28.5.2、Compose 2.40.3；`/home/codex/fiscalhot-staging`被只读发现为空后，在Root限定授权下由B原子创建为0700新目录、传输并解包固定SHA归档。仅此新目录有文件准备，无复用旧项目路径。NAS生成的`.env` mode 0600，含四个随机hex Staging secrets，provider keys为空、危险flags均false；secret值未输出。Compose默认profile和可选profile的`config -q`均PASS，脱敏摘要的所有边界检查PASS；部署命令尚未运行。详细证据见[NAS Staging现场与准备交接](HANDOFFS/NAS_STAGING_RUNTIME_DISCOVERY_2026-10-22.md)。
 
-Docker daemon仍被`codex`权限阻挡：fresh SSH session组仍是`Users`和`Administrators`，访问docker server permission denied，`sudo -n /usr/bin/docker version`失败。containers/images/volumes/networks/DockerRootDir未知，不能推断旧`fiscalhot-staging`资源不存在。用户已选择Docker组授权，Root已给出本机命令但尚未收到执行完成确认。B未build/up、未应用migrations、未创建Docker volume或启动服务。Root条件S1允许：待新SSH确认Docker权限，B先只读核project/volume/port/space；C独立QA若无冲突且fixed SHA/env/config仍匹配，可直接执行隔离`db setup api web`，否则回Root审。发现时3221无listener；没有Staging runtime健康或noindex验收。Gate 3/4/5保持未通过。
+Docker daemon仍被`codex`权限阻挡：fresh SSH session组仍是`Users`和`Administrators`，访问docker server permission denied，`sudo -n /usr/bin/docker version`失败。containers/images/volumes/networks/DockerRootDir未知，不能推断旧`fiscalhot-staging`资源不存在。用户已选择Docker组授权，Root已给出本机命令但尚未收到执行完成确认。B未build/up、未应用migrations、未创建Docker volume或启动服务。Root条件S1允许：待新SSH确认Docker权限，B作为唯一远端执行owner先只读核project/volume/port/space；C独立QA若无冲突且fixed SHA/env/config仍匹配，通知B执行隔离`db setup api web`，由C完成runtime QA/docs/Git；否则回Root审。发现时3221无listener；没有Staging runtime健康或noindex验收。Gate 3/4/5保持未通过。
 
 ## 2026-10-21 NAS Staging 本地准备（未部署）
 

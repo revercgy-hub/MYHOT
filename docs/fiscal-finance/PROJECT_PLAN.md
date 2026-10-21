@@ -4,7 +4,7 @@
 
 ## 2026-10-22 NAS Staging 文件准备完成（等待 daemon 只读权限）
 
-SSH只读发现后，Root授权在全新`/home/codex/fiscalhot-staging`完成文件准备：固定SHA归档已传输校验/解包，`.env`为0600；默认与`--profile '*'`离线`docker compose config -q`及脱敏边界摘要通过。没有build/up或Docker daemon mutation。`codex`当前仍无Docker socket权限，因此旧containers/volumes/DockerRootDir未知；用户选择的Docker组授权尚待确认执行。Root条件S1规定：取得Docker权限后先只读inventory；C独立QA若无旧资源冲突且路径/卷/port/SHA/env/config准确，即可直接执行Staging `db setup api web`，否则回Root审。过程见[NAS Staging现场与文件准备交接](HANDOFFS/NAS_STAGING_RUNTIME_DISCOVERY_2026-10-22.md)。Gate 3/4/5未通过。
+SSH只读发现后，Root授权在全新`/home/codex/fiscalhot-staging`完成文件准备：固定SHA归档已传输校验/解包，`.env`为0600；默认与`--profile '*'`离线`docker compose config -q`及脱敏边界摘要通过。没有build/up或Docker daemon mutation。`codex`当前仍无Docker socket权限，因此旧containers/volumes/DockerRootDir未知；用户选择的Docker组授权尚待确认执行。Root条件S1规定：取得Docker权限后由B先只读inventory；C独立QA若无旧资源冲突且路径/卷/port/SHA/env/config准确，则由B作为唯一远端执行owner启动Staging `db setup api web`，C只做独立runtime QA和docs/Git；若有冲突则回Root审。过程见[NAS Staging现场与文件准备交接](HANDOFFS/NAS_STAGING_RUNTIME_DISCOVERY_2026-10-22.md)。Gate 3/4/5未通过。
 
 ## 2026-10-21 NAS Staging 本地准备（远端未部署）
 

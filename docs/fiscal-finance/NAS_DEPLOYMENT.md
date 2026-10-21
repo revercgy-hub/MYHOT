@@ -4,7 +4,7 @@
 
 用户解锁本地SSH identity后，strict SSH只读发现确认NAS为Debian 12、Docker 28.5.2、Compose 2.40.3；候选`/home/codex/fiscalhot-staging`为空、约35 GB可用、3221当时无listener。Root随后授权`NEW_DIRECTORY_PREPARATION_ONLY`：B已在该新目录以0700权限传入并解包固定SHA包，安全生成mode 0600 `.env`；secret值从未输出。Compose default/`--profile '*'`可选profile `config -q`与脱敏边界检查通过。详见[10/22现场与文件准备交接](HANDOFFS/NAS_STAGING_RUNTIME_DISCOVERY_2026-10-22.md)。
 
-`codex`当前不能访问Docker socket，`sudo -n /usr/bin/docker version`也失败；fresh SSH的groups仍只有`Users`和`Administrators`。用户已选择Docker组授权，Root已发本机命令但尚未收到执行完成确认。因此containers/images/volumes/networks和DockerRootDir仍未知。B未执行`up`/build、未应用migration、未创建Docker volume、未启动任何服务；不把只读配置通过视为部署。Root的条件S1允许：新SSH确认Docker socket权限后，B只读核对现存project/volume/port/space；C独立QA若确认无资源冲突且3221空闲、fixed SHA与env/config仍匹配，可按Root授权执行隔离的`db setup api web`构建启动，不需重复确认。未知或冲突资源仍须回Root，不得覆盖或`down -v`。Gate 3/4/5仍未通过；Staging runtime健康/noindex验收尚未开始。
+`codex`当前不能访问Docker socket，`sudo -n /usr/bin/docker version`也失败；fresh SSH的groups仍只有`Users`和`Administrators`。用户已选择Docker组授权，Root已发本机命令但尚未收到执行完成确认。因此containers/images/volumes/networks和DockerRootDir仍未知。B未执行`up`/build、未应用migration、未创建Docker volume、未启动任何服务；不把只读配置通过视为部署。Root的条件S1允许：新SSH确认Docker socket权限后，B作为唯一远端执行owner只读核对现存project/volume/port/space；C独立QA若确认无资源冲突且3221空闲、fixed SHA与env/config仍匹配，通知B按Root授权执行隔离的`db setup api web`构建启动，不需重复确认。C只负责独立runtime QA与docs/Git。未知或冲突资源仍须回Root，不得覆盖或`down -v`。Gate 3/4/5仍未通过；Staging runtime健康/noindex验收尚未开始。
 
 ## 2026-10-21 初始本地准备状态（历史）
 
@@ -50,4 +50,4 @@ docker compose --project-name fiscalhot-staging --env-file .env -f docker-compos
 | 备份/恢复 | 未提供或实测 | 需在声明恢复能力前定义并验证 |
 | 凭据 | NAS Staging目录内已生成`.env`，mode 0600；真实值未输出/入Git | 需核确认owner和权限；provider key保持空 |
 
-下一步是用户执行其选择的Docker组授权命令并以新SSH session确认组/socket访问。B随后只读盘点DockerRootDir、`fiscalhot-staging`现存container/volume/image/network、3221绑定和空间；C独立核实。如确认无旧资源冲突且source SHA/env/config仍精确，Root条件S1已授权C执行隔离的`db setup api web`启动；若有旧或未知资源则回Root审，不覆盖、不删除卷。部署后再做上述runtime验收。Production仍禁止部署，直至所有正式Gate要求满足并另行授权。
+下一步是用户执行其选择的Docker组授权命令并以新SSH session确认组/socket访问。B随后只读盘点DockerRootDir、`fiscalhot-staging`现存container/volume/image/network、3221绑定和空间；C独立核实。如确认无旧资源冲突且source SHA/env/config仍精确，B作为唯一远端执行owner按Root条件S1执行隔离的`db setup api web`启动；若有旧或未知资源则回Root审，不覆盖、不删除卷。C负责部署后runtime验收与docs/Git。Production仍禁止部署，直至所有正式Gate要求满足并另行授权。
