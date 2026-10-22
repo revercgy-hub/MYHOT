@@ -1,6 +1,6 @@
 # 项目状态
 
-## 2026-10-22 晚间恢复、NAS导入与盲评分准备（以本节为当前真值）
+## 2026-10-22 晚间恢复、NAS导入与新版盲评分评估（以本节为当前真值）
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
@@ -11,9 +11,9 @@ STAGE=NAS Staging；运行SHA21ca4d4（与本地工具HEAD不同）；27条正�
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过
 REVIEW=150条原Gold确认26 select/124 reject，fresh50为pending；42 list+30 detail原始证据完整但旧runner少报详情且无详情间隔时间戳，缺陷保留
 BLOCKERS=Gate 3仍缺fresh50用户标签、独立留出评测与错例复核；Gate 4正式覆盖证据与review未完成；Gate 5完整稳定性与正式review未完成（同步快照恢复子项通过）
-COMPLETED=NAS 418 articles/445 revisions/418 discoveries，27 ok/385 pending/6 unconfirmed；48 sources disabled且全文旗标关闭；27 body CAS独立后验PASS；18/27 native summary逐条独立grounding QA并首发、9 BLOCK排除；Gold200=150 confirmed+50 pending；restore目标64/64独立行哈希通过；typecheck、fullsuite 457/458 pass、Web build与22/22 tests通过
-IN_PROGRESS=新版评分提示SHA 1bd9f51d...获准；sealed development150 score packet 91例与fresh50 packet 31例正在两轮独立native盲评分，旧832a17冻结baseline保留；fresh50仍无人标注
-NEXT=完成sealed scoring后无损归一化，再对已标注的150 development作新版评估并与旧baseline比较；fresh50仍是同一留出集，不按模型分数重抽样，不改60/65/76阈值
+COMPLETED=NAS 418 articles/445 revisions/418 discoveries，27 ok/385 pending/6 unconfirmed；48 sources disabled且全文旗标关闭；27 body CAS独立后验PASS；18/27 native summary逐条独立grounding QA并首发、9 BLOCK排除；Gold200=150 confirmed+50 pending；restore目标64/64独立行哈希通过；sealed新版双轮评分已冻结，development150评估TP15/FP33/FN11/TN91（accuracy70.67%、precision31.25%、recall57.69%、F1 40.54%）；fresh50 predictions已冻结、50/50人审仍pending；typecheck、fullsuite 457/458 pass、Web build与22/22 tests通过
+IN_PROGRESS=NAS pending≤50正文提取wrapper由operator实现，待独立QA；fresh50用户盲审仍待完成
+NEXT=继续385篇pending正文受控批次与独立QA；fresh50标签完整后再做一次独立holdout评测。新版dev召回改善但准确率略降、两轮分数波动明显；不迭代prompt、不按holdout分数重采样、不改60/65/76阈值
 ```
 
 详细交接见[人审校准与NAS候选恢复交接](HANDOFFS/HUMAN_REVIEW_CALIBRATION_AND_NAS_CANDIDATES_2026-10-22.md)。本检查点不表示Gate 3/4/5通过。评分结果未用于fresh50重采样，Gold标签和阈值保持不变。

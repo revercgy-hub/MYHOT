@@ -2,7 +2,7 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
-## 2026-10-22 晚间恢复、NAS导入与盲评分准备（当前状态）
+## 2026-10-22 晚间恢复、NAS导入与新版盲评分评估（当前状态）
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
@@ -13,9 +13,9 @@ STAGE=NAS Staging；运行SHA21ca4d4（与本地工具HEAD不同）；27条正�
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过
 REVIEW=150条原Gold确认26 select/124 reject，fresh50为pending；采集缺陷保留；新评分只使用sealed score-only包，不暴露阈值或Gold决策
 BLOCKERS=Gate 3仍缺fresh50用户标签、独立留出评测和错例复核；Gate 4正式来源覆盖/评审未完成；Gate 5稳定性与正式review未完成（实际同步snapshot restore 64/64通过）
-COMPLETED=NAS 418 articles/445 revisions/418 discoveries，27ok/385pending/6unconfirmed；source48 disabled及全文旗标关闭；27 body CAS独立PASS；18 native摘要逐条grounding QA后首发，9 BLOCK不发布；Gold200=150 confirmed+50 pending；typecheck、fullsuite 457/458 pass、Webbuild与22/22通过
-IN_PROGRESS=用户新评分范围prompt SHA 1bd9f51d...；sealed新score包共122例（development150 prefilter PASS子集91、fresh50 PASS子集31）两轮native盲评分进行中；原832a17预测仍冻结保留
-NEXT=完成sealed scoring、lossless normalize后再重评development150并与旧baseline比较；fresh50仍是原留出集，不改标签、抽样或60/65/76阈值
+COMPLETED=NAS 418 articles/445 revisions/418 discoveries，27ok/385pending/6unconfirmed；source48 disabled及全文旗标关闭；27 body CAS独立PASS；18 native摘要逐条grounding QA后首发，9 BLOCK不发布；Gold200=150 confirmed+50 pending；新版development150评估TP15/FP33/FN11/TN91（accuracy70.67%、precision31.25%、recall57.69%、F1 40.54%）；fresh50新版预测已冻结且仍50/50 pending；typecheck、fullsuite 457/458 pass、Webbuild与22/22通过
+IN_PROGRESS=NAS pending≤50正文wrapper待独立QA；fresh50用户盲审未完成，旧832a17预测与新版sealed预测均保留
+NEXT=受控推进其余385篇pending正文并独立核验；fresh50标签完整后做一次holdout评估。新分数不触发prompt/阈值调整，也不重新抽样；60/65/76保持
 ```
 
 当前恢复依据和证据hash见[人审校准与NAS候选恢复交接](HANDOFFS/HUMAN_REVIEW_CALIBRATION_AND_NAS_CANDIDATES_2026-10-22.md)。本状态不代表Gate 3/4/5通过。
