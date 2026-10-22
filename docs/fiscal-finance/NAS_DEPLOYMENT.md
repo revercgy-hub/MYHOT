@@ -1,8 +1,12 @@
 # NAS Staging 部署路线
 
-## 当前状态更新（2026-10-22）
+## 最新更新（2026-10-22 Gold私有人审队列）
 
-用户已明确要求NAS隔离Staging，现已按用户指定目录`/vol2/1000/docker/fiscalhot-staging`部署；旧`/home/codex/fiscalhot-staging`保留。目标由固定tested code SHA `ac14beaf1b67ef709578624b388b14767998a80c`构建。第一次bridge build因容器不能连接官方Debian源超时；经Root批准，仅构建阶段使用Docker `--network=host`后成功。运行网络仍为默认Compose bridge，bridge容器外网超时尚未修复。详情见[10/22 NAS Staging部署与验收交接](HANDOFFS/NAS_STAGING_BUILD_ATTEMPT_2026-10-22.md)。
+既有隔离Staging已更新至固定代码SHA `21ca4d400bda9071f1e0b8761d404d1fc5b001e5`，0039迁移完成，总迁移36。批次`ef0a79d3cd791efad169ab4904e6666fb34cf1515fe3a6f0a3456a125042c889`导入150条私有候选，其中20条原确认保留、130条待审；seed15仍confirmed且非holdout。仅review表和导入审计有新增，业务文章/发布/分析/回执/worker任务表均为0。admin API鉴权、审核页和noindex已通过LAN只读验收，未提交新人工决定。详见[Gold私有人审队列Staging交接](HANDOFFS/GOLD_REVIEW_QUEUE_STAGING_2026-10-22.md)。本次功能审批仅为`APPROVED_FOR_PRIVATE_BATCH_REVIEW_ON_STAGING`，不代表任何Gate或Production通过。
+
+## 首次Staging runtime验收（2026-10-22，review migration前检查点）
+
+用户已明确要求NAS隔离Staging，现已按用户指定目录`/vol2/1000/docker/fiscalhot-staging`部署；旧`/home/codex/fiscalhot-staging`保留。初始镜像由固定tested code SHA `ac14beaf1b67ef709578624b388b14767998a80c`构建。第一次bridge build因容器不能连接官方Debian源超时；经Root批准，仅构建阶段使用Docker `--network=host`后成功。后续本项目实际runtime bridge上的有限只读探测显示官方Debian HTTP/HTTPS、MOF预算与PBOC公开市场指定请求可达；不外推到所有来源或覆盖。初始部署与首次验收见[NAS Staging部署交接](HANDOFFS/NAS_STAGING_BUILD_ATTEMPT_2026-10-22.md)，最新review-batch版本见[Gold私有人审交接](HANDOFFS/GOLD_REVIEW_QUEUE_STAGING_2026-10-22.md)。
 
 当前db healthy、setup exit0、api/web运行，worker/caddy不运行；只Web发布3221:3221，DB/API没有宿主端口。35 migrations完成，48 sources disabled、fulltext/syndication均false；articles/revisions/publications/analyses/receipts/job_runs/fetch_runs为0。内部API health、容器内smoke 30/30、LAN首页/全部/分类/404/robots noindex通过。采集、模型和外部provider均关闭。此为`APPROVED_FOR_ISOLATED_STAGING_RUNTIME`，不是Gate 3/4/5通过或Production授权。
 
@@ -18,7 +22,7 @@
 
 ## 已执行的隔离部署
 
-代码位于`/vol2/1000/docker/fiscalhot-staging`，`.env`为NAS本机生成并限制为0600，provider keys为空，副作用flags关闭。构建之前先完成Docker project/volume/port/空间冲突核验与脱敏Compose配置检查。第一次默认bridge build因容器不能访问官方Debian源而失败；后续获批的`--network=host`仅限单次镜像构建，不会改变Compose runtime bridge。
+代码位于`/vol2/1000/docker/fiscalhot-staging`，`.env`为NAS本机生成并限制为0600，provider keys为空，副作用flags关闭。构建之前先完成Docker project/volume/port/空间冲突核验与脱敏Compose配置检查。第一次默认bridge build因容器不能访问官方Debian源而失败；后续获批的`--network=host`仅限单次镜像构建，不会改变Compose runtime bridge。之后项目bridge对明确列出的官方Debian/MOF/PBOC请求已有有限200探测；其它来源、接口及历史覆盖仍需各自证据。
 
 成功的固定SHA镜像构建范围和启动服务如下；不要对该host build参数作全局/运行时推断：
 
@@ -40,7 +44,7 @@ docker compose --project-name fiscalhot-staging --env-file .env -f docker-compos
 | 项目 | 已知事实 | 未验证或阻塞 |
 |---|---|---|
 | 设备 | 铭凡 N5、64 GB（用户提供） | 尚未现场核验 |
-| NAS系统/daemon | 飞牛NAS；Debian 12、Docker 28.5.2、Compose 2.40.3；DockerRootDir `/vol2/docker` | bridge容器出网到官方Debian源超时，后续启用采集/provider前须解决 |
+| NAS系统/daemon | 飞牛NAS；Debian 12、Docker 28.5.2、Compose 2.40.3；DockerRootDir `/vol2/docker` | 初始默认bridge build的官方Debian连接曾超时；项目bridge后来对Debian HTTP/HTTPS、MOF预算、PBOC公开市场指定请求探测200。不得外推到其它源或完整采集能力 |
 | 地址/端口 | `192.168.3.100`；LAN smoke通过 | 3221当前按本次检查有Web服务；需持续确认访问控制/稳定性 |
 | Web端口 | `3221 → 3221`，Web为唯一host-published服务 | 未做长期监控/重启恢复测试 |
 | SSH/Docker权限 | `codex`组包含`docker`；strict SSH可用 | 不在本轮修改daemon/组权限 |

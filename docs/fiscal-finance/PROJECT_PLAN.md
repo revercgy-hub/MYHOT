@@ -2,11 +2,17 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
-## 2026-10-22 NAS Staging隔离运行验收完成
+## 2026-10-22 Gold私有人审队列Staging检查点
+
+固定代码SHA `21ca4d400bda9071f1e0b8761d404d1fc5b001e5` 已部署至`/vol2/1000/docker/fiscalhot-staging`，0039迁移完成；导入150条私有审核候选（20既有确认=13 select/7 reject、130待审），15个既有seed保持confirmed/non-holdout。48个source仍disabled，文章、公开发布、provider、worker及任务运行副作用均为0。管理员UI已通过LAN匿名保护、登录跳转、noindex和分页检查；只有用户显式勾选提交才产生人审决定，未选仍待审，不会自动发布。当前功能审查为`APPROVED_FOR_PRIVATE_BATCH_REVIEW_ON_STAGING`，不等于Gate 3/4/5通过。下一步由用户审核130项；随后导出annotation overlay并与冻结manifest合并、显式seed验证。另需完成正式Gold事件组/holdout评测、完整来源覆盖和Staging恢复/稳定性证据，不能将native screening建议或已有15 seed作为独立holdout。
+
+详情见[Gold私有人审队列Staging交接](HANDOFFS/GOLD_REVIEW_QUEUE_STAGING_2026-10-22.md)。
+
+## 2026-10-22 NAS Staging隔离运行验收（review migration前检查点）
 
 用户指定`/vol2/1000/docker/fiscalhot-staging`；固定SHA `ac14beaf1b67ef709578624b388b14767998a80c`已部署，旧`/home/codex`准备目录保留。普通Docker bridge build首次因官方Debian源超时失败；随后Root批准build-only `--network=host`后固定源码build成功，Compose runtime仍为bridge。限定`db setup api web`启动成功，35 migrations、48 disabled sources、articles/revisions/publications/analyses/receipts/job_runs/fetch_runs均为0；api internal health 200，container smoke 30/30，LAN页面/404/robots noindex通过。唯一published port是Web 3221，DB/API无host port；worker/caddy未运行。详细见[NAS Staging部署与验收交接](HANDOFFS/NAS_STAGING_BUILD_ATTEMPT_2026-10-22.md)。
 
-隔离Staging runtime review通过，不自动满足Gate 3/4/5或授权Production。Docker bridge对外网仍不可用；所有采集/provider flags保持关闭。下一步为有控制地迁入展示数据、确定并验证备份恢复/稳定性方案，以及Root批准的runtime bridge egress修复；Gold确认、split和各Gate正式证据仍独立推进。不能将空内容数据库视为内容上线或coverage通过。
+隔离Staging runtime review通过，不自动满足Gate 3/4/5或授权Production。之后本项目runtime bridge对官方Debian HTTP/HTTPS、MOF预算与PBOC公开市场指定端点有有限200探测，但不能外推到全部源；所有采集/provider flags仍关闭。下一步为由用户人工审核130项、后续受控导入展示数据、验证备份恢复/稳定性，并针对计划使用的外部端点补实际可达证据；Gold确认、split和各Gate正式证据仍独立推进。不能将空内容数据库或有限网络探测视为内容上线或coverage通过。
 
 ## 2026-10-21 NAS Staging 本地准备（远端未部署）
 

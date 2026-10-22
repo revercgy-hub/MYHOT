@@ -1,12 +1,18 @@
 # 项目状态
 
-## 2026-10-22 NAS Staging受限部署与runtime smoke完成
+## 2026-10-22 Gold私有人审批次已部署
+
+在既有隔离Staging中，固定代码SHA `21ca4d400bda9071f1e0b8761d404d1fc5b001e5` 已部署，migration总数36；review batch导入成功，150项=20既有confirmed（13 select、7 reject）、130 `needs_review`，原15 seed保持confirmed且无holdout。用户尚未提交本批新标签。新50 native screening sidecar（23/22/5）仅辅助，未进入payload或更改标签。完整证据、LAN/API检查和操作说明见[Gold私有人审队列Staging交接](HANDOFFS/GOLD_REVIEW_QUEUE_STAGING_2026-10-22.md)及[审核队列使用说明](GOLD_REVIEW_QUEUE.md)。
+
+导入仅写review batch/case和1条审计记录：48 sources全disabled、全文/转发关闭；articles、revisions、publications、analyses、receipts、job runs与fetch runs均为0。无worker、模型/provider调用或自动发布。用户可从`http://192.168.3.100:3221/admin/login?return=%2Fadmin%2Freview`登录后显式勾选并提交；未选仍待审。Staging review功能裁定为`APPROVED_FOR_PRIVATE_BATCH_REVIEW_ON_STAGING`，Gate 3/4/5仍分别需要正式Gold评测、完整来源/覆盖证据和Staging稳定性/恢复验收，不自动升级。
+
+## 2026-10-22 NAS Staging隔离运行验收（review批次导入前检查点）
 
 用户指定目标目录为`/vol2/1000/docker/fiscalhot-staging`；旧`/home/codex/fiscalhot-staging`保留。固定代码SHA `ac14beaf1b67ef709578624b388b14767998a80c`归档传输/解包校验通过；883个文件仅存在CRLF/LF差异，没有内容偏离。NAS本机`.env`权限0600，secret未输出。新路径的default/profile Compose `config -q`和脱敏边界检查全部通过。DockerRootDir `/vol2/docker`，`/vol2`余约750GB；项目相关旧容器/卷/网络/应用镜像均无冲突，3221空闲。完整过程和两次build结果见[NAS Staging部署与验收交接](HANDOFFS/NAS_STAGING_BUILD_ATTEMPT_2026-10-22.md)。
 
 第一次普通bridge build因Docker容器访问官方Debian源超时失败。经Root授权仅对该次固定源码build使用`--network=host`后，build和限定的`db setup api web`启动成功；Compose runtime仍使用默认project bridge，没有修改daemon或运行时网络。当前db healthy、setup exit0、api/web运行；web仅发布3221，DB/API无host ports，worker/caddy未运行。35条migrations完成；48个来源disabled且fulltext/syndication flags为false，articles/revisions/publications/analyses/receipts/job_runs/fetch_runs均为0；provider keys为空，内部API health为200。容器内smoke 30/30通过，工作站直连LAN的首页、`/all`、分类、404和robots/noindex检查通过。
 
-Docker bridge容器对官方Debian HTTP/HTTPS仍超时；build-only host networking不等于恢复runtime容器出网。采集、模型、OCR/Jina、Feishu、IndexNow等保持关闭，空内容库不等于内容上线。Staging runtime review为`APPROVED_FOR_ISOLATED_STAGING_RUNTIME`，仅覆盖此隔离部署，不代表Gate 3/4/5通过或授权Production。后续需处理受控数据迁入/展示、bridge egress、备份恢复和稳定性；Gold及正式Gate缺口见各自章节。
+首次部署后的早期Docker默认bridge探测曾对官方Debian HTTP/HTTPS超时；之后在本项目实际runtime bridge上，官方Debian HTTP/HTTPS、MOF预算与PBOC公开市场指定GET/headers均有限探测200。前者的历史记录保留，后者不证明全源网络可达或来源覆盖。采集、模型、OCR/Jina、Feishu、IndexNow等保持关闭，空内容库不等于内容上线。该隔离Staging runtime review不代表Gate 3/4/5通过或授权Production。
 
 ## 2026-10-21 NAS Staging 本地准备（未部署）
 

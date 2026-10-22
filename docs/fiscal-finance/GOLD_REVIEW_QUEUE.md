@@ -2,6 +2,18 @@
 
 后台 `/admin/review` 用于对冻结的Gold候选正文作人工判断。它与文章发布/精选编辑后台分离：审核动作只写私有Gold review表和审计记录，不改文章、revision、publication、analysis或任务队列，也不会触发模型、采集或外部provider。
 
+## NAS Staging使用方式
+
+当前私有审核批次已部署在隔离Staging。打开`http://192.168.3.100:3221/admin/login?return=%2Fadmin%2Freview`登录后，按页查看标题、来源、日期、原文链接和正文。先勾选要处理的条目，再统一提交“精选”“不精选”或“两可”；未勾选的条目仍待审。既有20条确认项只读。本批150项中130项待用户判断。
+
+如果需要找回初始管理员密码，请只在用户自己的Windows PowerShell终端运行以下只读命令。不要把密码发到聊天或提交到Git：
+
+```powershell
+ssh -F "$env:USERPROFILE\.ssh\config.txt" -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes -o ForwardAgent=no fnnas "sed -n 's/^ADMIN_PASSWORD=//p' /vol2/1000/docker/fiscalhot-staging/.env"
+```
+
+审核记录只供人工校准与Gold流程使用，不会发布文章或自动更改公开精选。当前批次和部署边界见[Staging验收交接](HANDOFFS/GOLD_REVIEW_QUEUE_STAGING_2026-10-22.md)。
+
 ## 候选与隐私
 
 候选由本地审核CLI冻结并直接导入数据库；API没有公开上传接口。冻结时保存原始候选metadata、来源/内容hash、正文快照及manifest来源hash。导入到空Staging数据库时，原本地`sourceArticleId`和revision只作为私有metadata来源记录，不声明为NAS文章行绑定；审核仍会绑定不可变的batch hash、case ID和正文`contentHash`。
