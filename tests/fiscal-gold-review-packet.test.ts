@@ -30,8 +30,11 @@ test("Gold decision and review confirmations remain blank", () => {
   assert.match(packet, /标注理由（人工填写）/);
   assert.match(packet, /标注人 \/ 确认人（人工填写）：\*\* _+/);
   assert.match(packet, /确认时间（人工填写）：\*\* _+/);
-  assert.match(packet, /事件组确认（人工填写）/);
-  assert.match(packet, /development　\[ \] holdout/);
+  assert.match(packet, /事件组/);
+  assert.match(packet, /有证据的独立QA核验/);
+  assert.match(packet, /不得伪记为user_confirmed/);
+  assert.match(packet, /按事件组确定性分配并独立QA/);
+  assert.match(packet, /人工确认development　\[ \] 人工确认holdout/);
   const changedProposal = structuredClone(template);
   changedProposal.candidates[0].proposal = {
     decision: "reject",

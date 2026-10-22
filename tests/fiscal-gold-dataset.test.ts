@@ -50,6 +50,55 @@ test("fully confirmed synthetic row may pass readiness validation, without runni
   assert.deepEqual(noSeeds.seedCheck, { status: "checked", caseCount: 0, fileSha256: null });
 });
 
+test("agent-verified event groups and deterministic splits need auditable provenance", () => {
+  const ready = structuredClone(template);
+  ready.candidates = [structuredClone(ready.candidates[0])];
+  const candidate = ready.candidates[0];
+  candidate.material.bodyZh = "Synthetic test-only body; not a saved source article.";
+  candidate.humanAnnotation = { status: "user_confirmed", decision: "select", confirmedBy: "reviewer-test", confirmedAt: "2026-10-03T00:00:00Z" };
+  const provenance = {
+    reviewer: "luna-bulk-qa",
+    method: "event-group-and-split-v1",
+    verifiedAt: "2026-10-22T10:00:00Z",
+    evidenceSha256: "a".repeat(64),
+  };
+  candidate.eventGroupStatus = "agent_verified";
+  candidate.eventGroupVerification = provenance;
+  candidate.samplingContext.splitStatus = "agent_verified";
+  candidate.samplingContext.splitVerification = provenance;
+
+  assert.equal(validateManifest(ready, { caseIds: [] }).status, "READY_FOR_EVALUATION");
+  candidate.eventGroupVerification.evidenceSha256 = "not-a-hash";
+  const invalid = validateManifest(ready, { caseIds: [] });
+  assert.equal(invalid.status, "SCHEMA_ERROR");
+  assert.ok(invalid.issues.some((issue) => issue.code === "verification_evidence_hash"));
+});
+
+test("agent provenance cannot be attached to needs-review or user-confirmed status", () => {
+  const withPendingProvenance = structuredClone(template);
+  withPendingProvenance.candidates[0].eventGroupVerification = {
+    reviewer: "luna-bulk-qa",
+    method: "event-group-v1",
+    verifiedAt: "2026-10-22T10:00:00Z",
+    evidenceSha256: "b".repeat(64),
+  };
+  const pending = validateManifest(withPendingProvenance);
+  assert.equal(pending.status, "SCHEMA_ERROR");
+  assert.ok(pending.issues.some((issue) => issue.code === "unexpected_verification_provenance"));
+
+  const userConfirmed = structuredClone(template);
+  userConfirmed.candidates[0].eventGroupStatus = "user_confirmed";
+  userConfirmed.candidates[0].eventGroupVerification = {
+    reviewer: "luna-bulk-qa",
+    method: "event-group-v1",
+    verifiedAt: "2026-10-22T10:00:00Z",
+    evidenceSha256: "c".repeat(64),
+  };
+  const mixed = validateManifest(userConfirmed);
+  assert.equal(mixed.status, "SCHEMA_ERROR");
+  assert.ok(mixed.issues.some((issue) => issue.code === "unexpected_verification_provenance"));
+});
+
 test("seed holdout assignments fail while development seed assignments remain valid", () => {
   const ready = structuredClone(template);
   ready.candidates = [structuredClone(ready.candidates[0])];

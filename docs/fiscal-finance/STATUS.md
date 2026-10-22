@@ -1,10 +1,12 @@
 # 项目状态
 
-## 2026-10-22 Gold私有人审批次已部署
+## 2026-10-22 用户完成人审标签与Gold下一依赖
 
-在既有隔离Staging中，固定代码SHA `21ca4d400bda9071f1e0b8761d404d1fc5b001e5` 已部署，migration总数36；review batch导入成功，150项=20既有confirmed（13 select、7 reject）、130 `needs_review`，原15 seed保持confirmed且无holdout。用户尚未提交本批新标签。新50 native screening sidecar（23/22/5）仅辅助，未进入payload或更改标签。完整证据、LAN/API检查和操作说明见[Gold私有人审队列Staging交接](HANDOFFS/GOLD_REVIEW_QUEUE_STAGING_2026-10-22.md)及[审核队列使用说明](GOLD_REVIEW_QUEUE.md)。
+私有150项批次现已全部`user_confirmed`：原20项13 select/7 reject保持；原130待审由用户提交13 select/117 reject/0 either，合计26 select/124 reject。原15 preference seeds仍确认且不在holdout。新50 native screening sidecar 23/22/5仅为辅助建议，全部needsHumanReview，没有进入Gold labels。overlay/merged manifest/body snapshot的独立QA及validator结果见[P5 readiness](P5_GOLD_DATASET_READINESS.md)；部署与运行边界见[Staging交接](HANDOFFS/GOLD_REVIEW_QUEUE_STAGING_2026-10-22.md)。
 
-导入仅写review batch/case和1条审计记录：48 sources全disabled、全文/转发关闭；articles、revisions、publications、analyses、receipts、job runs与fetch runs均为0。无worker、模型/provider调用或自动发布。用户可从`http://192.168.3.100:3221/admin/login?return=%2Fadmin%2Freview`登录后显式勾选并提交；未选仍待审。Staging review功能裁定为`APPROVED_FOR_PRIVATE_BATCH_REVIEW_ON_STAGING`，Gate 3/4/5仍分别需要正式Gold评测、完整来源/覆盖证据和Staging稳定性/恢复验收，不自动升级。
+label-only manifest 经显式seed验证为`DRAFT_INCOMPLETE`、0 schema issue、150 confirmed/0 pending、15 seeds checked；该版本未含正文，不能直接评测。独立事件QA已验证150个唯一事件单例组，并生成metadata-only `agent_verified`版本；150项split全部为development，holdoutCount=0。所有标签与建议已用于审查/分析，不能从中再划出盲测集。Gate 3下一步是收集50条全新、事件不重叠且正文合格的样本，先冻结两次隔离native预测，再请用户盲审；之后运行现有Gold评测合同。validator的READY（如后续达到）只表示静态数据完整，不代表已有holdout/评测或Gate通过。免费优先，不默认触发付费provider。
+
+NAS隔离Staging运行仍有效：36 migrations、48来源disabled，业务文章和发布/analysis/provider/worker写入均为0。Gate 3仍缺独立holdout与正式评测、错例审阅及阈值确认；Gate 4仍缺计划范围内完整来源/覆盖证明与正式Gate review；Gate 5仍缺稳定性观察、恢复演练与正式review。不能把150个人工标签、有限PBOC page观察或Staging功能批准表述为Gate通过。
 
 ## 2026-10-22 NAS Staging隔离运行验收（review批次导入前检查点）
 

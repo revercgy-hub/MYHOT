@@ -75,16 +75,16 @@ export function renderReviewPacket(input: unknown): string {
       "",
       "**确认时间（人工填写）：** ______________________________",
       "",
-      `**事件组确认（人工填写）：** [ ] 确认当前草稿 ${display(raw.eventGroupId)}　[ ] 修改为：____________________`,
+      `**事件组：** [ ] 人工确认当前草稿 ${display(raw.eventGroupId)}　[ ] 修改为：____________________　[ ] 有证据的独立QA核验（manifest须记录reviewer/method/time/evidence SHA-256）`,
       "",
-      `**数据集切分确认（人工填写）：** [ ] development　[ ] holdout　当前草稿：${display(sampling.benchmarkSplit)}（未确认）`,
+      `**数据集切分：** [ ] 人工确认development　[ ] 人工确认holdout　[ ] 按事件组确定性分配并独立QA（manifest须记录reviewer/method/time/evidence SHA-256）　当前草稿：${display(sampling.benchmarkSplit)}（未确认）`,
     ].join("\n");
   });
 
   return [
     "# P5 Gold 人工审阅 packet",
     "",
-    "此文件只提供来源身份与正文状态证据，不包含原文全文，也不写入任何Gold答案。原清单含工具建议，但本packet不展示建议内容，请人工独立填写。正文引用不会写入packet；正文为hold/unavailable时不得按标题猜测标签。",
+    "此文件只提供来源身份与正文状态证据，不包含原文全文，也不写入任何Gold答案。原清单含工具建议，但本packet不展示建议内容，请人工独立填写Gold decision。事件分组可由人工确认，或在同一真实事件有明确来源事实且留下可审计provenance时由agent独立核验；有歧义的保持needs_review。数据集切分可由人工确认，或在事件分组核验后按冻结的确定性规则整体分配并独立检查泄漏；留过偏好/seed的样本不得进入holdout。agent核验必须记录reviewer、method、verifiedAt和绑定证据的SHA-256，不得伪记为user_confirmed。正文引用不会写入packet；正文为hold/unavailable时不得按标题猜测标签。",
     "",
     `候选数：${input.candidates.length}　清单状态：DRAFT　validator：${validation.status}`,
     "",

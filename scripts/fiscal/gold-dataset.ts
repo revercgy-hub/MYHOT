@@ -10,12 +10,20 @@ import { fileURLToPath } from "node:url";
 
 type Decision = "select" | "reject" | "either";
 type Split = "development" | "holdout";
+type VerificationStatus = "needs_review" | "user_confirmed" | "agent_verified";
 type Issue = { code: string; path: string; message: string };
+interface VerificationProvenance {
+  reviewer: string;
+  method: string;
+  verifiedAt: string;
+  evidenceSha256: string;
+}
 
 interface Candidate {
   caseId: string;
   eventGroupId: string;
-  eventGroupStatus: "needs_review" | "user_confirmed";
+  eventGroupStatus: VerificationStatus;
+  eventGroupVerification?: VerificationProvenance;
   material: {
     title: string;
     originalTitle: string | null;
@@ -30,7 +38,7 @@ interface Candidate {
     firstParty?: boolean;
     language?: string | null;
   };
-  samplingContext: { benchmarkSplit: Split; samplingStratum: string; splitStatus: "needs_review" | "user_confirmed" };
+  samplingContext: { benchmarkSplit: Split; samplingStratum: string; splitStatus: VerificationStatus; splitVerification?: VerificationProvenance };
   evidence: {
     sourceArticleId: string | null;
     diagnosticId?: string | null;
@@ -64,6 +72,37 @@ const DECISIONS = new Set(["select", "reject", "either"]);
 const SPLITS = new Set(["development", "holdout"]);
 const SHA256 = /^[a-f0-9]{64}$/i;
 const VALIDATOR_FILE = fileURLToPath(import.meta.url);
+
+function validateVerificationStatus(
+  status: unknown,
+  provenance: unknown,
+  fieldPath: string,
+  schemaIssue: (code: string, pathName: string, message: string) => void,
+): boolean {
+  if (status !== "needs_review" && status !== "user_confirmed" && status !== "agent_verified") {
+    schemaIssue("verification_status", fieldPath, "must be needs_review, user_confirmed, or agent_verified");
+    return false;
+  }
+  if (status !== "agent_verified") {
+    if (provenance !== undefined && provenance !== null) {
+      schemaIssue("unexpected_verification_provenance", `${fieldPath}Verification`, "provenance is only valid when status is agent_verified");
+    }
+    return true;
+  }
+  if (!isRecord(provenance)) {
+    schemaIssue("verification_provenance", `${fieldPath}Verification`, "agent_verified requires reviewer, method, verifiedAt, and evidenceSha256 provenance");
+    return false;
+  }
+  if (!nonempty(provenance.reviewer)) schemaIssue("verification_reviewer", `${fieldPath}Verification.reviewer`, "reviewer is required for agent verification");
+  if (!nonempty(provenance.method)) schemaIssue("verification_method", `${fieldPath}Verification.method`, "method is required for agent verification");
+  if (!nonempty(provenance.verifiedAt) || !Number.isFinite(Date.parse(provenance.verifiedAt))) {
+    schemaIssue("verification_time", `${fieldPath}Verification.verifiedAt`, "verifiedAt must be a parseable timestamp");
+  }
+  if (typeof provenance.evidenceSha256 !== "string" || !SHA256.test(provenance.evidenceSha256)) {
+    schemaIssue("verification_evidence_hash", `${fieldPath}Verification.evidenceSha256`, "evidenceSha256 must be a 64-character SHA-256 hex string");
+  }
+  return true;
+}
 
 interface SeedCheckInput {
   caseIds: unknown;
@@ -128,7 +167,7 @@ function validateManifest(input: unknown, seedInput?: SeedCheckInput): {
     else seenCases.add(c.caseId);
 
     if (!nonempty(c.eventGroupId)) schemaIssue("event_group", `${p}.eventGroupId`, "eventGroupId is required to prevent train/holdout leakage");
-    if (c.eventGroupStatus !== "needs_review" && c.eventGroupStatus !== "user_confirmed") schemaIssue("event_group_status", `${p}.eventGroupStatus`, "must be needs_review or user_confirmed");
+    validateVerificationStatus(c.eventGroupStatus, c.eventGroupVerification, `${p}.eventGroup`, schemaIssue);
 
     if (!isRecord(c.material)) schemaIssue("material", `${p}.material`, "material object is required");
     else {
@@ -154,7 +193,7 @@ function validateManifest(input: unknown, seedInput?: SeedCheckInput): {
         groupSplits.set(c.eventGroupId, splits);
       }
       if (!nonempty(c.samplingContext.samplingStratum)) schemaIssue("sampling_stratum", `${p}.samplingContext.samplingStratum`, "samplingStratum is required");
-      if (c.samplingContext.splitStatus !== "needs_review" && c.samplingContext.splitStatus !== "user_confirmed") schemaIssue("split_status", `${p}.samplingContext.splitStatus`, "must be needs_review or user_confirmed");
+      validateVerificationStatus(c.samplingContext.splitStatus, c.samplingContext.splitVerification, `${p}.samplingContext.split`, schemaIssue);
     }
 
     if (!isRecord(c.evidence)) schemaIssue("evidence", `${p}.evidence`, "evidence references are required");
@@ -233,8 +272,8 @@ function validateManifest(input: unknown, seedInput?: SeedCheckInput): {
     if (!isRecord(raw)) return true;
     const c = raw as unknown as Partial<Candidate>;
     return c.humanAnnotation?.status !== "user_confirmed"
-      || c.eventGroupStatus !== "user_confirmed"
-      || c.samplingContext?.splitStatus !== "user_confirmed"
+      || (c.eventGroupStatus !== "user_confirmed" && c.eventGroupStatus !== "agent_verified")
+      || (c.samplingContext?.splitStatus !== "user_confirmed" && c.samplingContext?.splitStatus !== "agent_verified")
       || !c.material
       || (!nonempty(c.material.bodyZh) && !nonempty(c.material.bodyOriginal))
       || !c.evidence

@@ -2,9 +2,11 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
-## 2026-10-22 Gold私有人审队列Staging检查点
+## 2026-10-22 用户人审及技术分组完成，独立留出评测待续
 
-固定代码SHA `21ca4d400bda9071f1e0b8761d404d1fc5b001e5` 已部署至`/vol2/1000/docker/fiscalhot-staging`，0039迁移完成；导入150条私有审核候选（20既有确认=13 select/7 reject、130待审），15个既有seed保持confirmed/non-holdout。48个source仍disabled，文章、公开发布、provider、worker及任务运行副作用均为0。管理员UI已通过LAN匿名保护、登录跳转、noindex和分页检查；只有用户显式勾选提交才产生人审决定，未选仍待审，不会自动发布。当前功能审查为`APPROVED_FOR_PRIVATE_BATCH_REVIEW_ON_STAGING`，不等于Gate 3/4/5通过。下一步由用户审核130项；随后导出annotation overlay并与冻结manifest合并、显式seed验证。另需完成正式Gold事件组/holdout评测、完整来源覆盖和Staging恢复/稳定性证据，不能将native screening建议或已有15 seed作为独立holdout。
+固定代码SHA `21ca4d400bda9071f1e0b8761d404d1fc5b001e5` 已部署至`/vol2/1000/docker/fiscalhot-staging`，0039迁移完成。150项私有审核候选均已确认：原20项13 select/7 reject保持，新增130项13 select/117 reject/0 either；原15 seed仍confirmed/non-holdout。48个source仍disabled，文章、公开发布、provider、worker及任务运行副作用为0。管理员UI/LAN匿名保护、noindex和分页检查通过；只有用户显式勾选提交才保存标签，未选不等于reject，标签不会自动发布。此次功能审查为`APPROVED_FOR_PRIVATE_BATCH_REVIEW_ON_STAGING`，不等于Gate 3/4/5通过。独立overlay/body-hash/合并核验和validator状态详见[P5 readiness](P5_GOLD_DATASET_READINESS.md)。
+
+独立事件QA已核验150条唯一材料、0精确重复、39个标题相似flag逐项核对无同一地方实际事件；新metadata-only版本为`.data/fiscal-qa/review-batches-20261022/reviewed-manifest-agent-verified-20261022.json`，SHA-256 `a79839b1e27a368a3cdee65b36b38b9d075933cd39dc7d99c95839d3e74199dc`。150条均是独立development事件组；holdout=0。已审阅的150条、旧15 seed及曾用于偏好归纳的旧20均不得充当盲测。下一步收集50条全新、事件不重叠、正文合格样本，先冻结两次隔离native预测，再请用户盲审；随后用既有Gold评测合同跑开发/留出评估、复核错例并确认阈值。`agent_verified`技术provenance不代替用户标签；validator READY仅表示数据完整，不意味Gate 3通过。不默认触发付费provider。Gate 4继续补计划来源/覆盖证据；Gate 5需稳定性观察和实际恢复演练。不能把有限PBOC 90日窗口观察、native建议或私有人工标签直接认作Gate通过。
 
 详情见[Gold私有人审队列Staging交接](HANDOFFS/GOLD_REVIEW_QUEUE_STAGING_2026-10-22.md)。
 

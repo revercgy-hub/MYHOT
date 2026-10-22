@@ -1,5 +1,25 @@
 # P5 Gold Dataset readiness（2026-10-03）
 
+> 本页以下早期段落按原日期保留；当前状态以2026-10-22这一节为准。
+
+## 2026-10-22 人工标签与事件核验完成；Gate 3留出评测仍待新样本
+
+用户已在NAS私有人审队列提交全部130项：新增部分为13 `select`、117 `reject`、0 `either`；与原20项13/7合并后，150项均为`user_confirmed`，总计26 `select`、124 `reject`、0 `either`。原15个显式preference seed仍保持确认且不在holdout；这15项和此前用于熟悉偏好的原20项只能作为development，不可充当独立holdout。新50条native screening（23/22/5）是辅助建议，全部`needsHumanReview=true`，不属于本次人工标签。
+
+独立核验的标签overlay为`.data/fiscal-qa/review-batches-20261022/review-overlay-20261022T125439+0800.json`（SHA-256 `e6250b35f8781774a87fdc14071380b85ccc9e5f27020113361293da5700c0df`）；合并清单为`.data/fiscal-qa/review-batches-20261022/reviewed-manifest-20261022T125439+0800.json`（SHA-256 `2f8e2ef7182127eaf4bd3d9c7df86dde3b3861290d845ff992c32bc9c2a140a6`），证据文件SHA-256 `364772c5bd04d1eda7799da335f533582421e5db30463784968ec237ce0ba585`。原tracked 100项与150项候选proposal一致；合并只改`humanAnnotation`，旧20项注释、来源证据、proposal、event group与split均保持；冻结payload的150个正文快照SHA与对应candidate body SHA全部相符。NAS review只记录私有人工标签，没有新增文章、公开发布、analysis或provider调用。正文快照和导出payload留在`.data/`，不进入Git。
+
+标签完成后，Gold CLI验证结果为`DRAFT_INCOMPLETE`、0 schema issue、150 confirmed/0 pending、15 seeds checked（exit 3）。这是预期结果：label-only合并manifest不含正文，且event group与split仍为`needs_review`；它不是可直接评测的数据集或Gate通过证据。
+
+事件分组和development/holdout是技术隔离字段，不等同人工Gold标签。依据本轮validator合同，候选可用`eventGroupVerification`和`samplingContext.splitVerification`记录`agent_verified`，每项须包含`reviewer`、`method`、`verifiedAt`和绑定依据的`evidenceSha256`；歧义事件仍保留`needs_review`。用户标签仍只能以真实`user_confirmed`记录。分组应基于材料事实，将同事件转载/后续报道放入同组；再按事件组使用冻结的确定性规则分配split并独立检查泄漏。不得把Luna/native筛选一致率当成模型评测成绩，也不得将seed或已参与偏好归纳的样本分入holdout。
+
+对event/split sidecar的独立QA核验了150个唯一ID、sourceArticleId、normalized URL、body SHA与contentHash；精确重复为0，重算39个标题相似flag并逐项核对来源、日期和标题后，没有发现同一地方实际事件。新metadata-only版本为`.data/fiscal-qa/review-batches-20261022/reviewed-manifest-agent-verified-20261022.json`（SHA-256 `a79839b1e27a368a3cdee65b36b38b9d075933cd39dc7d99c95839d3e74199dc`）；独立QA证据为`.data/fiscal-qa/review-batches-20261022/independent-event-group-qa-20261022.json`（SHA-256 `9a2e73c412df98e53bb95b3905ea4d338a28fdfb08730448fe36500fa5937b71`）。150条各自成为单例event group并有独立provenance；split统一agent_verified为development，holdout=0。所有标签、proposal、source evidence和原100 tracked条目保持。该批全部标签及两份native分歧分析均已查看，所以不将这批重新包装成未触碰holdout。
+
+Native分歧分析仅为描述性人工建议一致度：new50为50项（23 select、22 reject、5 either），决定性45项的TP/FP/FN/TN为6/17/1/21，决定性准确率0.600、precision 0.261、recall 0.857；old80为80项（79决定、1 abstention），TP/FP/FN/TN为5/24/0/50，决定性准确率0.696、precision 0.172、recall 1.000。分析已看完标签和建议，old80建议还使用既有seed偏好语境；无评分值、threshold sweep或正式provider评测。结果不得表述为模型准确率、独立holdout或Gate3通过。详情及限制见ignored `.data/fiscal-qa/review-batches-20261022/native-calibration-analysis-20261022.json`（SHA-256 `51ccd41bc8613f002667bec9122d7adb26e9f26cefbddcf341ae661ba81af9fc`）。
+
+**Gate 3当前缺口**：任务书§32的150–200规模和人工标签目标现已达到；本批150全部为development且没有holdout。不能把已参与标签/建议分析的50条重新称为未触碰holdout。下一步收集50条与现有150在材料及事件上均不同、正文合格的新样本；对冻结prompt先运行两次隔离的native评分并冻结预测，再请用户盲审。之后使用既有`eval-selection.ts`评估合同，完成开发集/留出集评测、指标/阈值比较与错例审阅。当前没有运行正式评测或校准，selection阈值保持原值。任何需要付费provider的评测须遵守用户免费优先决定，不在此处默认触发。验证器的静态ready状态只表示字段、人工标签、正文和技术provenance满足数据完整性要求；不表示存在holdout、评测结果或Gate 3通过。
+
+**Gate 4/5当前缺口**：本地测试与NAS隔离运行已有实测，正式Gate审查仍未签核。来源/覆盖证据仍有限；PBOC page1–5观察100个唯一URL、其中63个落在观察90日窗内，不等于全源90日完成。Gate 5还需Staging稳定运行和实际恢复演练；现有备份仅验证可读取，没有restore rehearsal。Staging中内容库为空，Gold审核数据为私有队列，不会自动展示为公开内容。阶段证据见[2026-10-22人审队列部署交接](HANDOFFS/GOLD_REVIEW_QUEUE_STAGING_2026-10-22.md)。
+
 ## 2026-10-21 seed隔离校验与新增用户标注
 
 离线validator现在要求显式传入preference seed清单：`node scripts/fiscal/gold-dataset.ts validate <manifest.json> --seed-case-ids <seed-case-ids.json>`。清单必须是JSON字符串数组，元素为manifest `caseId`；没有seed时显式传`[]`。输出报告记录`seedCheck.status`、数量和原始文件SHA-256。漏传、空白/重复/未知ID、holdout seed均失败关闭；旧API调用兼容但报告`not_run`并保持`DRAFT_INCOMPLETE`，不能据此当作ready。实现未改标签、event group、split或阈值。
@@ -50,7 +70,7 @@ QA依据仍是[用户已确认的内容边界](GATE2_USER_DECISIONS.md)：无实
 
 ## 范围与结论
 
-P5正式人工标签、开发/留出集评测和校准仍`NOT_STARTED`，实际模型评测/校准=`NOT_RUN`、Gate 3未通过。Gate 2当前正式结论为`PASSED_FOR_BOUNDED_P4_PILOT`；下方旧文字中“Gate 2仍未通过”是本页2026-10-03历史时点，按页面首段所指的正式review更新。候选准备不打开采集、worker、模型或OCR，不写业务数据库，不改来源配置、选择标准、提示词或真实阈值。
+截至2026-10-22，150项人审标签和event/split技术核验已完成，均分配为development；独立holdoutCount=0。正式模型评测/校准仍`NOT_RUN`，Gate 3未通过。Gate 2当前正式结论为`PASSED_FOR_BOUNDED_P4_PILOT`；下方旧文字中“Gate 2仍未通过”是本页2026-10-03历史时点，按页面首段所指的正式review更新。下一项Gate 3数据依赖是50条全新、事件不重叠的正文合格样本，先冻结预测再盲审；不把已有150条或15个seed重用为holdout。选择标准、提示词和真实阈值未改。
 
 仓库已有 `docs/selection.md` 和 `scripts/eval-selection.ts` 规定的Gold JSONL合同：每行含`caseId`、`material`、`sourceFacts`、`samplingContext`及人工`gold.decision`，并带可评测正文；决定值为`select`、`reject`、`either`。示例`industry/gold.example.jsonl`明确是虚构示例，不能当作真实金标。新文件`gold/metadata-template.json`是有意标注为`p5.gold-metadata-draft/v1`的**准备清单**，沿用现有字段名/含义并补充证据引用、事件组、建议和确认状态；不复制受忽略目录中的正文，因此它不是`.data/gold.jsonl`，也不能直接传给`eval-selection.ts`。确认人工标签后仍需经单独授权的整理步骤，把正文填入既有合同并将人工决策映射到`gold.decision`。
 
@@ -81,11 +101,11 @@ node scripts/fiscal/gold-dataset.ts validate docs/fiscal-finance/gold/candidates
 
 它只读取manifest和显式seed清单，并检查字段、decision词表、HTTP(S)引用、SHA-256格式、文章/诊断身份、确认信息，同一`eventGroupId`不得分到development和holdout，以及任何preference seed不得进入holdout。`--seed-case-ids`必须指向JSON字符串数组，数组项是manifest的`caseId`；没有seed时也必须传显式空数组`[]`。漏传参数、无效清单、空/重复/未知ID或seed分入holdout均失败关闭。报告带`seedCheck.status`、条目数和seed文件原始字节SHA-256；旧的程序化`validateManifest(input)`调用仍可用，但seed检查显示`not_run`，不得据此把数据集视为ready。既有15条人工决定的seed身份仍以原有用户决定/审计记录为准；本次没有重建、替换或提交seed清单。
 
-`READY_FOR_EVALUATION`还要求人工标签、事件组和split均已确认，存在已确认文章ID、`bodyStatus=ok`、有效`contentHash`与`bodySha256`，并有非空正文；附件失败或无body hash的记录永远留在`DRAFT_INCOMPLETE`。验证器不请求网络、不读写DB、不运行模型、不触发`eval-selection.ts`，也没有任何校准/阈值写入命令。退出状态可区分结构无效（`SCHEMA_ERROR`，exit 2）、schema正确但尚未完备（`DRAFT_INCOMPLETE`，exit 3）和准备内容可送入单独评测整理流程（`READY_FOR_EVALUATION`，exit 0）。后一状态仅代表静态字段/确认/正文条件满足，绝不表示模型已评测或阈值已校准。
+`READY_FOR_EVALUATION`还要求真实人工标签、已确认或带完整provenance的agent_verified事件组与split、已确认文章身份、`bodyStatus=ok`、有效`contentHash`与`bodySha256`，并有非空正文；附件失败或无body hash的记录永远留在`DRAFT_INCOMPLETE`。验证器不请求网络、不读写DB、不运行模型、不触发`eval-selection.ts`，也没有任何校准/阈值写入命令。退出状态可区分结构无效（`SCHEMA_ERROR`，exit 2）、schema正确但尚未完备（`DRAFT_INCOMPLETE`，exit 3）和准备内容可送入单独评测整理流程（`READY_FOR_EVALUATION`，exit 0）。后一状态仅代表静态字段/确认/正文条件满足，绝不表示模型已评测或阈值已校准。
 
-**只要有任一待确认标签、未确认事件组/切分，或正文尚未按现有评测合同整理，数据集就不完整，不得开始校准或改阈值。** `proposal`永远不能填充或推导`humanAnnotation`。即使之后验证为`READY_FOR_EVALUATION`，也不能代替开发集和留出集模型评估、人工审阅错例、样本量/代表性判断或Gate 3审批。现有门槛仍为T1=60、T1.5=65、T2=76，`understandFloor=50`；本轮未改。
+**只要有任一待确认标签、未确认且未独立核验的事件组/切分，或正文尚未按现有评测合同整理，数据集就不完整，不得开始校准或改阈值。** `proposal`永远不能填充或推导`humanAnnotation`。即使之后验证为`READY_FOR_EVALUATION`，也不能代替开发集和留出集模型评估、人工审阅错例、样本量/代表性判断或Gate 3审批。现有门槛仍为T1=60、T1.5=65、T2=76，`understandFloor=50`；本轮未改。
 
-事件分组必须按真实事件而不是单篇文章切分：同事件不同源、转述和后续报道要先归入同一event group，再整体放入development或holdout。若跨split复用eventGroupId，验证失败；人工尚未审阅的分组/切分状态保持`needs_review`，不能由唯一URL自动推断事件独立。`either`仅沿用既有合同表示两可，不能被当作决定性准确率样本。
+事件分组必须按真实事件而不是单篇文章切分：同事件不同源、转述和后续报道要先归入同一event group，再整体放入development或holdout。若跨split复用eventGroupId，验证失败；证据不足的分组/切分状态保持`needs_review`，不能由唯一URL自动推断事件独立。明确事件可由agent独立核验，但必须留下完整provenance并通过独立QA。`either`仅沿用既有合同表示两可，不能被当作决定性准确率样本。
 
 ## 验证与状态
 
