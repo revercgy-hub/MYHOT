@@ -600,8 +600,14 @@ export async function invokeTesseract(exe: string, image: string, outBase: strin
   const firstSampleDelayMs = sampleTimes[0] - childStartedAt;
   if (!Number.isFinite(firstSampleDelayMs) || firstSampleDelayMs < 0) throw new Error('resource monitor first sample time is invalid');
   maxGapMs = Math.max(maxGapMs, firstSampleDelayMs);
-  const lastSampleToCloseMs = Date.parse(childClosedAt!) - sampleTimes.at(-1)!;
-  if (!Number.isFinite(lastSampleToCloseMs) || lastSampleToCloseMs < 0) throw new Error('resource monitor final sample preceded child close check is invalid');
+  const lastSampleToCloseDeltaMs = Date.parse(childClosedAt!) - sampleTimes.at(-1)!;
+  if (!Number.isFinite(lastSampleToCloseDeltaMs)) throw new Error('resource monitor final sample or child close timestamp is invalid');
+  // The monitor checks HasExited before reading WorkingSet64, so the child can
+  // close between that check and the sample timestamp. Keep that race visible
+  // while treating the terminal coverage gap as zero when the sample lands late.
+  const lastSampleToCloseMs = Math.max(0, lastSampleToCloseDeltaMs);
+  runtimeLog.monitorLastSampleToCloseDeltaMs = lastSampleToCloseDeltaMs;
+  runtimeLog.monitorFinalSampleAfterCloseMs = Math.max(0, -lastSampleToCloseDeltaMs);
   maxGapMs = Math.max(maxGapMs, lastSampleToCloseMs);
   runtimeLog.workingSetPeakBytes = Math.max(...sampleRows.map(row => row.workingSetBytes));
   runtimeLog.monitorSamples = sampleRows.length;

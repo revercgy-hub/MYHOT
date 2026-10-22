@@ -316,6 +316,19 @@ test('real Windows monitor observes the exact fake-child PID and records natural
   for (const key of ['HOMEDRIVE', 'HOMEPATH', 'LOGONSERVER', 'SYSTEMDRIVE', 'USERDOMAIN', 'USERNAME', 'USERPROFILE']) assert.equal(observed.env[key], '');
 });
 
+test('a monitor sample racing just after child close is recorded without claiming a negative coverage gap', async () => {
+  const lateSampleMonitor = [
+    "const fs=require('node:fs');const pid=Number(process.argv[1]);const path=process.argv[2];",
+    "const poll=setInterval(()=>{try{process.kill(pid,0)}catch{clearInterval(poll);setTimeout(()=>{const row={pid,at:new Date(Date.now()+50).toISOString(),workingSetBytes:1};const line=JSON.stringify(row)+'\\n';fs.appendFileSync(path,line);process.stdout.write(line);const done={pid,exitCode:0,waited:true,at:new Date().toISOString()};fs.appendFileSync(path,JSON.stringify(done)+'\\n')},30)}},5);",
+  ].join('');
+  const task = invocation('process.exit(0);', 'late-final-sample', { monitorCode: lateSampleMonitor });
+  await task.run();
+  assert.equal(task.runtimeLog.monitorLastSampleToCloseMs, 0);
+  assert.ok(task.runtimeLog.monitorLastSampleToCloseDeltaMs < 0);
+  assert.ok(task.runtimeLog.monitorFinalSampleAfterCloseMs > 0);
+  assert.ok(task.runtimeLog.monitorMaxGapMs <= 250, JSON.stringify(task.runtimeLog));
+});
+
 test('deadline kills the fake child and waits for its close event under the real Windows monitor', async () => {
   // Keep the total budget (even after its cleanup reserve) well beyond this
   // page deadline so this fixture exercises only the active page limit.
