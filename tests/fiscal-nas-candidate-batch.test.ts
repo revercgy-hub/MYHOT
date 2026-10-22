@@ -2,12 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { createServer } from "node:http";
 import { resolve } from "node:path";
 import { gzipSync } from "node:zlib";
 import type { Candidate, SourceRow } from "../packages/backend/src/sources/types.ts";
 import { unsupportedConfig } from "../packages/backend/src/sources/config-keys.ts";
-import { assertApprovedCaptureReplayMetadata, buildSourcePlan, classifyCandidates, decodeCapturedBody, decodeCapturedResponse, detailConfigIsDirectHtml, findKnownIdentityKeys, sameConfiguredDay } from "../scripts/fiscal/nas-candidate-batch.ts";
-import { fromHtml } from "../packages/backend/src/sources/web-list.ts";
+import { assertApprovedCaptureReplayMetadata, buildSourcePlan, classifyCandidates, createBudgetedDetailFetcher, decodeCapturedBody, decodeCapturedResponse, detailConfigIsDirectHtml, findKnownIdentityKeys, isBatchDispatchInScope, sameConfiguredDay } from "../scripts/fiscal/nas-candidate-batch.ts";
+import { fetchDetail, fromHtml } from "../packages/backend/src/sources/web-list.ts";
 
 const catalog = JSON.parse(readFileSync(resolve("industry/sources.json"), "utf8")).sources as Array<Record<string, any>>;
 const source = catalog.find((row) => row.id === "mof-budget-work")! as SourceRow;
@@ -49,6 +50,86 @@ test("fixed 48-source catalog is compatible with list-only plans and a total det
   assert.equal(directPlan[0]?.configuredDetailMaxFetches, 4);
   assert.equal(directPlan[0]?.effectiveDirectHtmlDetailCap, 4);
   assert.equal(directPlan[0]?.maxDetails, 4);
+});
+
+test("configured list endpoints may be outside article prefixes only at the exact configured GET URL", () => {
+  const ids = ["xiamen-csrc-regulatory-work", "govcn-policy-library", "mof-regional-supervision-dynamics", "nfra-regulatory-dynamics"];
+  for (const id of ids) {
+    const row = catalog.find((item) => item.id === id)! as SourceRow;
+    const expectedUrl = new URL(String(row.config.url)).href;
+    assert.equal(allowed(expectedUrl, row), false, `${id} fixture should expose list/article-prefix separation`);
+    assert.equal(isBatchDispatchInScope({ source: row, url: new URL(expectedUrl), expectedUrl, method: "GET", redirectHop: 0, type: "list", allowed }), true);
+    assert.equal(isBatchDispatchInScope({ source: row, url: new URL(`${expectedUrl}x`), expectedUrl, method: "GET", redirectHop: 0, type: "list", allowed }), false);
+    assert.equal(isBatchDispatchInScope({ source: row, url: new URL(expectedUrl), expectedUrl, method: "POST", redirectHop: 0, type: "list", allowed }), false);
+    assert.equal(isBatchDispatchInScope({ source: row, url: new URL(expectedUrl), expectedUrl, method: "GET", redirectHop: 1, type: "list", allowed }), false);
+  }
+  const detailUrl = "https://www.gov.cn/zhengce/zhengceku/2026-01/01/content_1.htm";
+  const govcn = catalog.find((item) => item.id === "govcn-policy-library")! as SourceRow;
+  assert.equal(isBatchDispatchInScope({ source: govcn, url: new URL(govcn.config.url), expectedUrl: govcn.config.url, method: "GET", redirectHop: 0, type: "detail", allowed }), false);
+  assert.equal(isBatchDispatchInScope({ source: govcn, url: new URL(detailUrl), expectedUrl: detailUrl, method: "GET", redirectHop: 0, type: "detail", allowed }), true);
+});
+
+test("ordinary fetchDetail HTML dispatch uses the run budget and rejects redirect hops", async () => {
+  const html = "<html><h1>预算执行情况通知</h1><time>2026-10-21</time><article><p>这是经过来源规则选择的正文内容，包含足够长的测试文本。</p></article></html>";
+  const counts = { article: 0, redirect: 0 };
+  const server = createServer((req, res) => {
+    if (req.url === "/redirect") { counts.redirect++; res.writeHead(302, { location: "/article" }).end(); return; }
+    if (req.url === "/article") { counts.article++; res.writeHead(200, { "content-type": "text/html; charset=utf-8" }).end(html); return; }
+    res.writeHead(404).end();
+  });
+  await new Promise<void>((resolveListen) => server.listen(0, "127.0.0.1", resolveListen));
+  try {
+  const address = server.address();
+  assert.ok(address && typeof address !== "string");
+  const base = `http://127.0.0.1:${address.port}`;
+  const detailUrl = `${base}/article`;
+  const detailSource = { ...source, config: { ...source.config, url: detailUrl, allowUrlPrefixes: [`${base}/`], detail: {
+    bodySelector: "article", titleRegex: "<h1>(.*?)</h1>", publishedAtRegex: "<time>(.*?)</time>",
+    allowShortBody: true,
+  } } } as SourceRow;
+  const admitted: Array<{ url: string; method: string; redirectHop: number }> = [];
+  let effective: Record<string, unknown> | undefined;
+  const fetchImpl = async (url: string, options: Record<string, any> = {}) => {
+    effective = options;
+    let target = url;
+    for (let hop = 0; ; hop++) {
+      options.runBudget.beforeDispatch({ url: new URL(target), method: options.method ?? "GET", redirectHop: hop });
+      const response = await fetch(target, { method: options.method ?? "GET", redirect: "manual", signal: AbortSignal.timeout(options.timeoutMs) });
+      if (response.status >= 300 && response.status < 400 && response.headers.has("location")) {
+        if (hop >= options.maxRedirects) throw new Error("Too many redirects for local detail fixture");
+        if (options.runBudget.allowRedirect && !options.runBudget.allowRedirect({ from: new URL(target), to: new URL(response.headers.get("location")!, target), redirectHop: hop + 1 })) throw new Error("Redirect target rejected");
+        target = new URL(response.headers.get("location")!, target).href;
+        continue;
+      }
+      const body = Buffer.from(await response.arrayBuffer());
+      return { status: response.status, url: target, headers: response.headers, body, text: () => body.toString("utf8") };
+    }
+  };
+  const runBudget = { beforeDispatch(input: { url: URL; method: string; redirectHop: number }) {
+    admitted.push({ url: input.url.href, method: input.method, redirectHop: input.redirectHop });
+    if (input.method !== "GET" || input.redirectHop !== 0 || input.url.href !== detailUrl) throw new Error("scope rejected");
+  }, allowRedirect: () => false };
+  const fetcher = createBudgetedDetailFetcher(runBudget, fetchImpl as never);
+  const result = await fetchDetail(detailUrl, detailSource, { date: true, title: true, summary: false, body: true,
+    expectedTitle: "预算执行情况通知", expectedPublishedAt: new Date("2026-10-21T00:00:00+08:00") }, { fetcher });
+  assert.equal(result.title, "预算执行情况通知");
+  assert.equal(admitted.length, 1);
+  assert.equal(admitted[0]?.url, detailUrl);
+  assert.equal(effective?.maxRedirects, 0);
+  assert.equal(effective?.timeoutMs, 20_000);
+  assert.equal(effective?.maxBytes, 6 * 1024 * 1024);
+  assert.equal(effective?.runBudget, runBudget);
+  const redirectUrl = `${base}/redirect`;
+  const redirectBudget = { beforeDispatch(input: { url: URL; method: string; redirectHop: number }) {
+    if (input.method !== "GET" || input.redirectHop !== 0 || input.url.href !== redirectUrl) throw new Error("scope rejected");
+  }, allowRedirect: () => false };
+  await assert.rejects(fetchDetail(redirectUrl, detailSource, { date: true, title: true, summary: false, body: true,
+    expectedTitle: "预算执行情况通知", expectedPublishedAt: new Date("2026-10-21T00:00:00+08:00") },
+  { fetcher: createBudgetedDetailFetcher(redirectBudget, fetchImpl as never) }), /Too many redirects/);
+  assert.deepEqual(counts, { article: 1, redirect: 1 });
+  } finally {
+    await new Promise<void>((resolveClose, rejectClose) => server.close((error) => error ? rejectClose(error) : resolveClose()));
+  }
 });
 
 test("candidate classification deduplicates and excludes known, disallowed, undated/out-of-window rows before cap", () => {

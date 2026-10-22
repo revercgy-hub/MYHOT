@@ -7,7 +7,22 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import { brotliDecompressSync, gunzipSync, inflateSync } from "node:zlib";
-import type { Candidate, SourceRow } from "../../packages/backend/src/sources/types.ts";
+
+// Keep the operator runnable from its standalone NAS container: all application
+// modules are loaded from AIHOT_APP_ROOT below, never from this script's path.
+type Candidate = any;
+type SourceRow = any;
+type SourceKind = "rss" | "web_list" | "json_list" | "x_search" | "mp_account" | "external";
+type GuardedFetchRunBudget = {
+  signal?: AbortSignal;
+  beforeDispatch(input: { url: URL; method: string; redirectHop: number }): void;
+  allowRedirect?(input: { from: URL; to: URL; redirectHop: number }): boolean;
+};
+type GuardedFetchOptions = {
+  method?: string; headers?: Record<string, string>; body?: string; timeoutMs?: number; maxBytes?: number;
+  maxRedirects?: number; route?: "egress" | "direct"; runBudget?: GuardedFetchRunBudget;
+};
+type GuardedResponse = { status: number; url: string; headers: Headers; body: Buffer; text(): string };
 
 const ROOT = process.env.AIHOT_APP_ROOT ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const appModule = (relative: string) => pathToFileURL(path.resolve(ROOT, relative)).href;
@@ -55,7 +70,7 @@ export function buildSourcePlan(input: {
   sourceIds: string[];
   maxNewPerSource: number;
   maxDetailsTotal: number;
-  unsupportedConfig: (kind: SourceRow["kind"], config: Record<string, unknown>) => string[];
+  unsupportedConfig: (kind: SourceKind, config: Record<string, unknown>) => string[];
 }): BatchSourcePlan[] {
   if (input.sourceIds.length < 1 || input.sourceIds.length > MAX_SOURCES || new Set(input.sourceIds).size !== input.sourceIds.length) {
     throw new Error("source IDs must contain 1–48 unique configured sources");
@@ -136,6 +151,36 @@ export function detailConfigIsDirectHtml(source: SourceRow): boolean {
     detail.attachmentMode === undefined && detail.articleSelector === undefined && detail.bodyPolicies === undefined &&
     !!(detail.titleSelector || detail.titleRegex) && !!(detail.publishedAtSelector || detail.publishedAtRegex) &&
     !String(source.config.url).startsWith("https://r.jina.ai/");
+}
+
+/** Every ordinary HTML detail fetch is forced through the same single-dispatch budget as list requests. */
+export function createBudgetedDetailFetcher(
+  runBudget: GuardedFetchRunBudget,
+  guardedFetchImpl: (url: string, options?: GuardedFetchOptions) => Promise<GuardedResponse>,
+): (url: string, options: GuardedFetchOptions) => Promise<GuardedResponse> {
+  return (url, options) => guardedFetchImpl(url, {
+    ...options,
+    timeoutMs: Math.min(20_000, options.timeoutMs ?? 20_000),
+    maxBytes: Math.min(MAX_CAPTURE_BYTES, options.maxBytes ?? MAX_CAPTURE_BYTES),
+    maxRedirects: 0,
+    runBudget,
+  });
+}
+
+/** List routes are frozen configured endpoints; article allow-prefixes only govern candidate/detail URLs. */
+export function isBatchDispatchInScope(input: {
+  source: SourceRow;
+  url: URL;
+  expectedUrl: string;
+  method: string;
+  redirectHop: number;
+  type: "list" | "detail";
+  allowed: (url: string, source: SourceRow) => boolean;
+}): boolean {
+  if (input.method !== "GET" || input.redirectHop !== 0 || input.url.href !== input.expectedUrl) return false;
+  if (input.type === "list") return input.source.config.url === input.expectedUrl;
+  return input.allowed(input.url.href, input.source) &&
+    input.source.config.allowUrlPrefixes.some((prefix: string) => input.url.href.startsWith(prefix));
 }
 
 export function sameConfiguredDay(a: Date, b: Date, offset: string): boolean {
@@ -342,7 +387,7 @@ async function main() {
   const maxNewPerSource = Number(args["max-new-per-source"]);
   const maxDetailsTotal = Number(args["max-details"]);
   const captureReplayDir = args["capture-replay-from"] ?? null;
-  const { unsupportedConfig } = (await import(appModule("packages/backend/src/sources/config-keys.ts"))) as typeof import("../../packages/backend/src/sources/config-keys.ts");
+  const { unsupportedConfig } = await import(appModule("packages/backend/src/sources/config-keys.ts")) as any;
   const sourcePlan = buildSourcePlan({ catalogSources: CATALOG.sources, sourceIds, maxNewPerSource, maxDetailsTotal, unsupportedConfig });
   if (captureReplayDir && (sourcePlan.length !== 1 || sourcePlan[0]?.kind !== "web_list" || maxDetailsTotal !== 0)) {
     throw new Error("capture replay is limited to one web-list source with zero details");
@@ -366,7 +411,7 @@ async function main() {
     sources: sourcePlan.map((source) => ({ ...source, enabled: false, detailAllowed: source.maxDetails > 0 })) };
   if (!args.execute) { console.log(JSON.stringify(plan, null, 2)); return; }
 
-  const { sql, closeDb } = (await import(appModule("packages/backend/src/db.ts"))) as typeof import("../../packages/backend/src/db.ts");
+  const { sql, closeDb } = await import(appModule("packages/backend/src/db.ts")) as any;
   let capture: ResponseCapture | undefined;
   let outDir: string | undefined;
   let dispatches = 0;
@@ -385,11 +430,11 @@ async function main() {
       throw new Error("connected database identity differs from the exact allowed target");
     }
     const ids = sourcePlan.map((source) => source.id);
-    const dbSources = await sql<Array<SourceRow & { source_row_text: string; site_fulltext: boolean; syndicate_fulltext: boolean; name: string }>>`
+    const dbSources: Array<SourceRow & { id: string; source_row_text: string; site_fulltext: boolean; syndicate_fulltext: boolean; name: string }> = await sql<Array<SourceRow & { id: string; source_row_text: string; site_fulltext: boolean; syndicate_fulltext: boolean; name: string }>>`
       SELECT s.*, to_jsonb(s)::text AS source_row_text FROM sources s WHERE s.id = ANY(${ids}) ORDER BY s.id`;
     if (dbSources.length !== sourcePlan.length) throw new Error("one or more configured source rows are missing in target database");
     const catalogById = new Map(CATALOG.sources.map((source) => [source.id, source]));
-    const sourceById = new Map(dbSources.map((row) => [row.id, row]));
+    const sourceById = new Map<string, (typeof dbSources)[number]>(dbSources.map((row: (typeof dbSources)[number]) => [row.id, row]));
     for (const row of dbSources) {
       const catalog = catalogById.get(row.id)!;
       if (row.kind !== catalog.kind || row.name !== catalog.name || stableJson(row.config) !== stableJson(catalog.config) ||
@@ -408,10 +453,11 @@ async function main() {
     const responseDir = path.join(outDir, "responses");
     mkdirSync(responseDir, { recursive: false, mode: 0o700 });
     capture = new ResponseCapture(responseDir);
-    const { fetchWebList, fromHtml, allowed, fetchDetail } = (await import(appModule("packages/backend/src/sources/web-list.ts"))) as typeof import("../../packages/backend/src/sources/web-list.ts");
-    const { fetchJsonList } = (await import(appModule("packages/backend/src/sources/json-list.ts"))) as typeof import("../../packages/backend/src/sources/json-list.ts");
-    const { identityKeyFor, upsertMaterial } = (await import(appModule("packages/backend/src/content/materials.ts"))) as typeof import("../../packages/backend/src/content/materials.ts");
-    const { noiseFiltered } = (await import(appModule("packages/backend/src/sources/collect.ts"))) as typeof import("../../packages/backend/src/sources/collect.ts");
+    const { fetchWebList, fromHtml, allowed, fetchDetail } = await import(appModule("packages/backend/src/sources/web-list.ts")) as any;
+    const { guardedFetch } = await import(appModule("packages/backend/src/lib/http-fetch.ts")) as any;
+    const { fetchJsonList } = await import(appModule("packages/backend/src/sources/json-list.ts")) as any;
+    const { identityKeyFor, upsertMaterial } = await import(appModule("packages/backend/src/content/materials.ts")) as any;
+    const { noiseFiltered } = await import(appModule("packages/backend/src/sources/collect.ts")) as any;
     const runId = String(args["run-id"]);
     const manifestPath = path.join(outDir, "scope.json");
     const scope = { schemaVersion: "nas-candidate-batch.v1", runId, database: dbName, startedAt,
@@ -433,8 +479,7 @@ async function main() {
       beforeDispatch({ url, method, redirectHop }: { url: URL; method: string; redirectHop: number }) {
         const wait = MIN_INTERVAL_MS - (Date.now() - lastDispatchAt);
         if (wait > 0) throw new Error("dispatch rate guard rejected an early request");
-        if (dispatches >= MAX_DISPATCHES || method !== "GET" || redirectHop !== 0 || url.href !== expectedUrl ||
-            !allowed(url.href, source) || !source.config.allowUrlPrefixes.some((prefix: string) => url.href.startsWith(prefix))) {
+        if (dispatches >= MAX_DISPATCHES || !isBatchDispatchInScope({ source, url, expectedUrl, method, redirectHop, type, allowed })) {
           throw new Error(`network scope rejected request for ${sourceId}`);
         }
         lastDispatchAt = Date.now();
@@ -457,7 +502,7 @@ async function main() {
       let phase: "list" | "detail" | "write" = "list";
       try {
         const listBefore = dispatches;
-        const candidates = replayCapture
+        const candidates: Candidate[] = replayCapture
           ? fromHtml(replayCapture.decodedText, planRow.url, source, planRow.url)
           : source.kind === "web_list"
             ? await fetchWebList(source, { listUrl: planRow.url, runBudget: runBudget(source, planRow.url, source.id, "list") })
@@ -497,9 +542,10 @@ async function main() {
           detailUsed++;
           globalDetails++;
           try {
+            const detailRunBudget = runBudget(source, url, source.id, "detail");
             target.got = await fetchDetail(url, source, { date: true, title: true, summary: false, body: true,
               expectedTitle: target.candidate.title, expectedPublishedAt: target.candidate.publishedAt ?? null },
-            { runBudget: runBudget(source, url, source.id, "detail") });
+            { runBudget: detailRunBudget, fetcher: createBudgetedDetailFetcher(detailRunBudget, guardedFetch) });
             const raw = capture.rows.at(-1);
             if (dispatches !== detailBefore + 1 || !raw || raw.status !== 200 || !raw.eof || raw.truncated || !raw.file) {
               throw new Error("detail response was not one HTTP 200 with complete bounded raw capture");
@@ -521,7 +567,7 @@ async function main() {
         }
 
         phase = "write";
-        const writeResult = await sql.begin(async (tx) => {
+        const writeResult = await sql.begin(async (tx: any) => {
           const [current] = await tx<{ source_row_text: string; enabled: boolean; site_fulltext: boolean; syndicate_fulltext: boolean }[]>`
             SELECT to_jsonb(s)::text AS source_row_text, s.enabled, s.site_fulltext, s.syndicate_fulltext FROM sources s WHERE s.id = ${source.id} FOR UPDATE`;
           if (!current || current.source_row_text !== beforeRowText || current.enabled !== false || current.site_fulltext !== false || current.syndicate_fulltext !== false) {
