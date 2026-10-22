@@ -1,23 +1,23 @@
 # 项目状态
 
-## 2026-10-23 受控正文批次与独立后验（当前状态）
+## 2026-10-23 受控正文与摘要批次收尾（当前状态）
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=e3d2b9c924fc3396a6424dfed116c75794c72d6f（正文批次工具与测试；本轮状态文档另行提交）
+CURRENT_SHA=正文工具提交e3d2b9c924fc3396a6424dfed116c75794c72d6f；摘要导入收尾与最终独立QA后，本状态文档有独立文档提交
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
-STAGE=NAS Staging；已部署应用仍为21ca4d4，不含本地operator工具；Gold review共200条
+STAGE=NAS Staging；已部署应用仍为21ca4d4，不含本地operator工具；Gold review共200条（150 confirmed、fresh50 pending）
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过
 REVIEW=fresh50人工确认仍待完成；新评分仅为事先冻结的同一holdout版本比较，不据此调参或重采样
-BLOCKERS=Gate 3评测精度与召回仍不足自动精选，且fresh50标签/错例复核未完成；Gate 4来源覆盖与正式review未完成；Gate 5稳定性与正式review未完成
-COMPLETED=418 articles/490 revisions/418 discoveries，72 ok/340 pending/6 unconfirmed；48 sources disabled且全文/转发关闭；45/50离线历史捕获正文CAS完成并独立只读PASS，5项保持hold；27条旧正文CAS仍有效；18条native摘要已发布；Gold200=150 confirmed+50 pending；本轮后验确认旧445 revisions全部保留
-IN_PROGRESS=45条native摘要已逐条grounding；22 PASS/23 BLOCK，等待Root决定是否按冻结QA准确应用22条
-NEXT=仅按Root后续明确批准应用22 PASS；继续剩余pending正文受控批次；fresh50标签完整后才做已冻结评测
-TESTED=本地final tree full suite 470 tests/469 pass/0 fail/1 skip；typecheck通过；Web build通过、Web tests 22/22；本轮逻辑提交e3d2b9c924fc3396a6424dfed116c75794c72d6f
+BLOCKERS=Gate 3开发集精确率不足自动精选要求且fresh50标签/错例复核未完成；Gate 4来源覆盖与正式review未完成；Gate 5稳定性与正式review未完成（此前同步快照恢复子项通过，不代表Gate通过）
+COMPLETED=418 articles/490 revisions/418 discoveries，72 ok/340 pending/6 unconfirmed；48 sources disabled且全文/转发关闭；45/50离线历史捕获正文CAS完成并独立只读PASS，5项保持hold；27条旧正文CAS仍有效；22条native摘要独立grounding后发布、23 BLOCK未写；publications/overrides各40；Gold200=150 confirmed+50 pending；旧445 revisions保留
+IN_PROGRESS=剩余340 pending正文与6 unconfirmed需后续独立有界批次；fresh50 Gold仍待用户审阅；5个已知hold没有新证据前不重抓/重解析
+NEXT=后续仅基于新证据计划剩余pending正文批次；fresh50标签完整后再跑已冻结评测；不调整评分阈值、不据holdout分数重采样
+TESTED=最终软件树full suite 470 tests/469 pass/0 fail/1 skip；typecheck、Web build通过，Web tests 22/22；LAN /all、摘要详情、API、RSS、robots均200/noindex；文档提交之外的软件测试不需重跑
 ```
 
-本批次代码SHA-256为`113689cf00fab3ddab2d613f29776e5ba2045dafeb96fb8a0d1512d39478db4b`；测试文件为`987a3378f2d5f8cb77426139615f8955caae78530f1c0198b88345cb84a6e6fe`。真实HTTP采集为0；50条均复用manifest绑定的历史response bytes，历史cadence仍`UNPROVEN`。45条摘要QA artifact和文字修订见[10月23日pending正文批次交接](HANDOFFS/PENDING_BODY_BATCH_2026-10-23.md)。全量测试中的单个skip保留；先前子进程继承测试开关导致的失败已通过测试harness显式隔离修复，本轮没有放宽运行时安全门。
+本批次代码SHA-256为`113689cf00fab3ddab2d613f29776e5ba2045dafeb96fb8a0d1512d39478db4b`；测试文件为`987a3378f2d5f8cb77426139615f8955caae78530f1c0198b88345cb84a6e6fe`。真实HTTP采集为0；50条均复用manifest绑定的历史response bytes，历史cadence仍`UNPROVEN`。45条摘要QA artifact、22条发布后验、LAN smoke、五个hold的原因与原件备份位置见[10月23日pending正文批次交接](HANDOFFS/PENDING_BODY_BATCH_2026-10-23.md)。全量测试中的单个skip保留；先前子进程继承测试开关导致的失败已通过测试harness显式隔离修复，本轮没有放宽运行时安全门。`eligible=true`只表示进入动态pool；22条均`selected=false`、`indexable=false`、`syndicate=false`。Gate 3/4/5均未通过。
 
 ## 2026-10-22 晚间恢复、NAS导入与新版盲评分评估（以本节为当前真值）
 
