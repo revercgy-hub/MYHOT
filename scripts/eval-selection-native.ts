@@ -134,7 +134,7 @@ function parseBodyInput(value: unknown): { format: string; items: BodyItem[] } {
     publishedAt: z.string().datetime({ offset: true }).nullable(), discoveredAt: z.string().datetime({ offset: true }).nullable(),
     sourceName: z.string().trim().min(1), sourceKind: z.string().trim().min(1), sourceTier: z.string().trim().min(1),
     firstParty: z.boolean(), sourceTags: z.array(z.string()).default([]), fetchesBody: z.boolean(),
-    url: z.string().url().refine((v) => /^https?:$/.test(new URL(v).protocol)), bodyText: z.string().trim().min(1),
+    url: z.string().url().refine((v) => /^https?:$/.test(new URL(v).protocol)), bodyText: z.string().min(1).refine((v) => v.trim().length > 0),
   }).strict()).min(1) }).strict().parse(value);
   const ids = new Set<string>();
   for (const item of root.items) {

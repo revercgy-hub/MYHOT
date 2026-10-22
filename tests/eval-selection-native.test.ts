@@ -65,10 +65,12 @@ function fixtureManifest(p: ReturnType<typeof prepared>, split: "development" | 
 }
 
 test("prepare freezes body-only inputs and rejects labels or bad body hashes", () => {
-  const source = input([{ caseId: "one", bodyText: "测试正文" }]);
+  const exactBody = "测试正文  \n";
+  const source = input([{ caseId: "one", bodyText: exactBody }]);
   const p = prepared(makePrepared(source, hash(JSON.stringify(source))));
   assert.equal(p.cases.length, 1);
-  assert.equal(p.cases[0]!.bodySha256, hash("测试正文"));
+  assert.equal(p.cases[0]!.bodySha256, hash(exactBody));
+  assert.equal(p.cases[0]!.bodyText, exactBody);
   assert.ok(p.cases[0]!.prefilter.promptSha256);
   assert.ok(p.cases[0]!.score.promptSha256);
   assert.throws(() => makePrepared({ ...source, humanAnnotation: { decision: "select" } }, hash("input")), /forbidden field/);
