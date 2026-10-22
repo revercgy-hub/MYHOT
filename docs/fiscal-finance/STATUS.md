@@ -1,6 +1,26 @@
 # 项目状态
 
+## 2026-10-22 下午恢复检查点（以本节为当前真值）
+
+```text
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_SHA=efd47e51f7c878cd71df3370984294331c87a541
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+WORKSPACE=D:\AI-work\MYHOT\AIHOT
+STAGE=NAS Staging有限候选采集与development评估；418篇，27篇离线正文CAS仅为未执行提案
+GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过
+REVIEW=42 list + 30 detail实际HTTP响应均有raw证据；runner少报30详情且详情请求间隔未测量；source/review基线稳定；fresh50已选但尚未预测和人标
+BLOCKERS=NAS operator实现与测试未收敛；远端写入本轮禁止；Gate 3–5证据缺失
+COMPLETED=.data证据恢复核实；NAS 48 source均disabled、418 articles（412 pending/6 unconfirmed）、publication/analysis/receipt/job/fetch副作用为0；离线详情27 ok/3 hold；development150评估TP11 FP26 FN15 TN98；fresh holdout50选样证明已核验
+IN_PROGRESS=operator body-CAS/runner变更独立QA；fresh50隔离预测准备
+NEXT=运行operator focused tests与隔离CAS测试；holdout维持冻结，不按模型分数换样，先完成两次隔离预测再制作用户盲审包；不改变60/65/76门槛、用户标签或远端状态
+```
+
+详细交接见[人审校准与NAS候选恢复交接](HANDOFFS/HUMAN_REVIEW_CALIBRATION_AND_NAS_CANDIDATES_2026-10-22.md)。当前仅有4个NAS operator脚本/测试文件未提交；文档更新不包含这些文件，也不得提前提交它们。
+
 ## 2026-10-22 用户完成人审标签与Gold下一依赖
+
+> 此处记录当天稍早的检查点；“下一步收集50条”已由上方恢复检查点更新，现有50条仍未标注/未预测。
 
 私有150项批次现已全部`user_confirmed`：原20项13 select/7 reject保持；原130待审由用户提交13 select/117 reject/0 either，合计26 select/124 reject。原15 preference seeds仍确认且不在holdout。新50 native screening sidecar 23/22/5仅为辅助建议，全部needsHumanReview，没有进入Gold labels。overlay/merged manifest/body snapshot的独立QA及validator结果见[P5 readiness](P5_GOLD_DATASET_READINESS.md)；部署与运行边界见[Staging交接](HANDOFFS/GOLD_REVIEW_QUEUE_STAGING_2026-10-22.md)。
 

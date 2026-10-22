@@ -2,6 +2,24 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
+## 2026-10-22 下午恢复检查点（当前状态）
+
+```text
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_SHA=efd47e51f7c878cd71df3370984294331c87a541
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+WORKSPACE=D:\AI-work\MYHOT\AIHOT
+STAGE=NAS Staging有界候选批次；418篇，27个capture-backed body CAS仍为proposal-only
+GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过
+REVIEW=42 list + 30 detail响应raw完整；runner结果少报30详情，详情间隔未留时间戳；50 fresh holdout已冻结，native预测/人标未开始
+BLOCKERS=operator实现尚未收敛；本轮禁止远端写；独立留出评测与Gate 3/4/5正式证据仍未完成
+COMPLETED=恢复真实NAS/Git证据；418 articles、48 disabled sources及0公开/provider/job副作用核验；offline 30 details=27 ok/3 hold；development150指标已算出；fresh50选样proof已审
+IN_PROGRESS=operator runner/body-CAS独立QA；准备holdout隔离预测
+NEXT=focused operator与loopback *_test CAS测试；对fresh50冻结两次隔离预测后制用户盲审包；保持已有门槛、Gold标签和远端数据不变
+```
+
+当前恢复依据和证据hash见[人审校准与NAS候选恢复交接](HANDOFFS/HUMAN_REVIEW_CALIBRATION_AND_NAS_CANDIDATES_2026-10-22.md)。下面更早的“150项完成”段只记录当时Gold人审和技术分组结果；其收集fresh50计划已由当前检查点推进到“已选、待冻结预测”。
+
 ## 2026-10-22 用户人审及技术分组完成，独立留出评测待续
 
 固定代码SHA `21ca4d400bda9071f1e0b8761d404d1fc5b001e5` 已部署至`/vol2/1000/docker/fiscalhot-staging`，0039迁移完成。150项私有审核候选均已确认：原20项13 select/7 reject保持，新增130项13 select/117 reject/0 either；原15 seed仍confirmed/non-holdout。48个source仍disabled，文章、公开发布、provider、worker及任务运行副作用为0。管理员UI/LAN匿名保护、noindex和分页检查通过；只有用户显式勾选提交才保存标签，未选不等于reject，标签不会自动发布。此次功能审查为`APPROVED_FOR_PRIVATE_BATCH_REVIEW_ON_STAGING`，不等于Gate 3/4/5通过。独立overlay/body-hash/合并核验和validator状态详见[P5 readiness](P5_GOLD_DATASET_READINESS.md)。
