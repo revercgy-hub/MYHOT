@@ -6,16 +6,16 @@
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=efd47e51f7c878cd71df3370984294331c87a541
+CURRENT_SHA=96256609612c71966c2b15b6cf7ba73aa59e20e7
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
-STAGE=NAS Staging有界候选批次；418篇，27个capture-backed body CAS仍为proposal-only
+STAGE=NAS Staging有界候选批次；部署SHA21ca4d4，418篇，27个capture-backed body CAS等待fresh backup/zero-write preflight
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过
-REVIEW=42 list + 30 detail响应raw完整；runner结果少报30详情，详情间隔未留时间戳；50 fresh holdout已冻结，native预测/人标未开始
-BLOCKERS=operator实现尚未收敛；本轮禁止远端写；独立留出评测与Gate 3/4/5正式证据仍未完成
-COMPLETED=恢复真实NAS/Git证据；418 articles、48 disabled sources及0公开/provider/job副作用核验；offline 30 details=27 ok/3 hold；development150指标已算出；fresh50选样proof已审
-IN_PROGRESS=operator runner/body-CAS独立QA；准备holdout隔离预测
-NEXT=focused operator与loopback *_test CAS测试；对fresh50冻结两次隔离预测后制用户盲审包；保持已有门槛、Gold标签和远端数据不变
+REVIEW=42 list + 30 detail raw已核但runner少报详情、无详情时间戳；fresh50选样证据不变，body-only input/prefilter packet已准备
+BLOCKERS=27 CAS须先有fresh418备份与zero-write live preflight；Gate 3–5正式证据未完成
+COMPLETED=NAS 418 articles/48 disabled sources及0发布/provider/job副作用已核；offline details 27 ok/3 hold；development150 TP11 FP26 FN15 TN98；operator DB tests14/14、0skip及独立代码QA通过；local测试库净影响0；fresh50 packet hashes已记录
+IN_PROGRESS=fork-none Luna fresh50 blind prefilter；27 CAS等待backup/preflight
+NEXT=完成fresh50隔离预测并核hash后准备用户盲审包；CAS只在Root批准的fresh备份和只读preflight通过后执行；Gold标签、阈值和抽样保持冻结
 ```
 
 当前恢复依据和证据hash见[人审校准与NAS候选恢复交接](HANDOFFS/HUMAN_REVIEW_CALIBRATION_AND_NAS_CANDIDATES_2026-10-22.md)。下面更早的“150项完成”段只记录当时Gold人审和技术分组结果；其收集fresh50计划已由当前检查点推进到“已选、待冻结预测”。

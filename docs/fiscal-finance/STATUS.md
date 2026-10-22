@@ -4,16 +4,16 @@
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=efd47e51f7c878cd71df3370984294331c87a541
+CURRENT_SHA=96256609612c71966c2b15b6cf7ba73aa59e20e7
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
-STAGE=NAS Staging有限候选采集与development评估；418篇，27篇离线正文CAS仅为未执行提案
+STAGE=NAS Staging候选批次与Gold开发评估；运行代码SHA21ca4d4，418篇；27篇离线正文CAS提案等待fresh备份和零写preflight
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过
-REVIEW=42 list + 30 detail实际HTTP响应均有raw证据；runner少报30详情且详情请求间隔未测量；source/review基线稳定；fresh50已选但尚未预测和人标
-BLOCKERS=NAS operator实现与测试未收敛；远端写入本轮禁止；Gate 3–5证据缺失
-COMPLETED=.data证据恢复核实；NAS 48 source均disabled、418 articles（412 pending/6 unconfirmed）、publication/analysis/receipt/job/fetch副作用为0；离线详情27 ok/3 hold；development150评估TP11 FP26 FN15 TN98；fresh holdout50选样证明已核验
-IN_PROGRESS=operator body-CAS/runner变更独立QA；fresh50隔离预测准备
-NEXT=运行operator focused tests与隔离CAS测试；holdout维持冻结，不按模型分数换样，先完成两次隔离预测再制作用户盲审包；不改变60/65/76门槛、用户标签或远端状态
+REVIEW=42 list + 30 detail实际响应raw核验完整但runner少报30详情且未记录详情间隔；fresh50原样本冻结并已生成body-only native input/prefilter packet；未预测/未标注
+BLOCKERS=27 CAS需fresh 418-row backup与zero-write live preflight；Gate 3–5证据缺失
+COMPLETED=.data证据恢复核实；NAS 48 source disabled、418 articles（412 pending/6 unconfirmed）、publication/analysis/receipt/job/fetch副作用0；offline 30 details=27 ok/3 hold；development150 TP11 FP26 FN15 TN98；operator测试14/14、0 skip，独立CAS代码QA PASS，local *_test DB净影响0；fresh50 packet hashes已核
+IN_PROGRESS=fork-none Luna fresh50盲预筛；B按既有批准执行CAS前仍需先过备份及只读preflight
+NEXT=冻结并独立核fresh50预筛；用户盲审包保持无native分数；CAS只在Root既有批准的fresh备份+preflight全通过后执行；不改60/65/76门槛、用户标签或采样
 ```
 
 详细交接见[人审校准与NAS候选恢复交接](HANDOFFS/HUMAN_REVIEW_CALIBRATION_AND_NAS_CANDIDATES_2026-10-22.md)。当前仅有4个NAS operator脚本/测试文件未提交；文档更新不包含这些文件，也不得提前提交它们。
