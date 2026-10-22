@@ -2,10 +2,11 @@
 /** Bounded direct-source candidate ingest for the isolated NAS staging database. */
 import { createHash } from "node:crypto";
 import diagnosticsChannel from "node:diagnostics_channel";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { lstatSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
+import { brotliDecompressSync, gunzipSync, inflateSync } from "node:zlib";
 import type { Candidate, SourceRow } from "../../packages/backend/src/sources/types.ts";
 
 const ROOT = process.env.AIHOT_APP_ROOT ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -13,6 +14,12 @@ const appModule = (relative: string) => pathToFileURL(path.resolve(ROOT, relativ
 const CATALOG_PATH = path.join(ROOT, "industry/sources.json");
 const CATALOG_BYTES = readFileSync(CATALOG_PATH);
 const CATALOG = JSON.parse(CATALOG_BYTES.toString("utf8")) as { sources: Array<Record<string, any>> };
+const CAPTURE_ROOT = "/data/operators/runs";
+const PILOT_CAPTURE_RUN_ID = "nas-mof-budget-pilot-20261022";
+const PILOT_CAPTURE_OPERATOR_SHA256 = "9f7822b4d7de81e882eb86a9d059333d9660d82aea703021708603e0f2e838c8";
+const PILOT_CAPTURE_RAW_SHA256 = "9ddd111bfa9dbc9edde1954f2e2af75d5e57dbeb6ab95642aab52482bf0a0ada";
+const PILOT_CAPTURE_LEGACY_DECODED_SHA256 = "84e4a8da1fee6a44ffc058a33c17c048a26e3147f33004d7417664d8b7991339";
+const PILOT_CAPTURE_DECODED_SHA256 = "4456c71613c83c0de91a7d3285f93f617c3ddf8b2ef04ffdf89d9a2b1810b148";
 const DEFAULT_SOURCE_IDS = ["mof-budget-work"];
 const MAX_SOURCES = 48;
 const MAX_NEW_PER_SOURCE = 30;
@@ -37,6 +44,8 @@ export interface BatchSourcePlan {
   kind: "web_list" | "json_list";
   url: string;
   maxNew: number;
+  configuredDetailMaxFetches: number;
+  effectiveDirectHtmlDetailCap: number;
   maxDetails: number;
   unsupportedConfig: string[];
 }
@@ -78,10 +87,15 @@ export function buildSourcePlan(input: {
     const unsupported = input.unsupportedConfig(row.kind, config);
     if (unsupported.length) throw new Error(`unsupported source config for ${id}: ${unsupported.join(",")}`);
     const detail = config.detail;
-    const sourceDetailCap = detail && Number.isSafeInteger(detail.maxFetches) && detail.maxFetches > 0
-      ? Math.min(10, detail.maxFetches) : 0;
+    const configuredDetailMaxFetches = detail && Number.isSafeInteger(detail.maxFetches) && detail.maxFetches > 0
+      ? detail.maxFetches : 0;
+    const configuredDetailUpperBound = configuredDetailMaxFetches > 0
+      ? Math.min(10, configuredDetailMaxFetches) : 0;
+    const effectiveDirectHtmlDetailCap = detailConfigIsDirectHtml(row as SourceRow)
+      ? configuredDetailUpperBound : 0;
     return { id, kind: row.kind, url: url.href, maxNew: input.maxNewPerSource,
-      maxDetails: Math.min(sourceDetailCap, input.maxDetailsTotal), unsupportedConfig: unsupported };
+      configuredDetailMaxFetches, effectiveDirectHtmlDetailCap,
+      maxDetails: Math.min(effectiveDirectHtmlDetailCap, input.maxDetailsTotal), unsupportedConfig: unsupported };
   });
 }
 
@@ -133,6 +147,13 @@ export function sameConfiguredDay(a: Date, b: Date, offset: string): boolean {
   return day(a) === day(b);
 }
 
+export async function findKnownIdentityKeys(sqlClient: any, identityKeys: string[]): Promise<Set<string>> {
+  if (!identityKeys.length) return new Set();
+  const rows: Array<{ identity_key: string }> = await sqlClient`
+    SELECT identity_key FROM articles WHERE identity_key = ANY(${sqlClient.array(identityKeys, 1009)})`;
+  return new Set(rows.map((row: { identity_key: string }) => row.identity_key));
+}
+
 export function decodeCapturedBody(body: Buffer, contentType: string | null): string {
   let charset = /charset=([\w-]+)/iu.exec(contentType ?? "")?.[1]?.toLowerCase() ?? "utf-8";
   if (!/charset=/iu.test(contentType ?? "") && !/^application\/(?:json|[\w.+-]+\+json)(?:\s*;|$)/iu.test(contentType ?? "")) {
@@ -143,6 +164,69 @@ export function decodeCapturedBody(body: Buffer, contentType: string | null): st
   if (charset === "gb2312") charset = "gbk";
   try { return new TextDecoder(charset).decode(body).replace(/\uFFFD+/gu, "\uFFFD"); }
   catch { return body.toString("utf8").replace(/\uFFFD+/gu, "\uFFFD"); }
+}
+
+export function decodeCapturedResponse(body: Buffer, contentType: string | null, contentEncoding: string | null): string {
+  let decoded = body;
+  const encodings = (contentEncoding ?? "identity").split(",").map((value) => value.trim().toLowerCase()).filter(Boolean);
+  for (const encoding of encodings.reverse()) {
+    if (encoding === "identity") continue;
+    if (encoding === "gzip" || encoding === "x-gzip") decoded = gunzipSync(decoded);
+    else if (encoding === "deflate") decoded = inflateSync(decoded);
+    else if (encoding === "br") decoded = brotliDecompressSync(decoded);
+    else throw new Error(`unsupported captured content encoding: ${encoding}`);
+  }
+  return decodeCapturedBody(decoded, contentType);
+}
+
+export function assertApprovedCaptureReplayMetadata(input: {
+  scope: Record<string, any>; result: Record<string, any>; database: string; directoryRunId: string;
+  sourceId: string; expectedUrl: string; currentSourceRowSha256: string;
+}): { sourceRequest: Record<string, any>; raw: Record<string, any> } {
+  const { scope, result } = input;
+  const sourceRequest = result.requests?.[0];
+  const raw = result.responseRaw?.[0];
+  if (scope.database !== input.database || result.database !== input.database || scope.runId !== input.directoryRunId || result.runId !== scope.runId ||
+      scope.runId !== PILOT_CAPTURE_RUN_ID || scope.operatorSha256 !== PILOT_CAPTURE_OPERATOR_SHA256 || result.operatorSha256 !== scope.operatorSha256 ||
+      scope.fixedAppSha !== FIXED_APP_SHA || scope.sourceIds?.length !== 1 || scope.sourceIds[0] !== input.sourceId ||
+      scope.sources?.length !== 1 || scope.sources[0].url !== input.expectedUrl || scope.sources[0].sourceRowSha256 !== input.currentSourceRowSha256 ||
+      result.totals?.newArticles !== 0 || result.totals?.detailsAttempted !== 0 || result.requests?.length !== 1 || result.totals?.failed !== 1 ||
+      result.results?.length !== 1 || result.results[0].status !== "failed" || result.results[0].phase !== "list" ||
+      sourceRequest.ordinal !== 1 || sourceRequest.type !== "list" || sourceRequest.sourceId !== input.sourceId || sourceRequest.expectedUrl !== input.expectedUrl ||
+      result.responseRaw?.length !== 1 || raw.method !== "GET" || raw.url !== input.expectedUrl || raw.status !== 200 || raw.eof !== true ||
+      raw.redirectLocation !== null || raw.truncated !== false || raw.bytes !== 4328 || raw.contentType !== "text/html" ||
+      raw.contentEncoding !== "gzip" || raw.sha256 !== PILOT_CAPTURE_RAW_SHA256 || raw.decodedTextSha256 !== PILOT_CAPTURE_LEGACY_DECODED_SHA256 ||
+      !raw.file) {
+    throw new Error("capture replay evidence does not bind the one approved prior MOF response and zero prior writes");
+  }
+  return { sourceRequest, raw };
+}
+
+function readCaptureReplay(input: { directory: string; database: string; sourceId: string; expectedUrl: string; currentSourceRowSha256: string }) {
+  const replayDir = path.resolve(input.directory);
+  const allowedRoot = `${path.resolve(CAPTURE_ROOT)}${path.sep}`;
+  if (!replayDir.startsWith(allowedRoot) || lstatSync(replayDir).isSymbolicLink()) throw new Error("capture replay must use a direct run directory under the operator evidence root");
+  const scope = JSON.parse(readFileSync(path.join(replayDir, "scope.json"), "utf8")) as Record<string, any>;
+  const result = JSON.parse(readFileSync(path.join(replayDir, "result.json"), "utf8")) as Record<string, any>;
+  const { sourceRequest, raw } = assertApprovedCaptureReplayMetadata({ ...input, directoryRunId: path.basename(replayDir), scope, result });
+  const fileName = path.basename(String(raw.file));
+  if (fileName !== raw.file.replace(/^responses\//u, "") || !/^response-\d{3}\.body$/u.test(fileName)) throw new Error("capture replay response path is not a fixed evidence filename");
+  const bodyPath = path.join(replayDir, "responses", fileName);
+  if (lstatSync(bodyPath).isSymbolicLink()) throw new Error("capture replay response cannot be a symlink");
+  const body = readFileSync(bodyPath);
+  const legacyDecodedText = decodeCapturedBody(body, raw.contentType);
+  const decodedText = decodeCapturedResponse(body, raw.contentType, raw.contentEncoding);
+  if (body.length !== raw.bytes || body.length > MAX_CAPTURE_BYTES || sha256(body) !== raw.sha256 ||
+      sha256(legacyDecodedText) !== raw.decodedTextSha256 || sha256(decodedText) !== PILOT_CAPTURE_DECODED_SHA256) {
+    throw new Error("capture replay raw bytes or encoding-aware decoded-text hash differ from the approved response");
+  }
+  return {
+    originalRunId: scope.runId, originalOperatorSha256: scope.operatorSha256, originalRequestOrdinal: sourceRequest.ordinal,
+    sourceId: input.sourceId, sourceUrl: raw.url, method: raw.method, status: raw.status, contentType: raw.contentType,
+    contentEncoding: raw.contentEncoding, redirectLocation: raw.redirectLocation, bytes: raw.bytes, sha256: raw.sha256,
+    eof: raw.eof, decodedTextSha256: sha256(decodedText), legacyManifestDecodedTextSha256: raw.decodedTextSha256,
+    path: bodyPath, body, decodedText,
+  };
 }
 
 type RawRecord = {
@@ -236,6 +320,7 @@ function parseCli() {
     "source-ids": { type: "string", default: DEFAULT_SOURCE_IDS.join(",") },
     "max-new-per-source": { type: "string", default: "30" },
     "max-details": { type: "string", default: "0" },
+    "capture-replay-from": { type: "string" },
     "run-id": { type: "string" },
     execute: { type: "boolean", default: false },
   }, strict: true });
@@ -256,8 +341,12 @@ async function main() {
   const sourceIds = String(args["source-ids"]).split(",").map((id) => id.trim());
   const maxNewPerSource = Number(args["max-new-per-source"]);
   const maxDetailsTotal = Number(args["max-details"]);
+  const captureReplayDir = args["capture-replay-from"] ?? null;
   const { unsupportedConfig } = (await import(appModule("packages/backend/src/sources/config-keys.ts"))) as typeof import("../../packages/backend/src/sources/config-keys.ts");
   const sourcePlan = buildSourcePlan({ catalogSources: CATALOG.sources, sourceIds, maxNewPerSource, maxDetailsTotal, unsupportedConfig });
+  if (captureReplayDir && (sourcePlan.length !== 1 || sourcePlan[0]?.kind !== "web_list" || maxDetailsTotal !== 0)) {
+    throw new Error("capture replay is limited to one web-list source with zero details");
+  }
   const totalNewCap = Math.min(MAX_NEW_TOTAL, sourcePlan.length * maxNewPerSource);
   const totalDetailCap = Math.min(MAX_DETAILS_TOTAL, maxDetailsTotal,
     sourcePlan.reduce((sum, source) => sum + source.maxDetails, 0));
@@ -265,7 +354,11 @@ async function main() {
   const operatorSha256 = sha256(readFileSync(fileURLToPath(import.meta.url)));
   const startedAt = new Date().toISOString();
   const plan = { result: args.execute ? "EXECUTE_SCOPE_READONLY_PREFLIGHT_PASS" : "PLAN_ONLY_NO_DATABASE_NO_HTTP_NO_WRITES",
-    startedAt, sourceIds, catalogSha256, operatorSha256, fixedAppSha: FIXED_APP_SHA, maxDispatches: sourcePlan.length + totalDetailCap,
+    startedAt, sourceIds, catalogSha256, operatorSha256, fixedAppSha: FIXED_APP_SHA,
+    networkMode: captureReplayDir ? "capture-replay" : "live", replaySourceRunId: captureReplayDir ? path.basename(captureReplayDir) : null,
+    maxDispatches: captureReplayDir ? 0 : sourcePlan.length + totalDetailCap,
+    networkDispatchBudget: captureReplayDir ? 0 : sourcePlan.length + totalDetailCap,
+    listObservationBudget: sourcePlan.length,
     maxNewPerSource, maxNewTotal: totalNewCap, maxDetailsTotal: totalDetailCap,
     minIntervalMs: MIN_INTERVAL_MS, serial: true, redirects: 0, retries: 0, queueProcessing: false,
     collectSource: false, sourceWrites: false, flags: Object.fromEntries(["COLLECT_ENABLED", "MODEL_CALLS_ENABLED", "JINA_BODY_FALLBACK",
@@ -305,20 +398,30 @@ async function main() {
       }
     }
     if (!args["run-id"] || !/^[a-z0-9][a-z0-9_-]{2,80}$/iu.test(args["run-id"])) throw new Error("--execute requires a fresh safe --run-id");
-    const runRoot = "/data/operators/runs";
+    const replayCapture = captureReplayDir ? readCaptureReplay({ directory: captureReplayDir, database: dbName,
+      sourceId: sourcePlan[0]!.id, expectedUrl: sourcePlan[0]!.url,
+      currentSourceRowSha256: sha256(sourceById.get(sourcePlan[0]!.id)!.source_row_text) }) : null;
+    const runRoot = CAPTURE_ROOT;
     mkdirSync(runRoot, { recursive: true, mode: 0o700 });
     outDir = path.join(runRoot, String(args["run-id"]));
     mkdirSync(outDir, { recursive: false, mode: 0o700 });
     const responseDir = path.join(outDir, "responses");
     mkdirSync(responseDir, { recursive: false, mode: 0o700 });
     capture = new ResponseCapture(responseDir);
-    const { fetchWebList, allowed, fetchDetail } = (await import(appModule("packages/backend/src/sources/web-list.ts"))) as typeof import("../../packages/backend/src/sources/web-list.ts");
+    const { fetchWebList, fromHtml, allowed, fetchDetail } = (await import(appModule("packages/backend/src/sources/web-list.ts"))) as typeof import("../../packages/backend/src/sources/web-list.ts");
     const { fetchJsonList } = (await import(appModule("packages/backend/src/sources/json-list.ts"))) as typeof import("../../packages/backend/src/sources/json-list.ts");
     const { identityKeyFor, upsertMaterial } = (await import(appModule("packages/backend/src/content/materials.ts"))) as typeof import("../../packages/backend/src/content/materials.ts");
     const { noiseFiltered } = (await import(appModule("packages/backend/src/sources/collect.ts"))) as typeof import("../../packages/backend/src/sources/collect.ts");
     const runId = String(args["run-id"]);
     const manifestPath = path.join(outDir, "scope.json");
     const scope = { schemaVersion: "nas-candidate-batch.v1", runId, database: dbName, startedAt,
+      networkMode: replayCapture ? "capture-replay" : "live", replaySource: replayCapture ? { runId: replayCapture.originalRunId,
+        operatorSha256: replayCapture.originalOperatorSha256, sourceId: replayCapture.sourceId, method: replayCapture.method,
+        url: replayCapture.sourceUrl, status: replayCapture.status, contentType: replayCapture.contentType,
+        contentEncoding: replayCapture.contentEncoding, bytes: replayCapture.bytes, rawSha256: replayCapture.sha256,
+        eof: replayCapture.eof, decodedTextSha256: replayCapture.decodedTextSha256,
+        legacyManifestDecodedTextSha256: replayCapture.legacyManifestDecodedTextSha256 } : null,
+      networkDispatchBudget: replayCapture ? 0 : sourcePlan.length + totalDetailCap, listObservationBudget: sourcePlan.length,
       catalogSha256, operatorSha256, fixedAppSha: FIXED_APP_SHA, sourceIds, maxNewPerSource, maxNewTotal: totalNewCap, maxDetailsTotal: totalDetailCap,
       minIntervalMs: MIN_INTERVAL_MS, limits: { listGetsPerSource: 1, maxRedirects: 0, retries: 0, maxBodyBytes: MAX_CAPTURE_BYTES },
       sources: sourcePlan.map((p) => ({ ...p, sourceRowSha256: sha256(sourceById.get(p.id)!.source_row_text) })) };
@@ -354,17 +457,18 @@ async function main() {
       let phase: "list" | "detail" | "write" = "list";
       try {
         const listBefore = dispatches;
-        const candidates = source.kind === "web_list"
-          ? await fetchWebList(source, { listUrl: planRow.url, runBudget: runBudget(source, planRow.url, source.id, "list") })
-          : await fetchJsonList(source, { runBudget: runBudget(source, planRow.url, source.id, "list") });
-        if (dispatches !== listBefore + 1) throw new Error("configured list did not dispatch exactly once");
-        const listRaw = capture.rows.at(-1)!;
+        const candidates = replayCapture
+          ? fromHtml(replayCapture.decodedText, planRow.url, source, planRow.url)
+          : source.kind === "web_list"
+            ? await fetchWebList(source, { listUrl: planRow.url, runBudget: runBudget(source, planRow.url, source.id, "list") })
+            : await fetchJsonList(source, { runBudget: runBudget(source, planRow.url, source.id, "list") });
+        if (replayCapture ? dispatches !== listBefore : dispatches !== listBefore + 1) throw new Error("list dispatch count does not match the frozen network mode");
+        const listRaw = replayCapture ? { status: replayCapture.status, eof: replayCapture.eof, truncated: false,
+          file: replayCapture.path, bytes: replayCapture.bytes, sha256: replayCapture.sha256, contentType: replayCapture.contentType,
+          contentEncoding: replayCapture.contentEncoding, url: replayCapture.sourceUrl } : capture.rows.at(-1)!;
         if (!listRaw || listRaw.status !== 200 || !listRaw.eof || listRaw.truncated || !listRaw.file) throw new Error("list response was not HTTP 200 with complete bounded raw capture");
         const candidateIdentities = [...new Set(candidates.map((candidate) => identityKeyFor({ ...candidate, sourceId: source.id, via: "fetch" })))];
-        const knownRows = candidateIdentities.length
-          ? await sql<{ identity_key: string }[]>`SELECT identity_key FROM articles WHERE identity_key = ANY(${sql(candidateIdentities)})`
-          : [];
-        const known = new Set(knownRows.map((row) => row.identity_key));
+        const known = await findKnownIdentityKeys(sql, candidateIdentities);
         const filtered = candidates.filter((candidate) => allowed(candidate.url, source) && !noiseFiltered(candidate, source));
         const firstImportMonths = Number(source.config._aihot?.initialBackfillMonths ?? 3);
         const cutoff = Date.now() - Math.max(1, firstImportMonths) * 30 * 86_400_000;
@@ -449,9 +553,11 @@ async function main() {
         });
         for (const item of writeResult.items) alreadyCreated.add(String(item.identityKey));
         globalNew += writeResult.created;
-        const decodedText = decodeCapturedBody(readFileSync(path.join(outDir!, String(listRaw.file))), listRaw.contentType);
-        results.push({ sourceId: source.id, status: "ok", dispatches: dispatches - dispatchesBeforeSource, listDispatches: 1, listResponse: { status: listRaw.status, bytes: listRaw.bytes,
-          rawSha256: listRaw.sha256, eof: listRaw.eof, rawFile: listRaw.file, decodedUtf8Sha256: sha256(decodedText),
+        const decodedText = replayCapture?.decodedText ?? decodeCapturedResponse(
+          readFileSync(path.join(outDir!, String(listRaw.file))), listRaw.contentType, listRaw.contentEncoding);
+        results.push({ sourceId: source.id, status: "ok", dispatches: dispatches - dispatchesBeforeSource, listDispatches: replayCapture ? 0 : 1,
+          listObservations: 1, listResponse: { status: listRaw.status, bytes: listRaw.bytes,
+          rawSha256: listRaw.sha256, eof: listRaw.eof, rawFile: replayCapture?.path ?? listRaw.file, decodedUtf8Sha256: sha256(decodedText),
           contentType: listRaw.contentType, contentEncoding: listRaw.contentEncoding, finalUrl: listRaw.url },
           found: candidates.length, eligibleNew: result.eligible.length, known: result.known, duplicate: result.duplicate, parseHeld: result.held,
           capped: result.capped, cap: planRow.maxNew, detailsAttempted: capture.rows.slice(responseStart + 1).length,
@@ -466,14 +572,16 @@ async function main() {
     }
     const report = { schemaVersion: "nas-candidate-batch-result.v1", model: "gpt-6-luna high", providerCalls: 0,
       runId: String(args["run-id"]), operatorSha256, fixedAppSha: FIXED_APP_SHA, startedAt,
-      completedAt: new Date().toISOString(), database: dbName, catalogSha256, sourceIds,
-      limits: { maxDispatches: MAX_DISPATCHES, maxNewPerSource, maxNewTotal: totalNewCap, maxDetailsTotal: totalDetailCap, minIntervalMs: MIN_INTERVAL_MS,
+      completedAt: new Date().toISOString(), database: dbName, catalogSha256, networkMode: replayCapture ? "capture-replay" : "live",
+      replaySourceRunId: replayCapture?.originalRunId ?? null, networkDispatches: dispatches,
+      listObservations: results.filter((r) => Number(r.listObservations ?? 0) > 0).length, sourceIds,
+      limits: { maxDispatches: replayCapture ? 0 : sourcePlan.length + totalDetailCap, maxNewPerSource, maxNewTotal: totalNewCap, maxDetailsTotal: totalDetailCap, minIntervalMs: MIN_INTERVAL_MS,
         redirects: 0, retries: 0, queueProcessing: false, collectSource: false, sourceWrites: false },
       flags: Object.fromEntries(["COLLECT_ENABLED", "MODEL_CALLS_ENABLED", "JINA_BODY_FALLBACK", "FEISHU_CONTENT_PUSH_ENABLED",
         "FEISHU_INTERNAL_ENABLED", "INDEXNOW_SUBMIT_ENABLED", "EMBEDDINGS_ENABLED", "OCR_RUN_ENABLED", "WORKER_ENABLED"].map((key) => [key, process.env[key]])),
       requests: requests.map((request) => ({ ...request })),
       responseRaw: capture.rows.map(({ rawRequestUrl: _rawRequestUrl, ...row }) => ({ ...row,
-        decodedTextSha256: row.file ? sha256(decodeCapturedBody(readFileSync(path.join(outDir!, row.file)), row.contentType)) : null })), results,
+        decodedTextSha256: row.file ? sha256(decodeCapturedResponse(readFileSync(path.join(outDir!, row.file)), row.contentType, row.contentEncoding)) : null })), results,
       totals: { sources: sourceIds.length, ok: results.filter((r) => r.status === "ok").length,
         failed: results.filter((r) => r.status === "failed").length,
         newArticles: results.reduce((sum, r) => sum + Number(r.created ?? 0), 0),
@@ -486,7 +594,7 @@ async function main() {
         writeFileSync(path.join(outDir, "aborted.json"), `${JSON.stringify({ schemaVersion: "nas-candidate-batch-abort.v1",
           runId: args["run-id"] ?? null, operatorSha256, fixedAppSha: FIXED_APP_SHA, startedAt, abortedAt: new Date().toISOString(), dispatches,
           requests, responseRaw: capture?.rows.map(({ rawRequestUrl: _rawRequestUrl, ...row }) => ({ ...row,
-            decodedTextSha256: row.file ? sha256(decodeCapturedBody(readFileSync(path.join(outDir!, row.file)), row.contentType)) : null })) ?? [], results,
+            decodedTextSha256: row.file ? sha256(decodeCapturedResponse(readFileSync(path.join(outDir!, row.file)), row.contentType, row.contentEncoding)) : null })) ?? [], results,
           error: String(error instanceof Error ? error.message : error).slice(0, 800) }, null, 2)}\n`, { flag: "wx", mode: 0o600 });
       } catch { /* preserve the first evidence file; never overwrite */ }
     }
