@@ -2,20 +2,20 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
-## 2026-10-22 下午恢复检查点（当前状态）
+## 2026-10-22 晚间恢复与27条NAS正文CAS后验检查点（当前状态）
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=96256609612c71966c2b15b6cf7ba73aa59e20e7
+CURRENT_SHA=b30af0f377fe29f37f6f39c8d0bb8f1449f03442
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
-STAGE=NAS Staging有界候选批次；部署SHA21ca4d4，418篇，27个capture-backed body CAS等待fresh backup/zero-write preflight
+STAGE=NAS Staging有界候选批次；部署SHA21ca4d4，27个capture-backed body CAS已提交并独立后验通过，418篇
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过
-REVIEW=42 list + 30 detail raw已核但runner少报详情、无详情时间戳；fresh50选样证据不变，body-only input/prefilter packet已准备
-BLOCKERS=27 CAS须先有fresh418备份与zero-write live preflight；Gate 3–5正式证据未完成
-COMPLETED=NAS 418 articles/48 disabled sources及0发布/provider/job副作用已核；offline details 27 ok/3 hold；development150 TP11 FP26 FN15 TN98；operator DB tests14/14、0skip及独立代码QA通过；local测试库净影响0；fresh50 packet hashes已记录
-IN_PROGRESS=fork-none Luna fresh50 blind prefilter；27 CAS等待backup/preflight
-NEXT=完成fresh50隔离预测并核hash后准备用户盲审包；CAS只在Root批准的fresh备份和只读preflight通过后执行；Gold标签、阈值和抽样保持冻结
+REVIEW=42 list + 30 detail raw已核但runner少报详情、无详情时间戳；27 CAS目标匹配冻结proposal，非目标与旧revision保持；fresh50 body-only blind prefilter 31 PASS/19 BLOCK，仍未标注
+BLOCKERS=Gate 3仍缺fresh50盲审标注、冻结native预测、独立评测及错例审查；Gate 4/5正式证据未完成
+COMPLETED=NAS 418 articles/445 revisions/418 discoveries，状态27ok/385pending/6unconfirmed；48 sources与Gold150整行hash及安全flag保持；27 CAS独立只读后验PASS、旁表副作用0；summary prepare边界独立审查PASS；development150 TP11 FP26 FN15 TN98
+IN_PROGRESS=fresh50独立native score准备；summary-import专用_test 2/2与typecheck结果已收到，最终full checks待代码收敛
+NEXT=冻结fresh50独立native预测后制作不暴露预测的用户盲审材料；随后独立评测。native summary仍需独立QA和fresh CAS后才能first-import，不运行provider/worker；标签、阈值和抽样保持冻结
 ```
 
 当前恢复依据和证据hash见[人审校准与NAS候选恢复交接](HANDOFFS/HUMAN_REVIEW_CALIBRATION_AND_NAS_CANDIDATES_2026-10-22.md)。下面更早的“150项完成”段只记录当时Gold人审和技术分组结果；其收集fresh50计划已由当前检查点推进到“已选、待冻结预测”。

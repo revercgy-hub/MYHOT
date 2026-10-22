@@ -1,22 +1,22 @@
 # 项目状态
 
-## 2026-10-22 下午恢复检查点（以本节为当前真值）
+## 2026-10-22 晚间恢复与27条NAS正文CAS后验检查点（以本节为当前真值）
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=96256609612c71966c2b15b6cf7ba73aa59e20e7
+CURRENT_SHA=b30af0f377fe29f37f6f39c8d0bb8f1449f03442
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
-STAGE=NAS Staging候选批次与Gold开发评估；运行代码SHA21ca4d4，418篇；27篇离线正文CAS提案等待fresh备份和零写preflight
+STAGE=NAS Staging候选批次；部署代码SHA21ca4d4，27条body-only CAS已提交并经独立只读后验，418篇
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过
-REVIEW=42 list + 30 detail实际响应raw核验完整但runner少报30详情且未记录详情间隔；fresh50原样本冻结并已生成body-only native input/prefilter packet；未预测/未标注
-BLOCKERS=27 CAS需fresh 418-row backup与zero-write live preflight；Gate 3–5证据缺失
-COMPLETED=.data证据恢复核实；NAS 48 source disabled、418 articles（412 pending/6 unconfirmed）、publication/analysis/receipt/job/fetch副作用0；offline 30 details=27 ok/3 hold；development150 TP11 FP26 FN15 TN98；operator测试14/14、0 skip，独立CAS代码QA PASS，local *_test DB净影响0；fresh50 packet hashes已核
-IN_PROGRESS=fork-none Luna fresh50盲预筛；B按既有批准执行CAS前仍需先过备份及只读preflight
-NEXT=冻结并独立核fresh50预筛；用户盲审包保持无native分数；CAS只在Root既有批准的fresh备份+preflight全通过后执行；不改60/65/76门槛、用户标签或采样
+REVIEW=42 list + 30 detail raw核验完整但runner少报30详情且无详情间隔时间戳；27条CAS目标与冻结proposal逐项相符，非目标与旧revision逐行不变；fresh50 native blind prefilter 31 PASS/19 BLOCK，仍未标注
+BLOCKERS=Gate 3缺fresh50盲审标签、独立评测和错例审查；Gate 4/5正式证据缺失
+COMPLETED=.data证据恢复；NAS 418 articles/445 revisions/418 discoveries，状态27 ok/385 pending/6 unconfirmed；sources48与Gold150整行hash不变；pub/analysis/receipt/attempt/job/fetch副作用0；27条CAS独立只读post-QA PASS；summary-import prepare只读边界审查PASS；development150 TP11 FP26 FN15 TN98
+IN_PROGRESS=fresh50独立native score准备；summary-import operator报告专用_test 2/2与typecheck通过，最终集成/full checks待A/B代码收敛
+NEXT=冻结fresh50独立native预测后制作不含机器建议的用户盲审材料；盲审后再评测；native-summary首轮导入仍须独立QA与fresh CAS，不运行provider/worker；不改60/65/76门槛、标签或原始抽样
 ```
 
-详细交接见[人审校准与NAS候选恢复交接](HANDOFFS/HUMAN_REVIEW_CALIBRATION_AND_NAS_CANDIDATES_2026-10-22.md)。当前仅有4个NAS operator脚本/测试文件未提交；文档更新不包含这些文件，也不得提前提交它们。
+详细交接见[人审校准与NAS候选恢复交接](HANDOFFS/HUMAN_REVIEW_CALIBRATION_AND_NAS_CANDIDATES_2026-10-22.md)。Staging部署SHA `21ca4d4` 与当前工具分支HEAD不同；NAS operator及summary-import工具仍有未提交改动，待代码收敛后统一跑full checks。本检查点不表示内容发布或Gate 3通过。
 
 ## 2026-10-22 用户完成人审标签与Gold下一依赖
 

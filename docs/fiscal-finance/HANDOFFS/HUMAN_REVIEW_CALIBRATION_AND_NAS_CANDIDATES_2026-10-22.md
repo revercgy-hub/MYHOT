@@ -1,6 +1,16 @@
 # 2026-10-22 人审校准与 NAS 候选恢复交接
 
-本检查点从本机 `.data` 证据恢复，Git branch `feat/fiscal-finance-hot`，文档checkpoint父HEAD `96256609612c71966c2b15b6cf7ba73aa59e20e7`，代码基线HEAD `efd47e51f7c878cd71df3370984294331c87a541`，base `589f79eff09470b31ba8a7f1d9eb62d36ff2be6c`。NAS Staging固定运行代码仍是 `21ca4d400bda9071f1e0b8761d404d1fc5b001e5`。工作区NAS operator文件与测试未提交，归operator所有；本交接没有修改它们。恢复文档commit `9625660`只包含3份项目文档并已push。
+本检查点从本机 `.data` 证据恢复，Git branch `feat/fiscal-finance-hot`，文档更新前HEAD `b30af0f377fe29f37f6f39c8d0bb8f1449f03442`，代码恢复基线HEAD `efd47e51f7c878cd71df3370984294331c87a541`，base `589f79eff09470b31ba8a7f1d9eb62d36ff2be6c`。NAS Staging固定运行代码仍是 `21ca4d400bda9071f1e0b8761d404d1fc5b001e5`。工作区operator脚本与测试未提交，归各operator所有；本交接仅修改项目文档。
+
+## 晚间增量：27条CAS已提交并通过独立只读后验
+
+NAS operator在Root既有批准及fresh backup/zero-write preflight后提交27项capture-backed body CAS。计划SHA-256为 `6a5ba8c1213a0de3a278b8368288a58588a755ae3d75257caedca9aa345492a0`，正确418-rowset SHA-256为 `f56a4a3f7d9037cb5bb41761524f69e2a67fc01902296dedfec3b2bf2250cd7f`；提交报告为 `.data/fiscal-qa/nas-candidate-batch-20261022/nas-body-cas-result.json`，postcheck SHA-256 `ef9eb79eb3dc96f6be91180cebd841bc361f38e0fae6fffacd7771118389cb8f`。独立QA以repeatable-read/read-only事务逐行核验冻结baseline：418篇文章只有27个目标的body_text/body_html/body_status/revision/content_hash/updated_at允许变化，目标正文/hash与冻结proposal逐项相符，其余字段与非目标文章逐行不变；445 revisions包含原418逐行保留及27个proposal对应新revision；418 discoveries无变化。最终状态27 `ok` /385 `pending` /6 `unconfirmed`。48 sources整行hash `8d017180f9fdaa0aa101a9c1c3b24a0666ade2ba9adda3c64e905db7f1edcb98`且enabled/site-fulltext/syndicate-fulltext均0；Gold review 150整行hash `95256427f9ec31cea491b8baf8b3231330128c16e17ee56a2d70802778e61a65`保持。publication/analysis/receipt/receipt_attempt/job/fetch runs全0，pgboss表不存在。此QA只读，没有执行NAS写入、source GET、provider或worker。
+
+## Native summary importer边界审查与fresh50状态
+
+独立审查 `scripts/fiscal/nas-native-summary-import.ts` 的`--prepare`路径为安全边界PASS：只SELECT读取数据库身份、选定articles/sources及override/publication/analysis状态；拒绝非`ok`正文、非空既有override/publication/analysis、开启的source安全flag及非48 disabled来源集；不含HTTP/provider/worker/队列或SQL写。manifest绑定article/source整行baseline及body、prefilter/summary prompt全文与hash；输出限制在`.data`并通过`wx`/0600创建。尚未运行NAS prepare/apply。本地专用`*_test`测试2/2和typecheck由实现operator报告；full checks待A/B未提交代码收敛后执行。
+
+fresh holdout50原始manifest/selection proof/body-only input未重采样或改动。独立native blind prefilter结果为31 PASS/19 BLOCK，仍无人标注；native score packet `.data/fiscal-qa/review-batches-20261022/fresh-holdout50-20261022/native-score-packet-fresh-holdout50-score832a17-20261022.json` SHA-256 `d3c635ddfc3cf3e0944c683c072c3c18aba3b1c46e6cb1db2f3f6bb09be92c49`。下一步冻结独立score预测，再制作不暴露机器建议的用户盲审材料。development150结果不用于重新筛选fresh50；不据此更改60/65/76门槛。Gate 3/4/5仍未通过。
 
 ## NAS Staging 真值与采集缺陷
 
@@ -31,14 +41,14 @@ Staging四来源后核快照 `.data/fiscal-qa/nas-candidate-batch-20261022/four-
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=96256609612c71966c2b15b6cf7ba73aa59e20e7（本次文档更新前；代码基线efd47e51f7c878cd71df3370984294331c87a541）
+CURRENT_SHA=b30af0f377fe29f37f6f39c8d0bb8f1449f03442（本次文档更新前；代码恢复基线efd47e51f7c878cd71df3370984294331c87a541）
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
-STAGE=NAS隔离Staging候选采集与150条development评估；NAS当前418篇，候选正文27项仅离线CAS提案
+STAGE=NAS Staging 27条正文CAS已提交并独立后验；部署SHA21ca4d4，418 articles / 445 revisions / 418 discoveries
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过
-REVIEW=42 list + 30 detail raw均核验但runner少报详情、无详情间隔时间戳；CAS未执行；fresh50原始样本冻结且body-only input与native prefilter packet已生成，尚未预测/标注
-BLOCKERS=27 CAS须先经fresh NAS备份与zero-write只读preflight；Gate 3–5证据未齐
-COMPLETED=恢复`.data`真实证据；NAS418/48 disabled/0 publication-provider-job副作用核实；offline详情27 ok/3 hold；development150指标；operator测试14/14、0skip且local test DB净影响0，独立CAS代码QA PASS；fresh50预筛packet已冻结
-IN_PROGRESS=fork-none Luna fresh50 blind prefilter；B待fresh backup和preflight后执行27 CAS
-NEXT=冻结/核验fresh50 native预筛结果后制无native结果盲审包；CAS仅在Root既有批准的fresh backup和zero-write preflight全通过后执行；维持门槛、Gold标签和抽样不变
+REVIEW=42 list + 30 detail raw完整但runner少报详情、无详情间隔时间戳；CAS目标proposal匹配、非目标与旧revision不变；fresh50 prefilter 31 PASS/19 BLOCK，仍无人标注
+BLOCKERS=Gate 3盲审、独立holdout评测/错例复核未完成；Gate 4/5证据未齐
+COMPLETED=27 CAS独立只读post-QA PASS；source48及Gold150 hash保持；发布/provider/worker/job副作用0；summary prepare边界审查PASS
+IN_PROGRESS=fresh50独立native score冻结准备；summary-import专用_test 2/2及typecheck由实现operator报告，集成full checks待代码收敛
+NEXT=冻结fresh50独立native预测，再制作不含机器结果的用户盲审包；其后独立评测；NAS first-import另需fresh CAS及独立QA；不改Gate门槛、Gold标签或原始抽样
 ```
