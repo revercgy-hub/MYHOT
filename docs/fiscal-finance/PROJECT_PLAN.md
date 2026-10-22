@@ -2,23 +2,23 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
-## 2026-10-22 晚间恢复与27条NAS正文CAS后验检查点（当前状态）
+## 2026-10-22 晚间恢复、NAS导入与盲评分准备（当前状态）
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=b30af0f377fe29f37f6f39c8d0bb8f1449f03442
+CURRENT_SHA=67abdfb（代码/评分提示提交；本检查点文档另有独立提交）
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
-STAGE=NAS Staging有界候选批次；部署SHA21ca4d4，27个capture-backed body CAS已提交并独立后验通过，418篇
+STAGE=NAS Staging；运行SHA21ca4d4（与本地工具HEAD不同）；27条正文CAS与18条native摘要首发已独立后验，Gold review共200条
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过
-REVIEW=42 list + 30 detail raw已核但runner少报详情、无详情时间戳；27 CAS目标匹配冻结proposal，非目标与旧revision保持；fresh50 body-only blind prefilter 31 PASS/19 BLOCK，仍未标注
-BLOCKERS=Gate 3仍缺fresh50盲审标注、冻结native预测、独立评测及错例审查；Gate 4/5正式证据未完成
-COMPLETED=NAS 418 articles/445 revisions/418 discoveries，状态27ok/385pending/6unconfirmed；48 sources与Gold150整行hash及安全flag保持；27 CAS独立只读后验PASS、旁表副作用0；summary prepare边界独立审查PASS；development150 TP11 FP26 FN15 TN98
-IN_PROGRESS=fresh50独立native score准备；summary-import专用_test 2/2与typecheck结果已收到，最终full checks待代码收敛
-NEXT=冻结fresh50独立native预测后制作不暴露预测的用户盲审材料；随后独立评测。native summary仍需独立QA和fresh CAS后才能first-import，不运行provider/worker；标签、阈值和抽样保持冻结
+REVIEW=150条原Gold确认26 select/124 reject，fresh50为pending；采集缺陷保留；新评分只使用sealed score-only包，不暴露阈值或Gold决策
+BLOCKERS=Gate 3仍缺fresh50用户标签、独立留出评测和错例复核；Gate 4正式来源覆盖/评审未完成；Gate 5稳定性与正式review未完成（实际同步snapshot restore 64/64通过）
+COMPLETED=NAS 418 articles/445 revisions/418 discoveries，27ok/385pending/6unconfirmed；source48 disabled及全文旗标关闭；27 body CAS独立PASS；18 native摘要逐条grounding QA后首发，9 BLOCK不发布；Gold200=150 confirmed+50 pending；typecheck、fullsuite 457/458 pass、Webbuild与22/22通过
+IN_PROGRESS=用户新评分范围prompt SHA 1bd9f51d...；sealed新score包共122例（development150 prefilter PASS子集91、fresh50 PASS子集31）两轮native盲评分进行中；原832a17预测仍冻结保留
+NEXT=完成sealed scoring、lossless normalize后再重评development150并与旧baseline比较；fresh50仍是原留出集，不改标签、抽样或60/65/76阈值
 ```
 
-当前恢复依据和证据hash见[人审校准与NAS候选恢复交接](HANDOFFS/HUMAN_REVIEW_CALIBRATION_AND_NAS_CANDIDATES_2026-10-22.md)。下面更早的“150项完成”段只记录当时Gold人审和技术分组结果；其收集fresh50计划已由当前检查点推进到“已选、待冻结预测”。
+当前恢复依据和证据hash见[人审校准与NAS候选恢复交接](HANDOFFS/HUMAN_REVIEW_CALIBRATION_AND_NAS_CANDIDATES_2026-10-22.md)。本状态不代表Gate 3/4/5通过。
 
 ## 2026-10-22 用户人审及技术分组完成，独立留出评测待续
 

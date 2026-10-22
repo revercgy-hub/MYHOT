@@ -1,6 +1,22 @@
 # 2026-10-22 人审校准与 NAS 候选恢复交接
 
-本检查点从本机 `.data` 证据恢复，Git branch `feat/fiscal-finance-hot`，文档更新前HEAD `b30af0f377fe29f37f6f39c8d0bb8f1449f03442`，代码恢复基线HEAD `efd47e51f7c878cd71df3370984294331c87a541`，base `589f79eff09470b31ba8a7f1d9eb62d36ff2be6c`。NAS Staging固定运行代码仍是 `21ca4d400bda9071f1e0b8761d404d1fc5b001e5`。工作区operator脚本与测试未提交，归各operator所有；本交接仅修改项目文档。
+## 最新状态：18条native摘要首发、恢复演练复核与新评分盲包（2026-10-22）
+
+本节覆盖下文较早的“尚未prepare/apply”“fresh50待冻结score”等历史描述。当前branch `feat/fiscal-finance-hot`；工具/提示代码tip `67abdfb`（之后有独立文档检查点提交），base `589f79eff09470b31ba8a7f1d9eb62d36ff2be6c`。NAS正在运行的Web/app仍是部署SHA `21ca4d400bda9071f1e0b8761d404d1fc5b001e5`，Web端口3221；本地工具提交没有部署到NAS。Gate 2保持 `PASSED_FOR_BOUNDED_P4_PILOT`；Gate 3/4/5均未通过。
+
+NAS Staging当前有418 articles、445 revisions、418 discoveries；文章body状态27 `ok`、385 `pending`、6 `unconfirmed`。48个source均disabled，`site_fulltext`/`syndicate_fulltext`仍关闭。此前27条capture-backed正文CAS已独立逐行核验通过，Gold150旧批次整行hash保持 `95256427f9ec31cea491b8baf8b3231330128c16e17ee56a2d70802778e61a65`。之后Root批准的native摘要first-import仅导入独立grounding QA判为18 `PASS`项，另外9 `BLOCK`项不写入。QA文件 `.data/fiscal-qa/nas-candidate-batch-20261022/native-summary-qa-independent-27.json` SHA-256 `3ecfc7e8935ac7371010c991db64ca58a63bbac4971aee3e586bc5fe4f19f091`，绑定manifest `0d94e3ef03758778662f501bb61aeb58b76bd9fdf3af1707040933cd69d1480e`；NAS postcheck SHA-256 `7330dafebf1ad97c108fe26151c2c17466f7c418e8f4d30b6ab6a75a593adc83`，import result SHA-256 `14ada46680a60b73b136bfa3609abb667a7ce0ba6889025a5c87773d6a9612d7`。独立只读SQL再次确认18个PASS目标body hash/revision与postcheck相符，18 publications、18 overrides、18 pool rows；summary body mode、`selected=false`、score/reason null、indexable/syndicate false；9个BLOCK未发布。sources 48安全旗标均0，selected_state/ledger、analyses、receipts/attempts、jobs、fetch runs均0；revisions仍445、discoveries仍418。没有发source GET、provider或worker请求。
+
+Fresh50仍是Gold200中新增的50条待标注项：Gold总数200，其中150 confirmed（26 select、124 reject）及fresh50全部pending，decision/source binding仍null。独立只读SQL按导入前锁定snapshot核验50条payload/body逐行及SHA相符；article 418、source 48及body状态正确。50导入postcheck v2 SHA-256 `06d87b8aeef9be3817acdbc79a14c860217186272dfd44361e87495966f6855b`在导入时间点显示expected `settings` heartbeat drift；此后native摘要首发发生，故相对同一Gate5 baseline的当前6个差异表为articles、audit_log、editorial_overrides、pool_search、publications、settings，均对应18条已批准摘要写入及API heartbeat；没有额外副作用。
+
+Gate 5恢复演练的独立核验针对真正NAS目标库 `fiscalhot_staging_restore_20261022_snapshot_test` 重新计算64张public table哈希，64/64与同MVCC snapshot baseline完全一致，diffs为空。同步dump SHA-256 `7a46d69bbb9f4b2acaa75e22df1d6c41dc5edbfddaf522a375703cd07d253392`、mode 0600；baseline SHA-256 `bad3233a9059b1f212b92550dcfc017af86ff55baf3e1b68cb6d2b59591f1694`；verification JSON SHA-256 `30f817f26f3f681d8b676eac020d93d18102feb5731263393479fea5b8944541`。较早首个dump时间为21:42:06 +0800，后取baseline为21:43:20；两次snapshot比较唯一settings heartbeat行漂移的时间窗finding保留。同步baseline与dump在21:44:58使用同一exported MVCC snapshot；恢复子项PASS，但不是整个Gate 5 PASS。
+
+Root收到的用户评分范围为“主要关注财政金融监管条线：财政支持金融、金融企业财务和金融风险等，其他条线优先重大政策”。最小提示修订SHA-256 `1bd9f51d25b30fa36409c6c7e8728a2be4b52125784898ebfe21295ccbddb34f`仅更新范围说明，五轴、权重、阈值、地方parity及安全规则保持；原development150 832a17结果仍是旧baseline（TP=11、FP=26、FN=15、TN=98；accuracy 72.7%、precision 29.7%、recall 42.3%），未以此改阈值。新评分用的是同一批冻结输入和同case逐字相同的scoreUser，fresh50仍是原holdout，不是新独立样本。第一次非sealed传输packet显式带出threshold后，Root中止并作废相关运行；其结果不采纳。之后只向新fork-none轮次提供sealed score-only文件，递归allowlist字段只有全局scoreSystem及每case随机opaque `caseId`/逐字`scoreUser`，没有threshold、prefilter结果、来源ID、body/input hash、Gold/human label、旧score或决策字段。开发150 prefilter通过的91例packet为 `.data/fiscal-qa/review-batches-20261022/sealed-blind-score-development150-score11b6-20261022.json`，SHA-256 `5bfa378ac0a174120e6f58ecae6f04f65ae548bfda8e5c155531f1e5ca7871f8`；fresh50 prefilter通过的31例packet为 `.data/fiscal-qa/review-batches-20261022/fresh-holdout50-20261022/sealed-blind-score-holdout50-score11b6-20261022.json`，SHA-256 `2b36b1268a77697f4e429cc82bdc2ae53931e3f95385a62920105cb664e25c98`。共同score system SHA-256 `0c7a98747104a7f682aa7b9118526d49727d3fdc9ae07c249ed92be13c02a975`；封包allowlist QA `.data/fiscal-qa/review-batches-20261022/sealed-score-transport-qa.json` SHA-256 `6c0bc474562092e1846f737bc79613fb3a196f0b3839023a4ed5d2a238f6844c`。两包各做两轮独立native评分中；在结果冻结前不读取fresh50人工decision/reason，也不以旧分数重采样。
+
+最终代码提交分组为transport `93dd4c7`、body CAS `56c5bd1`、native summary importer `9ada0d3`、Windows OCR sampling race `8c6959f`、评分提示 `67abdfb`。测试在修复race后使用36-migration隔离Postgres库：full typecheck PASS、fullsuite 458 tests/457 pass/0 fail/1 skipped、Web build PASS、Web tests 22/22；OCR focused 38/38，Windows monitor focused重复25/25。初始两次suite的唯一失败日志保留在`.data/fiscal-qa/final-merge-20261022/npm-test-fresh2.log`与`npm-test-fresh3.log`；修复后结果见`npm-test-final.log`。NAS LAN只读smoke：3221 `/`、`/all`、财政金融分类和`/robots.txt` 200/noindex；internal `/api/health`、meta、pool与imported item detail均200，pool 18；selected/feed/full RSS及category feed均200且0 items，`/feed/all.xml`有16条summary items，未返回全文。无管理员访问或secret输出。
+
+现Gate blocker仍为fresh50用户标注及独立评测、错例复核；Gate4覆盖证据与正式review；Gate5稳定性观察与正式review。完成新版score后，只能用已确认的150 development Gold做新旧baseline比较；fresh50在用户blind review前保持封存，不能根据分数重抽样或把score当人工标签。
+
+以下为较早恢复记录，记录当时从本机 `.data` 证据恢复的Git branch `feat/fiscal-finance-hot`、文档更新前HEAD `b30af0f377fe29f37f6f39c8d0bb8f1449f03442`、代码恢复基线HEAD `efd47e51f7c878cd71df3370984294331c87a541`及base `589f79eff09470b31ba8a7f1d9eb62d36ff2be6c`。其后operator代码与测试已分组提交；当前测试代码/提示tip为 `67abdfb`，最新文档checkpoint提交后HEAD另见Git log。NAS Staging固定运行代码仍为 `21ca4d400bda9071f1e0b8761d404d1fc5b001e5`。本次handoff不代表本地工具代码已部署。
 
 ## 晚间增量：27条CAS已提交并通过独立只读后验
 
@@ -41,14 +57,14 @@ Staging四来源后核快照 `.data/fiscal-qa/nas-candidate-batch-20261022/four-
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=b30af0f377fe29f37f6f39c8d0bb8f1449f03442（本次文档更新前；代码恢复基线efd47e51f7c878cd71df3370984294331c87a541）
+CURRENT_SHA=67abdfb（tested code/prompt tip before this docs checkpoint; deployed NAS remains 21ca4d400bda9071f1e0b8761d404d1fc5b001e5）
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
-STAGE=NAS Staging 27条正文CAS已提交并独立后验；部署SHA21ca4d4，418 articles / 445 revisions / 418 discoveries
+STAGE=NAS Staging: 27 body CAS + 18 native summary first-imports independently post-verified; 418 articles / 445 revisions / 418 discoveries; Gold 200
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过
-REVIEW=42 list + 30 detail raw完整但runner少报详情、无详情间隔时间戳；CAS目标proposal匹配、非目标与旧revision不变；fresh50 prefilter 31 PASS/19 BLOCK，仍无人标注
-BLOCKERS=Gate 3盲审、独立holdout评测/错例复核未完成；Gate 4/5证据未齐
-COMPLETED=27 CAS独立只读post-QA PASS；source48及Gold150 hash保持；发布/provider/worker/job副作用0；summary prepare边界审查PASS
-IN_PROGRESS=fresh50独立native score冻结准备；summary-import专用_test 2/2及typecheck由实现operator报告，集成full checks待代码收敛
-NEXT=冻结fresh50独立native预测，再制作不含机器结果的用户盲审包；其后独立评测；NAS first-import另需fresh CAS及独立QA；不改Gate门槛、Gold标签或原始抽样
+REVIEW=Fresh50为pending且同一holdout不重采样；42 list+30 detail raw完整但旧runner少报30详情且没有详情间隔时间戳
+BLOCKERS=Gate 3 fresh50用户标注/独立评测/错例复核；Gate 4覆盖证据与review；Gate 5稳定性与正式review
+COMPLETED=27 CAS独立PASS；18/27 native summary独立grounding QA和first-import PASS，9 BLOCK；Gate5同步snapshot恢复目标64/64；typecheck/fullsuite/Web build/Web22均通过
+IN_PROGRESS=两组sealed score-only packet（dev91/fresh31）正在两轮fork-none native评分；用户新评分范围保持，旧832a17结果保留baseline
+NEXT=完成新评分无损归一化和development150比较；fresh50盲审完成前不读标签、不用分数改样本、不调60/65/76门槛
 ```

@@ -1,22 +1,22 @@
 # 项目状态
 
-## 2026-10-22 晚间恢复与27条NAS正文CAS后验检查点（以本节为当前真值）
+## 2026-10-22 晚间恢复、NAS导入与盲评分准备（以本节为当前真值）
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=b30af0f377fe29f37f6f39c8d0bb8f1449f03442
+CURRENT_SHA=67abdfb（代码/评分提示提交；本检查点文档另有独立提交）
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
-STAGE=NAS Staging候选批次；部署代码SHA21ca4d4，27条body-only CAS已提交并经独立只读后验，418篇
+STAGE=NAS Staging；运行SHA21ca4d4（与本地工具HEAD不同）；27条正文CAS及18条独立QA通过的native摘要首发已完成，Gold review共200条
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过
-REVIEW=42 list + 30 detail raw核验完整但runner少报30详情且无详情间隔时间戳；27条CAS目标与冻结proposal逐项相符，非目标与旧revision逐行不变；fresh50 native blind prefilter 31 PASS/19 BLOCK，仍未标注
-BLOCKERS=Gate 3缺fresh50盲审标签、独立评测和错例审查；Gate 4/5正式证据缺失
-COMPLETED=.data证据恢复；NAS 418 articles/445 revisions/418 discoveries，状态27 ok/385 pending/6 unconfirmed；sources48与Gold150整行hash不变；pub/analysis/receipt/attempt/job/fetch副作用0；27条CAS独立只读post-QA PASS；summary-import prepare只读边界审查PASS；development150 TP11 FP26 FN15 TN98
-IN_PROGRESS=fresh50独立native score准备；summary-import operator报告专用_test 2/2与typecheck通过，最终集成/full checks待A/B代码收敛
-NEXT=冻结fresh50独立native预测后制作不含机器建议的用户盲审材料；盲审后再评测；native-summary首轮导入仍须独立QA与fresh CAS，不运行provider/worker；不改60/65/76门槛、标签或原始抽样
+REVIEW=150条原Gold确认26 select/124 reject，fresh50为pending；42 list+30 detail原始证据完整但旧runner少报详情且无详情间隔时间戳，缺陷保留
+BLOCKERS=Gate 3仍缺fresh50用户标签、独立留出评测与错例复核；Gate 4正式覆盖证据与review未完成；Gate 5完整稳定性与正式review未完成（同步快照恢复子项通过）
+COMPLETED=NAS 418 articles/445 revisions/418 discoveries，27 ok/385 pending/6 unconfirmed；48 sources disabled且全文旗标关闭；27 body CAS独立后验PASS；18/27 native summary逐条独立grounding QA并首发、9 BLOCK排除；Gold200=150 confirmed+50 pending；restore目标64/64独立行哈希通过；typecheck、fullsuite 457/458 pass、Web build与22/22 tests通过
+IN_PROGRESS=新版评分提示SHA 1bd9f51d...获准；sealed development150 score packet 91例与fresh50 packet 31例正在两轮独立native盲评分，旧832a17冻结baseline保留；fresh50仍无人标注
+NEXT=完成sealed scoring后无损归一化，再对已标注的150 development作新版评估并与旧baseline比较；fresh50仍是同一留出集，不按模型分数重抽样，不改60/65/76阈值
 ```
 
-详细交接见[人审校准与NAS候选恢复交接](HANDOFFS/HUMAN_REVIEW_CALIBRATION_AND_NAS_CANDIDATES_2026-10-22.md)。Staging部署SHA `21ca4d4` 与当前工具分支HEAD不同；NAS operator及summary-import工具仍有未提交改动，待代码收敛后统一跑full checks。本检查点不表示内容发布或Gate 3通过。
+详细交接见[人审校准与NAS候选恢复交接](HANDOFFS/HUMAN_REVIEW_CALIBRATION_AND_NAS_CANDIDATES_2026-10-22.md)。本检查点不表示Gate 3/4/5通过。评分结果未用于fresh50重采样，Gold标签和阈值保持不变。
 
 ## 2026-10-22 用户完成人审标签与Gold下一依赖
 
