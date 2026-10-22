@@ -14,8 +14,8 @@ GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过
 REVIEW=fresh50仍待用户标注；prediction已冻结，未按结果调整规则或抽样
 BLOCKERS=开发150新版精度31.25%、召回57.69%，未达到自动精选依据；fresh50标签及错例复核待完成；Gate 4/5正式证据与review待完成
 COMPLETED=418 articles/490 revisions/418 discoveries（72 ok/340 pending/6 unconfirmed）；45/50历史捕获正文CAS已独立后验PASS，5项未变仍hold；来源48 disabled/fulltext/syndicate关闭；publication18、Gold200；全套软件检查470/469/0/1 skip、typecheck、Web build及22 tests通过
-IN_PROGRESS=两批共45条native摘要草稿生成与独立grounding QA；没有应用/发布批准
-NEXT=逐条核实摘要事实后再提出受控apply；继续剩余pending正文批次并做独立后验
+IN_PROGRESS=45条native摘要逐条grounding已完成（22 PASS/23 BLOCK）；等待Root对exact22 PASS决定apply
+NEXT=如Root批准，只应用QA绑定的22 PASS；BLOCK 23保持排除。继续其余pending正文和独立后验
 ```
 
 具体证据、hash和真实限制见[10月23日pending正文批次交接](HANDOFFS/PENDING_BODY_BATCH_2026-10-23.md)。本轮pending正文工具仅处理批准的50目标：45篇依据既有capture解析成功，5篇保持hold；没有新HTTP GET、采集、provider/worker调用或生产部署。该历史response的cadence证据不完整，因此保持`UNPROVEN`，正文CAS不追认其网络合规。Gate状态不变。
