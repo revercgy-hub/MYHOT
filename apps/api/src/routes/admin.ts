@@ -12,6 +12,7 @@ import { banSource, eraseFeedback, feedbackScreenshot, listFeedback, unbanSource
 import { listMonitorEvents, listMonitorPosts, relinkPost, resolveMonitorPost, reviewReceipt, setWithdrawn, updateMonitorEvent } from "@aihot/backend/admin/monitor";
 import { releaseReceipt, requeueFailedArticles, resolveDelivery, runsOverview } from "@aihot/backend/admin/runs";
 import { listBudgets, listTargets, replaceContactQr, setTargetEnabled, updateBudget } from "@aihot/backend/admin/settings";
+import { exportReviewOverlay, getReviewBatch, listReviewBatches, recordReviewDecisions } from "@aihot/backend/admin/review-batches";
 import { createSource, fetchNow, listSources, previewSource, sourceDetail, updateSource } from "@aihot/backend/admin/sources";
 import { sql } from "@aihot/backend/db";
 import { loadContact } from "@aihot/backend/site/contact";
@@ -133,6 +134,23 @@ export function registerAdmin(app: FastifyInstance) {
   app.post("/api/admin/selectbench/import", adminHandler(async (req, _reply, admin) => {
     const b = body<{ label: string; report: unknown }>(req);
     return importSelectBenchRun(b.report, String(b.label || "导入的对比运行"), actorOf(admin));
+  }));
+
+  // Private Gold candidate review. This is separate from editorial publication and never queues work.
+  app.get("/api/admin/review-batches", adminHandler(async () => listReviewBatches()));
+  app.get("/api/admin/review-batches/:id", adminHandler(async (req, reply) =>
+    orNotFound(req, reply, await getReviewBatch(param(req, "id"), { status: q(req).status, limit: q(req).limit, offset: q(req).offset }))));
+  app.post("/api/admin/review-batches/:id/decisions", adminHandler(async (req, reply, admin) => {
+    const result = await recordReviewDecisions({
+      batchId: param(req, "id"), input: body(req),
+      requestId: String(req.headers["idempotency-key"] ?? ""), actor: actorOf(admin),
+    });
+    return orNotFound(req, reply, result);
+  }));
+  app.get("/api/admin/review-batches/:id/export", adminHandler(async (req, reply) => {
+    const overlay = await exportReviewOverlay(param(req, "id"));
+    if (!overlay) return notFound(req, reply);
+    return reply.header("Content-Disposition", `attachment; filename="gold-review-${overlay.batchHash}.json"`).type("application/json; charset=utf-8").send(overlay);
   }));
 
   // Attention counts for the navigation.
