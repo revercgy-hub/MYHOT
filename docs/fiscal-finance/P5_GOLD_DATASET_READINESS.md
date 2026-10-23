@@ -1,6 +1,14 @@
 # P5 Gold Dataset readiness（2026-10-03）
 
-> 本页以下早期段落按原日期保留；当前状态以2026-10-22这一节为准。
+> 本页以下早期段落按原日期保留；当前状态以2026-10-23 fresh50 holdout评测一节为准。
+
+## 2026-10-23 fresh50人工审阅完成并完成冻结预测评测
+
+用户已完成fresh50盲审，NAS只读snapshot导出并逐条匹配50项决定审计。Fresh holdout为50/50 `user_confirmed`，3 `select`、47 `reject`、0 `either`、0 pending；Gold200合计200 confirmed（29 select、171 reject、0 either），原150开发集26/124不变。标签导出manifest SHA-256 `1e13b03b3c56d1a62ae14c6a59278924a04a13fe4320bacebee591e5a7acdc79`，overlay SHA `f2b600eca60744658e455ed2361c11e9dee7715ae635e9b76dbebe52a558ec35`，NAS export audit SHA `5f75795b49bf6f5e6df9e9f8a46becc80d4487394b8fd692292a5f366775a23a`。独立比较确认相对冻结holdout manifest只改`humanAnnotation`；50个case、50个事件组唯一，全部split仍为holdout、正文状态`ok`，无seed交集，正文/身份/事件组/split字段保持一致。Gold validator为`READY_FOR_EVALUATION`，50 confirmed、0 pending、0 issues；Gold200 manifest也READY，原15 seeds checked。新版预测冻结时间`2026-10-22T14:22:34.907Z`早于最早人审确认时间`2026-10-23T11:24:43.410Z`，freeze-QA记录未读取人工标签。
+
+主Gate3证据使用新版sealed `score11b6` holdout预测，SHA-256 `cc34bacb8ba729d52be305ba09cb92fed99cfecaa53c3d5635c71f09fcc07ede`。经既有离线native evaluator只读评测，50/50覆盖，TP=1、FP=12、FN=2、TN=35；accuracy 72.0%、precision 7.69%、recall 33.33%、F1 12.50%。holdout仅3个人工select，precision/recall置信区间很宽，且所有样本均为T1，不能外推T1.5/T2。新版两轮sealed score pass、adapter和UUID mapping/proof链已核验；native运行不属于stateless runtime provider，receipt为null。旧 `score832a17` 同批历史冻结预测也单独复算为TP=1、FP=14、FN=2、TN=33，P=6.67%、R=33.33%、F1=11.11%；因其blind transport proof有限，只作为历史参考，不用于主Gate判断。此前明确报告threshold暴露并作废的是`/root/luna_scope_score_pass1`与`/root/luna_scope_score_pass2`，不与两版预测各自的session混淆。保留60/65/76阈值及其他预测/Gold内容，没有holdout threshold sweep或据holdout调参。
+
+该证据表明真实人工Gold和holdout评测已经形成，但当前查准率很低、开发集precision也仅31.25%。它不支持宣布精选体系校准可用或Gate3通过；错例目前仅做分层归因，正式Gate裁决由Root完成。样本hash、独立结果、指标、score disagreement和错例主题见[2026-10-23 holdout评测交接](HANDOFFS/GOLD_HOLDOUT_EVALUATION_2026-10-23.md)。本holdout已被评估，今后不能再视为未触碰测试集。
 
 ## 2026-10-22 人工标签与事件核验完成；Gate 3留出评测仍待新样本
 
@@ -70,7 +78,7 @@ QA依据仍是[用户已确认的内容边界](GATE2_USER_DECISIONS.md)：无实
 
 ## 范围与结论
 
-截至2026-10-22，150项人审标签和event/split技术核验已完成，均分配为development；独立holdoutCount=0。正式模型评测/校准仍`NOT_RUN`，Gate 3未通过。Gate 2当前正式结论为`PASSED_FOR_BOUNDED_P4_PILOT`；下方旧文字中“Gate 2仍未通过”是本页2026-10-03历史时点，按页面首段所指的正式review更新。下一项Gate 3数据依赖是50条全新、事件不重叠的正文合格样本，先冻结预测再盲审；不把已有150条或15个seed重用为holdout。选择标准、提示词和真实阈值未改。
+截至2026-10-23，Gold200全数人工确认；150条已评估development与50条独立holdout均有已冻结预测。主holdout评分已完成但查准率为7.69%、查全率33.33%，开发集precision为31.25%；错例仅完成分层归因，校准与正式阈值确认仍未签核，Gate3未通过。Gate2当前正式结论为`PASSED_FOR_BOUNDED_P4_PILOT`；下方旧文字中“Gate 2仍未通过”是本页2026-10-03历史时点，按页面首段所指的正式review更新。fresh50已被审阅并评测，不能重用为未来独立holdout；未来测试需另取事件不重叠样本。选择标准、提示词、权重、聚合方法和真实阈值未改。
 
 仓库已有 `docs/selection.md` 和 `scripts/eval-selection.ts` 规定的Gold JSONL合同：每行含`caseId`、`material`、`sourceFacts`、`samplingContext`及人工`gold.decision`，并带可评测正文；决定值为`select`、`reject`、`either`。示例`industry/gold.example.jsonl`明确是虚构示例，不能当作真实金标。新文件`gold/metadata-template.json`是有意标注为`p5.gold-metadata-draft/v1`的**准备清单**，沿用现有字段名/含义并补充证据引用、事件组、建议和确认状态；不复制受忽略目录中的正文，因此它不是`.data/gold.jsonl`，也不能直接传给`eval-selection.ts`。确认人工标签后仍需经单独授权的整理步骤，把正文填入既有合同并将人工决策映射到`gold.decision`。
 

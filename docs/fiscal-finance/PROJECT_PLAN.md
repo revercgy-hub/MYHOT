@@ -2,7 +2,24 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
-## 2026-10-23 受控正文与摘要批次收尾（当前状态）
+## 2026-10-23 fresh50 Gold评测检查点（当前）
+
+```text
+CURRENT_BRANCH=feat/fiscal-finance-hot
+EVALUATED_CODE_SHA=3e7345e1c7f7d4e18d6362d35fcdd80bc0af4f0a
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+STAGE=NAS Staging；应用版本与本地离线评测保持分离
+GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过，等待Root正式复核
+REVIEW=Gold200已200/200确认（29 select/171 reject）；fresh50 3/47 holdout评测已完成
+BLOCKERS=sealed 11b6 holdout precision 7.69%、recall 33.33%；开发集precision 31.25%；Gate3错例签收/阈值确认待复核，Gate4覆盖与Gate5正式review未完成
+COMPLETED=418 articles/490 revisions/418 discoveries（72 ok/340 pending/6 unconfirmed）；publications/overrides各40；业务数据与正文状态未因本轮评测变化；全部48 sources仍disabled/fulltext/syndicate关闭
+IN_PROGRESS=fresh50 holdout结果审阅；剩余340 pending正文及6 unconfirmed后续按新证据规划，不在本次评测交接中宣称已写入
+NEXT=Root review Gate3证据；不得依据此holdout即时调参。未来开发集迭代与新独立测试需另行隔离
+```
+
+完整评测输入/输出hash、provenance、混淆矩阵、错例归因及局限见[2026-10-23 fresh50 holdout评测交接](HANDOFFS/GOLD_HOLDOUT_EVALUATION_2026-10-23.md)。本轮只核验旧版832a17作为历史参考，主Gate证据为sealed 11b6。无源码、业务记录、阈值或样本改动；没有新增文章、摘要、发布或模型provider调用。
+
+## 2026-10-23 受控正文与摘要批次收尾（业务数据检查点）
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot

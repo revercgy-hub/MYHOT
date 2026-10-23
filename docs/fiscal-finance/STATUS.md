@@ -1,6 +1,23 @@
 # 项目状态
 
-## 2026-10-23 受控正文与摘要批次收尾（当前状态）
+## 2026-10-23 fresh50 Gold评测检查点（当前）
+
+```text
+CURRENT_BRANCH=feat/fiscal-finance-hot
+EVALUATED_CODE_SHA=3e7345e1c7f7d4e18d6362d35fcdd80bc0af4f0a
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+STAGE=NAS Staging；无部署或数据库业务变更
+GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过，正式裁决待Root复核
+REVIEW=Gold200全数人工确认（29 select/171 reject）；fresh50真实holdout标签3 select/47 reject
+BLOCKERS=主sealed11b6 holdout precision 7.69%、recall 33.33%，仍不支持精选体系校准可用；开发precision31.25%；Gate3错例审核及阈值确认待复核，Gate4/5仍有旧阻塞
+COMPLETED=418 articles/490 revisions/418 discoveries（72 ok/340 pending/6 unconfirmed）；publications/overrides各40；48 sources disabled/fulltext/syndicate关闭；本轮业务计数没有变化
+IN_PROGRESS=holdout结果供Root审核；剩余340 pending正文与6 unconfirmed仍待后续有界处理，本轮未主张写入
+NEXT=Root复核Gate3证据。fresh50已用于holdout评估，不能再称未触碰；不据其结果即时调参
+```
+
+NAS导出、READY验证、预测provenance、两版逐份holdout结果、score不确定性及分层错例分析见[2026-10-23 fresh50 holdout评测交接](HANDOFFS/GOLD_HOLDOUT_EVALUATION_2026-10-23.md)。正式主成绩仅采用人审前冻结的sealed11b6预测；旧832a17结果作为盲性证明有限的历史参考。评测离线完成，没有模型provider调用、源码变更、业务写入、阈值变更或新样本抽取。
+
+## 2026-10-23 受控正文与摘要批次收尾（业务数据检查点）
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
