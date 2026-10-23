@@ -1,11 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { ITEM_TYPES } from "../industry/taxonomy.ts";
+import { CATEGORIES, CATEGORY_TAGS, ITEM_TYPES } from "../industry/taxonomy.ts";
 import { SELECTION } from "../industry/selection.ts";
+import { CATEGORY_GUIDE, normalizeTags } from "../packages/backend/src/editorial/vocabulary.ts";
 
 const prefilter = readFileSync("industry/prompts/prefilter.md", "utf8");
 const score = readFileSync("industry/prompts/selection-score.md", "utf8");
+const contentUnderstanding = readFileSync("industry/prompts/content-understanding.md", "utf8");
 
 test("major national livelihood policy can enter scoring without broadening ordinary health or local-event noise", () => {
   assert.match(prefilter, /国家层级发布、内容具有实质重要性的重大民生政策[，,]即使材料没有明确财政金融安排[，,]也可通过预筛进入后续注意力评分/u);
@@ -44,4 +46,25 @@ test("policy alignment preserves the existing item types, scoring weights and se
   ];
   for (const row of expectedWeightRows) assert.ok(score.includes(row), `expected unchanged scoring row: ${row}`);
   assert.match(score, /不要改权重/u);
+});
+
+test("major livelihood policy is a distinct category and a valid policy_release category tag", () => {
+  assert.deepEqual(CATEGORIES.map((entry) => entry.key).filter((key) => key !== "major-livelihood-policy"), [
+    "fiscal-policy", "government-debt", "fiscal-finance", "financial-regulation", "monetary-finance",
+    "accounting-supervision", "local-practice", "research",
+  ]);
+  const category = CATEGORIES.find((entry) => entry.key === "major-livelihood-policy");
+  assert.deepEqual(category, {
+    key: "major-livelihood-policy",
+    label: "重大民生政策",
+    section: "重大民生政策",
+    guide: "国家层级具有实质重要性的民生政策出台、调整或实施，可不要求存在明确财政金融安排；须按政策内容和实际公共管理关联判断，不能仅凭发布机构身份认定重大；普通健康科普、一般知识介绍和仅涉及地方活动的内容不归入此类",
+  });
+  assert.ok((CATEGORY_TAGS as readonly string[]).includes("重大民生政策"));
+  assert.match(CATEGORY_GUIDE, /major-livelihood-policy（重大民生政策）/u);
+  assert.match(contentUnderstanding, /`policy_release`对应“政策发布”“财政金融”或“重大民生政策”/u);
+  assert.match(contentUnderstanding, /普通健康科普、一般知识介绍和仅涉及地方活动不归入此类/u);
+  assert.match(contentUnderstanding, /不得因此虚构财政资金、预算安排或财政影响/u);
+  assert.deepEqual(normalizeTags(["重大民生政策", "财政收支"]), ["重大民生政策", "财政收支"]);
+  assert.equal(ITEM_TYPES.length, 8);
 });
