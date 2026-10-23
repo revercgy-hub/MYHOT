@@ -1,6 +1,6 @@
 # P5 Gold Dataset readiness（2026-10-03）
 
-> 本页以下早期段落按原日期保留；当前状态以2026-10-23 fresh50 holdout评测一节为准。
+> 本页以下早期段落按原日期保留；当前Gate 3正式结论见[Gate 3 review](GATE_3_REVIEW.md)：`CHANGES_REQUIRED`，未通过。
 
 ## 2026-10-23 fresh50人工审阅完成并完成冻结预测评测
 
@@ -8,7 +8,7 @@
 
 主Gate3证据使用新版sealed `score11b6` holdout预测，SHA-256 `cc34bacb8ba729d52be305ba09cb92fed99cfecaa53c3d5635c71f09fcc07ede`。经既有离线native evaluator只读评测，50/50覆盖，TP=1、FP=12、FN=2、TN=35；accuracy 72.0%、precision 7.69%、recall 33.33%、F1 12.50%。holdout仅3个人工select，precision/recall置信区间很宽，且所有样本均为T1，不能外推T1.5/T2。新版两轮sealed score pass、adapter和UUID mapping/proof链已核验；native运行不属于stateless runtime provider，receipt为null。旧 `score832a17` 同批历史冻结预测也单独复算为TP=1、FP=14、FN=2、TN=33，P=6.67%、R=33.33%、F1=11.11%；因其blind transport proof有限，只作为历史参考，不用于主Gate判断。此前明确报告threshold暴露并作废的是`/root/luna_scope_score_pass1`与`/root/luna_scope_score_pass2`，不与两版预测各自的session混淆。保留60/65/76阈值及其他预测/Gold内容，没有holdout threshold sweep或据holdout调参。
 
-该证据表明真实人工Gold和holdout评测已经形成，但当前查准率很低、开发集precision也仅31.25%。它不支持宣布精选体系校准可用或Gate3通过；错例目前仅做分层归因，正式Gate裁决由Root完成。样本hash、独立结果、指标、score disagreement和错例主题见[2026-10-23 holdout评测交接](HANDOFFS/GOLD_HOLDOUT_EVALUATION_2026-10-23.md)。本holdout已被评估，今后不能再视为未触碰测试集。
+该证据表明真实人工Gold和holdout评测已经形成，但当前查准率很低、开发集precision也仅31.25%。Root正式复核判定`CHANGES_REQUIRED`：接受数据/冻结链/评测方法，但不接受校准可用性；错例与正式门槛决定仍未完成。阈值60/65/76保持，且不根据fresh50调参。样本hash、独立结果、指标、score disagreement和错例主题见[2026-10-23 holdout评测交接](HANDOFFS/GOLD_HOLDOUT_EVALUATION_2026-10-23.md)和[Gate 3 review](GATE_3_REVIEW.md)。本holdout已被评估，今后不能再视为未触碰测试集。
 
 ## 2026-10-22 人工标签与事件核验完成；Gate 3留出评测仍待新样本
 

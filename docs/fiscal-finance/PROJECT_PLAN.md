@@ -9,15 +9,15 @@ CURRENT_BRANCH=feat/fiscal-finance-hot
 EVALUATED_CODE_SHA=3e7345e1c7f7d4e18d6362d35fcdd80bc0af4f0a
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 STAGE=NAS Staging；应用版本与本地离线评测保持分离
-GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过，等待Root正式复核
+GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3正式复核为CHANGES_REQUIRED；Gate 4/5未通过
 REVIEW=Gold200已200/200确认（29 select/171 reject）；fresh50 3/47 holdout评测已完成
-BLOCKERS=sealed 11b6 holdout precision 7.69%、recall 33.33%；开发集precision 31.25%；Gate3错例签收/阈值确认待复核，Gate4覆盖与Gate5正式review未完成
-COMPLETED=418 articles/490 revisions/418 discoveries（72 ok/340 pending/6 unconfirmed）；publications/overrides各40；业务数据与正文状态未因本轮评测变化；全部48 sources仍disabled/fulltext/syndicate关闭
-IN_PROGRESS=fresh50 holdout结果审阅；剩余340 pending正文及6 unconfirmed后续按新证据规划，不在本次评测交接中宣称已写入
-NEXT=Root review Gate3证据；不得依据此holdout即时调参。未来开发集迭代与新独立测试需另行隔离
+BLOCKERS=Gate3 holdout precision 7.69%、development precision 31.25%，不支持校准可用；错例签收/开发集修复评估/正式阈值决定未完成；Gate4覆盖与Gate5正式review未完成
+COMPLETED=Gold200人审与fresh50评测已完成；b4 writer报告在Root批准下19条body CAS已COMMITTED/19 revisions到revision2/1 hold，独立postcheck待完成；此前最近核实的快照为418 articles/490 revisions/418 discoveries（72 ok/340 pending/6 unconfirmed）、publications/overrides各40、48 sources disabled/fulltext/syndicate关闭
+IN_PROGRESS=Gate3 CHANGES_REQUIRED；b4 post-snapshot逐表/目标行独立核验待完成，未独立确认写后最终计数；native-summary proposal待准备、独立grounding及Root单独批准
+NEXT=独立核验b4 fresh post-snapshot预计91 ok/321 pending/6 unconfirmed、509 revisions、pub40/source48及Gold200/保护行不变；不得依据已消费holdout即时调参
 ```
 
-完整评测输入/输出hash、provenance、混淆矩阵、错例归因及局限见[2026-10-23 fresh50 holdout评测交接](HANDOFFS/GOLD_HOLDOUT_EVALUATION_2026-10-23.md)。本轮只核验旧版832a17作为历史参考，主Gate证据为sealed 11b6。无源码、业务记录、阈值或样本改动；没有新增文章、摘要、发布或模型provider调用。
+Gate3逐项审查见[正式Gate 3 review](GATE_3_REVIEW.md)；holdout输入/输出hash、provenance、混淆矩阵、错例归因及局限见[2026-10-23评测交接](HANDOFFS/GOLD_HOLDOUT_EVALUATION_2026-10-23.md)。b4离线证据QA、Root批准范围及postcheck待办见[正文批b4 QA交接](HANDOFFS/PENDING_BODY_BATCH_B4_QA_2026-10-23.md)。正文operator报告CAS完成，但独立post-snapshot QA尚未签收；以上91/321/6等为待核对预期，不是确认结果。主Gate证据为sealed 11b6，832a17只作盲性证明有限的历史参考。
 
 ## 2026-10-23 受控正文与摘要批次收尾（业务数据检查点）
 
