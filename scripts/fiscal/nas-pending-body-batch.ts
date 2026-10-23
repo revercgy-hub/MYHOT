@@ -52,6 +52,7 @@ const PROTECTED_RELATIONS = ["sources", "article_discoveries", "editorial_overri
   "regroup_pending", "selected_ledger", "selected_state", "audit_log", "ingest_events", "gold_review_batches", "gold_review_cases",
   "gold_review_idempotency"];
 const sha256 = (value: string | Buffer) => createHash("sha256").update(value).digest("hex");
+const compareText = (a: string, b: string) => a < b ? -1 : a > b ? 1 : 0;
 const stableJson = (value: unknown): string => {
   if (Array.isArray(value)) return `[${value.map(stableJson).join(",")}]`;
   if (value && typeof value === "object") {
@@ -99,7 +100,20 @@ export interface PendingBodyManifest {
   selection: { strategy: "explicit-article-ids" | "source-round-robin-published-desc-id-asc" | "source-round-robin-prior-captured-published-desc-id-asc"; articleIds: string[];
     excludedResponseUrlCount: number; excludedResponseUrlEvidenceSha256: string;
     excludedResponseUrlEntriesSha256: string; excludedResponseUrls: ExistingUrlEvidence["entries"]; legacyInventorySha256?: string };
+  legacyReuseGroups?: Array<{ articleId: string; sourceId: string; url: string; candidates: LegacyReuseCandidate[] }>;
   targets: PendingTarget[];
+}
+
+export interface LegacyReuseCandidate {
+  manifestPath: string;
+  manifestSha256: string;
+  requestId: number;
+  recordIndex: number;
+  responsePath: string;
+  bytes: number;
+  bodySha256: string;
+  contentType: string;
+  contentEncoding: string;
 }
 
 export interface PendingCaptureRecord {
@@ -119,9 +133,13 @@ export interface PendingCaptureRecord {
   file: string;
   networkEvidenceKind?: "fresh-dispatch" | "legacy-capture";
   legacySourceManifestSha256?: string;
+  legacySourceManifestPath?: string;
+  legacySourceRequestId?: number;
+  legacySourceRecordIndex?: number;
   legacySourceManifestStartedAtUtc?: string | null;
   legacySourceManifestFinishedAtUtc?: string | null;
   legacyInventorySha256?: string;
+  legacyDuplicateEvidence?: LegacyReuseCandidate[];
 }
 
 export interface LegacyOfflineCaptureEvidence {
@@ -301,6 +319,42 @@ export function singleReusableLegacyDispatch(record: any, target: { articleId: s
   return row;
 }
 
+/** Metadata-only eligibility for one or more frozen response members; raw files are checked only by legacy-adapt. */
+export function reusableIdenticalLegacyDispatchGroup(record: any,
+  target: { articleId: string; sourceId: string; url: string }): LegacyReuseCandidate[] | null {
+  const dispatches = record?.evidence?.responseDispatches;
+  const rawCaptures = record?.evidence?.rawCaptures;
+  if (record?.exactURL !== target.url || record?.sourceId !== target.sourceId || !Array.isArray(dispatches) || !dispatches.length ||
+      !Array.isArray(rawCaptures) || rawCaptures.length !== dispatches.length) return null;
+  const candidates: LegacyReuseCandidate[] = [];
+  for (let recordIndex = 0; recordIndex < dispatches.length; recordIndex++) {
+    const row = dispatches[recordIndex];
+    const manifestPath = typeof row.manifestPath === "string" ? row.manifestPath.replace(/\\/gu, "/") : "";
+    const approvedSha = LEGACY_MANIFEST_SHA256[manifestPath];
+    const captureRows = rawCaptures.filter((capture: any) => capture.file?.replace(/\\/gu, "/") === manifestPath &&
+      capture.rawFile?.replace(/\\/gu, "/") === row.rawFile?.replace(/\\/gu, "/") && capture.responseUrl === target.url);
+    const capture = captureRows[0];
+    if (!approvedSha || captureRows.length !== 1 || !Number.isSafeInteger(row.requestId) || row.requestId < 0 ||
+        row.exactArticleURLRequest !== true || row.requestURL !== target.url || row.method !== "GET" ||
+        row.statusCode !== 200 || !/^text\/html(?:\s*;|$)/iu.test(row.contentType ?? "") || row.eof !== true || row.captureTruncated !== false ||
+        row.fileExists !== true || row.transportComplete !== true || !Number.isSafeInteger(row.fileBytes) || row.fileBytes < 1 ||
+        row.fileBytes !== row.declaredBytes || row.fileSha256 !== row.declaredSha256 || !/^[a-f0-9]{64}$/u.test(row.fileSha256 ?? "") ||
+        typeof row.responsePath !== "string" || row.responsePath.replace(/\\/gu, "/") !== capture.rawFile?.replace(/\\/gu, "/") ||
+        capture.fileExists !== true || capture.eof !== true || capture.captureTruncated !== false ||
+        capture.completeRaw !== true || capture.rawBytes !== row.fileBytes || capture.rawSha256 !== row.fileSha256 ||
+        capture.contentType !== row.contentType || typeof capture.contentEncoding !== "string" ||
+        capture.responseUrl !== target.url || capture.statusCode !== 200) return null;
+    candidates.push({ manifestPath, manifestSha256: approvedSha, requestId: row.requestId, recordIndex,
+      responsePath: row.responsePath.replace(/\\/gu, "/"), bytes: row.fileBytes, bodySha256: row.fileSha256,
+      contentType: row.contentType, contentEncoding: capture.contentEncoding });
+  }
+  const reference = candidates[0]!;
+  if (candidates.some((row) => row.bytes !== reference.bytes || row.bodySha256 !== reference.bodySha256 ||
+      row.contentType !== reference.contentType || row.contentEncoding !== reference.contentEncoding)) return null;
+  return candidates.sort((a, b) => compareText(a.manifestPath, b.manifestPath) || compareText(a.manifestSha256, b.manifestSha256) ||
+    a.requestId - b.requestId || a.recordIndex - b.recordIndex);
+}
+
 export function assertRuntimeSafetyFlags(env: NodeJS.ProcessEnv): void {
   const enabled = SAFETY_FLAGS.filter((key) => env[key] !== undefined && env[key] !== "false" && env[key] !== "0" && env[key] !== "");
   if (enabled.length) throw new Error(`unsafe runtime flags enabled: ${enabled.join(",")}`);
@@ -394,7 +448,8 @@ export async function readPendingSnapshot(tx: any, targetIds: string[], publicUr
 
 export function buildPendingManifest(input: { runId: string; operatorBytes: Buffer; catalogBytes?: Buffer; database: string;
   snapshot: PendingSnapshot; targets: PendingTarget[]; selectionStrategy?: PendingBodyManifest["selection"]["strategy"];
-  excludedResponseUrlEvidence?: { sha256: string; entries: ExistingUrlEvidence["entries"] }; legacyInventorySha256?: string }): PendingBodyManifest {
+  excludedResponseUrlEvidence?: { sha256: string; entries: ExistingUrlEvidence["entries"] }; legacyInventorySha256?: string;
+  legacyReuseGroups?: PendingBodyManifest["legacyReuseGroups"] }): PendingBodyManifest {
   if (!/^[A-Za-z0-9_-]{1,80}$/u.test(input.runId) || input.targets.length < 1 || input.targets.length > CAP ||
       new Set(input.targets.map((target) => target.articleId)).size !== input.targets.length) throw new Error("invalid pending body manifest scope");
   if (input.snapshot.database !== input.database) throw new Error("manifest database does not match frozen snapshot");
@@ -414,6 +469,7 @@ export function buildPendingManifest(input: { runId: string; operatorBytes: Buff
       excludedResponseUrlEntriesSha256: sha256(stableJson(input.excludedResponseUrlEvidence?.entries ?? [])),
       excludedResponseUrls: input.excludedResponseUrlEvidence?.entries ?? [],
       ...(input.legacyInventorySha256 ? { legacyInventorySha256: input.legacyInventorySha256 } : {}) }, targets: input.targets };
+  if (input.legacyReuseGroups) manifest.legacyReuseGroups = input.legacyReuseGroups;
   return manifest;
 }
 
@@ -892,6 +948,8 @@ async function main(): Promise<void> {
           !Array.isArray(manifest.selection?.excludedResponseUrls)) throw new Error("legacy dispatch inventory or manifest scope schema is invalid");
       const evidenceRoot = path.resolve(ROOT, ".data/fiscal-qa");
       const evidenceEntries = new Map(manifest.selection.excludedResponseUrls.map((entry) => [entry.url, entry]));
+      const reuseGroups = new Map((manifest.legacyReuseGroups ?? []).map((group) => [group.articleId, group]));
+      if (reuseGroups.size !== (manifest.legacyReuseGroups ?? []).length) throw new Error("legacy reuse manifest repeats a target group");
       const captureDir = path.resolve(values["capture-dir"]!);
       const pendingCopies: Array<{ target: PendingTarget; rawBytes: Buffer; record: PendingCaptureRecord }> = [];
       for (const target of manifest.targets) {
@@ -900,32 +958,60 @@ async function main(): Promise<void> {
         const matchingArticles = inventory.records.filter((row: any) => row.exactURL === target.url && row.sourceId === target.sourceId);
         if (matchingArticles.length !== 1) throw new Error(`legacy inventory target identity is missing or duplicated: ${target.articleId}`);
         const article = matchingArticles[0];
-        const row = singleReusableLegacyDispatch(article, target);
-        if (!row) throw new Error(`legacy inventory does not contain exactly one complete manifest-bound response for target ${target.articleId}`);
-        const manifestRelative = String(row.manifestPath).replace(/\\/gu, "/");
-        const approvedManifestSha = LEGACY_MANIFEST_SHA256[manifestRelative];
-        if (!approvedManifestSha) throw new Error(`legacy source manifest is outside the 23-file reviewed allowlist: ${manifestRelative}`);
-        const sourceManifestPath = path.resolve(ROOT, manifestRelative);
-        if (!sourceManifestPath.startsWith(`${evidenceRoot}${path.sep}`) || lstatSync(sourceManifestPath).isSymbolicLink()) throw new Error("legacy source manifest path is unsafe");
-        const sourceManifestBytes = readFileSync(sourceManifestPath);
-        const sourceManifestSha = sha256(sourceManifestBytes);
-        if (sourceManifestSha !== approvedManifestSha) throw new Error("legacy source manifest bytes differ from frozen allowlist");
-        const sourceRootPath = path.resolve(ROOT, String(row.responsePath).replace(/\\/gu, "/"));
-        if (!sourceRootPath.startsWith(`${evidenceRoot}${path.sep}`) || lstatSync(sourceRootPath).isSymbolicLink() || !statSync(sourceRootPath).isFile()) {
-          throw new Error("legacy raw response path is unsafe or missing");
+        const candidates = reusableIdenticalLegacyDispatchGroup(article, target);
+        const frozenGroup = reuseGroups.get(target.articleId);
+        const planned = frozenGroup?.candidates ?? (candidates?.length === 1 ? candidates : null);
+        if (!candidates || !planned || frozenGroup && (frozenGroup.sourceId !== target.sourceId || frozenGroup.url !== target.url) ||
+            stableJson(planned) !== stableJson(candidates)) {
+          throw new Error(`legacy complete candidate group differs from the frozen manifest for ${target.articleId}`);
         }
-        const rawBytes = readFileSync(sourceRootPath);
-        if (rawBytes.length !== row.fileBytes || sha256(rawBytes) !== row.fileSha256) throw new Error("legacy raw response bytes differ from frozen inventory");
-        const sourceManifest = JSON.parse(sourceManifestBytes.toString("utf8"));
-        const dispatch = sourceManifest.dispatches?.find((candidate: any) => candidate.requestId === row.requestId);
-        if (!dispatch?.rawFile) throw new Error("legacy manifest dispatch lacks its raw-file binding");
-        const originalRawPath = path.resolve(path.dirname(sourceManifestPath), dispatch.rawFile);
-        if (originalRawPath !== sourceRootPath) throw new Error("legacy inventory response path differs from source manifest raw path");
+        const verified: Array<{ candidate: LegacyReuseCandidate; evidence: LegacyOfflineCaptureEvidence; rawBytes: Buffer }> = [];
+        for (const candidate of planned) {
+          const manifestRelative = candidate.manifestPath;
+          const approvedManifestSha = LEGACY_MANIFEST_SHA256[manifestRelative];
+          if (!approvedManifestSha || approvedManifestSha !== candidate.manifestSha256) {
+            throw new Error(`legacy source manifest is outside the reviewed SHA allowlist: ${manifestRelative}`);
+          }
+          const sourceManifestPath = path.resolve(ROOT, manifestRelative);
+          if (!sourceManifestPath.startsWith(`${evidenceRoot}${path.sep}`) || lstatSync(sourceManifestPath).isSymbolicLink()) {
+            throw new Error("legacy source manifest path is unsafe");
+          }
+          const sourceManifestBytes = readFileSync(sourceManifestPath);
+          if (sha256(sourceManifestBytes) !== candidate.manifestSha256) throw new Error("legacy source manifest bytes differ from frozen allowlist");
+          const sourceRootPath = path.resolve(ROOT, candidate.responsePath);
+          if (!sourceRootPath.startsWith(`${evidenceRoot}${path.sep}`) || lstatSync(sourceRootPath).isSymbolicLink() || !statSync(sourceRootPath).isFile()) {
+            throw new Error("legacy raw response path is unsafe or missing");
+          }
+          const rawBytes = readFileSync(sourceRootPath);
+          if (rawBytes.length !== candidate.bytes || sha256(rawBytes) !== candidate.bodySha256) {
+            throw new Error("legacy raw response bytes differ from frozen inventory");
+          }
+          const sourceManifest = JSON.parse(sourceManifestBytes.toString("utf8"));
+          const dispatches = sourceManifest.dispatches?.filter((item: any) => item.requestId === candidate.requestId) ?? [];
+          const dispatch = dispatches[0];
+          if (dispatches.length !== 1 || !dispatch?.rawFile) throw new Error("legacy manifest requestId is ambiguous or lacks its raw-file binding");
+          const originalRawPath = path.resolve(path.dirname(sourceManifestPath), dispatch.rawFile);
+          if (originalRawPath !== sourceRootPath) throw new Error("legacy inventory response path differs from source manifest raw path");
+          const evidence = adaptLegacyExecutionDispatch({ target, manifestBytes: sourceManifestBytes, requestId: candidate.requestId,
+            rawBytes, file: `responses/legacy-${target.articleId}-${sha256(target.url).slice(0, 12)}.body`,
+            expectedManifestSha256: candidate.manifestSha256 });
+          if (evidence.bytes !== candidate.bytes || evidence.bodySha256 !== candidate.bodySha256 || evidence.contentType !== candidate.contentType ||
+              evidence.contentEncoding !== candidate.contentEncoding) throw new Error("legacy raw response metadata differs from frozen duplicate group");
+          verified.push({ candidate, evidence, rawBytes });
+        }
+        const selected = verified[0];
+        if (!selected || verified.some((member) => member.rawBytes.length !== selected.rawBytes.length || sha256(member.rawBytes) !== sha256(selected.rawBytes) ||
+            member.evidence.contentType !== selected.evidence.contentType || member.evidence.contentEncoding !== selected.evidence.contentEncoding)) {
+          throw new Error("legacy duplicate group does not contain identical complete raw response bytes");
+        }
         const captureFile = `responses/legacy-${target.articleId}-${sha256(target.url).slice(0, 12)}.body`;
-        const legacy = adaptLegacyExecutionDispatch({ target, manifestBytes: sourceManifestBytes, requestId: row.requestId,
-          rawBytes, file: captureFile, expectedManifestSha256: approvedManifestSha });
-        pendingCopies.push({ target, rawBytes, record: { ...asLegacyOfflineCaptureRecord(legacy), legacyInventorySha256: inventorySha256 } });
+        const duplicateEvidence = verified.length > 1 ? verified.map((member) => member.candidate) : undefined;
+        pendingCopies.push({ target, rawBytes: selected.rawBytes, record: { ...asLegacyOfflineCaptureRecord({ ...selected.evidence, file: captureFile }),
+          legacySourceManifestPath: selected.candidate.manifestPath, legacySourceRequestId: selected.candidate.requestId,
+          legacySourceRecordIndex: selected.candidate.recordIndex, legacyInventorySha256: inventorySha256,
+          ...(duplicateEvidence ? { legacyDuplicateEvidence: duplicateEvidence } : {}) } });
       }
+      if (reuseGroups.size && reuseGroups.size !== manifest.targets.length) throw new Error("legacy group lineage must cover every frozen target exactly once");
       if (pendingCopies.length !== manifest.targets.length || new Set(pendingCopies.map((row) => row.target.articleId)).size !== manifest.targets.length) {
         throw new Error("legacy adapter coverage is incomplete or duplicated; no captures were written");
       }
@@ -937,7 +1023,8 @@ async function main(): Promise<void> {
         writeFileSync(bodyDestination, item.rawBytes, { flag: "wx", mode: 0o600 });
         records.push(item.record);
       }
-      const output = { schemaVersion: "nas-pending-legacy-captures.v1", manifestSha256,
+      const hasDuplicateLineage = records.some((row) => (row.legacyDuplicateEvidence?.length ?? 0) > 1);
+      const output = { schemaVersion: hasDuplicateLineage ? "nas-pending-legacy-captures.v2" : "nas-pending-legacy-captures.v1", manifestSha256,
         legacyInventorySha256: inventorySha256, networkCompliance: "UNPROVEN_HISTORICAL_CADENCE" as const,
         capturesSha256: sha256(stableJson(records)), records };
       writePrivate(path.resolve(values.out!), output);
@@ -948,11 +1035,52 @@ async function main(): Promise<void> {
     }
     const capturesBytes = readPrivateJsonBytes(values.captures!);
     const captures = JSON.parse(capturesBytes.toString("utf8"));
-    const isFresh = captures.schemaVersion === "nas-pending-body-captures.v1";
-    const isLegacy = captures.schemaVersion === "nas-pending-legacy-captures.v1" && captures.networkCompliance === "UNPROVEN_HISTORICAL_CADENCE" &&
-      /^[a-f0-9]{64}$/u.test(captures.legacyInventorySha256 ?? "") && captures.records.every((row: any) =>
+    const manifestHasReusePlan = Array.isArray(manifest.legacyReuseGroups) && manifest.legacyReuseGroups.length > 0;
+    const manifestHasDuplicateGroup = manifest.legacyReuseGroups?.some((group) => group.candidates.length > 1) ?? false;
+    const isFresh = captures.schemaVersion === "nas-pending-body-captures.v1" && !manifestHasReusePlan;
+    const singlePlanMatchesRecords = !manifestHasReusePlan || Array.isArray(captures.records) && captures.records.length === manifest.targets.length &&
+      captures.records.every((row: any) => {
+        const target = manifest.targets.find((item) => item.articleId === row.articleId);
+        const group = manifest.legacyReuseGroups!.find((item) => item.articleId === row.articleId);
+        const candidate = group?.candidates.length === 1 ? group.candidates[0] : null;
+        return !!target && !!group && !!candidate && group.sourceId === target.sourceId && group.url === target.url && row.sourceId === target.sourceId &&
+          row.url === target.url && row.legacySourceManifestSha256 === candidate.manifestSha256 &&
+          row.legacySourceManifestPath === candidate.manifestPath && row.legacySourceRequestId === candidate.requestId &&
+          row.legacySourceRecordIndex === candidate.recordIndex && row.bytes === candidate.bytes && row.bodySha256 === candidate.bodySha256 &&
+          row.contentType === candidate.contentType && row.contentEncoding === candidate.contentEncoding;
+      });
+    const isLegacyV1 = captures.schemaVersion === "nas-pending-legacy-captures.v1" && captures.networkCompliance === "UNPROVEN_HISTORICAL_CADENCE" &&
+      !manifestHasDuplicateGroup && singlePlanMatchesRecords && /^[a-f0-9]{64}$/u.test(captures.legacyInventorySha256 ?? "") && captures.records.every((row: any) =>
         row.networkEvidenceKind === "legacy-capture" && row.legacyInventorySha256 === captures.legacyInventorySha256);
-    if ((!isFresh && !isLegacy) || captures.manifestSha256 !== sha256(manifestBytes) ||
+    const isLegacyV2 = captures.schemaVersion === "nas-pending-legacy-captures.v2" && captures.networkCompliance === "UNPROVEN_HISTORICAL_CADENCE" &&
+      /^[a-f0-9]{64}$/u.test(captures.legacyInventorySha256 ?? "") && Array.isArray(captures.records) &&
+      captures.records.every((row: any) => row.networkEvidenceKind === "legacy-capture" && row.legacyInventorySha256 === captures.legacyInventorySha256 &&
+        Number.isSafeInteger(row.legacySourceRequestId) && Number.isSafeInteger(row.legacySourceRecordIndex) &&
+        typeof row.legacySourceManifestPath === "string" && /^[a-f0-9]{64}$/u.test(row.legacySourceManifestSha256 ?? "")) &&
+      Array.isArray(manifest.legacyReuseGroups) && manifestHasDuplicateGroup &&
+      captures.records.length === manifest.targets.length && captures.records.every((row: any) => {
+        const target = manifest.targets.find((item) => item.articleId === row.articleId);
+        const group = manifest.legacyReuseGroups!.find((item) => item.articleId === row.articleId);
+        const candidates = group?.candidates ?? [];
+        const representative = candidates[0];
+        const lineage = row.legacyDuplicateEvidence;
+        const duplicatesValid = candidates.length > 1 && Array.isArray(lineage) && lineage.length === candidates.length &&
+          stableJson(lineage) === stableJson([...lineage].sort((a: LegacyReuseCandidate, b: LegacyReuseCandidate) =>
+            compareText(a.manifestPath, b.manifestPath) || compareText(a.manifestSha256, b.manifestSha256) || a.requestId - b.requestId || a.recordIndex - b.recordIndex)) &&
+          stableJson(lineage) === stableJson(candidates) && lineage.every((member: LegacyReuseCandidate) =>
+            LEGACY_MANIFEST_SHA256[member.manifestPath] === member.manifestSha256 && Number.isSafeInteger(member.requestId) &&
+            Number.isSafeInteger(member.recordIndex) && member.bytes === row.bytes && member.bodySha256 === row.bodySha256 &&
+            member.contentType === row.contentType && member.contentEncoding === row.contentEncoding);
+        const singletonValid = candidates.length === 1 && lineage === undefined &&
+          LEGACY_MANIFEST_SHA256[representative?.manifestPath ?? ""] === representative?.manifestSha256 &&
+          representative?.bytes === row.bytes && representative?.bodySha256 === row.bodySha256 &&
+          representative?.contentType === row.contentType && representative?.contentEncoding === row.contentEncoding;
+        return !!target && !!group && group.sourceId === target.sourceId && group.url === target.url && row.sourceId === target.sourceId && row.url === target.url &&
+          row.legacySourceManifestSha256 === representative?.manifestSha256 && row.legacySourceManifestPath === representative?.manifestPath &&
+          row.legacySourceRequestId === representative?.requestId && row.legacySourceRecordIndex === representative?.recordIndex &&
+          (duplicatesValid || singletonValid);
+      });
+    if ((!isFresh && !isLegacyV1 && !isLegacyV2) || captures.manifestSha256 !== sha256(manifestBytes) ||
         captures.capturesSha256 !== sha256(stableJson(captures.records))) throw new Error("capture index differs from exact frozen manifest or record bytes");
     const { fetchDetail } = await import(appModule("packages/backend/src/sources/web-list.ts"));
     const sources = new Map(CATALOG.sources.map((source) => [String(source.id), source]));
@@ -982,6 +1110,7 @@ async function main(): Promise<void> {
       let legacyInventoryBytes: Buffer | null = null;
       let legacyInventory: any = null;
       let legacyInventorySha256: string | undefined;
+      let legacyReuseGroups: PendingBodyManifest["legacyReuseGroups"];
       if (values["reuse-prior-captures"]) {
         legacyInventoryBytes = readPrivateJsonBytes(values["legacy-evidence"]!);
         legacyInventorySha256 = sha256(legacyInventoryBytes);
@@ -1023,9 +1152,20 @@ async function main(): Promise<void> {
                 inventoryRows.set(key, item);
               }
             }
-            const reusableRows = metadataRows.filter((row) => priorCaptured.has(row.url) &&
-              singleReusableLegacyDispatch(inventoryRows.get(`${row.sourceId}\n${row.url}`), row));
+            const candidateGroups = new Map<string, LegacyReuseCandidate[]>();
+            const reusableRows = metadataRows.filter((row) => {
+              if (!priorCaptured.has(row.url)) return false;
+              const candidates = reusableIdenticalLegacyDispatchGroup(inventoryRows.get(`${row.sourceId}\n${row.url}`), row);
+              if (!candidates) return false;
+              candidateGroups.set(String(row.articleId), candidates);
+              return true;
+            });
             ids = selectRoundRobinPendingTargets(reusableRows, CATALOG.sources, CAP);
+            const selected = new Set(ids);
+            legacyReuseGroups = reusableRows.filter((row) => selected.has(String(row.articleId))).map((row) => ({
+              articleId: String(row.articleId), sourceId: String(row.sourceId), url: String(row.url),
+              candidates: candidateGroups.get(String(row.articleId))!,
+            }));
             selectionStrategy = "source-round-robin-prior-captured-published-desc-id-asc";
           } else {
             ids = selectRoundRobinPendingTargets(metadataRows, CATALOG.sources, CAP, priorEvidence.urls);
@@ -1035,7 +1175,7 @@ async function main(): Promise<void> {
         const { snapshot, targets } = await readPendingSnapshot(tx, ids, async () => undefined, allowed);
         return buildPendingManifest({ runId: values["run-id"]!, operatorBytes: readFileSync(fileURLToPath(import.meta.url)), database,
           snapshot, targets, selectionStrategy, excludedResponseUrlEvidence: { sha256: priorEvidence.sha256, entries: priorEvidence.evidence.entries },
-          legacyInventorySha256 });
+          legacyInventorySha256, legacyReuseGroups });
       });
       writePrivate(path.resolve(values.out!), result);
       console.log(JSON.stringify({ result: "PREPARED_READ_ONLY", runId: result.runId, database: result.database,

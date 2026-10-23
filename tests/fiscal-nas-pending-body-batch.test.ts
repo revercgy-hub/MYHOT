@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { lstatSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { brotliCompressSync, deflateSync, gzipSync } from "node:zlib";
@@ -11,12 +11,21 @@ import { applyPendingBodyCas, buildPendingManifest, capturePendingBodies, parseP
   parsePendingCapture, readPendingSnapshot, selectRoundRobinPendingTargets, validatePendingTarget,
   verifyFreshBackupProof, buildPendingProposalBundle, assertPendingProposalBundle, assertRuntimeSafetyFlags,
   parseExistingUrlEvidence, assertOnlyExpectedArticleChanges, assertDispatchNetworkGuard, decodePendingCapturedResponse,
-  adaptLegacyExecutionDispatch, asLegacyOfflineCaptureRecord, singleReusableLegacyDispatch, type PendingTarget } from "../scripts/fiscal/nas-pending-body-batch.ts";
+  adaptLegacyExecutionDispatch, asLegacyOfflineCaptureRecord, singleReusableLegacyDispatch, reusableIdenticalLegacyDispatchGroup,
+  type PendingTarget } from "../scripts/fiscal/nas-pending-body-batch.ts";
 import { type CandidateBodyCasRow } from "../scripts/fiscal/nas-candidate-body-cas.ts";
 import { createBudgetedDetailFetcher, detailConfigIsDirectHtml } from "../scripts/fiscal/nas-candidate-batch.ts";
 import { fetchDetail } from "../packages/backend/src/sources/web-list.ts";
 
 const sha256 = (value: string | Buffer) => createHash("sha256").update(value).digest("hex");
+const stableCanonicalJson = (value: unknown): string => {
+  if (Array.isArray(value)) return `[${value.map(stableCanonicalJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    const row = value as Record<string, unknown>;
+    return `{${Object.keys(row).sort().map((key) => `${JSON.stringify(key)}:${stableCanonicalJson(row[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value) ?? "null";
+};
 const catalog = JSON.parse(readFileSync("industry/sources.json", "utf8")).sources as Array<Record<string, any>>;
 const source = catalog.find((row) => row.id === "mof-beijing-supervision-dynamics")!;
 const sourceFor = (id: string) => catalog.find((row) => row.id === id)!;
@@ -117,24 +126,44 @@ test("legacy-adapt CLI imports complete reviewed scope offline with exact target
   const prior = readFileSync(".data/fiscal-qa/pending-capture-inventory-20261022/detail-response-exclusions.json");
   const priorEvidence = JSON.parse(prior.toString("utf8"));
   const capturedUrls = new Set(priorEvidence.entries.filter((entry: any) => entry.status === "captured").map((entry: any) => entry.url));
-  const rawRecord = inventory.records.find((row: any) => capturedUrls.has(row.exactURL) && catalog.some((candidate) => candidate.id === row.sourceId &&
-    candidate.kind === "web_list" && detailConfigIsDirectHtml(candidate)) && singleReusableLegacyDispatch(row,
-      { articleId: "test", sourceId: row.sourceId, url: row.exactURL }));
+  const eligibleRows = inventory.records.filter((row: any) => capturedUrls.has(row.exactURL) && catalog.some((candidate) => candidate.id === row.sourceId &&
+    candidate.kind === "web_list" && detailConfigIsDirectHtml(candidate)) && (reusableIdenticalLegacyDispatchGroup(row,
+      { articleId: "test", sourceId: row.sourceId, url: row.exactURL })?.length ?? 0) > 0);
+  const rawRecord = eligibleRows.find((row: any) => reusableIdenticalLegacyDispatchGroup(row,
+    { articleId: "test", sourceId: row.sourceId, url: row.exactURL })!.length > 1);
   assert.ok(rawRecord);
+  const duplicateCandidates = reusableIdenticalLegacyDispatchGroup(rawRecord, { articleId: "test", sourceId: rawRecord.sourceId, url: rawRecord.exactURL })!;
+  const rawSingle = eligibleRows.find((row: any) => reusableIdenticalLegacyDispatchGroup(row,
+    { articleId: "test", sourceId: row.sourceId, url: row.exactURL })!.length === 1 &&
+    (row.sourceId !== rawRecord.sourceId || Number(sourceFor(row.sourceId).config.detail.maxFetches) >= 2));
+  assert.ok(rawSingle, "real frozen inventory has a captured singleton suitable for a mixed batch");
+  const singleCandidates = reusableIdenticalLegacyDispatchGroup(rawSingle, { articleId: "test", sourceId: rawSingle.sourceId, url: rawSingle.exactURL })!;
   const urlEvidence = priorEvidence.entries.find((row: any) => row.url === rawRecord.exactURL);
   assert.equal(urlEvidence?.status, "captured");
   const dispatch = rawRecord.evidence.responseDispatches[0];
   const sourceBytes = readFileSync(dispatch.responsePath);
-  const url = rawRecord.exactURL as string;
-  const target: PendingTarget = { articleId: "legacy_cli_article", sourceId: rawRecord.sourceId, url,
+  const target: PendingTarget = { articleId: "legacy_cli_duplicate", sourceId: rawRecord.sourceId, url: rawRecord.exactURL,
     title: "fixture title", publishedAt: "2026-10-21T00:00:00Z", revision: 1, contentHash: sha256("old-body"), excerpt: null,
     sourceRowSha256: sha256("source-row"), rowText: "{}", rowSha256: sha256("{}") };
+  const singleTarget: PendingTarget = { ...target, articleId: "legacy_cli_single", sourceId: rawSingle.sourceId, url: rawSingle.exactURL };
   const operatorBytes = readFileSync("scripts/fiscal/nas-pending-body-batch.ts");
   const manifest = buildPendingManifest({ runId: "legacy_cli_test", operatorBytes, database: "fiscalhot_staging",
-    snapshot: { database: "fiscalhot_staging", capturedAt: "2026-10-22T00:00:00Z", counts: {}, rowsets: {} }, targets: [target],
+    snapshot: { database: "fiscalhot_staging", capturedAt: "2026-10-22T00:00:00Z", counts: {}, rowsets: {} }, targets: [target, singleTarget],
     selectionStrategy: "source-round-robin-prior-captured-published-desc-id-asc",
-    excludedResponseUrlEvidence: { sha256: sha256(prior), entries: priorEvidence.entries }, legacyInventorySha256: inventorySha });
+    excludedResponseUrlEvidence: { sha256: sha256(prior), entries: priorEvidence.entries }, legacyInventorySha256: inventorySha,
+    legacyReuseGroups: [{ articleId: target.articleId, sourceId: target.sourceId, url: target.url, candidates: duplicateCandidates },
+      { articleId: singleTarget.articleId, sourceId: singleTarget.sourceId, url: singleTarget.url, candidates: singleCandidates }] });
   const temp = mkdtempSync(path.join(os.tmpdir(), "nas-pending-legacy-cli-"));
+  const fixtureRoot = path.join(temp, "root");
+  mkdirSync(path.join(fixtureRoot, "industry"), { recursive: true });
+  copyFileSync("industry/sources.json", path.join(fixtureRoot, "industry/sources.json"));
+  for (const candidate of manifest.legacyReuseGroups!.flatMap((group) => group.candidates)) {
+    for (const relative of [candidate.manifestPath, candidate.responsePath]) {
+      const destination = path.join(fixtureRoot, relative);
+      mkdirSync(path.dirname(destination), { recursive: true });
+      copyFileSync(relative, destination);
+    }
+  }
   const manifestPath = path.join(temp, "manifest.json");
   const outputPath = path.join(temp, "captures.json");
   const captureDir = path.join(temp, "captures");
@@ -144,19 +173,86 @@ test("legacy-adapt CLI imports complete reviewed scope offline with exact target
     const stdout = execFileSync(process.execPath, ["--disable-warning=ExperimentalWarning", path.resolve("scripts/fiscal/nas-pending-body-batch.ts"),
       "--mode=legacy-adapt", `--manifest=${manifestPath}`, `--approval-sha256=${manifestSha}`, `--legacy-evidence=${path.resolve(inventoryPath)}`,
       `--legacy-evidence-sha256=${inventorySha}`, `--capture-dir=${captureDir}`, `--out=${outputPath}`],
-      { encoding: "utf8", timeout: 30_000, env: { ...process.env, MODEL_CALLS_ENABLED: "false" } });
+      { encoding: "utf8", timeout: 30_000, env: { ...process.env, AIHOT_APP_ROOT: fixtureRoot, MODEL_CALLS_ENABLED: "false" } });
     const report = JSON.parse(stdout.trim());
     assert.equal(report.result, "LEGACY_OFFLINE_IMPORT_COMPLETE_NO_NETWORK");
-    assert.equal(report.targetCount, 1);
-    assert.equal(report.legacyCaptureCount, 1);
+    assert.equal(report.targetCount, 2);
+    assert.equal(report.legacyCaptureCount, 2);
     assert.equal(report.coverageComplete, true);
     const output = JSON.parse(readFileSync(outputPath, "utf8"));
+    assert.equal(output.schemaVersion, "nas-pending-legacy-captures.v2");
     assert.equal(output.records.length, manifest.targets.length);
     assert.deepEqual(output.records.map((row: any) => row.articleId), manifest.targets.map((row) => row.articleId));
     assert.equal(output.records[0].bodySha256, sha256(sourceBytes));
+    assert.equal(output.records[0].legacyDuplicateEvidence.length, 2);
+    assert.equal(output.records[0].legacyDuplicateEvidence[0].manifestPath,
+      [...output.records[0].legacyDuplicateEvidence].sort((a: any, b: any) => a.manifestPath.localeCompare(b.manifestPath))[0].manifestPath);
+    assert.equal(Object.hasOwn(output.records[1], "legacyDuplicateEvidence"), false, "singleton provenance remains represented without duplicate lineage");
+    assert.equal(output.records[1].legacySourceManifestPath, singleCandidates[0]!.manifestPath);
     assert.equal(output.records[0].completedAt, null);
     assert.equal(output.networkCompliance, "UNPROVEN_HISTORICAL_CADENCE");
+    const proposalPath = path.join(temp, "proposals.json");
+    const parsed = execFileSync(process.execPath, ["--disable-warning=ExperimentalWarning", path.resolve("scripts/fiscal/nas-pending-body-batch.ts"),
+      "--mode=offline-parse", `--manifest=${manifestPath}`, `--captures=${outputPath}`, `--capture-dir=${captureDir}`, `--out=${proposalPath}`],
+      { encoding: "utf8", timeout: 30_000, env: { ...process.env, AIHOT_APP_ROOT: process.cwd(), MODEL_CALLS_ENABLED: "false" } });
+    assert.equal(JSON.parse(parsed.trim()).result, "OFFLINE_PARSE_COMPLETE", "v2 duplicate lineage is accepted only against its frozen manifest group");
+    assert.equal(JSON.parse(readFileSync(proposalPath, "utf8")).legacyOfflineCaptureCount, 2);
+    const rejectOfflineParse = (captures: any, label: string) => {
+      const badCapturesPath = path.join(temp, `${label}-captures.json`);
+      const badProposalPath = path.join(temp, `${label}-proposals.json`);
+      writeFileSync(badCapturesPath, `${JSON.stringify(captures)}\n`, { flag: "wx", mode: 0o600 });
+      assert.throws(() => execFileSync(process.execPath, ["--disable-warning=ExperimentalWarning", path.resolve("scripts/fiscal/nas-pending-body-batch.ts"),
+        "--mode=offline-parse", `--manifest=${manifestPath}`, `--captures=${badCapturesPath}`, `--capture-dir=${captureDir}`, `--out=${badProposalPath}`],
+        { encoding: "utf8", timeout: 30_000, stdio: "pipe", env: { ...process.env, AIHOT_APP_ROOT: process.cwd(), MODEL_CALLS_ENABLED: "false" } }));
+      assert.equal(existsSync(badProposalPath), false, `${label} must not produce a proposal`);
+    };
+    const downgraded = structuredClone(output);
+    downgraded.schemaVersion = "nas-pending-legacy-captures.v1";
+    rejectOfflineParse(downgraded, "downgraded-v1");
+    const brokenLineage = structuredClone(output);
+    brokenLineage.records[0].legacyDuplicateEvidence.pop();
+    brokenLineage.capturesSha256 = sha256(stableCanonicalJson(brokenLineage.records));
+    rejectOfflineParse(brokenLineage, "truncated-duplicate-lineage");
+    const tamperPath = path.join(fixtureRoot, manifest.legacyReuseGroups![0]!.candidates[1]!.responsePath);
+    const tampered = readFileSync(tamperPath);
+    writeFileSync(tamperPath, Buffer.concat([tampered, Buffer.from("tamper")]));
+    const failedCaptureDir = path.join(temp, "tampered-captures");
+    const failedOutputPath = path.join(temp, "tampered-captures.json");
+    assert.throws(() => execFileSync(process.execPath, ["--disable-warning=ExperimentalWarning", path.resolve("scripts/fiscal/nas-pending-body-batch.ts"),
+      "--mode=legacy-adapt", `--manifest=${manifestPath}`, `--approval-sha256=${manifestSha}`, `--legacy-evidence=${path.resolve(inventoryPath)}`,
+      `--legacy-evidence-sha256=${inventorySha}`, `--capture-dir=${failedCaptureDir}`, `--out=${failedOutputPath}`],
+      { encoding: "utf8", timeout: 30_000, stdio: "pipe", env: { ...process.env, AIHOT_APP_ROOT: fixtureRoot, MODEL_CALLS_ENABLED: "false" } }));
+    assert.equal(existsSync(failedOutputPath), false, "no output is written after one group member fails hash verification");
+    assert.equal(existsSync(failedCaptureDir) ? readdirSync(failedCaptureDir).length : 0, 0,
+      "no representative copy is written before every group member verifies");
   } finally { rmSync(temp, { recursive: true, force: true }); }
+});
+
+test("duplicate legacy reuse candidate groups fail closed on raw, metadata, URL, origin or completeness differences", () => {
+  const inventory = JSON.parse(readFileSync(".data/fiscal-qa/pending-capture-inventory-20261022/inventory.json", "utf8"));
+  const record = inventory.records.find((row: any) => (row.evidence?.responseDispatches?.length ?? 0) > 1 &&
+    reusableIdenticalLegacyDispatchGroup(row, { articleId: "group_target", sourceId: row.sourceId, url: row.exactURL }));
+  assert.ok(record);
+  const target = { articleId: "group_target", sourceId: record.sourceId, url: record.exactURL };
+  const first = reusableIdenticalLegacyDispatchGroup(record, target)!;
+  assert.equal(first.length, 2);
+  assert.deepEqual(first, reusableIdenticalLegacyDispatchGroup(record, target), "candidate ordering is stable");
+  const mutations: Array<(copy: any) => void> = [
+    (copy) => { copy.evidence.responseDispatches[1].fileSha256 = "0".repeat(64); copy.evidence.responseDispatches[1].declaredSha256 = "0".repeat(64);
+      copy.evidence.rawCaptures[1].rawSha256 = "0".repeat(64); },
+    (copy) => { copy.evidence.responseDispatches[1].fileBytes += 1; copy.evidence.responseDispatches[1].declaredBytes += 1;
+      copy.evidence.rawCaptures[1].rawBytes += 1; },
+    (copy) => { copy.evidence.responseDispatches[1].contentType = "text/plain"; copy.evidence.rawCaptures[1].contentType = "text/plain"; },
+    (copy) => { copy.evidence.rawCaptures[1].contentEncoding = "identity"; },
+    (copy) => { copy.evidence.responseDispatches[1].requestURL = "https://different.example/article"; },
+    (copy) => { copy.evidence.responseDispatches[1].statusCode = 206; copy.evidence.rawCaptures[1].statusCode = 206; },
+    (copy) => { copy.evidence.rawCaptures[1].eof = false; },
+  ];
+  for (const mutate of mutations) {
+    const copy = structuredClone(record);
+    mutate(copy);
+    assert.equal(reusableIdenticalLegacyDispatchGroup(copy, target), null);
+  }
 });
 
 test("post-CAS whole-row verification rejects trigger side effects and unexpected revisions", () => {
