@@ -4,20 +4,21 @@
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
-EVALUATED_CODE_SHA=3e7345e1c7f7d4e18d6362d35fcdd80bc0af4f0a
+CURRENT_SHA=8a05b471eb45c0035440b112ab6bd212da190542 (body/tool commit eb55f12d7634cceec85dbd8695c8e62e6b1d170e immediately before prompt-policy commit)
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
-STAGE=NAS Staging；无部署或数据库业务变更
-GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3正式裁决CHANGES_REQUIRED；Gate 4/5未通过
-REVIEW=Gold200全数人工确认（29 select/171 reject）；fresh50真实holdout标签3 select/47 reject
-BLOCKERS=sealed11b6 holdout precision 7.69%、recall 33.33%，开发集precision 31.25%；Gate3错例签收、开发集改进评估及正式门槛决定未完成；Gate4/5仍有旧阻塞
-COMPLETED=Gold200真实人工确认及fresh50冻结评测已完成；b4 operator报告在Root批准下19条body CAS已COMMITTED并各升至revision2，独立fresh postcheck尚未完成；CAS前最近核实快照为418 articles/490 revisions/418 discoveries（72 ok/340 pending/6 unconfirmed）、publication/override各40
-IN_PROGRESS=Gate3 CHANGES_REQUIRED；b4 post-snapshot逐表及19目标行核验pending；CAS后实际计数尚未独立确认，native-summary proposal/grounding/review未完成
-NEXT=核验b4 fresh post-snapshot预期91 ok/321 pending/6 unconfirmed、509 revisions、pub40/source48及Gold200/受保护数据不变；仅在Root另行批准后处理native-summary，fresh50不再作为未触碰holdout
+WORKSPACE=D:\AI-work\MYHOT\AIHOT
+STAGE=NAS Staging; exact14 summary apply is committed; staging app remains 21ca4d4
+GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT; Gate 3 CHANGES_REQUIRED; Gate 4/5 not passed (Gate 5 restore row-hash subitem independently verified only)
+REVIEW=Gold200 200/200 confirmed (29 select/171 reject); fresh50 holdout 3 select/47 reject and consumed
+BLOCKERS=Gate 3 calibration not accepted: sealed11b6 holdout precision 7.69%, recall 33.33%; development precision 31.25%; Gate 4/5 overall reviews remain open
+COMPLETED=Gold200 and fresh50 evaluation complete; b4 19 body CAS and exact14 summary apply independently postchecked; body status 91 ok/321 pending/6 unconfirmed, 418 articles/509 revisions/418 discoveries, 48 sources off, publications/overrides54, Gold200 unchanged; Gate 5 snapshot restore row-hash subitem 64/64
+IN_PROGRESS=development-only prefilter evaluation and separate Gate 4/5 review; restore evidence is one Gate 5 subitem only
+NEXT=Continue calibration only on development data; fresh50 remains consumed; no threshold change
 ```
 
-正式Gate3逐项审查见[Gate 3 review](GATE_3_REVIEW.md)。NAS导出、READY验证、预测provenance、两版holdout结果与错例分析见[评测交接](HANDOFFS/GOLD_HOLDOUT_EVALUATION_2026-10-23.md)；b4离线QA、批准的CAS范围和独立后验待办见[正文批b4检查点](HANDOFFS/PENDING_BODY_BATCH_B4_QA_2026-10-23.md)。Gate3主成绩只采用人审前冻结的sealed11b6，旧832a17仅作盲性证明有限的历史参考。评测本身未调用provider/写数据库；b4 operator已报告19条正文CAS写入，独立postcheck pending。无源码或阈值变更。
+正式Gate3逐项审查见[Gate 3 review](GATE_3_REVIEW.md)。NAS导出、READY验证、预测provenance、两版holdout结果与错例分析见[评测交接](HANDOFFS/GOLD_HOLDOUT_EVALUATION_2026-10-23.md)；b4独立QA与exact14条summary apply后验见[正文批b4检查点](HANDOFFS/PENDING_BODY_BATCH_B4_QA_2026-10-23.md)；Gate 5单项restore核对见[独立restore QA sidecar](../../.data/fiscal-qa/gate5-restore-rehearsal-20261023/independent-qa.json)及[restore evidence说明](../../.data/fiscal-qa/gate5-restore-rehearsal-20261023/EVIDENCE.md)。Gate 3主成绩只采用人审前冻结的sealed11b6，旧832a17仅作盲性证明有限的历史参考。fresh50已消费。用户明确偏好为：“国家级重大民生政策也纳入，即使没有明确财政金融安排；央行日常公告放全部动态，重要操作/政策变化才精选。”仅按该偏好作了最小提示词修改，不用holdout选规则；阈值60/65/76保持，Gate 3仍`CHANGES_REQUIRED`。b4 19条正文及14条摘要应用经独立只读数据库与LAN后验通过。
 
-## 2026-10-23 受控正文与摘要批次收尾（业务数据检查点）
+## 2026-10-23 受控正文与摘要批次收尾（业务数据检查点；fresh50人审与b4导入前历史快照）
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
@@ -28,10 +29,10 @@ STAGE=NAS Staging；已部署应用仍为21ca4d4，不含本地operator工具；
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3/4/5未通过
 REVIEW=fresh50人工确认仍待完成；新评分仅为事先冻结的同一holdout版本比较，不据此调参或重采样
 BLOCKERS=Gate 3开发集精确率不足自动精选要求且fresh50标签/错例复核未完成；Gate 4来源覆盖与正式review未完成；Gate 5稳定性与正式review未完成（此前同步快照恢复子项通过，不代表Gate通过）
-COMPLETED=418 articles/490 revisions/418 discoveries，72 ok/340 pending/6 unconfirmed；48 sources disabled且全文/转发关闭；45/50离线历史捕获正文CAS完成并独立只读PASS，5项保持hold；27条旧正文CAS仍有效；22条native摘要独立grounding后发布、23 BLOCK未写；publications/overrides各40；Gold200=150 confirmed+50 pending；旧445 revisions保留
-IN_PROGRESS=剩余340 pending正文与6 unconfirmed需后续独立有界批次；fresh50 Gold仍待用户审阅；5个已知hold没有新证据前不重抓/重解析
-NEXT=后续仅基于新证据计划剩余pending正文批次；fresh50标签完整后再跑已冻结评测；不调整评分阈值、不据holdout分数重采样
-TESTED=最终软件树full suite 470 tests/469 pass/0 fail/1 skip；typecheck、Web build通过，Web tests 22/22；LAN /all、摘要详情、API、RSS、robots均200/noindex；文档提交之外的软件测试不需重跑
+COMPLETED=418 articles/509 revisions/418 discoveries，91 ok/321 pending/6 unconfirmed；48 sources disabled且全文/转发关闭；此前45/50 CAS与22 native摘要仍有效；b4新增19 body CAS及exact14 summary imports经独立后验，publications/overrides各54；Gold200=200 confirmed；restore row-hash子项64/64
+IN_PROGRESS=321 pending正文与6 unconfirmed待后续有界批次；development-only prefilter evaluation and Gate 4/5 reviews remain open；fresh50只作已消费数据的本次估计
+NEXT=按开发集证据评估用户偏好规则；不调整评分阈值、不据fresh50调参或重采样
+TESTED=correct two-DB harness focused 3/3；full suite 474 tests/472 pass/0 fail/2 skipped (native-summary test DB not configured; execute-captures explicit skip)；typecheck、Web build和Web tests 22/22通过；Gate 5 restore子项独立只读读检64/64快照哈希、64/64 inventory、16/16 sequence状态
 ```
 
 本批次代码SHA-256为`113689cf00fab3ddab2d613f29776e5ba2045dafeb96fb8a0d1512d39478db4b`；测试文件为`987a3378f2d5f8cb77426139615f8955caae78530f1c0198b88345cb84a6e6fe`。真实HTTP采集为0；50条均复用manifest绑定的历史response bytes，历史cadence仍`UNPROVEN`。45条摘要QA artifact、22条发布后验、LAN smoke、五个hold的原因与原件备份位置见[10月23日pending正文批次交接](HANDOFFS/PENDING_BODY_BATCH_2026-10-23.md)。全量测试中的单个skip保留；先前子进程继承测试开关导致的失败已通过测试harness显式隔离修复，本轮没有放宽运行时安全门。`eligible=true`只表示进入动态pool；22条均`selected=false`、`indexable=false`、`syndicate=false`。Gate 3/4/5均未通过。

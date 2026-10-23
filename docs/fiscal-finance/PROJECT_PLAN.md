@@ -6,20 +6,21 @@
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
-EVALUATED_CODE_SHA=3e7345e1c7f7d4e18d6362d35fcdd80bc0af4f0a
+CURRENT_SHA=8a05b471eb45c0035440b112ab6bd212da190542 (body/tool commit eb55f12d7634cceec85dbd8695c8e62e6b1d170e immediately before prompt-policy commit)
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
-STAGE=NAS Staging；应用版本与本地离线评测保持分离
-GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3正式复核为CHANGES_REQUIRED；Gate 4/5未通过
-REVIEW=Gold200已200/200确认（29 select/171 reject）；fresh50 3/47 holdout评测已完成
-BLOCKERS=Gate3 holdout precision 7.69%、development precision 31.25%，不支持校准可用；错例签收/开发集修复评估/正式阈值决定未完成；Gate4覆盖与Gate5正式review未完成
-COMPLETED=Gold200人审与fresh50评测已完成；b4 writer报告在Root批准下19条body CAS已COMMITTED/19 revisions到revision2/1 hold，独立postcheck待完成；此前最近核实的快照为418 articles/490 revisions/418 discoveries（72 ok/340 pending/6 unconfirmed）、publications/overrides各40、48 sources disabled/fulltext/syndicate关闭
-IN_PROGRESS=Gate3 CHANGES_REQUIRED；b4 post-snapshot逐表/目标行独立核验待完成，未独立确认写后最终计数；native-summary proposal待准备、独立grounding及Root单独批准
-NEXT=独立核验b4 fresh post-snapshot预计91 ok/321 pending/6 unconfirmed、509 revisions、pub40/source48及Gold200/保护行不变；不得依据已消费holdout即时调参
+WORKSPACE=D:\AI-work\MYHOT\AIHOT
+STAGE=NAS Staging；exact14 summary apply已提交；运行应用SHA21ca4d4，与本地operator工具分开
+GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT；Gate 3 CHANGES_REQUIRED；Gate 4/5未通过（Gate 5 restore row-hash子项独立验证）
+REVIEW=Gold200 200/200确认（29 select/171 reject）；fresh50 3/47 holdout已评测且已消费
+BLOCKERS=Gate3 precision与评分一致性不足以确认校准可用；development-only改进验证和正式门槛决定待完成；Gate4/5整体审查未完成
+COMPLETED=Gold200人审、fresh50评测、b4 19条body CAS和exact14 summary apply均经独立QA；91/321/6 body状态，418/509/418 rows，48 sources全关，publications/overrides54，Gold200未变；Gate5 restore快照哈希64/64
+IN_PROGRESS=development-only prefilter评估与Gate4/5后续review
+NEXT=只在development数据评估规则变化；不按fresh50调参，阈值60/65/76保持
 ```
 
-Gate3逐项审查见[正式Gate 3 review](GATE_3_REVIEW.md)；holdout输入/输出hash、provenance、混淆矩阵、错例归因及局限见[2026-10-23评测交接](HANDOFFS/GOLD_HOLDOUT_EVALUATION_2026-10-23.md)。b4离线证据QA、Root批准范围及postcheck待办见[正文批b4 QA交接](HANDOFFS/PENDING_BODY_BATCH_B4_QA_2026-10-23.md)。正文operator报告CAS完成，但独立post-snapshot QA尚未签收；以上91/321/6等为待核对预期，不是确认结果。主Gate证据为sealed 11b6，832a17只作盲性证明有限的历史参考。
+Gate3逐项审查见[正式Gate 3 review](GATE_3_REVIEW.md)；holdout输入/输出hash、provenance、混淆矩阵、错例归因及局限见[2026-10-23评测交接](HANDOFFS/GOLD_HOLDOUT_EVALUATION_2026-10-23.md)。b4独立QA、exact14应用和LAN后验见[正文批b4 QA交接](HANDOFFS/PENDING_BODY_BATCH_B4_QA_2026-10-23.md)。Gate5 restore subitem独立证据见[QA sidecar](../../.data/fiscal-qa/gate5-restore-rehearsal-20261023/independent-qa.json)。主Gate证据为sealed 11b6，832a17只作盲性证明有限的历史参考。用户明确偏好为：“国家级重大民生政策也纳入，即使没有明确财政金融安排；央行日常公告放全部动态，重要操作/政策变化才精选。”按此偏好进行了最小提示词修改，未据holdout择规则，阈值保持不变；Gate 3仍为CHANGES_REQUIRED。
 
-## 2026-10-23 受控正文与摘要批次收尾（业务数据检查点）
+## 2026-10-23 受控正文与摘要批次收尾（业务数据检查点；fresh50人审与b4导入前历史快照）
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
