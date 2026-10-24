@@ -42,7 +42,8 @@ test("fixed 48-source catalog is compatible with list-only plans and a total det
   assert.ok(plans.every((row) => row.maxDetails === row.effectiveDirectHtmlDetailCap));
   const pboc = plans.find((row) => row.id === "pboc-open-market");
   assert.equal(pboc?.configuredDetailMaxFetches, 3);
-  assert.equal(pboc?.effectiveDirectHtmlDetailCap, 0);
+  assert.equal(pboc?.effectiveDirectHtmlDetailCap, 3);
+  assert.equal(pboc?.maxDetails, 3);
   const directDetailSource = { ...source, config: { ...source.config,
     detail: { maxFetches: 4, bodySelector: "article", titleRegex: "<h1>(.*?)</h1>", publishedAtRegex: "time" } } } as SourceRow;
   const directPlan = buildSourcePlan({ catalogSources: [directDetailSource], sourceIds: [directDetailSource.id],

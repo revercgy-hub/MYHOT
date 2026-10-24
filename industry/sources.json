@@ -226,6 +226,10 @@
         "allowUrlPrefixes": ["https://www.pbc.gov.cn/zhengcehuobisi/125207/125213/125431/125475/"],
         "detail": {
           "maxFetches": 3,
+          "titleSelector": "h2",
+          "titleAuthoritative": true,
+          "publishedAtRegex": "<span[^>]*id=\"shijian\"[^>]*>\\s*(\\d{4}-\\d{2}-\\d{2})",
+          "publishedAtAuthoritative": true,
           "bodySelector": "#zoom",
           "allowShortBody": true
         },
