@@ -1,6 +1,24 @@
 # 项目状态
 
-## 2026-10-23 fresh50 Gold评测检查点（当前）
+## 2026-10-24 Development150 与 Staging 部署检查点（当前）
+
+```text
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_SHA=d45f0d93f5374b7c72cdf0efb64ada6a03b84404 (tested code SHA; this checkpoint is a separate docs commit)
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+WORKSPACE=D:\AI-work\MYHOT\AIHOT
+STAGE=NAS Staging; executor reports d45 app-only deployment and execution postcheck PASS; independent read-only QA pending
+GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT; Gate 3 CHANGES_REQUIRED; Gate 4/5 not passed (64/64 row hashes, 64/64 inventory, 16/16 sequence state are Gate 5 restore subitems only)
+REVIEW=Gold200 200/200 confirmed (29 select/171 reject), labels unchanged; fresh50 holdout was evaluated and is consumed; two historical labels await user confirmation (Hebei pure party-building item, Fujian research-results list notice)
+BLOCKERS=Gate 3 calibration/usefulness not accepted; Gate 4/5 formal reviews remain open; Staging execution evidence awaits independent QA
+COMPLETED=Development150 evaluation QA: TP11/FP23/FN15/TN101, P32.35/R42.31/F1 36.67, MAE6.21, 11 threshold crossers; invalid original pass1 excluded and byte-bound rerun used; d45 code 475 tests/473 pass/0 fail/2 skipped plus typecheck, Web build, Web22/22; 418 articles/509 revisions/418 discoveries, body 91 ok/321 pending/6 unconfirmed, 48 sources off, publications/overrides54, Gold200 unchanged
+IN_PROGRESS=Independent read-only QA of d45 Staging app-only deployment; Gate 4/5 formal review
+NEXT=Complete independent Staging QA; continue any calibration only on development data; keep fresh50 consumed and thresholds 60/65/76 unchanged
+```
+
+站点现有分类为9类，`ITEM_TYPES`仍为8种；用户确认“国家级重大民生政策也纳入，即使没有明确财政金融安排”和“央行日常公告放在全部动态，出现重要操作或政策变化时才精选”。d45代码已部署Staging的执行侧后验通过，独立只读QA未完成，不代表Gate通过。development150 native-offline结果不是fresh holdout，也不代表真实provider流程或understanding quality；不要据此即时调阈值或改Gold。新评测与类别交接见[Development150和重大民生政策交接](HANDOFFS/DEVELOPMENT150_AND_MAJOR_POLICY_2026-10-24.md)。
+
+## 2026-10-23 fresh50 Gold评测检查点（历史记录）
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot

@@ -2,7 +2,25 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
-## 2026-10-23 fresh50 Gold评测检查点（当前）
+## 2026-10-24 Development150 与 Staging 部署检查点（当前）
+
+```text
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_SHA=d45f0d93f5374b7c72cdf0efb64ada6a03b84404 (tested code SHA; this checkpoint is a separate docs commit)
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+WORKSPACE=D:\AI-work\MYHOT\AIHOT
+STAGE=NAS Staging; executor reports d45 app-only deployment and execution postcheck PASS; independent read-only QA pending
+GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT; Gate 3 CHANGES_REQUIRED; Gate 4/5 not passed (64/64 row hashes, 64/64 inventory, 16/16 sequence state are Gate 5 restore subitems only)
+REVIEW=Gold200 200/200 confirmed (29 select/171 reject), unchanged; fresh50 holdout evaluated and consumed; two old labels await user confirmation (Hebei pure party-building item, Fujian research-results list notice)
+BLOCKERS=Gate 3 calibration/usefulness not accepted; Gate 4/5 formal reviews open; Staging execution evidence awaits independent QA
+COMPLETED=Development150 evaluation QA: TP11/FP23/FN15/TN101, P32.35/R42.31/F1 36.67, MAE6.21, 11 threshold crossers; invalid original pass1 excluded and byte-bound rerun used; d45 code 475 tests/473 pass/0 fail/2 skipped plus typecheck, Web build and Web22/22; 418 articles/509 revisions/418 discoveries, body 91 ok/321 pending/6 unconfirmed, sources48 off, publications/overrides54, Gold200 unchanged
+IN_PROGRESS=Independent read-only QA of d45 Staging app-only deployment; Gate 4/5 formal review
+NEXT=Finish independent Staging QA; use development data only for further calibration; do not reuse fresh50 or change thresholds 60/65/76
+```
+
+站点现有分类为9类，`ITEM_TYPES`仍为8种。用户确认：“国家级重大民生政策也纳入，即使没有明确财政金融安排”；“央行日常公告放在全部动态，出现重要操作或政策变化时才精选”。d45 Staging app-only部署和执行侧postcheck由执行方报告PASS，独立只读QA仍待完成；此状态不代表任何正式Gate通过。development150 native-offline结果不是fresh holdout，不能代表provider流程或understanding质量，不据此即时调整Gold、prompt或门槛。细节见[Development150和重大民生政策交接](HANDOFFS/DEVELOPMENT150_AND_MAJOR_POLICY_2026-10-24.md)。
+
+## 2026-10-23 fresh50 Gold评测检查点（历史记录）
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
