@@ -13,12 +13,14 @@ STAGE=NAS Staging; d45 app-only api/web deployment; image digest sha256:54d1a34f
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT; Gate 3 CHANGES_REQUIRED; Gate 4/5 not passed (64/64 row hashes, 64/64 inventory, 16/16 sequence state are Gate 5 restore subitems only)
 REVIEW=Gold200 200/200 confirmed (29 select/171 reject), unchanged; fresh50 holdout evaluated and consumed; two old labels await user confirmation (Hebei pure party-building item, Fujian research-results list notice)
 BLOCKERS=Gate 3 calibration/usefulness not accepted; Gate 4 source coverage/page and formal review remain open; Gate 5 continuous operation/restart/fault-recovery and formal review remain open; two historical-label questions await user
-COMPLETED=Development150 evaluation QA: TP11/FP23/FN15/TN101, P32.35/R42.31/F1 36.67, MAE6.21, 11 threshold crossers; invalid original pass1 excluded and byte-bound rerun used; d45 code 475 tests/473 pass/0 fail/2 skipped plus typecheck, Web build and Web22/22; d45 Staging app-only deploy and independent QA (HTTP/auth, public/noindex/RSS, 30/30 smoke, historical source/settings evidence); 418 articles/509 revisions/418 discoveries, body 91 ok/321 pending/6 unconfirmed, sources48 off, publications/overrides54, Gold200 unchanged
-IN_PROGRESS=Gate 4/5 formal review; bounded b5 pending-body scope independent QA before any apply; two historical labels await user
-NEXT=Continue body work only after b5 scope QA and separate authorization; use development data only for calibration; do not reuse fresh50 or change thresholds 60/65/76
+COMPLETED=Development150 evaluation QA: TP11/FP23/FN15/TN101, P32.35/R42.31/F1 36.67, MAE6.21, 11 threshold crossers; invalid original pass1 excluded and byte-bound rerun used; d45 code 475 tests/473 pass/0 fail/2 skipped plus typecheck, Web build and Web22/22; d45 Staging app-only deploy and independent QA (HTTP/auth, public/noindex/RSS, 30/30 smoke, historical source/settings evidence); b5 exact10 summary-only import committed after b6 body CAS and independent b6 postQA; latest verified pre-summary baseline 418 articles/576 revisions/418 discoveries, body 158/254/6, sources48 off, publications/overrides54, Gold200 unchanged
+IN_PROGRESS=Prepare b6 exact47 native summaries and b7 bounded raw scope; Gate 4/5 formal review; two historical labels await user
+NEXT=Complete b6 summaries through independent grounding before any import; continue approved body/summary batches with exact CAS and separate QA; use development data only for calibration; do not reuse fresh50 or change thresholds 60/65/76
 ```
 
 站点现有分类为9类，`ITEM_TYPES`仍为8种。用户确认：“国家级重大民生政策也纳入，即使没有明确财政金融安排”；“央行日常公告放在全部动态，出现重要操作或政策变化时才精选”。d45于2026-10-24 02:15:43Z以app-only方式部署到NAS Staging；独立只读QA结果为`PASS_WITH_DOCUMENTED_LIMITATIONS`，范围仅为该次Staging部署保护与公开面检查，不代表Gate 3/4/5通过，也不是本地fresh-preview验收。部署镜像实际digest为`sha256:54d1a34f104b665ccdecc60e82f4cb67acf114fb3171b742990464ee6d4c7bc6`；独立QA sidecar及历史source/settings对照见[Development150和重大民生政策交接](HANDOFFS/DEVELOPMENT150_AND_MAJOR_POLICY_2026-10-24.md)。development150 native-offline结果不是fresh holdout，不能代表provider流程或understanding质量，不据此即时调整Gold、prompt或门槛。
+
+b5 exact20正文和b6 exact47正文均已提交并经独立后验；b5 exact10 PASS摘要已由canonical importer提交并通过独立DB/LAN后验。当前实测418/576/418 rows、body158/254/6、publications/overrides64/64、48来源flags全0、Gold200不变，摘要10/10精确哈希绑定且未精选。Gold标签、评分阈值与fresh50已消费状态均保持不变。阶段证据与执行限制见[2026-10-24 b5/b6正文与摘要交接](HANDOFFS/PENDING_BODY_BATCHES_B5_B6_SUMMARY_2026-10-24.md)。
 
 ## 2026-10-23 fresh50 Gold评测检查点（历史记录）
 

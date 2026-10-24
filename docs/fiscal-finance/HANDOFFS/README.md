@@ -1,5 +1,7 @@
 # 最新检查点
 
+- [2026-10-24 b5/b6正文与b5摘要交接](PENDING_BODY_BATCHES_B5_B6_SUMMARY_2026-10-24.md)：b5 exact20与b6 exact47正文、b5 exact10摘要导入均有独立QA PASS；当前pub/override64、body158/254/6，Gold200不变。Gate 3/4/5未改变。
+
 - [2026-10-21 有界大批量目录采集与正文处理](BULK_COLLECTION_AND_BODY_2026-10-21.md)：48次官方列表GET新增198条metadata；两个隔离库134次正文GET、127篇正文成功，详见分库计数、retention finding与独立post-QA。Gate状态未改变。
 
 # 阶段任务交接制度
