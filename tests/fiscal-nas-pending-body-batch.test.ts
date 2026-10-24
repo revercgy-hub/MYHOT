@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
+import { createServer } from "node:http";
 import { execFileSync } from "node:child_process";
 import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
@@ -16,6 +17,8 @@ import { applyPendingBodyCas, buildPendingManifest, capturePendingBodies, parseP
 import { type CandidateBodyCasRow } from "../scripts/fiscal/nas-candidate-body-cas.ts";
 import { createBudgetedDetailFetcher, detailConfigIsDirectHtml } from "../scripts/fiscal/nas-candidate-batch.ts";
 import { fetchDetail } from "../packages/backend/src/sources/web-list.ts";
+import { guardedFetch } from "../packages/backend/src/lib/http-fetch.ts";
+import { config } from "../packages/backend/src/config.ts";
 
 const sha256 = (value: string | Buffer) => createHash("sha256").update(value).digest("hex");
 const stableCanonicalJson = (value: unknown): string => {
@@ -303,6 +306,68 @@ test("pending response decoder caps raw, gzip, deflate, brotli and decoded text 
   assert.throws(() => decodePendingCapturedResponse(Buffer.from("small"), "text/html", "zstd"), /unsupported captured content encoding/iu);
 });
 
+test("Undici loopback gzip response records decoded body bytes separately from origin encoding", async () => {
+  const html = Buffer.from("<!doctype html><html><body>loopback gzip fixture</body></html>");
+  const server = createServer((_request, response) => {
+    response.writeHead(200, { "content-type": "text/html; charset=utf-8", "content-encoding": "gzip" });
+    response.end(gzipSync(html));
+  });
+  const priorPrivateNetworkSetting = config.allowPrivateNetworkFetch;
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  assert.ok(address && typeof address !== "string");
+  config.allowPrivateNetworkFetch = true;
+  try {
+    const response = await guardedFetch(`http://127.0.0.1:${address.port}/gzip-fixture`, { route: "direct", maxRedirects: 0 });
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("content-encoding"), "gzip");
+    assert.deepEqual(response.body, html, "Undici returns transparently decoded bytes");
+    assert.notDeepEqual(response.body.subarray(0, 2), Buffer.from([0x1f, 0x8b]));
+  } finally {
+    config.allowPrivateNetworkFetch = priorPrivateNetworkSetting;
+    await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
+test("capture records Undici body and origin encodings separately and preserves fetch failure details privately", async () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), "nas-pending-body-representation-"));
+  const target: PendingTarget = { articleId: "representation_one", sourceId: source.id,
+    url: `${source.config.allowUrlPrefixes[0]}representation_one.html`, title: "测试标题", publishedAt: "2026-10-21T00:00:00+08:00",
+    revision: 1, contentHash: sha256("old"), excerpt: null, sourceRowSha256: sha256("source"), rowText: "{}", rowSha256: sha256("{}") };
+  const html = Buffer.from("<!doctype html><html><body>decoded body</body></html>");
+  const invoke = async (captureDir: string, makeFetcher: (budget: any) => (url: string, options: any) => Promise<any>) => capturePendingBodies({
+    targets: [target], sources: new Map([[source.id, source]]), captureDir, allowed, publicUrl: async () => undefined,
+    now: () => new Date("2026-10-24T12:00:00.000Z"), wait: async () => undefined,
+    makeFetcher, fetchDetail: async (url, _row, _need, options) => {
+      try { await options.fetcher(url, { timeoutMs: 20_000, maxBytes: 6 * 1024 * 1024 }); } catch { /* web-list catches fetch failures before returning */ }
+      return { body: null };
+    },
+  });
+  try {
+    const records = await invoke(dir, (budget) => async (url) => {
+      budget.beforeDispatch({ url: new URL(url), method: "GET", redirectHop: 0 });
+      return { status: 200, url, headers: new Headers({ "content-type": "text/html", "content-encoding": "gzip" }), body: html };
+    });
+    assert.equal(records[0]?.contentEncoding, "gzip");
+    assert.equal(records[0]?.originContentEncoding, "gzip");
+    assert.equal(records[0]?.bodyEncoding, "identity");
+    assert.equal(records[0]?.bodyRepresentation, "undici-decoded");
+
+    const failureDir = path.join(dir, "failure");
+    await assert.rejects(invoke(failureDir, (budget) => async (url) => {
+      budget.beforeDispatch({ url: new URL(url), method: "GET", redirectHop: 0 });
+      throw Object.assign(new TypeError("fetch failed https://user:pass@example.test/article?token=secret Authorization: Bearer very-secret token=abc"), { name: "TypeError" });
+    }), /lacks complete bounded raw bytes/u);
+    const failure = JSON.parse(readFileSync(path.join(failureDir, `capture-failure-${target.articleId}.json`), "utf8"));
+    assert.equal(failure.errorName, "TypeError");
+    assert.match(failure.errorMessage, /\[redacted-url\]/u);
+    assert.doesNotMatch(failure.errorMessage, /user|pass|secret|token=abc|very-secret/iu);
+    assert.match(failure.errorMessage, /authorization=\[redacted\]/iu);
+    assert.match(failure.errorMessage, /token=\[redacted\]/iu);
+    if (process.platform !== "win32") assert.equal((lstatSync(path.join(failureDir, `capture-failure-${target.articleId}.json`)).mode & 0o777), 0o600);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
 test("capture refuses malformed prior dispatch intent without issuing a new request", async () => {
   const dir = mkdtempSync(path.join(os.tmpdir(), "nas-pending-intent-"));
   const target: PendingTarget = { articleId: "intent_pending", sourceId: source.id, url: `${source.config.allowUrlPrefixes[0]}intent_pending.html`,
@@ -382,6 +447,24 @@ test("offline selector uses configured title/date/body rules and turns mismatche
     assert.equal(parsed.proposals.length, 1);
     assert.equal(parsed.holds.length, 0);
     assert.equal(parsed.proposals[0]?.expectedRowText, "{}");
+    const transportDecodedRecord = { ...record, contentEncoding: "gzip", bodyEncoding: "identity" as const,
+      bodyRepresentation: "undici-decoded" as const, originContentEncoding: "gzip" };
+    const transportDecoded = await parsePendingCapture({ manifest, records: [transportDecodedRecord], captureDir: dir,
+      sources: new Map([[source.id, source]]), fetchDetail });
+    assert.equal(transportDecoded.proposals.length, 1, "explicit transport-decoded metadata must parse the stored HTML without gunzip");
+    assert.equal(transportDecoded.holds.length, 0);
+    const ambiguousEncoding = await parsePendingCapture({ manifest, records: [{ ...transportDecodedRecord, bodyEncoding: "gzip" }], captureDir: dir,
+      sources: new Map([[source.id, source]]), fetchDetail });
+    assert.equal(ambiguousEncoding.proposals.length, 0);
+    assert.equal(ambiguousEncoding.holds[0]?.reason, "offline_parse_failed");
+    const gzipFile = `responses/${target.articleId}-legacy-gzip.body`;
+    const gzipBytes = gzipSync(html);
+    writeFileSync(path.join(dir, gzipFile), gzipBytes, { flag: "wx", mode: 0o600 });
+    const genuineLegacyGzip = { ...record, file: gzipFile, bytes: gzipBytes.length, bodySha256: sha256(gzipBytes), contentEncoding: "gzip" };
+    const legacyGzipParsed = await parsePendingCapture({ manifest, records: [genuineLegacyGzip], captureDir: dir,
+      sources: new Map([[source.id, source]]), fetchDetail });
+    assert.equal(legacyGzipParsed.proposals.length, 1, "historical gzip wire bytes must still be gunzipped by contentEncoding");
+    assert.equal(legacyGzipParsed.holds.length, 0);
     const legacyRecord = { ...record, dispatchedAt: "2026-10-22T00:00:00Z", completedAt: null, networkEvidenceKind: "legacy-capture" as const,
       legacySourceManifestSha256: sha256("legacy source manifest"), legacyInventorySha256: sha256("legacy inventory"),
       legacySourceManifestStartedAtUtc: "2026-10-21T10:00:00Z", legacySourceManifestFinishedAtUtc: "2026-10-21T10:01:00Z" };

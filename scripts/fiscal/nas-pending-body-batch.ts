@@ -126,7 +126,14 @@ export interface PendingCaptureRecord {
   status: number;
   responseUrl: string;
   contentType: string | null;
+  /** Origin response `content-encoding` header; pre-transport-decode legacy files use this to decode bytes. */
   contentEncoding: string | null;
+  /** Encoding of the bytes in `file`; new Undici fetches transparently decode content encodings. */
+  bodyEncoding?: string;
+  /** Explicit transport representation; absent on historical raw captures. */
+  bodyRepresentation?: "undici-decoded";
+  /** Origin response header, kept separately from the stored body encoding. */
+  originContentEncoding?: string | null;
   bytes: number;
   bodySha256: string;
   eof: boolean;
@@ -140,6 +147,19 @@ export interface PendingCaptureRecord {
   legacySourceManifestFinishedAtUtc?: string | null;
   legacyInventorySha256?: string;
   legacyDuplicateEvidence?: LegacyReuseCandidate[];
+}
+
+function safeCaptureFailure(error: unknown): { errorName: string; errorMessage: string } {
+  const value = error && typeof error === "object" ? error as { name?: unknown; message?: unknown } : null;
+  const errorName = typeof value?.name === "string" && /^[A-Za-z][A-Za-z0-9]{0,63}$/u.test(value.name) ? value.name : "Error";
+  const rawMessage = typeof value?.message === "string" ? value.message : String(error ?? "unknown fetch failure");
+  const errorMessage = rawMessage
+    .replace(/https?:\/\/[^\s<>"']+/giu, "[redacted-url]")
+    .replace(/\bBearer\s+[^\s,;]+/giu, "Bearer [redacted]")
+    .replace(/\b(authorization|proxy-authorization)\s*[:=]\s*(?:Bearer\s+)?[^\s,;]+/giu, "$1=[redacted]")
+    .replace(/\b(token|password|secret|api[_-]?key)\s*[:=]\s*[^\s,;]+/giu, "$1=[redacted]")
+    .slice(0, 500);
+  return { errorName, errorMessage };
 }
 
 export interface LegacyOfflineCaptureEvidence {
@@ -543,22 +563,27 @@ export async function capturePendingBodies(input: {
       await wait(remaining);
     }
     let dispatchedAt: Date | undefined;
+    let intentAt: string | undefined;
     const budget = { beforeDispatch: ({ url, method, redirectHop }: any) => {
       if (method !== "GET" || redirectHop !== 0 || url.href !== target.url) throw new Error(`out-of-scope detail dispatch for ${target.articleId}`);
-      const intentAt = (input.now ?? (() => new Date()))();
+      const intentTime = (input.now ?? (() => new Date()))();
+      intentAt = intentTime.toISOString();
       writePrivate(path.join(input.captureDir, `dispatch-intent-${target.articleId}.json`), { schemaVersion: "nas-pending-body-dispatch-intent.v1",
-        articleId: target.articleId, sourceId: target.sourceId, method: "GET", url: target.url, intentAt: intentAt.toISOString() });
+        articleId: target.articleId, sourceId: target.sourceId, method: "GET", url: target.url, intentAt });
       dispatchedAt = (input.now ?? (() => new Date()))();
       if (lastDispatch !== Number.NEGATIVE_INFINITY && dispatchedAt.getTime() - lastDispatch < MIN_INTERVAL_MS) throw new Error("detail dispatch interval is below 1100ms");
       lastDispatch = dispatchedAt.getTime();
     }, allowRedirect: () => false };
     const runBudget = { ...budget };
     let rawResponse: any;
+    let fetchError: unknown;
     const baseFetcher = input.makeFetcher(runBudget);
     const captureFetcher = async (url: string, options: any) => {
       if (url !== target.url) throw new Error(`detail fetcher URL differs from frozen target ${target.articleId}`);
-      rawResponse = await baseFetcher(url, { ...options, timeoutMs: Math.min(TIMEOUT_MS, options.timeoutMs ?? TIMEOUT_MS),
-        maxBytes: Math.min(MAX_DETAIL_BYTES, options.maxBytes ?? MAX_DETAIL_BYTES), maxRedirects: 0, runBudget });
+      try {
+        rawResponse = await baseFetcher(url, { ...options, timeoutMs: Math.min(TIMEOUT_MS, options.timeoutMs ?? TIMEOUT_MS),
+          maxBytes: Math.min(MAX_DETAIL_BYTES, options.maxBytes ?? MAX_DETAIL_BYTES), maxRedirects: 0, runBudget });
+      } catch (error) { fetchError = error; throw error; }
       return rawResponse;
     };
     let parseError: unknown;
@@ -571,6 +596,13 @@ export async function capturePendingBodies(input: {
     const response = rawResponse;
     if (!dispatchedAt || !response || response.url !== target.url || !Number.isInteger(response.status) ||
         response.status < 100 || response.status > 599 || !Buffer.isBuffer(response.body) || response.body.length > MAX_DETAIL_BYTES) {
+      const failure = safeCaptureFailure(fetchError ?? parseError);
+      writePrivate(path.join(input.captureDir, `capture-failure-${target.articleId}.json`), {
+        schemaVersion: "nas-pending-body-capture-failure.v1", articleId: target.articleId, sourceId: target.sourceId,
+        method: "GET", url: target.url, intentAt: intentAt ?? null,
+        stage: "fetcher-did-not-return-complete-bounded-response", responseEnvelopePresent: !!response,
+        ...failure,
+      });
       throw new Error(`detail response lacks complete bounded raw bytes for ${target.articleId}`);
     }
     const file = `responses/${target.articleId}-${sha256(target.url).slice(0, 12)}.body`;
@@ -581,6 +613,8 @@ export async function capturePendingBodies(input: {
       dispatchedAt: dispatchedAt.toISOString(), completedAt: completedAt.toISOString(), status: response.status,
       responseUrl: response.url, contentType: response.headers?.get?.("content-type") ?? null,
       contentEncoding: response.headers?.get?.("content-encoding") ?? "identity", bytes: response.body.length,
+      bodyEncoding: "identity", bodyRepresentation: "undici-decoded",
+      originContentEncoding: response.headers?.get?.("content-encoding") ?? "identity",
       bodySha256: sha256(response.body), eof: true, file, networkEvidenceKind: "fresh-dispatch" };
     records.push(record);
     writeFileSync(path.join(input.captureDir, `capture-${target.articleId}.json`), `${JSON.stringify({ schemaVersion: "nas-pending-body-capture.v1", records: [record] }, null, 2)}\n`,
@@ -610,7 +644,19 @@ export async function parsePendingCapture(input: { manifest: PendingBodyManifest
     if (!source) throw new Error(`target source is missing: ${target.sourceId}`);
     let got: any;
     try {
-      const text = decodePendingCapturedResponse(raw, capture.contentType, capture.contentEncoding);
+      let bodyEncoding: string | null;
+      if (capture.bodyRepresentation === "undici-decoded") {
+        if (capture.bodyEncoding !== "identity") throw new Error("undici-decoded capture must bind identity body bytes");
+        if ((capture.originContentEncoding ?? "identity") !== (capture.contentEncoding ?? "identity")) {
+          throw new Error("origin content-encoding differs from recorded response header");
+        }
+        bodyEncoding = capture.bodyEncoding;
+      } else if (capture.bodyRepresentation === undefined && capture.bodyEncoding === undefined) {
+        bodyEncoding = capture.contentEncoding;
+      } else {
+        throw new Error("unsupported or ambiguous captured body representation");
+      }
+      const text = decodePendingCapturedResponse(raw, capture.contentType, bodyEncoding);
       const fakeResponse = { status: capture.status, url: capture.responseUrl, headers: new Headers({ "content-type": capture.contentType ?? "text/html" }),
         body: Buffer.from(text), text: () => text };
       got = await input.fetchDetail(target.url, source, { date: true, title: true, summary: false, body: true,
