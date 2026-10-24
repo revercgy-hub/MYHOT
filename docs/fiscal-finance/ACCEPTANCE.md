@@ -17,6 +17,12 @@
 - [ ] Gate 4：25—35 个高质量信源、本地完整页面与 smoke 验收通过。
 - [ ] Gate 5：NAS Staging 连续运行、备份恢复、重启和故障恢复验证通过后，才允许 Production。
 
+### 2026-10-24 NAS Staging d45 rollout review
+
+d45 app-only部署的独立只读QA为`PASS_WITH_DOCUMENTED_LIMITATIONS`：api/web实际运行镜像为`d45f0d93f5374b7c72cdf0efb64ada6a03b84404`，Staging smoke 30/30通过，匿名后台审核API返回401、页面跳转302，公开面检查包含noindex/RSS/新增类别。Gold200仍200 confirmed、原标签未变，来源48项仍关闭；articles418、revisions509、discoveries418，body为91 ok/321 pending/6 unconfirmed，publications/overrides各54。详见[NAS Staging当前部署与验收](NAS_DEPLOYMENT.md)和[10/24交接及独立QA证据](HANDOFFS/DEVELOPMENT150_AND_MAJOR_POLICY_2026-10-24.md)。此项只接受当前d45 Staging rollout边界，不表示Gate 3、4或5通过，也不是本地fresh-preview验收。
+
+Gate 5已完成的64/64表行hash、64/64 inventory、16/16 sequence状态和受限restore权限仅是备份恢复子项。历史source rowset与当前只读行hash相同；settings仅heartbeat的`value`、`updated_at`变化，但可得快照并非部署前即时MVCC，不能据此声称全应用表在整个部署期间无变动。Gate 5连续运行、重启和故障恢复验收仍未完成。
+
 ## 当前证据
 
 ### 2026-10-18追加证据

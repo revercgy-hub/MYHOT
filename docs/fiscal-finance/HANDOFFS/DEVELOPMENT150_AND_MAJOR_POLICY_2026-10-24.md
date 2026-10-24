@@ -2,7 +2,9 @@
 
 ## 当前边界
 
-本交接记录开发集复测与新业务偏好的恢复状态，不替代全局状态或正式Gate裁决。当前仓库为 `D:\AI-work\MYHOT\AIHOT`，分支 `feat/fiscal-finance-hot`，代码检查点 `d45f0d93f5374b7c72cdf0efb64ada6a03b84404`，基线 `589f79eff09470b31ba8a7f1d9eb62d36ff2be6c`。截至本次文档更新，执行方报告 d45 已完成 NAS Staging app-only 部署和执行后检查；独立只读QA仍待完成，因此这是执行侧PASS、独立验收待核的状态，不代表任何正式Gate通过。执行日志由NAS部署执行方保管，本地此交接不声称独立复核其日志字节或SHA。
+本交接记录开发集复测、新业务偏好与d45 Staging部署QA，不替代全局状态或正式Gate裁决。当前仓库为 `D:\AI-work\MYHOT\AIHOT`，分支 `feat/fiscal-finance-hot`，应用代码检查点 `d45f0d93f5374b7c72cdf0efb64ada6a03b84404`，基线 `589f79eff09470b31ba8a7f1d9eb62d36ff2be6c`。d45于2026-10-24 02:15:43Z仅更新api/web app服务；实际镜像ID为`sha256:54d1a34f104b665ccdecc60e82f4cb67acf114fb3171b742990464ee6d4c7bc6`。A独立只读QA结论为`PASS_WITH_DOCUMENTED_LIMITATIONS`，仅适用于本次Staging部署保护和公开面检查，不代表Gate 3/4/5通过，也不是本地fresh-preview验收。
+
+独立QA结论sidecar `.data/fiscal-qa/major-policy-category-staging-postqa-20261024/conclusion-v3.json` SHA-256 `66be92b12b5e771ff22a88a38c7160f58e6b5121fbc25f3fbcbabcda604dfa4a`；30/30只读Staging smoke sidecar `.data/fiscal-qa/major-policy-category-staging-postqa-20261024/smoke-staging-v1.json` SHA-256 `9b3a282d52179df572dbc346bf7020dd96f737c3d92d2e86a3389a72e609d79a`。历史source/settings补证 `.data/fiscal-qa/major-policy-category-staging-postqa-20261024/historical-source-settings-supplement.json` SHA-256 `00663d6f80b251fc1fe170ad6907405cf50fca455b7a93f8d0d3a5f397db7049`；可得历史source rowset hash与当前只读查询相同，但快照不是部署前即时MVCC，因此不声称全表在整个部署区间无变化。结论sidecar列出输入字节hash与限制；NAS执行审计日志由部署执行方的原始审计目录保管。
 
 用户确认的两项范围为：“国家级重大民生政策也纳入，即使没有明确财政金融安排”；“央行日常公告放在全部动态，出现重要操作或政策变化时才精选”。站点栏目新增第九个类别 `major-livelihood-policy`（重大民生政策），`ITEM_TYPES` 仍固定为八种；现有栏目slug、评分权重、T1/T1.5/T2门槛60/65/76及 `understandFloor=50` 均保持。代码和提示词将类别约束为国家层级、具有实质重要性的民生政策，不仅凭发布机构认定，普通科普和仅地方活动不归入；这是实现规则，不是用户原话。实现位置见 [taxonomy](../../../industry/taxonomy.ts)、[selection thresholds](../../../industry/selection.ts)、[prefilter prompt](../../../industry/prompts/prefilter.md)、[content-understanding prompt](../../../industry/prompts/content-understanding.md) 和 [policy tests](../../../tests/industry-prompts-policy.test.ts)。
 
@@ -35,7 +37,7 @@
 
 [Gate 3 review](../GATE_3_REVIEW.md) 的正式裁决仍为 **CHANGES_REQUIRED / NOT_PASSED**；development150这轮结果没有改变裁决。Gate 4和Gate 5仍未通过。Gate 5备份/恢复审查中row hash 64/64、table inventory 64/64及sequence 16/16只是其中一个子项，不能表述为Gate 5通过。Gold200维持原清单与29/171计数，fresh50已消费，不得重新作为未触碰留出集或用于继续调参。
 
-下一步依次为：完成 d45 Staging 部署的独立只读QA；等待河北纯党建和福建理论成果名单公示两项既有标签问题的用户答复；随后按有限批次处理剩余321条pending正文，沿已批准的安全与证据流程推进。不得覆盖Gold200原标签、将fresh50重新称为未见holdout，或把开发150结果用于立即调整prompt/阈值。
+下一步为：等待河北纯党建和福建理论成果名单公示两项既有标签问题的用户答复；b5最多20条历史capture复用scope正在独立QA，尚无CAS或新GET，不能据proposal称正文已导入；之后按获批的有限批次流程处理剩余321条pending正文。不得覆盖Gold200原标签、将fresh50重新称为未见holdout，或把开发150结果用于立即调整prompt/阈值。
 
 ## 证据文件 SHA-256
 
@@ -60,14 +62,17 @@
 | Gold200 manifest (local-only; unchanged) | `.data/fiscal-qa/holdout-review-20261023/gold200-reviewed-manifest.json` | `d47666e96cfae7b0a4c183874a9acbe6c6db8863ca3d061f51781f3b6a9420af` |
 | Development error diagnosis (local-only) | `.data/fiscal-qa/development150-native-offline-20261023-v1/stage5-error-diagnosis-20261024/development150-error-diagnosis.md` | `ab5c2d240da53037ccde018bac457da37638ecd603957bd06f22bbcd0f236aee` |
 | Error-report hash verification (local-only) | `.data/fiscal-qa/development150-native-offline-20261023-v1/stage5-error-diagnosis-20261024/evidence-hash-verification.json` | `7deea5c21b2008f2b4045c1de51ac07fc59590a097da6a8aa01717c3bf69312f` |
+| d45 independent staging QA (local-only) | `.data/fiscal-qa/major-policy-category-staging-postqa-20261024/conclusion-v3.json` | `66be92b12b5e771ff22a88a38c7160f58e6b5121fbc25f3fbcbabcda604dfa4a` |
+| Staging smoke 30/30 (local-only) | `.data/fiscal-qa/major-policy-category-staging-postqa-20261024/smoke-staging-v1.json` | `9b3a282d52179df572dbc346bf7020dd96f737c3d92d2e86a3389a72e609d79a` |
+| Historical source/settings comparison (local-only) | `.data/fiscal-qa/major-policy-category-staging-postqa-20261024/historical-source-settings-supplement.json` | `00663d6f80b251fc1fe170ad6907405cf50fca455b7a93f8d0d3a5f397db7049` |
 
 ## TASK / MODEL / FILES_CHANGED / TESTS_RUN / RESULT / RISKS / BLOCKERS / NEXT
 
 **TASK**：记录重大民生政策更新与development150离线评估恢复点。
 **MODEL**：本次未发起模型调用；总结已完成的native offline结果。
 **FILES_CHANGED**：本次恢复点涉及handoff、STATUS、PROJECT_PLAN和SELECTION_RULES四份文档；不改源码、Gold标签或NAS数据。
-**TESTS_RUN**：本次独立文档/评测QA验证17项handoff hash行及45项链路字节绑定，均通过；未重跑模型或应用测试。代码475项/473通过/0失败/2跳过、typecheck、Web build及Web22/22为独立测试报告结果。
-**RESULT**：development150有效评估P=32.35%、R=42.31%、F1=36.67%；Gate 3仍CHANGES_REQUIRED。Staging app-only部署执行侧报告PASS，独立只读QA待完成；Gate 4/5未通过。
-**RISKS**：样本仅development；fresh50已消费；native offline结果不能代表provider pipeline；understanding quality未评；一个正文受60k冻结prompt上限截断。
-**BLOCKERS**：河北纯党建和福建理论研究成果名单公示两项既有标签问题等待用户确认；Staging部署的独立只读QA待完成。
-**NEXT**：完成Staging独立QA；根据用户对两项旧标签的答复决定后续处理；按有界批次继续处理321条pending正文。
+**TESTS_RUN**：本次独立文档/评测QA验证17项handoff hash行及45项链路字节绑定，均通过；A独立Staging QA读取结论与source/settings补证，匿名审核API为401、后台审核页为302登录，公开页面/新类别/RSS/noindex检查及30/30只读smoke通过；未重跑模型或应用测试。代码475项/473通过/0失败/2跳过、typecheck、Web build及Web22/22为此前独立测试报告结果。
+**RESULT**：development150有效评估P=32.35%、R=42.31%、F1=36.67%；Gate 3仍CHANGES_REQUIRED。d45 app-only部署QA为`PASS_WITH_DOCUMENTED_LIMITATIONS`；Gate 4/5未通过。恢复演练64/64行哈希、64/64表inventory及16/16 sequence state仅为Gate 5子项。
+**RISKS**：样本仅development；fresh50已消费；native offline结果不能代表provider pipeline；understanding quality未评；一个正文受60k冻结prompt上限截断。source/settings历史对照只支持可得快照之间的行集比较，不是部署前即时MVCC，且不覆盖全部应用表。
+**BLOCKERS**：河北纯党建和福建理论研究成果名单公示两项既有标签问题等待用户确认；Gate 3校准决策与Gate 4/5正式验收仍未完成。
+**NEXT**：根据用户对两项旧标签的答复决定后续处理；完成b5独立scope QA并遵循授权流程；按有界批次继续处理321条pending正文。
