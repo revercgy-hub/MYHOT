@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** Import independently reviewed native offline summaries through the canonical publication projector. */
-import { createHash } from "node:crypto";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { createHash, randomBytes } from "node:crypto";
+import { closeSync, existsSync, mkdirSync, openSync, readFileSync, unlinkSync, writeFileSync, writeSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -184,6 +184,38 @@ export async function prepareNativeSummaryManifest(tx: any, articleIds: string[]
     preparedAt: now.toISOString(), selection: { maxArticles: 30, ids: articleIds }, rows: manifestRows };
 }
 
+/** Read-only exact preflight. It requests no row/advisory locks and does not reserve targets for a later apply. */
+export async function preflightNativeSummaryImport(sql: any, manifest: NativeSummaryManifest, qa: NativeSummaryQa,
+  manifestSha: string, qaSha: string, taxonomy: Parameters<typeof validateNativeSummaryQa>[3],
+  promptTools: NativeSummaryPromptTools, now = new Date()) {
+  assertManifest(manifest); assertSha(manifestSha, "manifest file sha256"); assertSha(qaSha, "QA file sha256");
+  const reviewedItems = validateNativeSummaryQa(manifest, manifestSha, qa, taxonomy);
+  return sql.begin(async (tx: any) => {
+    await tx`SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY`;
+    const transaction = (await tx`SELECT current_database() AS database, inet_server_addr()::text AS address,
+      current_setting('transaction_read_only') AS read_only`)[0];
+    if (transaction?.read_only !== "on") throw new Error("native summary preflight requires a read-only transaction");
+    if (transaction.database !== manifest.database) throw new Error("manifest and connected database do not match");
+    const address = String(transaction.address ?? "").replace(/\/\d+$/u, "");
+    const loopbackAddress = ["127.0.0.1", "::1"].includes(address);
+    if (manifest.database === "fiscalhot_staging" ? !address || loopbackAddress : !loopbackAddress) {
+      throw new Error("database server address does not match the exact staging or loopback-test target");
+    }
+    const current = await prepareNativeSummaryManifest(tx, manifest.selection.ids, now, promptTools);
+    if (current.database !== manifest.database || stableJson(current.selection) !== stableJson(manifest.selection) ||
+        stableJson(current.promptVersions) !== stableJson(manifest.promptVersions) ||
+        stableJson(current.rows) !== stableJson(manifest.rows)) {
+      throw new Error("native summary exact preflight failed: current article/source/body/revision/prompt rows differ from manifest");
+    }
+    const eligibleArticleIds = reviewedItems.filter((item) => item.prefilter.label === "PASS").map((item) => item.articleId);
+    return { result: "NATIVE_SUMMARY_PREFLIGHT_PASS_NO_WRITES", database: manifest.database, manifestSha256: manifestSha,
+      qaSha256: qaSha, eligibleArticleIds, excluded: reviewedItems.filter((item) => item.prefilter.label !== "PASS").map((item) => ({
+        articleId: item.articleId, prefilterLabel: item.prefilter.label, reason: item.exclusionReason })),
+      writes: 0, rowLocksTaken: false, advisoryLockRequested: false, transactionReadOnly: true, applyCalled: false,
+      note: "Read-only point-in-time check only; this does not reserve rows or guarantee a later apply will pass CAS." };
+  });
+}
+
 function assertManifest(manifest: NativeSummaryManifest): void {
   if (manifest?.schemaVersion !== "fiscal.nas-native-summary-manifest.v1" || manifest.selection?.maxArticles !== 30 ||
       !Array.isArray(manifest.rows) || manifest.rows.length < 1 || manifest.rows.length > 30 || manifest.selection.ids.length !== manifest.rows.length ||
@@ -298,34 +330,58 @@ function argsOf(args: string[]): Map<string, string> {
   for (let i = 0; i < args.length; i++) {
     const name = args[i]!;
     if (!name.startsWith("--") || result.has(name)) throw new Error("invalid or duplicate command line option");
-    if (name === "--prepare" || name === "--apply") { result.set(name, "true"); continue; }
+    if (name === "--prepare" || name === "--apply" || name === "--preflight-only") { result.set(name, "true"); continue; }
     if (!args[i + 1] || args[i + 1]!.startsWith("--")) throw new Error("invalid or duplicate command line option");
     result.set(name, args[++i]!);
   }
   return result;
 }
 function writePrivateNew(file: string, contents: string): void {
+  const resolved = assertPrivateNewTarget(file);
+  writeFileSync(resolved, contents, { flag: "wx", mode: 0o600 });
+}
+function assertPrivateNewTarget(file: string): string {
   const resolved = path.resolve(file), dataRoot = path.resolve(APP_ROOT, ".data") + path.sep;
   if (!resolved.startsWith(dataRoot)) throw new Error("private manifest and result files must be written under AIHOT_APP_ROOT/.data");
-  mkdirSync(path.dirname(resolved), { recursive: true });
-  writeFileSync(resolved, contents, { flag: "wx", mode: 0o600 });
+  if (existsSync(resolved)) throw new Error("private output file already exists");
+  const directory = path.dirname(resolved);
+  mkdirSync(directory, { recursive: true });
+  const probe = path.join(directory, `.native-summary-write-probe-${process.pid}-${randomBytes(8).toString("hex")}`);
+  let descriptor: number | undefined;
+  let created = false;
+  try {
+    descriptor = openSync(probe, "wx", 0o600);
+    created = true;
+    writeSync(descriptor, "native-summary-output-preflight");
+  } finally {
+    if (descriptor !== undefined) closeSync(descriptor);
+    if (created && existsSync(probe)) unlinkSync(probe);
+  }
+  if (existsSync(resolved)) throw new Error("private output file already exists");
+  return resolved;
 }
 async function main(): Promise<void> {
   const args = argsOf(process.argv.slice(2));
-  const mode = args.get("--prepare") ? "prepare" : args.get("--apply") ? "apply" : "";
-  if (!mode || (args.has("--prepare") && args.has("--apply"))) throw new Error("usage: --prepare --article-ids id,id --out .data/... | --apply --manifest file --manifest-sha256 sha --qa file --qa-sha256 sha --out .data/...");
+  const modeFlags = ["--prepare", "--apply", "--preflight-only"].filter((flag) => args.has(flag));
+  if (modeFlags.length !== 1) throw new Error("usage: --prepare --article-ids id,id --out .data/... | --preflight-only --manifest file --manifest-sha256 sha --qa file --qa-sha256 sha --out .data/... | --apply --manifest file --manifest-sha256 sha --qa file --qa-sha256 sha --out .data/...");
+  const mode = modeFlags[0] === "--prepare" ? "prepare" : modeFlags[0] === "--apply" ? "apply" : "preflight-only";
+  const outputFile = args.get("--out");
+  if (!outputFile) throw new Error(`${mode} requires --out`);
+  assertPrivateNewTarget(outputFile);
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) throw new Error("DATABASE_URL is required; no default database is allowed");
   const target = assertAllowedDatabaseUrl(databaseUrl);
-  const [{ sql, closeDb }, taxonomy, { publishArticleTx }, writing, prompts] = await Promise.all([
-    import(appModule("packages/backend/src/db.ts")), import(appModule("industry/taxonomy.ts")), import(appModule("packages/backend/src/publication/publish.ts")),
-    import(appModule("packages/backend/src/editorial/writing.ts")), import(appModule("packages/backend/src/editorial/prompts.ts")),
+  const [{ sql, closeDb }, taxonomy] = await Promise.all([
+    import(appModule("packages/backend/src/db.ts")), import(appModule("industry/taxonomy.ts")),
   ]);
   try {
     if (mode === "prepare") {
       if (target.database !== "fiscalhot_staging" && !target.database.endsWith("_test") && !target.database.endsWith("_ci")) throw new Error("prepare only permits staging/test targets");
       const out = args.get("--out"), ids = args.get("--article-ids")?.split(",").map((id) => id.trim()).filter(Boolean) ?? [];
       if (!out || !ids.length) throw new Error("prepare requires --article-ids and --out");
+      const [writing, prompts] = await Promise.all([
+        import(appModule("packages/backend/src/editorial/writing.ts")), import(appModule("packages/backend/src/editorial/prompts.ts")),
+      ]);
       const promptTools: NativeSummaryPromptTools = { PREFILTER_SYSTEM: writing.PREFILTER_SYSTEM,
         prefilterUser: writing.prefilterUser, buildArticlePrompt: writing.buildArticlePrompt,
         translateInputOf: writing.translateInputOf, promptVersion: prompts.promptVersion };
@@ -339,14 +395,26 @@ async function main(): Promise<void> {
       return;
     }
     const manifestFile = args.get("--manifest"), manifestSha = args.get("--manifest-sha256"), qaFile = args.get("--qa"), qaSha = args.get("--qa-sha256"), out = args.get("--out");
-    if (!manifestFile || !manifestSha || !qaFile || !qaSha || !out) throw new Error("apply requires --manifest, --manifest-sha256, --qa, --qa-sha256, and --out");
+    if (!manifestFile || !manifestSha || !qaFile || !qaSha || !out) throw new Error(`${mode} requires --manifest, --manifest-sha256, --qa, --qa-sha256, and --out`);
     assertSha(manifestSha, "manifest file sha256"); assertSha(qaSha, "QA file sha256");
     const manifestBytes = readFileSync(path.resolve(manifestFile)), qaBytes = readFileSync(path.resolve(qaFile));
     if (sha256(manifestBytes) !== manifestSha || sha256(qaBytes) !== qaSha) throw new Error("manifest or independent native QA file SHA mismatch");
     const manifest = JSON.parse(manifestBytes.toString("utf8")) as NativeSummaryManifest;
     const qa = JSON.parse(qaBytes.toString("utf8")) as NativeSummaryQa;
     if (manifest.database !== target.database) throw new Error("manifest database does not match DATABASE_URL target");
-    const result = await applyNativeSummaryImport(sql, manifest, qa, manifestSha, qaSha, taxonomy, publishArticleTx);
+    let result: any;
+    if (mode === "preflight-only") {
+      const [writing, prompts] = await Promise.all([
+        import(appModule("packages/backend/src/editorial/writing.ts")), import(appModule("packages/backend/src/editorial/prompts.ts")),
+      ]);
+      const promptTools: NativeSummaryPromptTools = { PREFILTER_SYSTEM: writing.PREFILTER_SYSTEM,
+        prefilterUser: writing.prefilterUser, buildArticlePrompt: writing.buildArticlePrompt,
+        translateInputOf: writing.translateInputOf, promptVersion: prompts.promptVersion };
+      result = await preflightNativeSummaryImport(sql, manifest, qa, manifestSha, qaSha, taxonomy, promptTools);
+    } else {
+      const { publishArticleTx } = await import(appModule("packages/backend/src/publication/publish.ts"));
+      result = await applyNativeSummaryImport(sql, manifest, qa, manifestSha, qaSha, taxonomy, publishArticleTx);
+    }
     const contents = `${JSON.stringify(result, null, 2)}\n`;
     writePrivateNew(out, contents);
     console.log(JSON.stringify(result, null, 2));

@@ -1,9 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import postgres from "postgres";
 import { CATEGORIES, CATEGORY_TAGS, TOPIC_TAGS, ENTITY_TAGS } from "../industry/taxonomy.ts";
-import { applyNativeSummaryImport, prepareNativeSummaryManifest, validateNativeSummaryQa,
+import { applyNativeSummaryImport, preflightNativeSummaryImport, prepareNativeSummaryManifest, validateNativeSummaryQa,
   qaItemOutputSha, type NativeSummaryManifest, type NativeSummaryQa, type NativeSummaryPromptTools } from "../scripts/fiscal/nas-native-summary-import.ts";
 import { publishArticleTx } from "../packages/backend/src/publication/publish.ts";
 import * as writing from "../packages/backend/src/editorial/writing.ts";
@@ -12,6 +16,7 @@ import { promptVersion } from "../packages/backend/src/editorial/prompts.ts";
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");
 const taxonomy = { CATEGORIES, CATEGORY_TAGS, TOPIC_TAGS, ENTITY_TAGS };
 const time = new Date("2026-10-22T00:00:00.000Z");
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const promptTools: NativeSummaryPromptTools = { PREFILTER_SYSTEM: writing.PREFILTER_SYSTEM, prefilterUser: writing.prefilterUser,
   buildArticlePrompt: writing.buildArticlePrompt, translateInputOf: writing.translateInputOf, promptVersion };
 const stableJson = (value: unknown): string => {
@@ -51,6 +56,21 @@ function qaFor(manifest: NativeSummaryManifest, outcomes: Record<string, "PASS" 
       executionKind: "native-offline-not-runtime-provider", providerReceipt: null, providerPipelineExecuted: false }, items };
 }
 
+function runNativeSummaryCli(databaseUrl: string, args: string[]) {
+  const env: NodeJS.ProcessEnv = { ...process.env, AIHOT_APP_ROOT: repoRoot, DATABASE_URL: databaseUrl,
+    MODEL_CALLS_ENABLED: "false", COLLECT_ENABLED: "false", FEISHU_SEND_ENABLED: "false", INDEXNOW_SUBMIT_ENABLED: "false",
+    JINA_BODY_FALLBACK: "false", FEISHU_CONTENT_PUSH_ENABLED: "false", FEISHU_INTERNAL_ENABLED: "false",
+    ALLOW_PRIVATE_NETWORK_FETCH: "false", EMBEDDINGS_ENABLED: "false", OCR_RUN_ENABLED: "false", OFFLINE_XIAMEN_OCR_ENABLED: "false",
+    AIHOT_CREDENTIALS_DIR: path.join(repoRoot, ".data", "nonexistent-native-summary-test-credentials") };
+  for (const key of ["LLM_API_KEY", "LLM_BASE_URL", "OPENAI_API_KEY", "OPENAI_BASE_URL", "ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL",
+    "GEMINI_API_KEY", "GOOGLE_API_KEY", "DEEPSEEK_API_KEY", "DEEPSEEK_BASE_URL", "DASHSCOPE_API_KEY", "DASHSCOPE_BASE_URL",
+    "ZHIPU_API_KEY", "ZHIPU_BASE_URL", "XIAOMI_MIMO_API_KEY", "XIAOMI_MIMO_BASE_URL", "JINA_API_KEY", "JINA_BASE_URL",
+    "OCR_API_KEY", "SOCIALDATA_API_KEY", "SOCIALDATA_BASE_URL", "DAJIALA_API_KEY", "DAJIALA_BASE_URL", "EMBEDDING_API_KEY",
+    "EMBEDDING_BASE_URL", "FEISHU_APP_ID", "FEISHU_APP_SECRET", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"]) delete env[key];
+  return spawnSync(process.execPath, [path.join(repoRoot, "scripts/fiscal/nas-native-summary-import.ts"), ...args],
+    { cwd: repoRoot, env, encoding: "utf8", timeout: 60_000 });
+}
+
 test("native summary QA binds body/output hashes and rejects selected or provider execution claims", () => {
   const manifest: NativeSummaryManifest = { schemaVersion: "fiscal.nas-native-summary-manifest.v1", database: "fiscalhot_fake_test",
     preparedAt: time.toISOString(), promptVersions: { prefilter: "prefilter@hash", summarize: "summarize@hash" },
@@ -87,7 +107,8 @@ test("native summary importer projects first imports atomically and rejects stal
   const sql = postgres(databaseUrl, { max: 1, idle_timeout: 5 });
   const prefix = `native_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const sourceIds = Array.from({ length: 48 }, (_, index) => `${prefix}_s${index}`);
-  const articleIds = ["happy", "revision", "body", "source", "override", "fulltext", "batchfirst", "batchstale", "mixedpass", "mixedblock", "mixedunknown", "syndicatefulltext"].map((suffix) => `${prefix}_${suffix}`);
+  const articleIds = ["happy", "revision", "body", "source", "override", "fulltext", "batchfirst", "batchstale", "mixedpass", "mixedblock", "mixedunknown", "syndicatefulltext",
+    "preflightbody", "preflightrevision", "preflightsource", "preflightprompt", "preflightpublication", "preflightoverride", "preflightanalysis"].map((suffix) => `${prefix}_${suffix}`);
   const body = "财政部门发布预算管理信息，介绍预算执行进展和后续工作安排。";
   const contentHash = sha256(body);
   try {
@@ -108,6 +129,12 @@ test("native summary importer projects first imports atomically and rejects stal
     });
 
     const prepare = (id: string) => sql.begin((tx) => prepareNativeSummaryManifest(tx, [id], time, promptTools));
+    const preflight = (manifest: NativeSummaryManifest, tools = promptTools) => {
+      const manifestSha = sha256(JSON.stringify(manifest, null, 2) + "\n");
+      const qa = qaFor(manifest);
+      const qaSha = sha256(JSON.stringify(qa, null, 2) + "\n");
+      return preflightNativeSummaryImport(sql, manifest, qa, manifestSha, qaSha, taxonomy, tools, time);
+    };
     const apply = async (manifest: NativeSummaryManifest, qa = qaFor(manifest)) => {
       const manifestSha = sha256(JSON.stringify(manifest, null, 2) + "\n");
       const qaSha = sha256(JSON.stringify(qa, null, 2) + "\n");
@@ -115,6 +142,71 @@ test("native summary importer projects first imports atomically and rejects stal
     };
 
     const happy = await prepare(articleIds[0]!);
+    const manifestBytes = Buffer.from(`${JSON.stringify(happy, null, 2)}\n`);
+    const cliQa = qaFor(happy);
+    const qaBytes = Buffer.from(`${JSON.stringify(cliQa, null, 2)}\n`);
+    const manifestFile = path.join(repoRoot, ".data", "fiscal-qa", `${prefix}-preflight-manifest.json`);
+    const qaFile = path.join(repoRoot, ".data", "fiscal-qa", `${prefix}-preflight-qa.json`);
+    const outFile = path.join(repoRoot, ".data", "fiscal-qa", `${prefix}-preflight-result.json`);
+    mkdirSync(path.dirname(manifestFile), { recursive: true });
+    writeFileSync(manifestFile, manifestBytes, { flag: "wx", mode: 0o600 });
+    writeFileSync(qaFile, qaBytes, { flag: "wx", mode: 0o600 });
+    try {
+      const cliArgs = ["--manifest", manifestFile, "--manifest-sha256", sha256(manifestBytes.toString("utf8")),
+        "--qa", qaFile, "--qa-sha256", sha256(qaBytes.toString("utf8"))];
+      const child = runNativeSummaryCli(databaseUrl, ["--preflight-only", ...cliArgs, "--out", outFile]);
+      assert.equal(child.status, 0, `preflight CLI failed: ${child.stderr}`);
+      const cliResult = JSON.parse(child.stdout) as { result: string; eligibleArticleIds: string[]; writes: number; rowLocksTaken: boolean;
+        advisoryLockRequested: boolean; transactionReadOnly: boolean; applyCalled: boolean };
+      assert.equal(cliResult.result, "NATIVE_SUMMARY_PREFLIGHT_PASS_NO_WRITES");
+      assert.deepEqual(cliResult.eligibleArticleIds, [articleIds[0]!]);
+      assert.equal(cliResult.writes, 0);
+      assert.equal(cliResult.rowLocksTaken, false);
+      assert.equal(cliResult.advisoryLockRequested, false);
+      assert.equal(cliResult.transactionReadOnly, true);
+      assert.equal(cliResult.applyCalled, false);
+      assert.deepEqual(JSON.parse(readFileSync(outFile, "utf8")), cliResult);
+
+      const stateBeforeInvalidOutput = await sql`SELECT to_jsonb(a)::text AS article,
+        (SELECT count(*)::int FROM editorial_overrides WHERE article_id=${articleIds[0]}) AS overrides,
+        (SELECT count(*)::int FROM publications WHERE article_id=${articleIds[0]}) AS publications,
+        (SELECT count(*)::int FROM analyses WHERE article_id=${articleIds[0]}) AS analyses
+        FROM articles a WHERE a.id=${articleIds[0]}`;
+      const outsideFile = path.join(repoRoot, "invalid-summary-apply-output.json");
+      const outside = runNativeSummaryCli(databaseUrl, ["--apply", ...cliArgs, "--out", outsideFile]);
+      assert.notEqual(outside.status, 0);
+      assert.match(outside.stderr, /under AIHOT_APP_ROOT\/\.data/u);
+      const sentinelFile = path.join(repoRoot, ".data", "fiscal-qa", `${prefix}-existing-output.json`);
+      writeFileSync(sentinelFile, "preserve-existing-output\n", { flag: "wx", mode: 0o600 });
+      const existing = runNativeSummaryCli(databaseUrl, ["--apply", ...cliArgs, "--out", sentinelFile]);
+      assert.notEqual(existing.status, 0);
+      assert.match(existing.stderr, /already exists/u);
+      assert.equal(readFileSync(sentinelFile, "utf8"), "preserve-existing-output\n");
+      rmSync(sentinelFile, { force: true });
+      const blockedParent = path.join(repoRoot, ".data", "fiscal-qa", `${prefix}-blocked-parent`);
+      writeFileSync(blockedParent, "preserve-parent-file\n", { flag: "wx", mode: 0o600 });
+      try {
+        const blocked = runNativeSummaryCli(databaseUrl, ["--apply", ...cliArgs, "--out", path.join(blockedParent, "result.json")]);
+        assert.notEqual(blocked.status, 0, "an unusable output directory must fail before apply");
+        assert.equal(readFileSync(blockedParent, "utf8"), "preserve-parent-file\n");
+      } finally { rmSync(blockedParent, { force: true }); }
+      const conflictingModes = runNativeSummaryCli(databaseUrl, ["--apply", "--preflight-only", ...cliArgs, "--out", outFile]);
+      assert.notEqual(conflictingModes.status, 0);
+      assert.match(conflictingModes.stderr, /usage:/u);
+      const stateAfterInvalidOutput = await sql`SELECT to_jsonb(a)::text AS article,
+        (SELECT count(*)::int FROM editorial_overrides WHERE article_id=${articleIds[0]}) AS overrides,
+        (SELECT count(*)::int FROM publications WHERE article_id=${articleIds[0]}) AS publications,
+        (SELECT count(*)::int FROM analyses WHERE article_id=${articleIds[0]}) AS analyses
+        FROM articles a WHERE a.id=${articleIds[0]}`;
+      assert.deepEqual(stateAfterInvalidOutput, stateBeforeInvalidOutput);
+    } finally {
+      rmSync(manifestFile, { force: true }); rmSync(qaFile, { force: true }); rmSync(outFile, { force: true });
+    }
+    const unchangedAfterCli = await sql`SELECT
+      (SELECT count(*)::int FROM editorial_overrides WHERE article_id=${articleIds[0]}) AS overrides,
+      (SELECT count(*)::int FROM publications WHERE article_id=${articleIds[0]}) AS publications,
+      (SELECT count(*)::int FROM analyses WHERE article_id=${articleIds[0]}) AS analyses`;
+    assert.deepEqual(unchangedAfterCli[0], { overrides: 0, publications: 0, analyses: 0 });
     assert.equal((await apply(happy)).imported, 1);
     const projection = await sql`SELECT eligible,selected,title,summary,reason,category,tags,score,body_mode,syndicate,indexable
       FROM publications WHERE article_id=${articleIds[0]}`;
@@ -149,6 +241,37 @@ test("native summary importer projects first imports atomically and rejects stal
     assert.equal(sidecar[0]?.provenance.providerPipelineExecuted, false);
     assert.equal(sidecar[0]?.provenance.providerReceipt, null);
     assert.equal(sidecar[0]?.provenance.isGold, false);
+
+    const databaseState = async (id: string) => (await sql`SELECT to_jsonb(a)::text AS article,
+      (SELECT to_jsonb(s)::text FROM sources s WHERE s.id=a.source_id) AS source,
+      (SELECT count(*)::int FROM editorial_overrides o WHERE o.article_id=a.id) AS overrides,
+      (SELECT count(*)::int FROM publications p WHERE p.article_id=a.id) AS publications,
+      (SELECT count(*)::int FROM analyses an WHERE an.article_id=a.id) AS analyses
+      FROM articles a WHERE a.id=${id}`)[0];
+    const rejectWithoutWrites = async (id: string, change: () => Promise<void>, tools = promptTools) => {
+      const frozen = await prepare(id), frozenQa = qaFor(frozen);
+      await change();
+      const before = await databaseState(id);
+      await assert.rejects(preflightNativeSummaryImport(sql, frozen, frozenQa, frozenQa.manifestSha256,
+        sha256(JSON.stringify(frozenQa, null, 2) + "\n"), taxonomy, tools, time));
+      assert.deepEqual(await databaseState(id), before, `preflight made no writes for ${id}`);
+    };
+    await rejectWithoutWrites(articleIds[12]!, async () => { await sql`UPDATE articles SET body_text=body_text || '漂移' WHERE id=${articleIds[12]}`; });
+    await rejectWithoutWrites(articleIds[13]!, async () => { await sql`UPDATE articles SET revision=revision+1 WHERE id=${articleIds[13]}`; });
+    await rejectWithoutWrites(articleIds[14]!, async () => { await sql`UPDATE sources SET name=name || '漂移' WHERE id=${sourceIds[14]}`; });
+    const changedPrompts = { ...promptTools, PREFILTER_SYSTEM: `${promptTools.PREFILTER_SYSTEM}\n提示词版本漂移` };
+    await rejectWithoutWrites(articleIds[15]!, async () => {}, changedPrompts);
+    await rejectWithoutWrites(articleIds[16]!, async () => {
+      await sql`INSERT INTO publications (article_id,title,source_id,channel,url,discovered_at,timeline_at,sort_at,search_text)
+        VALUES (${articleIds[16]},'既有公开摘要',${sourceIds[16]},'news',${`https://example.test/${articleIds[16]}`},${time.toISOString()},${time.toISOString()},${time.toISOString()},'')`;
+    });
+    await rejectWithoutWrites(articleIds[17]!, async () => {
+      await sql`INSERT INTO editorial_overrides(article_id,fields) VALUES (${articleIds[17]},'{}')`;
+    });
+    await rejectWithoutWrites(articleIds[18]!, async () => {
+      await sql`INSERT INTO analyses (article_id,input_revision,origin,relevance,category,title_zh,summary_zh,selected)
+        VALUES (${articleIds[18]},1,'rule','pass','fiscal-policy','测试标题','测试摘要',false)`;
+    });
 
     const cases = [
       { id: articleIds[1]!, change: async (id: string) => { await sql`UPDATE articles SET revision=revision+1 WHERE id=${id}`; } },
