@@ -2,25 +2,27 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
-## 2026-10-24 Development150 与 Staging 部署检查点（当前）
+## 2026-10-24 Development150、摘要写入与 Staging 检查点（当前）
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=d45f0d93f5374b7c72cdf0efb64ada6a03b84404 (deployed/tested application code SHA; documentation commits do not change runtime code)
+CURRENT_SHA=353ec5d (repository HEAD; includes tested importer/prompt and PBOC repository-only candidate; NAS application runtime remains d45f0d93f5374b7c72cdf0efb64ada6a03b84404)
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
-STAGE=NAS Staging; d45 app-only api/web deployment; image digest sha256:54d1a34f104b665ccdecc60e82f4cb67acf114fb3171b742990464ee6d4c7bc6; independent rollout QA PASS_WITH_DOCUMENTED_LIMITATIONS
+STAGE=NAS Staging; d45 app-only api/web deployment; image digest sha256:54d1a34f104b665ccdecc60e82f4cb67acf114fb3171b742990464ee6d4c7bc6; independent rollout QA PASS_WITH_DOCUMENTED_LIMITATIONS; PBOC source config change is repo-only and not synced to runtime
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT; Gate 3 CHANGES_REQUIRED; Gate 4/5 not passed (64/64 row hashes, 64/64 inventory, 16/16 sequence state are Gate 5 restore subitems only)
 REVIEW=Gold200 200/200 confirmed (29 select/171 reject), unchanged; fresh50 holdout evaluated and consumed; two old labels await user confirmation (Hebei pure party-building item, Fujian research-results list notice)
 BLOCKERS=Gate 3 calibration/usefulness not accepted; Gate 4 source coverage/page and formal review remain open; Gate 5 continuous operation/restart/fault-recovery and formal review remain open; two historical-label questions await user
-COMPLETED=Development150 QA TP11/FP23/FN15/TN101, P32.35/R42.31/F1 36.67, MAE6.21, 11 crossers; invalid first pass excluded; tested d45: 475 total/474 pass/0 fail/1 explicit execute-captures skip; typecheck, Web build, Web22/22 pass; b5 exact10 and b6 exact22 summaries independently passed DB/LAN QA; b5/b6/b7 bodies independently postchecked; current 418/613/418, body195/217/6, publications/overrides86, Gold200 unchanged
-IN_PROGRESS=b7 exact37 native summary drafting/independent grounding; typed preflight-only CLI tested/committed but not used for frozen f4 work; Gate 4/5 formal review and two historical Gold labels remain open
-NEXT=Complete b7 exact37 native drafts and independent grounding; any later summary write requires exact approved PASS subset and fresh CAS/source checks; fresh50 remains consumed and thresholds unchanged
+COMPLETED=Development150 QA TP11/FP23/FN15/TN101, P32.35/R42.31/F1 36.67, MAE6.21, 11 crossers; invalid first pass excluded; d45 deployment suite 475 total/474 pass/0 fail/1 explicit execute-captures skip; repository candidate HEAD 353ec5d suite 476 total/475 pass/0 fail/1 explicit skip; typecheck, Web build, Web22/22 pass; b5 exact10, b6 exact22 and b7 exact19 summaries independently passed DB/LAN QA; b5/b6/b7 bodies independently postchecked; current 418/613/418, body195/217/6, publications/overrides105, Gold200 unchanged
+IN_PROGRESS=PBOC detail parsing source config is repository-only candidate (17 historical capture replays/13 distinct articles); runtime source catalog unchanged and disabled; source not admitted, Gate 4/5 formal review and two historical Gold labels remain open
+NEXT=Review the 65-item no-prior-raw/no-dispatch body candidate plan and requested cadence/budget before any GET; keep the PBOC source candidate disabled/unsynced until separately approved; fresh50 remains consumed and thresholds unchanged
 ```
 
 站点现有分类为9类，`ITEM_TYPES`仍为8种。用户确认：“国家级重大民生政策也纳入，即使没有明确财政金融安排”；“央行日常公告放在全部动态，出现重要操作或政策变化时才精选”。d45于2026-10-24 02:15:43Z以app-only方式部署到NAS Staging；独立只读QA结果为`PASS_WITH_DOCUMENTED_LIMITATIONS`，范围仅为该次Staging部署保护与公开面检查，不代表Gate 3/4/5通过，也不是本地fresh-preview验收。部署镜像实际digest为`sha256:54d1a34f104b665ccdecc60e82f4cb67acf114fb3171b742990464ee6d4c7bc6`；独立QA sidecar及历史source/settings对照见[Development150和重大民生政策交接](HANDOFFS/DEVELOPMENT150_AND_MAJOR_POLICY_2026-10-24.md)。development150 native-offline结果不是fresh holdout，不能代表provider流程或understanding质量，不据此即时调整Gold、prompt或门槛。
 
-b5 exact20、b6 exact47及b7 exact37正文均已提交并经独立后验。b5 exact10与b6 exact22 PASS摘要均完成canonical summary-only导入及独立DB/LAN QA；b6 c1的14项在事务提交后因输出路径守卫异常缺失CLI回执，未重试，A直接数据库确认提交；c2另8项有执行结果。b6其余25 BLOCK未写。当前418/613/418 rows、body195/217/6、publications/overrides86、48来源flags全0、Gold200保持不变。b7 37摘要目前仅有frozen f4只读输入，无草稿或grounding结果。详细见[2026-10-24 b5/b6正文与摘要交接](HANDOFFS/PENDING_BODY_BATCHES_B5_B6_SUMMARY_2026-10-24.md)。
+selection-score文字是下一轮development候选，未部署且未证明质量改善；PBOC详情解析配置仅在仓库，未同步NAS runtime。development150 native-offline结果不是fresh holdout，不能代表provider流程或understanding质量，不据此即时调整Gold、prompt或门槛。
+
+b5 exact20、b6 exact47及b7 exact37正文均已提交并经独立后验。b5 exact10、b6 exact22及b7 exact19 PASS摘要均完成canonical summary-only导入及独立DB/LAN QA；b6 c1的14项在事务提交后因输出路径守卫异常缺失CLI回执，未重试，A直接数据库确认提交；c2另8项有执行结果。b6余25 BLOCK、b7余18 BLOCK未写。当前418/613/418 rows、body195/217/6、publications/overrides105、48来源flags全0、Gold200保持不变。b7 37份草稿/两chunk manifest经独立grounding，准确19 PASS/18 BLOCK；两chunk使用frozen f4输入和tested f60 CLI分开预检并提交。详细见[2026-10-24 b5/b6正文与摘要交接](HANDOFFS/PENDING_BODY_BATCHES_B5_B6_SUMMARY_2026-10-24.md)。
 
 ## 2026-10-23 fresh50 Gold评测检查点（历史记录）
 

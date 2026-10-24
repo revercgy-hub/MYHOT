@@ -1,12 +1,12 @@
 # 2026-10-24 b5/b6 正文、摘要与评审交接
 
-## 更新：b5/b6摘要已提交，b7正文及摘要输入进度
+## 更新：b5/b6摘要与b7正文、摘要批次已提交并独立后验
 
-本更新取代下文早期“b6待QA/待导入、b7未提交正文”等当前态描述；旧的执行记录保留为历史，不作为现在状态。b5 exact10与b6 exact22 summary-only已提交并通过A独立数据库/LAN后验。当前Staging状态为418 articles/613 revisions/418 discoveries，body 195 ok/217 pending/6 unconfirmed，publications/overrides 86/86，sources48全disabled/fulltext/syndicate=0，Gold200 count/hash不变，分析/receipt/job无新增。
+本更新取代下文早期“b6待QA/待导入、b7未提交正文”等当前态描述；旧的执行记录保留为历史，不作为现在状态。b5 exact10、b6 exact22与b7 exact19 summary-only已提交并通过A独立数据库/LAN后验。当前Staging状态为418 articles/613 revisions/418 discoveries，body 195 ok/217 pending/6 unconfirmed，publications/overrides 105/105，sources48全disabled/fulltext/syndicate=0，Gold200 count/hash不变，分析/receipt/job无新增。
 
 b6 exact22 的v1草稿保留；v2只修正两处事实表述，A核验sidecar为`.data/fiscal-qa/pending-body-batch-20261024-b6/independent-summary-v2-correction-qa-b6.json` SHA `7533f6385830ed9541fcac898a4285f0be1f6d62464575bea191bdf2634b6b8e`。A的grounding sidecar `.data/fiscal-qa/pending-body-batch-20261024-b6/independent-summary-grounding-qa-b6.json` SHA `7dc39b489b8e8c530b3fc59062901df94e101c0e809cdff04f7b9247332e8bc5`，22 PASS/25 BLOCK/0 UNKNOWN；canonical QA仅按批准的22 PASS分为30+17两份manifest，不含BLOCK。c1精确14项已提交，c2精确8项已提交；总数22。c1事务提交后CLI因结果文件输出路径守卫错误未产生原生执行回执，因此不重试、不伪造回执；A的直接DB确认`.data/fiscal-qa/pending-body-batch-20261024-b6/independent-c1-direct-commit-qa.json` SHA `5328220a1e4c51af7879b12bec9f7f88c1988068dc5662259012ce298100d08a`。c2 canonical执行结果SHA `535cdc13ce9ca0e2eacd93d171ed8ab475f6f8bd82078e4634326f79eb102358`。A独立b6 DB后验SHA `0001305d78b80f33ef2beabadcc66667ec9e200ab7a77c7b8abf7cb174bb196f`；LAN详情后验SHA `dba41a9d496a97d516ed259c70c78a2d195b790fa09878098204dfba5e0c9786`。22项summary/provenance/body/source hash和发布字段逐项通过，9项BLOCK保持未发布。
 
-b7 exact37正文已提交并经A独立后验PASS，另1项hold维持原状。b7 summary只读准备分为c1 30项与c2 7项，manifest SHA分别为`7f95734edc9ab4d7052e0058c9f60389f665ce58368447aa0ebbec271f5c7e72`和`c6a67f294cf2f5f3911dcefbd5fb24ba9242d61d587bc8255c874bebcc8be6d9`；运行记录SHA `648e4a7086e29d180a304d3a6834b593da69c8e839c552b9c4570c550f54a277`。输入使用冻结f4 `--prepare`，摘要生成及独立grounding尚未进行；无数据库写入、无provider/worker调用。b7正文后验SHA `f4b61f428ce4d839eaaf7f4cd0faee8b64aede60886f6b86fd3759ea9e1dc0d5`，快照418/613/418、body195/217/6、pub/override64、Gold200不变。b6摘要独立QA完成后追加的当前事实见前文；本交接历史段落中的旧快照只代表相应时间点。
+b7 exact37正文已提交并经A独立后验PASS，另1项hold维持原状。正文后验SHA `f4b61f428ce4d839eaaf7f4cd0faee8b64aede60886f6b86fd3759ea9e1dc0d5`；正文阶段快照418/613/418、body195/217/6、pub/override64、Gold200不变。b7摘要使用c1 30项与c2 7项的冻结f4 manifests，SHA分别为`7f95734edc9ab4d7052e0058c9f60389f665ce58368447aa0ebbec271f5c7e72`和`c6a67f294cf2f5f3911dcefbd5fb24ba9242d61d587bc8255c874bebcc8be6d9`；运行记录SHA `648e4a7086e29d180a304d3a6834b593da69c8e839c552b9c4570c550f54a277`。A独立grounding sidecar SHA `9c8112c0f5d9b5f0a83f3dff3d520894621ef977a9e7aa447fdbdac2a6583e69`，全37篇正文复核为19 PASS/18 BLOCK/0 UNKNOWN。原v1草稿保留；v2仅依照A的7项delta修正，验证报告SHA `5478d0251ad59ad9699c2b88ec09327f456c1c6aacfb90d9107827b68c858fa5`。canonical QA c1/c2 SHA分别`8cd8269e0cf50fe25a9141df6718c525d1749b965f3aeb3aa896b38a0118ad1f`和`947be4270e602bd5ab6547f51087631a9424ace5e52ede1c246b19d9f95c57a0`，validator sidecar SHA `b78f826fd83300724b27b961097c12cc987111726ca1d6df53b730706df15b5d`。按两份原manifest分别预检并只导入PASS；c1 16/30提交结果SHA `203f48d4b766bcd74a788f88833b1f72a4b1c47ea25d08c7e05c46ae112fb397`，c2 3/7提交结果SHA `2bd7b6005a15b465831e3897ad8109d75d380deb37863d73c3555e2b7560c376`；预检c1/c2 SHA分别`d47c2a29c8a9492af180e98369b0ef17e293ba96ee45754dfec4c3dd0d092e0b`和`43059d2adb9b77121e7b2c0f8562256b8d04909ab8cfe2ad3b0fe9f5dc313b46`。没有重试或合并manifest。A独立摘要DB/LAN后验PASS，sidecar SHA `a398bd1e9d743977c36e2bbc440ba5bd353a58b2967f77ace56fdb5f68791fde`：19/19目标与approved summary/provenance/body/source/revision匹配，18 BLOCK未触碰，protected rowset drift为空，sources48/0/0/0，Gold200 count/hash未变，当前pub/override105/105、body195/217/6。LAN 19详情与pool均可见，noindex/nofollow保留，score null、selected/indexable false且无body。请求路由只记录`gpt-6-luna high`，provider receipt null；未运行provider pipeline或worker。
 
 ## 早期执行记录（历史快照）
 
@@ -32,23 +32,23 @@ b6正文独立后验通过后，按原冻结输入manifest分为c1 30项、c2 17
 
 A独立grounding QA已完成，sidecar `.data/fiscal-qa/pending-body-batch-20261024-b6/independent-summary-grounding-qa-b6.json` SHA-256为`7dc39b489b8e8c530b3fc59062901df94e101c0e809cdff04f7b9247332e8bc5`；结果为22 PASS/25 BLOCK/0 UNKNOWN，47个ID与草稿标签集合一致。Root已批准exact22 PASS，但要求先修正两项事实表述：`ixqqedjiiq3md8fp55q3i043i`标题改为“黑龙江监管局学习普通高中补助资金管理办法”；`neajwmxr5t35l3gk7316hh9mt`摘要把“22类典型问题”改为“4大类22条典型问题”。原始v1保留不覆盖；c1 v2路径为`.data/fiscal-qa/pending-body-batch-20261024-b6/native-summary-draft-b6-c1-v2.json`、SHA-256 `65809252cb0a979e7c7c0de5a262ac6e7234923652764822cdf726d267e479a2`；c2 v2与v1字节相同、SHA-256 `c374d7464a5d633c5dcf13a6c94671b1c10dd51c5cc89929aba5c23469e329fd`。程序化纠错/绑定验证sidecar SHA-256 `28200e529cee73752da8b4cdb2eae8ab0ebe557a7473b96e110db23ef00ba79a`，验证结果为47项decision仍22/25/0、f4 canonical结构30+17全过、非目标items字节级等同。A只需复核两处修正和hash绑定，尚未回传复核；当前未导入。
 
-## b7 正文范围准备
+## b7 正文范围准备（已完成批次）
 
-截至本检查点，b7范围准备为38个目标、37个proposal和1个hold，仍处于prepared状态，尚未执行正文CAS或独立后验。pending分层计数尚待B提供，本交接不据此推算。Root批准的typed `--preflight-only` importer接口仍待实现和QA；b5/b6均使用frozen f4工具合同，未使用该新接口。
+本批b7范围为38个目标、37个proposal与1个hold；37项body CAS和独立后验已完成。b7摘要c1/c2共19 PASS/18 BLOCK；19 PASS已提交并独立后验，18 BLOCK未写。typed `--preflight-only` importer接口已按冻结SHA实测；b7实际执行使用SHA `f60b879db9aba5e28f4f4697864a547f4e8b81649c3b0a6a69ddab78e8576702`的新私有副本，不覆盖f4，不触发服务重启；f4 manifests与prompt版本保持原样。当前pending总量217，另6 unconfirmed；后续候选范围需独立freeze及重新审批。
 
 ## 执行尝试与边界
 
 导入前有两个本地只读preflight helper错误和一次Shell引号解析错误：初版错误读取`snapshot.rowsets.sources.enabled`字段；下一版返回变量未插入source SQL查询；之后一次ssh命令在bash解析时因嵌套引号失败。三次均未运行summary importer、未提交事务、未写业务数据或启动/停止服务。最终preflight用实际SQL字段重跑通过，canonical importer只执行一次并返回COMMITTED。此记录区分工具层失败和数据库结果，不将失败命令记为业务写入。
 
-此阶段没有修改Gold200人审标签、fresh50预测/标签、分类、评分阈值、应用代码、数据库schema或来源配置；b6摘要草稿生成没有runtime provider调用或worker运行。另有selection-score仅供下一development candidate的规则文字变更，不用于fresh50，不影响已冻结的b6摘要输入/输出；其统一检查尚待B的CLI改动冻结。fresh50仍是已消费holdout。Gate 3保持`CHANGES_REQUIRED`；Gate 4/5总体仍未通过。此前Gate 5的64/64 row hashes、64/64 inventory和16/16 sequence state仅是restore子项，不构成Gate 5通过。应用运行SHA仍是d45 `d45f0d93f5374b7c72cdf0efb64ada6a03b84404`，Staging镜像digest `sha256:54d1a34f104b665ccdecc60e82f4cb67acf114fb3171b742990464ee6d4c7bc6`；不涉及本地fresh-preview。
+此阶段没有修改Gold200人审标签、fresh50预测/标签、阈值、数据库schema或运行时来源配置；b5/b6/b7摘要草稿没有runtime provider调用或worker运行。selection-score改动只作为下一轮development候选，不用于fresh50，也未部署或证明质量改善。PBOC四字段配置候选仅在仓库，Staging source catalog仍为旧配置且source disabled；未执行该配置同步或新GET。fresh50仍是已消费holdout。Gate 3保持`CHANGES_REQUIRED`；Gate 4/5总体仍未通过。此前Gate 5的64/64 row hashes、64/64 inventory和16/16 sequence state仅是restore子项，不构成Gate 5通过。应用运行SHA仍是d45 `d45f0d93f5374b7c72cdf0efb64ada6a03b84404`，Staging镜像digest `sha256:54d1a34f104b665ccdecc60e82f4cb67acf114fb3171b742990464ee6d4c7bc6`；不涉及本地fresh-preview。
 
 ## TASK / MODEL / FILES_CHANGED / TESTS_RUN / RESULT / RISKS / BLOCKERS / NEXT
 
-**TASK**：完成b5 exact10摘要导入与独立后验，并生成b6 exact47摘要草稿供独立grounding QA。
-**MODEL**：b5使用此前冻结的native draft；b6生成请求路由记为`gpt-6-luna high`，但未调用runtime provider，receipt为null。
-**FILES_CHANGED**：更新本交接；ignored b5/b6目录保存冻结manifest、草稿、validator及导入证据。评分提示词另有development-only候选改动，不用于fresh50或本次b6摘要。
-**TESTS_RUN**：b5 exact-manifest preflight、一次canonical exact10 summary import、A独立fresh DB/LAN postQA通过；b6草稿以frozen f4 canonical validator完成绑定/结构校验。没有重跑应用full suite。
-**RESULT**：b5 exact10和b6 exact22摘要COMMITTED并经独立DB/LAN后验；b6余25 BLOCK未写。b7正文37项独立后验PASS，摘要37项目前仅frozen f4只读输入已准备，尚无草稿。当前publication/override均86。
-**RISKS**：b6 c1摘要已由事务提交14项，但CLI因结果输出路径错误没有原生回执；A通过直接只读数据库验证，无重试。fresh50已消费。
-**BLOCKERS**：b7 exact37摘要待生成及独立grounding QA；Gate 3/4/5正式评审仍未通过；河北与福建两条历史Gold标签问题待用户确认。
-**NEXT**：按已冻结的b7 30+7 f4输入生成native drafts，保持输入/输出/prompt hashes及receipt=null，交A独立grounding；未批准前不导入。不要重跑Gold评测或fresh50。
+**TASK**：完成b5 exact10、b6 exact22与b7 exact19摘要only导入，并完成独立DB/LAN后验。
+**MODEL**：三批summary草稿保留真实输入/prompt/output hashes和`gpt-6-luna high`请求元数据；实际provider receipt均为null，未声称外部provider执行。
+**FILES_CHANGED**：本交接更新；ignored b5/b6/b7目录保留manifest、草稿、canonical QA、preflight、执行结果和独立后验。另有PBOC源配置候选代码提交353ec5d，运行时未同步。
+**TESTS_RUN**：b7两chunk canonical f4 preflight均只读PASS后，f60 CLI分别提交16和3项；A独立直接DB/no-proxy LAN后验通过。软件测试引用已冻结报告，不在summary导入后重复运行。
+**RESULT**：b5 exact10、b6 exact22、b7 exact19提交并独立DB/LAN后验；b6剩25、b7剩18 BLOCK未写。当前418/613/418、body195/217/6、sources48全关、publications/overrides105、Gold200不变。
+**RISKS**：b6 c1事务提交14项后CLI输出路径守卫失败，原回执未生成且没有重试；A直接DB确认提交。b7每chunk实际canonical回执均存在。
+**BLOCKERS**：Gate 3仍CHANGES_REQUIRED，Gate 4/5总体未通过；Hebei/Fujian两条历史Gold标签待用户确认。PBOC repo candidate未同步runtime且未Admission。
+**NEXT**：review 65个no-prior-raw/no-dispatch正文候选和计划cadence/budget，未经新范围/执行审批不发GET；来源配置更新需另行审查。fresh50仍已消费。

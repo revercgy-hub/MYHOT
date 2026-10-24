@@ -1,5 +1,13 @@
 # 官方信源验证矩阵
 
+## 2026-10-24 PBOC公开市场详情解析候选（仅仓库未同步）
+
+仓库提交`353ec5d`为`pboc-open-market`详情解析加入四个元数据字段：详情标题用`h2`且authoritative；发布日期从唯一`span#shijian`提取且authoritative。其余source配置未变，详情正文仍为`#zoom`、允许短正文、同域URL前缀不变、`maxFetches=3`。离线复放17份已哈希捕获响应、覆盖13篇不同文章；17/17通过，标题与已存标题相符，详情日期日级与UTC+8列表日期相符，正文选择器唯一且有内容。selector审计SHA-256=`20c3da62f4b0208e6616a7a2a5076815a9569c41a4b6336c8df7b8ef9fbbc4a5`，配置回放报告SHA-256=`01b4e3d168affb36d8dc71ff80154128ac35e6ccd6e9ef92722dbe6353f14c7b`；完整候选审计SHA-256=`9292b1a87c66a077e5d9a2600fbf8165fd741e5a421f8708d17d1c4009431988`。回放没有发HTTP GET或写数据库。
+
+本地4文件候选（sources、selector上限测试、详情fixture及离线测试）通过独立代码QA：476 total/475 pass/0 fail/1 explicit skip，typecheck、Web build和Web tests 22/22通过。仓库候选source config SHA-256=`450afb4e15ceec2770b0b28fa1f528a43f6c091be121cbe0320a66f06f418af7`。只读核对显示NAS Staging数据库source row与运行目录catalog相互一致且仍为旧配置；该仓库候选未同步，来源继续disabled且`site_fulltext`/`syndicate_fulltext`为false。`maxFetches=3`保留；这不是source admission、首次抓取、持续覆盖或业务质量结论。
+
+另有65条零历史raw、零dispatch正文候选生成至多50条的first-GET review plan；没有执行新的GET、source CAS或数据库写入。计划及cadence/预算仍需root审查和独立批准。证据位于`.data/fiscal-qa/pending-body-batch-20261024-b7/`及`.data/fiscal-qa/pboc-source-config-readonly-20261024/`。
+
 ## 2026-10-18 四源增量与正文证据
 
 `fiscal_pagination4_20261016_test`上的B第2/3页正文GET和A page4/5列表续页是两个独立获批批次，不与主采集库或preview合并。B的6个正文GET及独立报告`.data/fiscal-qa/body-progress-20261018/independent-pagination-qa-luna-v6.json`：重庆文章`gpd74krwr9xqzekwgkquced4z`列表/DB日期2026-09-17与详情PubDate 2026-10-15冲突，保持unconfirmed；广西`mwb5qrtub4obpxkbqgz7fhbdc`标题/日期匹配，但正文selector仅18字符、无结构节点，按`non_article_container`保持unconfirmed并停止本源；海南、四川各2篇正文`ok`。B另在主库为福建通知`fujian-finance-notices`文章`tgeiy876jupck9vsd9nq6d827`做一次获准GET，225字符正文ok；独立报告`.data/fiscal-qa/body-progress-20261018/independent-qa-v2.json`保留了non-target publication写前逐行基线缺失的限定，不代表该来源整体通过。

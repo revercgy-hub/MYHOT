@@ -1,24 +1,24 @@
 # 项目状态
 
-## 2026-10-24 Development150 与 Staging 部署检查点（当前）
+## 2026-10-24 Development150、摘要写入与 Staging 检查点（当前）
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=d45f0d93f5374b7c72cdf0efb64ada6a03b84404 (deployed/tested application code SHA; documentation commits do not change runtime code)
+CURRENT_SHA=353ec5d (repository HEAD; includes tested importer/prompt and PBOC repository-only candidate; NAS application runtime remains d45f0d93f5374b7c72cdf0efb64ada6a03b84404)
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
-STAGE=NAS Staging; d45 app-only api/web deployment; image digest sha256:54d1a34f104b665ccdecc60e82f4cb67acf114fb3171b742990464ee6d4c7bc6; independent rollout QA PASS_WITH_DOCUMENTED_LIMITATIONS
+STAGE=NAS Staging; d45 app-only api/web deployment; image digest sha256:54d1a34f104b665ccdecc60e82f4cb67acf114fb3171b742990464ee6d4c7bc6; independent rollout QA PASS_WITH_DOCUMENTED_LIMITATIONS; PBOC source config change is repo-only and not synced to runtime
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT; Gate 3 CHANGES_REQUIRED; Gate 4/5 not passed (64/64 row hashes, 64/64 inventory, 16/16 sequence state are Gate 5 restore subitems only)
 REVIEW=Gold200 200/200 confirmed (29 select/171 reject), labels unchanged; fresh50 holdout was evaluated and is consumed; two historical labels await user confirmation (Hebei pure party-building item, Fujian research-results list notice)
 BLOCKERS=Gate 3 calibration/usefulness not accepted; Gate 4 source coverage/page and formal review remain open; Gate 5 continuous operation/restart/fault-recovery and formal review remain open; two historical-label questions await user
-COMPLETED=Development150 QA TP11/FP23/FN15/TN101, P32.35/R42.31/F1 36.67, MAE6.21, 11 threshold crossers; invalid original pass1 excluded and byte-bound rerun used; d45 code 475 total/474 pass/0 fail/1 explicit skip plus typecheck, Web build, Web22/22; d45 staging app-only deploy and independent QA; b5 exact10 and b6 exact22 summary-only imports independently passed DB/LAN QA; b5/b6/b7 body batches independently postchecked; current verified 418 articles/613 revisions/418 discoveries, body195/217/6, sources48 off, publications/overrides86, Gold200 unchanged
-IN_PROGRESS=b7 exact37 native summary drafts from frozen f4 30+7 manifests and independent grounding QA; typed native-summary preflight-only CLI committed/tested but not used for frozen f4 imports; Gate 4/5 formal review; two historical Gold labels await user
-NEXT=Finish b7 exact37 native drafts and send immutable inputs/outputs to A for independent grounding; any later summary import requires an approved exact PASS subset and fresh target/source checks; fresh50 remains consumed and thresholds unchanged
+COMPLETED=Development150 QA TP11/FP23/FN15/TN101, P32.35/R42.31/F1 36.67, MAE6.21, 11 threshold crossers; invalid original pass1 excluded and byte-bound rerun used; d45 deployment code suite 475 total/474 pass/0 fail/1 explicit skip plus typecheck, Web build, Web22/22; repository candidate HEAD 353ec5d suite 476 total/475 pass/0 fail/1 explicit skip plus typecheck, Web build, Web22/22; d45 Staging app-only deploy and independent QA; b5 exact10, b6 exact22 and b7 exact19 summary-only imports independently passed DB/LAN QA; b5/b6/b7 body batches independently postchecked; current verified 418 articles/613 revisions/418 discoveries, body195/217/6, sources48 off, publications/overrides105, Gold200 unchanged
+IN_PROGRESS=PBOC detail parsing source config is a repository candidate only (17 historical capture replays across 13 articles); runtime source catalog remains unchanged/disabled and source is not admitted; Gate 4/5 formal review; two historical Gold labels await user
+NEXT=Review the 65-item no-prior-raw/no-dispatch body candidate plan and requested cadence/budget before any GET; keep PBOC source candidate disabled and unsynced until separately approved; fresh50 remains consumed and thresholds unchanged
 ```
 
-站点现有分类为9类，`ITEM_TYPES`仍为8种；用户确认“国家级重大民生政策也纳入，即使没有明确财政金融安排”和“央行日常公告放在全部动态，出现重要操作或政策变化时才精选”。d45于2026-10-24 02:15:43Z以app-only方式部署到Staging；A独立只读QA结论为`PASS_WITH_DOCUMENTED_LIMITATIONS`，仅验收此次部署保护和公开面，不代表Gate 3/4/5通过，也不是本地fresh-preview验收。结论sidecar SHA-256 `66be92b12b5e771ff22a88a38c7160f58e6b5121fbc25f3fbcbabcda604dfa4a`；历史source/settings补证的SHA-256 `00663d6f80b251fc1fe170ad6907405cf50fca455b7a93f8d0d3a5f397db7049`。development150 native-offline结果不是fresh holdout，也不代表真实provider流程或understanding quality；不要据此即时调阈值或改Gold。新评测、部署QA证据及类别交接见[Development150和重大民生政策交接](HANDOFFS/DEVELOPMENT150_AND_MAJOR_POLICY_2026-10-24.md)。
+站点现有分类为9类，`ITEM_TYPES`仍为8种；用户确认“国家级重大民生政策也纳入，即使没有明确财政金融安排”和“央行日常公告放在全部动态，出现重要操作或政策变化时才精选”。d45于2026-10-24 02:15:43Z以app-only方式部署到Staging；A独立只读QA结论为`PASS_WITH_DOCUMENTED_LIMITATIONS`，仅验收此次部署保护和公开面，不代表Gate 3/4/5通过，也不是本地fresh-preview验收。结论sidecar SHA-256 `66be92b12b5e771ff22a88a38c7160f58e6b5121fbc25f3fbcbabcda604dfa4a`；历史source/settings补证的SHA-256 `00663d6f80b251fc1fe170ad6907405cf50fca455b7a93f8d0d3a5f397db7049`。selection-score文字仅为下一轮development候选，未部署且无质量改善结论；PBOC详情字段候选也仅在仓库，未同步Staging source catalog。development150 native-offline结果不是fresh holdout，也不代表真实provider流程或understanding quality；不要据此即时调阈值或改Gold。新评测、部署QA证据及类别交接见[Development150和重大民生政策交接](HANDOFFS/DEVELOPMENT150_AND_MAJOR_POLICY_2026-10-24.md)。
 
-b5 exact20、b6 exact47及b7 exact37正文均已提交并经独立QA。b5 exact10与b6 exact22 PASS摘要已按canonical f4 importer提交，并通过独立DB/LAN后验；b6另25 BLOCK未写。b6 c1事务提交14项后，CLI因结果输出路径守卫失败而未写出回执；没有重试，A以直接只读DB证实这14项精确提交。c2其余8项有canonical执行结果。当前Staging实测418 articles/613 revisions/418 discoveries，body195 `ok`/217 `pending`/6 `unconfirmed`，48个来源flags全0，publications/overrides各86；Gold200 count/hash不变，protected rowset drift=0。b7的37项摘要仅完成frozen f4只读输入准备，尚无native草稿或独立grounding。b5/b6/b7详细证据和本阶段限制见[2026-10-24 b5/b6正文与摘要交接](HANDOFFS/PENDING_BODY_BATCHES_B5_B6_SUMMARY_2026-10-24.md)。
+b5 exact20、b6 exact47及b7 exact37正文均已提交并经独立QA。b5 exact10、b6 exact22、b7 exact19 PASS摘要已按canonical summary-only合同提交并通过独立DB/LAN后验；b6余25 BLOCK、b7余18 BLOCK未写。当前Staging实测418 articles/613 revisions/418 discoveries，body195 `ok`/217 `pending`/6 `unconfirmed`，48个来源flags全0，publications/overrides各105；Gold200 count/hash不变，protected rowset drift=0。b7 37项草稿经A独立grounding后为19 PASS/18 BLOCK；使用两份冻结f4 manifest和tested f60 CLI分chunk预检、提交，A逐条核实摘要/provenance/body/source/revision与LAN公开面。PBOC selector候选经17条历史capture回放（13篇不同文章）和4文件离线QA通过，但仓库改动尚未同步运行目录，source仍disabled/未admitted。b5/b6/b7详细证据和本阶段限制见[2026-10-24 b5/b6正文与摘要交接](HANDOFFS/PENDING_BODY_BATCHES_B5_B6_SUMMARY_2026-10-24.md)。
 
 ## 2026-10-23 fresh50 Gold评测检查点（历史记录）
 
