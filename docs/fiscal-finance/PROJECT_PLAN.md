@@ -2,7 +2,7 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
-## 2026-10-25 Gold v2与b13 exact9摘要闭环（当前）
+## 2026-10-25 Gold v2、b13 exact9与cd0开发复测（当前）
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
@@ -12,19 +12,21 @@ WORKSPACE=D:\AI-work\MYHOT\AIHOT
 STAGE=NAS Staging; d45 app-only api/web deployment; image digest sha256:54d1a34f104b665ccdecc60e82f4cb67acf114fb3171b742990464ee6d4c7bc6; independent rollout QA PASS_WITH_DOCUMENTED_LIMITATIONS; PBOC source config change is repo-only and not synced to runtime
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT; Gate 3 CHANGES_REQUIRED; Gate 4/5 not passed (64/64 row hashes, 64/64 inventory, 16/16 sequence state are Gate 5 restore subitems only)
 REVIEW=Canonical Gold200 base remains 200 confirmed (29 select/171 reject); independent v2 overlay records two user-confirmed development rejects, giving 27 select/173 reject overall and 24/126 development; holdout remains 3/47 and consumed
-BLOCKERS=Gate 3 CHANGES_REQUIRED; Gold v2 fixed-prediction development post-hoc evaluation pending; Gate 4/5 formal reviews remain open
-COMPLETED=Development150 original-vintage QA TP11/FP23/FN15/TN101, P32.35/R42.31/F1 36.67, MAE6.21, 11 crossers; invalid first pass excluded; code checkpoint cd0c94e contains prior tested CLI/prompt/PBOC candidate changes (475/474 and 476/475 suites respectively; latest tested chain 476 total/475 pass/0 fail/1 P3 DB skip; typecheck, Web build, Web22/22 passed); d45 app-only deployment independently reviewed; b5 exact10, b6 exact22, b7 exact19 and b13 exact9 summaries and b5/b6/b7/b13 bodies independently postchecked; current Staging snapshot 418/626/418, body208/204/6, publications/overrides114, sources48 flags off, Gold200 base hash unchanged
-IN_PROGRESS=Gold v2 overlay validated; fixed-prediction development post-hoc evaluation pending; cd0 development-only score pass1 completed 87/87, pass2 running and not normalized; PBOC candidate remains repository-only, disabled and not admitted; Gate 4/5 formal review open
-NEXT=Complete independent cd0 pass2 and compare development-only results against Gold v2 while preserving original-vintage metrics and thresholds; do not reuse consumed fresh50
+BLOCKERS=Gate 3 CHANGES_REQUIRED; cd0 candidate is not accepted for automatic selection; Gate 4/5 formal reviews remain open
+COMPLETED=Gold v2 fixed-prediction development-only comparison complete; cd0 two-pass native provenance QA and normalization complete (v2 TP16/FP30/FN8/TN96, P34.78/R66.67/F1 45.71); P1 QA PASS, P2 PASS_WITH_HEADER_METADATA_LIMITATION for passId alias on shards 7/8, general-history exposure disclosed; v1 metrics and raw files preserved; tested CLI/prompt/PBOC checkpoint suites 475/474 and 476/475 (latest 476/475/0 fail/1 P3 DB skip, typecheck/Web build/Web22 passed); d45 deployment independent QA; b5/b6/b7/b13 body and summary batches independently postchecked; Staging 418/626/418, body208/204/6, publications/overrides114, sources48 flags off, Gold200 base hash unchanged
+IN_PROGRESS=Root review of descriptive development-only cd0 comparison; PBOC source candidate remains repository-only, disabled and not admitted; Gate 4/5 formal review open
+NEXT=Make bounded calibration decisions from development-only evidence; preserve Gold and thresholds, do not reuse consumed fresh50 or claim blind/provider/causal validation; continue Gate 4/5 review separately
 ```
 
 站点现有分类为9类，`ITEM_TYPES`仍为8种。用户确认：“国家级重大民生政策也纳入，即使没有明确财政金融安排”；“央行日常公告放在全部动态，出现重要操作或政策变化时才精选”。d45于2026-10-24 02:15:43Z以app-only方式部署到NAS Staging；独立只读QA结果为`PASS_WITH_DOCUMENTED_LIMITATIONS`，范围仅为该次Staging部署保护与公开面检查，不代表Gate 3/4/5通过，也不是本地fresh-preview验收。部署镜像实际digest为`sha256:54d1a34f104b665ccdecc60e82f4cb67acf114fb3171b742990464ee6d4c7bc6`；独立QA sidecar及历史source/settings对照见[Development150和重大民生政策交接](HANDOFFS/DEVELOPMENT150_AND_MAJOR_POLICY_2026-10-24.md)。development150 native-offline结果不是fresh holdout，不能代表provider流程或understanding质量，不据此即时调整Gold、prompt或门槛。
 
-selection-score文字是下一轮development候选，未部署且未证明质量改善；PBOC详情解析配置仅在仓库，未同步NAS runtime。development150 native-offline结果不是fresh holdout，不能代表provider流程或understanding质量，不据此即时调整Gold、prompt或门槛。
+selection-score候选已在development150中复测，未接受为自动精选规则、未部署且未证明质量改善；PBOC详情解析配置仅在仓库，未同步NAS runtime。development150 native-offline结果不是fresh holdout，不能代表provider流程或understanding质量，不据此即时调整Gold、prompt或门槛。
 
 b5 exact20、b6 exact47及b7 exact37正文均已提交并经独立后验。b5 exact10、b6 exact22及b7 exact19 PASS摘要均完成canonical summary-only导入及独立DB/LAN QA；b6 c1的14项在事务提交后因输出路径守卫异常缺失CLI回执，未重试，A直接数据库确认提交；c2另8项有执行结果。b6余25 BLOCK、b7余18 BLOCK未写。b7阶段快照为418/626/418 rows、body208/204/6、publications/overrides105、48来源flags全0、Gold200 base count/hash保持不变；之后b13 exact9 summary-only导入使pub/override增加到114/114，当前态见本节顶栏。b7 37份草稿经独立grounding，准确19 PASS/18 BLOCK；两chunk使用frozen f4输入和tested f60 CLI分开预检并提交。PBOC候选仍未同步运行目录。详细见[2026-10-24 b5/b6正文与摘要交接](HANDOFFS/PENDING_BODY_BATCHES_B5_B6_SUMMARY_2026-10-24.md)。
 
 2026-10-25用户确认河北纯党建学习与福建理论成果名单公示均为reject；版本化overlay v2仅修订两条development标签，不覆盖原始Gold200。v2为27 select/173 reject（development 24/126、holdout 3/47），validator `READY_FOR_EVALUATION`。b13 exact13正文已独立QA；旧13项summary manifest因动态summary prompt日期变化被f60正确拒绝且未写入。随后针对原批准的exact9 PASS IDs重新prepare并实际生成新摘要，A独立grounding/canonical QA通过，f60只读preflight PASS，随后exact9 summary-only导入及独立DB/LAN后验均PASS。最新Staging快照418/626/418，body208/204/6，pub/override114；Gold200基础hash、48个source关闭状态和受保护行集不变，四条BLOCK未写。新旧manifest、QA、预检、导入和独立后验artifact hashes见[Gold v2与b13摘要交接](HANDOFFS/GOLD_V2_AND_B13_SUMMARY_PREFLIGHT_2026-10-25.md)。Gate 3仍`CHANGES_REQUIRED`；Gate 4/5未通过，Gate 5恢复证据仅为子项。
+
+cd0的87条PASS在两次独立native Luna High session中评分。P1独立provenance QA为PASS；P2两片的passId别名通过一次性逐字节适配QA，原始结果保持不变，且P2一般PROJECT_PLAN历史摘要暴露意味着不能声称盲测。v2下cd0为TP16/FP30/FN8/TN96（P34.78%、R66.67%、F1 45.71%），两轮MAE 6.07、最大差22、19/87跨原始60门槛。832a17、pre-e559 baseline、真实e559和cd0对同一v2开发标签的预测保持冻结，比较仅说明两条标签从select改reject后FN各减2/TN各增2，不是模型收益。详细hash与边界见[开发集结果与Gold标签版本对照](HANDOFFS/DEVELOPMENT150_AND_MAJOR_POLICY_2026-10-24.md)新增的2026-10-25检查点。
 
 ## 2026-10-23 fresh50 Gold评测检查点（历史记录）
 
