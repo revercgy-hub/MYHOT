@@ -97,7 +97,7 @@ const expected = [
     listDate: "2026-09-23T00:00:00+08:00",
     detailTitle: "财政部上海监管局四维靶向施策 扎实推进增值税留抵退税抽审提质增效",
     detailDate: "2026-09-23 15:09:00",
-    parsedDetailTitle: null,
+    parsedDetailTitle: "财政部上海监管局四维靶向施策 扎实推进增值税留抵退税抽审提质增效",
   },
   {
     id: "mof-henan-supervision-dynamics",
@@ -478,6 +478,7 @@ test("regional bureau disabled configs match the saved list DOMs and detail meta
       assert.equal(config.detail.titleAuthoritative, spec.bureau === "shenzhen" ? true : undefined);
       assert.equal(config.detail.publishedAtAuthoritative, undefined);
     }
+    if (spec.bureau === "shanghai") assert.equal(config.detail.titleSelector, "h2.title_con");
     if (spec.bureau === "liaoning" || spec.bureau === "yunnan") {
       assert.equal(source.owner_entity_id, "mof");
       assert.equal(config.detail.titleSelector, "h2.title_con");
