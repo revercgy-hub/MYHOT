@@ -13,11 +13,12 @@ test("major national livelihood policy can enter scoring without broadening ordi
   assert.match(prefilter, /国家层级发布、内容具有实质重要性的重大民生政策[，,]即使材料没有明确财政金融安排[，,]也可通过预筛进入后续注意力评分/u);
   assert.match(prefilter, /普通健康科普或仅涉及地方活动的材料不能仅凭民生、健康或政策字样通过/u);
   assert.match(prefilter, /与财政金融工作无实质关系的科技及社会新闻（符合上文所述国家层级重大民生政策条件的除外）/u);
-  assert.match(score, /国家层级具有实质重要性的重大民生政策可以纳入本栏目候选[，,]即使没有明确财政金融安排/u);
-  assert.match(score, /普通健康科普、一般知识介绍和仅涉及地方活动的材料不因此升为重大政策或高分/u);
-  assert.match(score, /国家层级或官方发布身份本身不加分/u);
-  assert.match(score, /其与重大民生政策实施和公共管理工作的实际关联评估/u);
-  assert.match(score, /其制度或公共影响仍由`sig`体现[，,]不在`reson`重复计入/u);
+  assert.match(score, /重大民生政策即使没有明确财政金融安排[，,]也可纳入评估/u);
+  assert.match(score, /重要性须由正文中的政策目的、对象、制度安排或实际影响支持/u);
+  assert.match(score, /普通健康科普、一般知识介绍和仅涉及地方活动的材料[，,]不因此升为重大政策或高分/u);
+  assert.match(score, /官方身份不能自动加分/u);
+  assert.match(score, /不能仅凭发布层级、机关身份或标题认定/u);
+  assert.match(score, /政策重要性和新增事实分别由`sig`、`nov`评估[，,]不在`reson`重复计分/u);
 });
 
 test("routine and zero-operation OMO notices stay in all dynamics while importance remains fact-based", () => {
