@@ -9,10 +9,11 @@ import path from "node:path";
 import { brotliCompressSync, deflateSync, gzipSync } from "node:zlib";
 import postgres from "postgres";
 import { applyPendingBodyCas, buildPendingManifest, capturePendingBodies, parsePendingArticleIds,
+  buildPartialCaptureRunResult,
   parsePendingCapture, readPendingSnapshot, selectRoundRobinPendingTargets, validatePendingTarget,
   verifyFreshBackupProof, buildPendingProposalBundle, assertPendingProposalBundle, assertRuntimeSafetyFlags,
   parseExistingUrlEvidence, assertOnlyExpectedArticleChanges, assertDispatchNetworkGuard, decodePendingCapturedResponse,
-  adaptLegacyExecutionDispatch, asLegacyOfflineCaptureRecord, singleReusableLegacyDispatch, reusableIdenticalLegacyDispatchGroup,
+  adaptLegacyExecutionDispatch, asLegacyOfflineCaptureRecord, singleReusableLegacyDispatch, reusableIdenticalLegacyDispatchGroup, timeoutPauseReason,
   type PendingTarget } from "../scripts/fiscal/nas-pending-body-batch.ts";
 import { type CandidateBodyCasRow } from "../scripts/fiscal/nas-candidate-body-cas.ts";
 import { createBudgetedDetailFetcher, detailConfigIsDirectHtml } from "../scripts/fiscal/nas-candidate-batch.ts";
@@ -329,6 +330,24 @@ test("Undici loopback gzip response records decoded body bytes separately from o
   }
 });
 
+test("guardedFetch loopback timeout is an identifiable DOMException TimeoutError", async () => {
+  const server = createServer(() => { /* Hold the response until the bounded fetch aborts. */ });
+  const priorPrivateNetworkSetting = config.allowPrivateNetworkFetch;
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  assert.ok(address && typeof address !== "string");
+  config.allowPrivateNetworkFetch = true;
+  try {
+    await assert.rejects(guardedFetch(`http://127.0.0.1:${address.port}/timeout-fixture`, {
+      route: "direct", timeoutMs: 50, maxRedirects: 0,
+    }), (error: unknown) => error instanceof DOMException && error.name === "TimeoutError");
+  } finally {
+    config.allowPrivateNetworkFetch = priorPrivateNetworkSetting;
+    server.closeAllConnections();
+    await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
 test("capture records Undici body and origin encodings separately and preserves fetch failure details privately", async () => {
   const dir = mkdtempSync(path.join(os.tmpdir(), "nas-pending-body-representation-"));
   const target: PendingTarget = { articleId: "representation_one", sourceId: source.id,
@@ -344,10 +363,11 @@ test("capture records Undici body and origin encodings separately and preserves 
     },
   });
   try {
-    const records = await invoke(dir, (budget) => async (url) => {
+    const outcome = await invoke(dir, (budget) => async (url) => {
       budget.beforeDispatch({ url: new URL(url), method: "GET", redirectHop: 0 });
       return { status: 200, url, headers: new Headers({ "content-type": "text/html", "content-encoding": "gzip" }), body: html };
     });
+    const records = outcome.records;
     assert.equal(records[0]?.contentEncoding, "gzip");
     assert.equal(records[0]?.originContentEncoding, "gzip");
     assert.equal(records[0]?.bodyEncoding, "identity");
@@ -411,20 +431,171 @@ test("capture is exact-URL, serial, bounded, immutable and reuses an existing UR
   });
   try {
     const first = await invoke();
-    assert.equal(first.length, 2);
+    assert.equal(first.records.length, 2);
     assert.deepEqual(dispatchAt, [100_000, 101_100]);
     assert.equal(fetchCalls, 2);
-    assert.equal(first.every((row) => row.eof && row.status === 200 && row.method === "GET"), true);
-    for (const row of first) {
+    assert.equal(first.records.every((row) => row.eof && row.status === 200 && row.method === "GET"), true);
+    assert.deepEqual(first.targets.map((row) => row.status), ["captured", "captured"]);
+    for (const row of first.records) {
       const bodyFile = path.join(dir, row.file);
       assert.equal(sha256(readFileSync(bodyFile)), row.bodySha256);
       if (process.platform !== "win32") assert.equal((lstatSync(bodyFile).mode & 0o777), 0o600);
       assert.ok(Date.parse(row.completedAt!) >= Date.parse(row.dispatchedAt!));
     }
     const reused = await invoke();
-    assert.equal(reused.length, 2);
+    assert.equal(reused.records.length, 2);
+    assert.deepEqual(reused.targets.map((row) => row.status), ["reused", "reused"]);
     assert.equal(fetchCalls, 2, "same exact URLs must reuse immutable captures");
   } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("capture continues only after a real fetch timeout, pauses source and hostname, and accounts for every frozen target", async () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), "nas-pending-timeout-continue-"));
+  let clock = 200_000;
+  const sourceA = sourceFor("mof-ningbo-supervision-dynamics");
+  const sourceOtherHost = sourceFor("mof-beijing-supervision-dynamics");
+  const targetFor = (articleId: string, row: Record<string, any>, url: string): PendingTarget => ({ articleId, sourceId: row.id, url,
+    title: "测试正文标题", publishedAt: "2026-10-21T00:00:00+08:00", revision: 1, contentHash: sha256(`old-${articleId}`), excerpt: null,
+    sourceRowSha256: sha256(`source-${row.id}`), rowText: "{}", rowSha256: sha256("{}") });
+  const targets: PendingTarget[] = [
+    targetFor("timeout_one", sourceA, `${sourceA.config.allowUrlPrefixes[0]}timeout_one.html`),
+    targetFor("same_source_two", sourceA, `${sourceA.config.allowUrlPrefixes[0]}same_source_two.html`),
+    targetFor("other_host_four", sourceOtherHost, `${sourceOtherHost.config.allowUrlPrefixes[0]}other_host_four.html`),
+  ];
+  const sources = new Map([sourceA, sourceOtherHost].map((row) => [row.id, row]));
+  const requests: string[] = [];
+  const dispatchAt: number[] = [];
+  const outcome = await capturePendingBodies({ targets, sources, captureDir: dir, allowed, continueAfterTimeout: true,
+    publicUrl: async () => undefined, now: () => new Date(clock), wait: async (ms) => { clock += ms; },
+    makeFetcher: (budget) => async (url) => {
+      requests.push(url);
+      budget.beforeDispatch({ url: new URL(url), method: "GET", redirectHop: 0 });
+      dispatchAt.push(clock);
+      if (url === targets[0]!.url) throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
+      const body = Buffer.from("<html><body>complete capture</body></html>");
+      return { status: 200, url, headers: new Headers({ "content-type": "text/html; charset=utf-8" }), body };
+    },
+    fetchDetail: async (url, _source, _need, options) => options.fetcher(url, { timeoutMs: 20_000, maxBytes: 6 * 1024 * 1024 }),
+  });
+  try {
+    assert.deepEqual(requests, [targets[0]!.url, targets[2]!.url], "same-source target is skipped and another host continues");
+    assert.deepEqual(dispatchAt, [200_000, 201_100], "continuation still observes the 1100 ms dispatch interval");
+    assert.equal(outcome.records.length, 1);
+    assert.deepEqual(outcome.timeoutFailures.map((row) => row.articleId), ["timeout_one"]);
+    assert.deepEqual(outcome.skipped.map((row) => [row.articleId, row.reason, row.triggerArticleId]), [
+      ["same_source_two", "same-source-after-timeout", "timeout_one"],
+    ]);
+    assert.deepEqual(outcome.targets.map((row) => row.status), ["timeout", "skipped", "captured"]);
+    assert.equal(new Set(outcome.targets.map((row) => row.articleId)).size, targets.length);
+    assert.equal(existsSync(path.join(dir, "dispatch-intent-same_source_two.json")), false);
+    assert.equal(existsSync(path.join(dir, "dispatch-intent-other_host_four.json")), true);
+    const failure = JSON.parse(readFileSync(path.join(dir, "capture-failure-timeout_one.json"), "utf8"));
+    assert.equal(failure.errorName, "TimeoutError");
+    assert.equal(failure.stage, "fetcher-did-not-return-complete-bounded-response");
+    const manifest = buildPendingManifest({ runId: "timeout-continue-test", operatorBytes: Buffer.from("test operator"),
+      database: "fiscalhot_pending_test", snapshot: { database: "fiscalhot_pending_test", capturedAt: "2026-10-22T00:00:00Z", counts: {}, rowsets: {} }, targets });
+    const partial = buildPartialCaptureRunResult(manifest, sha256("manifest bytes"), outcome);
+    assert.equal(partial.schemaVersion, "nas-pending-body-capture-run.v1");
+    assert.equal(partial.result, "PARTIAL_WITH_TIMEOUTS");
+    assert.equal(partial.targetCount, 3);
+    assert.equal(partial.dispatchCount, 2, "only the timeout and final successful target were dispatched");
+    assert.equal(partial.completeResponseCount, 1);
+    assert.equal(partial.timeoutFailureCount, 1);
+    assert.equal(partial.skippedCount, 1);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("capture never treats a spoofed TimeoutError name or security/filesystem failures as continuable", async () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), "nas-pending-timeout-hard-stop-"));
+  const target: PendingTarget = { articleId: "spoof_timeout", sourceId: source.id,
+    url: `${source.config.allowUrlPrefixes[0]}spoof_timeout.html`, title: "测试标题", publishedAt: "2026-10-21T00:00:00Z",
+    revision: 1, contentHash: sha256("old"), excerpt: null, sourceRowSha256: sha256("source"), rowText: "{}", rowSha256: sha256("{}") };
+  const sources = new Map([[source.id, source]]);
+  const run = (captureDir: string, makeFetcher: (budget: any) => (url: string) => Promise<any>, continueAfterTimeout = true) => capturePendingBodies({
+    targets: [target], sources, captureDir, allowed, continueAfterTimeout, publicUrl: async () => undefined,
+    makeFetcher, fetchDetail: async (url, _source, _need, options) => options.fetcher(url, { timeoutMs: 20_000, maxBytes: 6 * 1024 * 1024 }),
+  });
+  try {
+    await assert.rejects(run(path.join(dir, "spoof"), (budget) => async (url) => {
+      budget.beforeDispatch({ url: new URL(url), method: "GET", redirectHop: 0 });
+      throw Object.assign(new Error("spoofed timeout label"), { name: "TimeoutError" });
+    }), /lacks complete bounded raw bytes/u);
+
+    await assert.rejects(run(path.join(dir, "abort"), (budget) => async (url) => {
+      budget.beforeDispatch({ url: new URL(url), method: "GET", redirectHop: 0 });
+      throw new DOMException("aborted", "AbortError");
+    }), /lacks complete bounded raw bytes/u, "AbortError is not a fetch timeout continuation signal");
+
+    await assert.rejects(run(path.join(dir, "default-false"), (budget) => async (url) => {
+      budget.beforeDispatch({ url: new URL(url), method: "GET", redirectHop: 0 });
+      throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
+    }, false), /lacks complete bounded raw bytes/u, "continuation remains opt-in");
+
+    await assert.rejects(run(path.join(dir, "incomplete-response"), (budget) => async (url) => {
+      budget.beforeDispatch({ url: new URL(url), method: "GET", redirectHop: 0 });
+      return { status: 200, url, headers: new Headers({ "content-type": "text/html" }), body: undefined };
+    }), /lacks complete bounded raw bytes/u, "a returned but incomplete response envelope is not a timeout continuation");
+
+    const securityDir = path.join(dir, "security");
+    await assert.rejects(run(securityDir, (budget) => async (url) => {
+      budget.beforeDispatch({ url: new URL(`${url}?redirected=1`), method: "GET", redirectHop: 1 });
+      return null;
+    }), /lacks complete bounded raw bytes/u);
+    assert.equal(existsSync(path.join(securityDir, `dispatch-intent-${target.articleId}.json`)), false,
+      "a dispatch-budget/security rejection remains a hard stop before network intent persistence");
+    assert.equal(existsSync(path.join(securityDir, `capture-failure-${target.articleId}.json`)), true,
+      "the hard-stop error is preserved without authorizing continuation");
+
+    const filesystemDir = path.join(dir, "filesystem");
+    writeFileSync(filesystemDir, "not a directory", { flag: "wx", mode: 0o600 });
+    let filesystemFetchCalls = 0;
+    await assert.rejects(run(filesystemDir, () => async () => { filesystemFetchCalls++; throw new DOMException("timeout", "TimeoutError"); }));
+    assert.equal(filesystemFetchCalls, 0, "an output-directory filesystem failure hard-stops before dispatch");
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("a fetch timeout before dispatch intent is persisted remains a hard stop", async () => {
+  const dir = mkdtempSync(path.join(os.tmpdir(), "nas-pending-pre-dispatch-timeout-"));
+  const targetFor = (articleId: string): PendingTarget => ({ articleId, sourceId: source.id,
+    url: `${source.config.allowUrlPrefixes[0]}${articleId}.html`, title: "测试标题", publishedAt: "2026-10-21T00:00:00Z",
+    revision: 1, contentHash: sha256(`old-${articleId}`), excerpt: null, sourceRowSha256: sha256("source"), rowText: "{}", rowSha256: sha256("{}") });
+  const targets = [targetFor("pre_dispatch_timeout"), targetFor("must_not_continue")];
+  let fetchCalls = 0;
+  try {
+    await assert.rejects(capturePendingBodies({ targets, sources: new Map([[source.id, source]]), captureDir: dir, allowed,
+      continueAfterTimeout: true, publicUrl: async () => undefined,
+      makeFetcher: () => async () => { fetchCalls++; throw new DOMException("DNS lookup timed out", "TimeoutError"); },
+      fetchDetail: async (url, _source, _need, options) => options.fetcher(url, { timeoutMs: 20_000, maxBytes: 6 * 1024 * 1024 }),
+    }), /lacks complete bounded raw bytes/u);
+    assert.equal(fetchCalls, 1, "no subsequent frozen target is attempted after a pre-dispatch timeout");
+    assert.equal(existsSync(path.join(dir, `dispatch-intent-${targets[0]!.articleId}.json`)), false,
+      "the timeout occurred before the fetcher's beforeDispatch hook persisted intent");
+    const failure = JSON.parse(readFileSync(path.join(dir, `capture-failure-${targets[0]!.articleId}.json`), "utf8"));
+    assert.equal(failure.intentAt, null);
+    assert.equal(failure.errorName, "TimeoutError");
+    assert.equal(existsSync(path.join(dir, `dispatch-intent-${targets[1]!.articleId}.json`)), false);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
+
+test("timeout hostname pause catches a different source on the same normalized host", () => {
+  assert.deepEqual(timeoutPauseReason({ sourceId: "source-b", url: "https://EXAMPLE.gov.cn/article" }, [
+    { sourceId: "source-a", hostname: "example.gov.cn", articleId: "source-a-timeout" },
+  ]), { reason: "same-host-after-timeout", triggerArticleId: "source-a-timeout" });
+  assert.deepEqual(timeoutPauseReason({ sourceId: "source-a", url: "https://elsewhere.gov.cn/article" }, [
+    { sourceId: "source-a", hostname: "example.gov.cn", articleId: "source-a-timeout" },
+  ]), { reason: "same-source-after-timeout", triggerArticleId: "source-a-timeout" });
+  assert.equal(timeoutPauseReason({ sourceId: "source-c", url: "https://other.gov.cn/article" }, [
+    { sourceId: "source-a", hostname: "example.gov.cn", articleId: "source-a-timeout" },
+  ]), null);
+});
+
+test("continue-after-timeout is rejected outside capture mode before any database access", () => {
+  assert.throws(() => execFileSync(process.execPath, ["scripts/fiscal/nas-pending-body-batch.ts", "--mode", "offline-parse", "--continue-after-timeout"], {
+    encoding: "utf8", stdio: "pipe", env: { ...process.env, COLLECT_ENABLED: "false", MODEL_CALLS_ENABLED: "false",
+      JINA_BODY_FALLBACK: "false", FEISHU_CONTENT_PUSH_ENABLED: "false", FEISHU_INTERNAL_ENABLED: "false",
+      INDEXNOW_SUBMIT_ENABLED: "false", EMBEDDINGS_ENABLED: "false", OCR_RUN_ENABLED: "false", WORKER_ENABLED: "false",
+      ALLOW_PRIVATE_NETWORK_FETCH: "false" },
+  }), (error: any) => String(error.stderr).includes("continue-after-timeout is valid only with --mode capture"));
 });
 
 test("offline selector uses configured title/date/body rules and turns mismatches into holds", async () => {

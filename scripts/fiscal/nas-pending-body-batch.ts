@@ -149,6 +149,62 @@ export interface PendingCaptureRecord {
   legacyDuplicateEvidence?: LegacyReuseCandidate[];
 }
 
+export interface PendingCaptureRunOutcome {
+  records: PendingCaptureRecord[];
+  timeoutFailures: Array<{ articleId: string; sourceId: string; url: string; intentAt: string; errorName: "TimeoutError"; errorMessage: string }>;
+  skipped: Array<{ articleId: string; sourceId: string; url: string; reason: "same-source-after-timeout" | "same-host-after-timeout"; triggerArticleId: string }>;
+  targets: Array<{ articleId: string; sourceId: string; url: string; status: "captured" | "reused" | "timeout" | "skipped"; triggerArticleId?: string }>;
+}
+
+export function timeoutPauseReason(target: { sourceId: string; url: string }, causes: Array<{ sourceId: string; hostname: string; articleId: string }> | ReadonlyArray<{ sourceId: string; hostname: string; articleId: string }>): {
+  reason: "same-source-after-timeout" | "same-host-after-timeout"; triggerArticleId: string;
+} | null {
+  const hostname = new URL(target.url).hostname.toLowerCase();
+  const cause = causes.find((row) => row.sourceId === target.sourceId || row.hostname === hostname);
+  if (!cause) return null;
+  return { reason: cause.sourceId === target.sourceId ? "same-source-after-timeout" : "same-host-after-timeout", triggerArticleId: cause.articleId };
+}
+
+export function buildPartialCaptureRunResult(manifest: PendingBodyManifest, manifestSha256: string,
+  outcome: PendingCaptureRunOutcome): Record<string, unknown> {
+  const targetIds = new Set(manifest.targets.map((row) => row.articleId));
+  const recordIds = new Set(outcome.records.map((row) => row.articleId));
+  const timeoutIds = new Set(outcome.timeoutFailures.map((row) => row.articleId));
+  const skippedIds = new Set(outcome.skipped.map((row) => row.articleId));
+  if (!/^[a-f0-9]{64}$/u.test(manifestSha256) || (!outcome.timeoutFailures.length && !outcome.skipped.length) ||
+      outcome.targets.length !== manifest.targets.length || new Set(outcome.targets.map((row) => row.articleId)).size !== manifest.targets.length ||
+      outcome.targets.some((row, index) => row.articleId !== manifest.targets[index]?.articleId || row.sourceId !== manifest.targets[index]?.sourceId ||
+        row.url !== manifest.targets[index]?.url) || outcome.targets.filter((row) => row.status === "timeout").length !== outcome.timeoutFailures.length ||
+      outcome.targets.filter((row) => row.status === "skipped").length !== outcome.skipped.length ||
+      outcome.targets.filter((row) => row.status === "captured" || row.status === "reused").length !== outcome.records.length ||
+      targetIds.size !== manifest.targets.length || recordIds.size !== outcome.records.length || timeoutIds.size !== outcome.timeoutFailures.length ||
+      skippedIds.size !== outcome.skipped.length || [...recordIds].some((id) => !targetIds.has(id) ||
+        !["captured", "reused"].includes(outcome.targets.find((row) => row.articleId === id)?.status ?? "") ||
+        outcome.records.find((row) => row.articleId === id)?.sourceId !== manifest.targets.find((row) => row.articleId === id)?.sourceId ||
+        outcome.records.find((row) => row.articleId === id)?.url !== manifest.targets.find((row) => row.articleId === id)?.url) ||
+      [...timeoutIds].some((id) => {
+        const target = manifest.targets.find((row) => row.articleId === id);
+        const failure = outcome.timeoutFailures.find((row) => row.articleId === id);
+        return !target || !failure || outcome.targets.find((row) => row.articleId === id)?.status !== "timeout" ||
+          failure.sourceId !== target.sourceId || failure.url !== target.url || failure.errorName !== "TimeoutError" || !Number.isFinite(Date.parse(failure.intentAt));
+      }) ||
+      [...skippedIds].some((id) => {
+        const target = manifest.targets.find((row) => row.articleId === id);
+        const skip = outcome.skipped.find((row) => row.articleId === id);
+        return !target || !skip || outcome.targets.find((row) => row.articleId === id)?.status !== "skipped" ||
+          skip.sourceId !== target.sourceId || skip.url !== target.url || !timeoutIds.has(skip.triggerArticleId);
+      })) {
+    throw new Error("partial capture run does not bind complete, ordered frozen-target outcomes");
+  }
+  return { schemaVersion: "nas-pending-body-capture-run.v1", result: "PARTIAL_WITH_TIMEOUTS", continueAfterTimeout: true,
+    runId: manifest.runId, manifestSha256, targetCount: manifest.targets.length,
+    dispatchCount: outcome.targets.filter((row) => row.status === "captured" || row.status === "timeout").length,
+    reusedCount: outcome.targets.filter((row) => row.status === "reused").length,
+    completeResponseCount: outcome.records.length, timeoutFailureCount: outcome.timeoutFailures.length,
+    skippedCount: outcome.skipped.length, capturesSha256: sha256(stableJson(outcome.records)),
+    targets: outcome.targets, timeoutFailures: outcome.timeoutFailures, skipped: outcome.skipped, records: outcome.records };
+}
+
 function safeCaptureFailure(error: unknown): { errorName: string; errorMessage: string } {
   const value = error && typeof error === "object" ? error as { name?: unknown; message?: unknown } : null;
   const errorName = typeof value?.name === "string" && /^[A-Za-z][A-Za-z0-9]{0,63}$/u.test(value.name) ? value.name : "Error";
@@ -500,8 +556,9 @@ export async function capturePendingBodies(input: {
   makeFetcher: (budget: any) => (url: string, options: any) => Promise<any>;
   allowed: (url: string, source: any) => boolean;
   publicUrl: (url: string) => Promise<unknown>;
+  continueAfterTimeout?: boolean;
   now?: () => Date; wait?: (ms: number) => Promise<void>;
-}): Promise<PendingCaptureRecord[]> {
+}): Promise<PendingCaptureRunOutcome> {
   if (input.targets.length < 1 || input.targets.length > CAP) throw new Error("capture requires 1–50 frozen targets");
   mkdirSync(input.captureDir, { recursive: true, mode: 0o700 });
   const prior = new Map<string, PendingCaptureRecord>();
@@ -534,6 +591,10 @@ export async function capturePendingBodies(input: {
     }
   }
   const records: PendingCaptureRecord[] = [];
+  const timeoutFailures: PendingCaptureRunOutcome["timeoutFailures"] = [];
+  const skipped: PendingCaptureRunOutcome["skipped"] = [];
+  const targets: PendingCaptureRunOutcome["targets"] = [];
+  const timeoutPauseCauses: Array<{ sourceId: string; hostname: string; articleId: string }> = [];
   let lastDispatch = priorDispatches.length ? Math.max(...priorDispatches) : Number.NEGATIVE_INFINITY;
   for (const target of input.targets) {
     const priorIntent = attempted.get(target.url);
@@ -550,12 +611,21 @@ export async function capturePendingBodies(input: {
           (process.platform !== "win32" && (statSync(bodyPath).mode & 0o777) !== 0o600) || sha256(readFileSync(bodyPath)) !== old.bodySha256) {
         throw new Error(`existing capture is invalid or ambiguous for ${target.articleId}`);
       }
-      records.push(old); continue;
+      records.push(old);
+      targets.push({ articleId: target.articleId, sourceId: target.sourceId, url: target.url, status: "reused" });
+      continue;
     }
     const source = input.sources.get(target.sourceId);
     if (!source) throw new Error(`target source is missing: ${target.sourceId}`);
     await validatePendingTarget(source, { ...target, body_status: "pending", body_text: null, body_html: null },
       { catalogSource: CATALOG.sources.find((row) => row.id === target.sourceId), allowed: input.allowed, publicUrl: input.publicUrl });
+    const hostname = new URL(target.url).hostname.toLowerCase();
+    const pauseCause = input.continueAfterTimeout ? timeoutPauseReason(target, timeoutPauseCauses) : null;
+    if (pauseCause) {
+      skipped.push({ articleId: target.articleId, sourceId: target.sourceId, url: target.url, reason: pauseCause.reason, triggerArticleId: pauseCause.triggerArticleId });
+      targets.push({ articleId: target.articleId, sourceId: target.sourceId, url: target.url, status: "skipped", triggerArticleId: pauseCause.triggerArticleId });
+      continue;
+    }
     const before = (input.now ?? (() => new Date()))();
     const remaining = MIN_INTERVAL_MS - (before.getTime() - lastDispatch);
     if (Number.isFinite(remaining) && remaining > 0) {
@@ -603,6 +673,17 @@ export async function capturePendingBodies(input: {
         stage: "fetcher-did-not-return-complete-bounded-response", responseEnvelopePresent: !!response,
         ...failure,
       });
+      if (input.continueAfterTimeout && dispatchedAt && intentAt && fetchError instanceof DOMException &&
+          fetchError.name === "TimeoutError" && !response) {
+        const timeoutFailure: PendingCaptureRunOutcome["timeoutFailures"][number] = {
+          articleId: target.articleId, sourceId: target.sourceId, url: target.url, intentAt: intentAt!,
+          errorName: "TimeoutError", errorMessage: failure.errorMessage,
+        };
+        timeoutFailures.push(timeoutFailure);
+        timeoutPauseCauses.push({ sourceId: target.sourceId, hostname, articleId: target.articleId });
+        targets.push({ articleId: target.articleId, sourceId: target.sourceId, url: target.url, status: "timeout" });
+        continue;
+      }
       throw new Error(`detail response lacks complete bounded raw bytes for ${target.articleId}`);
     }
     const file = `responses/${target.articleId}-${sha256(target.url).slice(0, 12)}.body`;
@@ -617,11 +698,12 @@ export async function capturePendingBodies(input: {
       originContentEncoding: response.headers?.get?.("content-encoding") ?? "identity",
       bodySha256: sha256(response.body), eof: true, file, networkEvidenceKind: "fresh-dispatch" };
     records.push(record);
+    targets.push({ articleId: target.articleId, sourceId: target.sourceId, url: target.url, status: "captured" });
     writeFileSync(path.join(input.captureDir, `capture-${target.articleId}.json`), `${JSON.stringify({ schemaVersion: "nas-pending-body-capture.v1", records: [record] }, null, 2)}\n`,
       { flag: "wx", mode: 0o600 });
     if (parseError && !response.body.length) throw parseError;
   }
-  return records;
+  return { records, timeoutFailures, skipped, targets };
 }
 
 export async function parsePendingCapture(input: { manifest: PendingBodyManifest; records: PendingCaptureRecord[]; captureDir: string;
@@ -944,7 +1026,7 @@ async function main(): Promise<void> {
     "run-id": { type: "string" }, manifest: { type: "string" }, captures: { type: "string" }, "capture-dir": { type: "string" },
     "exclude-evidence": { type: "string" }, "legacy-evidence": { type: "string" }, "legacy-evidence-sha256": { type: "string" },
     "reuse-prior-captures": { type: "boolean" }, proposals: { type: "string" }, "backup-proof": { type: "string" },
-    "approval-sha256": { type: "string" }, out: { type: "string" } }, strict: true });
+    "approval-sha256": { type: "string" }, "continue-after-timeout": { type: "boolean" }, out: { type: "string" } }, strict: true });
   const mode = values.mode;
   if (!["prepare", "capture", "legacy-adapt", "offline-parse", "preflight-only", "execute"].includes(String(mode))) {
     throw new Error("mode must be prepare, capture, legacy-adapt, offline-parse, preflight-only or execute");
@@ -957,6 +1039,7 @@ async function main(): Promise<void> {
     throw new Error("reuse-prior-captures requires the exact reviewed --legacy-evidence inventory and SHA-256");
   }
   if (mode === "capture" && (!values.manifest || !values["capture-dir"] || !values.out || !values["approval-sha256"])) throw new Error("capture requires manifest, capture-dir, out and reviewed manifest --approval-sha256");
+  if (values["continue-after-timeout"] && mode !== "capture") throw new Error("continue-after-timeout is valid only with --mode capture");
   if (mode === "offline-parse" && (!values.manifest || !values.captures || !values["capture-dir"] || !values.out)) throw new Error("offline-parse requires manifest, captures, capture-dir and out");
   if (mode === "legacy-adapt" && (!values.manifest || !values["legacy-evidence"] || !values["legacy-evidence-sha256"] ||
       !values["capture-dir"] || !values.out || !values["approval-sha256"])) {
@@ -1261,12 +1344,26 @@ async function main(): Promise<void> {
       assertDispatchNetworkGuard(appConfig);
       const captureDir = path.resolve(values["capture-dir"]!);
       const oldUrls = existingCaptureUrls(captureDir);
-      const records = await capturePendingBodies({ targets: before.targets, sources: allowedCaptureSources, captureDir,
-        allowed, publicUrl: (url) => assertPublicUrl(url, false), fetchDetail,
+      const captureOutcome = await capturePendingBodies({ targets: before.targets, sources: allowedCaptureSources, captureDir,
+        allowed, publicUrl: (url) => assertPublicUrl(url, false), fetchDetail, continueAfterTimeout: Boolean(values["continue-after-timeout"]),
         makeFetcher: (budget) => createBudgetedDetailFetcher(budget, guardedFetch as never) });
+      if (captureOutcome.targets.length !== manifest.targets.length ||
+          new Set(captureOutcome.targets.map((row) => row.articleId)).size !== manifest.targets.length ||
+          captureOutcome.targets.some((row, index) => row.articleId !== manifest.targets[index]?.articleId || row.url !== manifest.targets[index]?.url)) {
+        throw new Error("capture outcome does not cover every frozen target exactly once in manifest order");
+      }
+      if (captureOutcome.timeoutFailures.length || captureOutcome.skipped.length) {
+        if (!values["continue-after-timeout"]) throw new Error("partial capture outcome requires explicit continue-after-timeout");
+        const partial = buildPartialCaptureRunResult(manifest, manifestSha256, captureOutcome);
+        writePrivate(path.resolve(values.out!), partial);
+        console.log(JSON.stringify({ ...partial, output: path.resolve(values.out!) }));
+        return;
+      }
+      const records = captureOutcome.records;
       const output = { schemaVersion: "nas-pending-body-captures.v1", manifestSha256, capturesSha256: sha256(stableJson(records)), records };
       writePrivate(path.resolve(values.out!), output);
-      console.log(JSON.stringify({ result: "CAPTURE_COMPLETE", runId: manifest.runId, dispatches: records.filter((row) => !oldUrls.has(row.url)).length,
+      console.log(JSON.stringify({ result: "CAPTURE_COMPLETE", runId: manifest.runId,
+        continueAfterTimeout: Boolean(values["continue-after-timeout"]), dispatches: records.filter((row) => !oldUrls.has(row.url)).length,
         captureSetSha256: output.capturesSha256, output: path.resolve(values.out!) }));
       return;
     }
