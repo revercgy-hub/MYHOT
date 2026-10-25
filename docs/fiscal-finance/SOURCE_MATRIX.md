@@ -1,5 +1,11 @@
 # 官方信源验证矩阵
 
+## 2026-10-25 已保存响应的metadata selector候选（仅仓库，未同步）
+
+对三项已有保存raw进行离线身份字段复核后，仓库候选仅改`industry/sources.json`：`mof-policy-release`与`mof-treasury-debt-data`新增详情标题selector `h2.title_con`及`PubDate`元数据正则；`mof-shanghai-supervision-dynamics`新增同一标题selector，保留既有日期规则。6份已有响应均HTTP 200、EOF完整、gzip实体hash与manifest一致，解析标题与日期匹配；独立QA SHA-256=`bf1e0414e0ad406805cc11dc782992a681e822a3ff9557766ce4eabd475750a6`。保存raw/proposal关联见`.data/fiscal-qa/source-metadata-config-proposal-20261025/independent-raw-fixture-review-final.json`。
+
+配置、两项现有测试及5个synthetic fixture通过485/484 pass/0 fail/1 skip、typecheck、Web build和Web22。正例覆盖标题/日期字段解析；上海日期冲突负例仍为`identity_mismatch`；treasury PDF继续`attachments_unprocessed`、body null。source仍disabled且`site_fulltext`/`syndicate_fulltext`关闭。此候选没有新GET、数据库写入、collector执行或NAS catalog同步，不代表source admission、全源质量或覆盖结论。唯一测试skip为P3固定gzip collector集成测试未设置`P3_PAGE_CONTINUATION_TEST_DATABASE_URL`。配置SHA-256=`27af3250bbc472ed20019983093b43336cc1967b9ae3193e6b202da4df27ad3f`；完整阶段事实及所有测试/文件hash见[保存响应metadata selector交接](HANDOFFS/SAVED_SOURCE_METADATA_SELECTORS_2026-10-25.md)。
+
 ## 2026-10-24 PBOC公开市场详情解析候选（仅仓库未同步）
 
 仓库提交`353ec5d`为`pboc-open-market`详情解析加入四个元数据字段：详情标题用`h2`且authoritative；发布日期从唯一`span#shijian`提取且authoritative。其余source配置未变，详情正文仍为`#zoom`、允许短正文、同域URL前缀不变、`maxFetches=3`。离线复放17份已哈希捕获响应、覆盖13篇不同文章；17/17通过，标题与已存标题相符，详情日期日级与UTC+8列表日期相符，正文选择器唯一且有内容。selector审计SHA-256=`20c3da62f4b0208e6616a7a2a5076815a9569c41a4b6336c8df7b8ef9fbbc4a5`，配置回放报告SHA-256=`01b4e3d168affb36d8dc71ff80154128ac35e6ccd6e9ef92722dbe6353f14c7b`；完整候选审计SHA-256=`9292b1a87c66a077e5d9a2600fbf8165fd741e5a421f8708d17d1c4009431988`。回放没有发HTTP GET或写数据库。
