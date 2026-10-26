@@ -52,6 +52,16 @@ function stopTranslation(child: ReturnType<typeof spawn>) {
   else child.kill('SIGTERM');
 }
 
+async function nextDiscoveredAt(): Promise<Date> {
+  const [latest] = await sql<{ latest: Date | null }[]>`SELECT max(discovered_at) AS latest FROM publications`;
+  return new Date(Math.max(Date.now(), latest?.latest?.getTime() ?? 0) + 1_000);
+}
+
+async function assertNewestPublished(articleId: string): Promise<void> {
+  const [head] = await sql<{ article_id: string }[]>`SELECT article_id FROM publications ORDER BY discovered_at DESC LIMIT 1`;
+  assert.equal(head?.article_id, articleId, 'fixture is the most recently discovered publication in the shared test database');
+}
+
 before(async () => {
   await sql`INSERT INTO sources (id,name,kind,tier,participation_mode,site_fulltext,next_fetch_at)
     VALUES (${SOURCE},'Translation shutdown','rss','T1','editorial',true,'2100-01-01')`;
@@ -62,10 +72,11 @@ for (const misaligned of [false, true]) test(`SIGTERM finishes the sent ${misali
   active = { asked: gate(), hold: gate(), calls: 0, misaligned };
   const first = misaligned ? `First paragraph ${T}.` : `First paragraph ${T}. ${'English text '.repeat(170)}`;
   const second = misaligned ? `Second paragraph ${T}.` : `Second paragraph ${T}. ${'More English '.repeat(170)}`;
-  const { articleId } = await upsertMaterial({ sourceId: SOURCE, url: `https://example.org/translation-shutdown-${T}/${misaligned}`, title: `Shutdown ${T}`, bodyHtml: `<p>${first}</p><p>${second}</p>`, bodyText: first + second, bodyStatus: 'ok', language: 'en', via: 'fetch', publishedAt: new Date(), discoveredAt: new Date(Date.now() + 86_400_000) });
+  const { articleId } = await upsertMaterial({ sourceId: SOURCE, url: `https://example.org/translation-shutdown-${T}/${misaligned}`, title: `Shutdown ${T}`, bodyHtml: `<p>${first}</p><p>${second}</p>`, bodyText: first + second, bodyStatus: 'ok', language: 'en', via: 'fetch', publishedAt: new Date(), discoveredAt: await nextDiscoveredAt() });
   await sql`INSERT INTO analyses (article_id,input_revision,origin,relevance,category,title_zh,summary_zh,reason_zh,score,selected)
     VALUES (${articleId},1,'rule','pass','ai-models',${`终止测试${T}`},'摘要','理由',90,true)`;
   await publishArticle(articleId, { releasedAt: new Date(Date.now() - 60_000) });
+  await assertNewestPublished(articleId);
   const interrupted = runTranslation();
   await Promise.race([active.asked.promise, interrupted.done.then(() => assert.fail('translation ended before a request'))]);
   stopTranslation(interrupted.child);
@@ -79,6 +90,7 @@ for (const misaligned of [false, true]) test(`SIGTERM finishes the sent ${misali
   assert.ok(receiptRows[0]!.response, 'the paid answer arrived and remains reusable');
   assert.equal((await sql`SELECT 1 FROM translation_attempts WHERE article_id=${articleId}`).length, 0, 'interruption does not consume attempts or become terminal');
   assert.equal((await sql`SELECT 1 FROM translations WHERE article_id=${articleId}`).length, 0, 'no partial translation prevents restart');
+  await assertNewestPublished(articleId);
   const resumed = await runTranslation().done;
   assert.equal(resumed.done[0].status, 'translated');
   assert.equal(active.calls, misaligned ? 3 : 2, 'the first receipt is reused, only missing pieces are requested');

@@ -42,12 +42,21 @@ process.env.DEEPSEEK_BASE_URL = `${provider.url}/v1`;
 process.env.DEEPSEEK_API_KEY = "test-key";
 const app = await buildApp();
 
-// Discovered "later" than anything else in the test database, so a one-item run takes this article. The
-// tag keeps the text unique: identical input would reuse an earlier run's paid answer.
-const material = (price: string) =>
+async function nextDiscoveredAt(): Promise<Date> {
+  const [latest] = await sql<{ latest: Date | null }[]>`SELECT max(discovered_at) AS latest FROM publications`;
+  return new Date(Math.max(Date.now(), latest?.latest?.getTime() ?? 0) + 1_000);
+}
+
+async function assertNewestPublished(articleId: string): Promise<void> {
+  const [head] = await sql<{ article_id: string }[]>`SELECT article_id FROM publications ORDER BY discovered_at DESC LIMIT 1`;
+  assert.equal(head?.article_id, articleId, "fixture is the most recently discovered publication in the shared test database");
+}
+
+// The increasing timestamp keeps one-item translation runs ahead of any other eligible test article.
+const material = async (price: string) =>
   upsertMaterial({
     sourceId: SOURCE, url: URL_, title: `Price update ${T}`, language: "en", bodyText: `The price is ${price} dollars (${T}).`,
-    bodyHtml: `<p>The price is ${price} dollars (${T}).</p>`, bodyStatus: "ok", via: "fetch", publishedAt: new Date(), discoveredAt: new Date(Date.now() + 600_000),
+    bodyHtml: `<p>The price is ${price} dollars (${T}).</p>`, bodyStatus: "ok", via: "fetch", publishedAt: new Date(), discoveredAt: await nextDiscoveredAt(),
   });
 
 async function detail(id: string) {
@@ -72,6 +81,7 @@ test("a text corrected while its translation was running is translated again, an
   await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, reason_zh, score, selected)
             VALUES (${id}, 1, 'rule', 'pass', 'fiscal-policy', ${`价格更新-${T}`}, '摘要', '理由', 90, true)`;
   await publishArticle(id, { releasedAt: new Date(Date.now() - 60_000) });
+  await assertNewestPublished(id);
 
   // The model is asked about revision 1; the source corrects the price before it answers.
   hold = gate();
@@ -89,6 +99,7 @@ test("a text corrected while its translation was running is translated again, an
   assert.equal(stale.body.zh, null, "a translation of the old wording is not shown");
   assert.ok(stale.body.original?.includes("twenty"));
 
+  await assertNewestPublished(id);
   await translatePending({ limit: 1 });
   const [tr] = await sql<{ revision: number }[]>`SELECT revision FROM translations WHERE article_id = ${id}`;
   assert.equal(tr?.revision, 2, "the corrected text is translated on the next run");
@@ -102,11 +113,12 @@ test("links and images inside a paragraph survive the translation, or the paragr
     `<p>A paragraph the model <a href="https://example.com/kept">never keeps</a> whole ${T}.</p>`;
   const { articleId: id } = await upsertMaterial({
     sourceId: SOURCE, url: `${URL_}-links`, title: `Links ${T}`, language: "en", bodyText: `Explaining Neuroglancer. ${T}`, bodyHtml: html,
-    bodyStatus: "ok", via: "fetch", publishedAt: new Date(), discoveredAt: new Date(Date.now() + 1_200_000),
+    bodyStatus: "ok", via: "fetch", publishedAt: new Date(), discoveredAt: await nextDiscoveredAt(),
   });
   await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, reason_zh, score, selected)
             VALUES (${id}, 1, 'rule', 'pass', 'fiscal-policy', ${`链接-${T}`}, '摘要', '理由', 90, true)`;
   await publishArticle(id, { releasedAt: new Date(Date.now() - 60_000) });
+  await assertNewestPublished(id);
   await translatePending({ limit: 1 });
   const [tr] = await sql<{ body_html: string; complete: boolean }[]>`SELECT body_html, complete FROM translations WHERE article_id = ${id}`;
   assert.ok(tr!.body_html.includes('<a href="https://neuroglancer.dev/docs">Neuroglancer</a>'), tr!.body_html);
@@ -119,12 +131,13 @@ test("the post a selected X post quotes is translated once and shown with the it
   const tweetId = `7${Date.now()}`;
   const { articleId: id } = await upsertMaterial({
     sourceId: SOURCE, url: `https://x.com/bcherny/status/8${Date.now()}`, title: `Sonnet ${T}`, language: "en", bodyText: "Try it!", bodyStatus: "ok",
-    via: "fetch", publishedAt: new Date(), discoveredAt: new Date(Date.now() + 1_800_000),
+    via: "fetch", publishedAt: new Date(), discoveredAt: await nextDiscoveredAt(),
     xPost: { tweetId: `8${Date.now()}`, authorName: "Boris", handle: "bcherny", text: "Try it!", quoted: { authorName: "Anthropic", handle: "AnthropicAI", text: `Introducing Claude Sonnet 5.5 ${T}`, url: `https://x.com/AnthropicAI/status/${tweetId}` } },
   });
   await sql`INSERT INTO analyses (article_id, input_revision, origin, relevance, category, title_zh, summary_zh, reason_zh, score, selected)
             VALUES (${id}, 1, 'rule', 'pass', 'fiscal-policy', ${`引用-${T}`}, '摘要', '理由', 90, true)`;
   await publishArticle(id, { releasedAt: new Date(Date.now() - 60_000) });
+  await assertNewestPublished(id);
   const run = await translatePending({ limit: 1 });
   assert.ok(run.quotes >= 1);
   const [q] = await sql<{ text_zh: string; origin: string }[]>`SELECT text_zh, origin FROM quote_translations WHERE tweet_id = ${tweetId}`;
