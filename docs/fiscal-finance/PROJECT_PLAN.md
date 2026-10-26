@@ -2,24 +2,21 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
-## 2026-10-26 开发剩余工作盘点（当前）
+## 2026-10-26 局域网 Ollama 小批量验收（当前）
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=7b6564cf197dc3d1cae4458715856cc9185c775a (code-bearing smoke baseline; tracked docs baseline 0e9abec; Ollama smoke changed no code/config; NAS application runtime remains d45f0d93f5374b7c72cdf0efb64ada6a03b84404)
-BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+CURRENT_SHA=36f6bce8e38e27d79ac70b2c1b9ce6dbb39d4716 (code/test baseline before this docs-only update); BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
-STAGE=NAS Staging remains on d45 app-only api/web image digest sha256:54d1a34f104b665ccdecc60e82f4cb67acf114fb3171b742990464ee6d4c7bc6; exact2 policy-release/Shanghai metadata-only source.config CAS and exact5 summary-only apply are committed and independently postchecked; all source flags remain off
-GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT; Gate 3 CHANGES_REQUIRED; Gate 4/5 not passed (64/64 row hashes, 64/64 inventory, 16/16 sequence state are Gate 5 restore subitems only)
-REVIEW=Canonical Gold200 base remains 200 confirmed (29 select/171 reject); independent v2 overlay records two user-confirmed development rejects, giving 27 select/173 reject overall and 24/126 development; holdout remains 3/47 and consumed
-BLOCKERS=Gate 3 CHANGES_REQUIRED; no Gate 4/5 formal pass; full industry source coverage and strict 90-day/daily runtime behavior are unproven; attachments remain partly unresolved
-COMPLETED=Gold v2 fixed-prediction comparison and e82e native provenance/development150 evaluation complete; exact2 source metadata and exact10 body-only CAS independently postchecked; exact5 summary-only apply and independent DB/LAN post-QA PASS; latest snapshot 418/660/418, body242/170/6, publications/overrides131, Gold200 unchanged; software source-metadata chain 485/484/0/1, typecheck/Web build/Web22 pass
-IN_PROGRESS=Gate 3 remains CHANGES_REQUIRED per e82e review (precision37.21% below automatic-selection target; do not tune threshold/Gold or reopen full review); five PASS summaries are summary-only, selected=false/score=null/indexable=false; five BLOCK and ten body HOLD excluded; fresh4 and Gate 4/5 reviews remain open
-NEXT=Do development-only error attribution without new labels or tuning; finish unified-catalog fresh4, then source quality/coverage, strict date/cadence, attachment workflow, Gate 4 and Gate 5; preserve consumed fresh50 boundary
+STAGE=NAS Staging unchanged; API/Web remains d45f0d93f5374b7c72cdf0efb64ada6a03b84404; source flags remain off
+GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT; Gate 3 CHANGES_REQUIRED; Gate 4/5 not passed
+REVIEW=12 fixed development samples, local Ollama qwen3.5:9b, 30 calls/no retries/7m50.813s; after freezing predictions and joining private labels, 7 scored cases gave TP3/FP1/FN1/TN2 at current threshold; 5 other cases were prefilter BLOCK and excluded from threshold metrics; 4 summary routes had 3 fully grounded outputs and one unsupported geographic grouping
+BLOCKERS=Pilot is not holdout or a Gate result; Gate 3 CHANGES_REQUIRED; 25–35 high-quality source coverage, strict 90-day/daily runtime behavior, attachment HOLD-specific handling, complete automation, Gate 4 and Gate 5 remain unaccepted
+COMPLETED=Runner/guard/test commit 6abccf861ec50d8469771fd407098444aa00057e; translation fixture isolation commit 36f6bce8e38e27d79ac70b2c1b9ce6dbb39d4716; focused 10/10, typecheck, and final npm test 490 pass/0 fail/5 configuration skips
+NEXT=Two-case offline attribution memo complete (hypotheses only); if continuing, run matched development diagnostic with human dimension rationales, then validate full understanding and app chatJson path to local inference (container GET /v1/models is verified; chat completion is not); no Gold/threshold/prompt changes; continue source/date/schedule/attachment/automation and Gate acceptance
 ```
 
-本轮e82e两轮native评分已独立溯源并完成Gold v2 development150离线评估，仍由Root裁定为Gate 3 `CHANGES_REQUIRED`（precision37.21%，未达自动精选要求；无需重开全量review或修改阈值/Gold）。exact2 policy-release/Shanghai metadata CAS、exact10 body-only CAS与exact5 summary-only apply均已独立post-QA；最新计数418/660/418、body242/170/6、publications/overrides131，Gold200和source flags保护不变。五条PASS仅应用摘要，selected=false、score=null、indexable=false；五条BLOCK和十条正文HOLD未发布。通用站点、后台、采集、内容处理、聚簇、报表和worker schedule代码已有；worker未运行，行业端到端链路及25–35来源/90天/每日/附件验收仍不足。10/26局域网Ollama原生HTTP smoke共5次：首轮低cap预筛/摘要均以`finish_reason=length`结束且无输出；加`reasoning_effort=none`并提高任务token cap后，单样本预筛通过schema，摘要经项目parser解析且源事实QA通过。原生HTTP smoke绕过paidRequest/receipt及worker，不证明正式pipeline、稳定吞吐或总体准确率。项目模型配置与Gate 3/4/5状态不变；基线及限制见[局域网Ollama smoke交接](HANDOFFS/OLLAMA_LAN_SMOKE_2026-10-26.md)。当前Staging只读快照见开发交接。
-
+本地评测证据与范围见[局域网Ollama小批量交接](HANDOFFS/OLLAMA_LOCAL_PILOT_2026-10-26.md)。30次chatJson请求均有completed receipt与received attempt且无重试；摘要grounding中会计证书项的“非福州=非22310”地域归并不受源文支持，应阻止该摘要直接自动使用；邮寄选项遗漏是单独的完整性缺项。本轮未验证understanding、worker或publish，不代表Gate 3/4/5结果。
 站点现有分类为9类，`ITEM_TYPES`仍为8种。用户确认：“国家级重大民生政策也纳入，即使没有明确财政金融安排”；“央行日常公告放在全部动态，出现重要操作或政策变化时才精选”。d45于2026-10-24 02:15:43Z以app-only方式部署到NAS Staging；独立只读QA结果为`PASS_WITH_DOCUMENTED_LIMITATIONS`，范围仅为该次Staging部署保护与公开面检查，不代表Gate 3/4/5通过，也不是本地fresh-preview验收。部署镜像实际digest为`sha256:54d1a34f104b665ccdecc60e82f4cb67acf114fb3171b742990464ee6d4c7bc6`；独立QA sidecar及历史source/settings对照见[Development150和重大民生政策交接](HANDOFFS/DEVELOPMENT150_AND_MAJOR_POLICY_2026-10-24.md)。development150 native-offline结果不是fresh holdout，不能代表provider流程或understanding质量，不据此即时调整Gold、prompt或门槛。
 
 2026-10-25对三个已存档metadata-only source样本进行了配置候选修复：policy release与treasury debt data新增详情标题`h2.title_con`及`PubDate`正则；Shanghai增加相同标题selector，日期规则不变。六份既有raw及manifest关联、HTTP 200/EOF/gzip、标题和日期日级匹配经独立复核；5个synthetic fixture覆盖正例，上海日期冲突负例仍拒绝，treasury PDF仍`attachments_unprocessed`。候选SHA `27af3250bbc472ed20019983093b43336cc1967b9ae3193e6b202da4df27ad3f`；独立复核报告SHA `bf1e0414e0ad406805cc11dc782992a681e822a3ff9557766ce4eabd475750a6`。全链485/484 pass/0 fail/1 skip；唯一skip为固定gzip collector集成测试缺少`P3_PAGE_CONTINUATION_TEST_DATABASE_URL`。10/26仅policy-release与Shanghai的三个metadata字段已按exact2 CAS同步并经独立post-QA；其余source candidates仍未同步、启用或准入，且未新GET。见[保存响应metadata selector交接](HANDOFFS/SAVED_SOURCE_METADATA_SELECTORS_2026-10-25.md)。

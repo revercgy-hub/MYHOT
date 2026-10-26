@@ -1,23 +1,19 @@
 # 项目状态
 
-## 2026-10-26 开发剩余工作盘点（当前）
+## 2026-10-26 局域网 Ollama 小批量验收（当前）
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=7b6564cf197dc3d1cae4458715856cc9185c775a (code-bearing smoke baseline; tracked docs baseline 0e9abec; Ollama smoke changed no code/config; NAS application runtime remains d45f0d93f5374b7c72cdf0efb64ada6a03b84404)
-BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
-WORKSPACE=D:\AI-work\MYHOT\AIHOT
-STAGE=NAS Staging remains on d45 app-only api/web image digest sha256:54d1a34f104b665ccdecc60e82f4cb67acf114fb3171b742990464ee6d4c7bc6; exact2 policy-release/Shanghai metadata-only source.config CAS is committed and independently postchecked; all source flags remain off
-GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT; Gate 3 CHANGES_REQUIRED; Gate 4/5 not passed (64/64 row hashes, 64/64 inventory, 16/16 sequence state are Gate 5 restore subitems only)
-REVIEW=Canonical Gold200 base remains immutable at 200 confirmed (29 select/171 reject); user-confirmed v2 overlay changes only two development labels to reject, giving v2 27 select/173 reject overall and 24/126 development, while holdout remains 3/47; fresh50 remains consumed
-BLOCKERS=Gate 3 CHANGES_REQUIRED; no Gate 4/5 formal pass; full industry source coverage and strict 90-day/daily runtime behavior are unproven; attachments remain partly unresolved
-COMPLETED=Gold v2 fixed-prediction comparison and e82e native provenance/development150 evaluation complete; exact2 source metadata and exact10 body-only CAS independently postchecked; exact5 summary-only apply and independent DB/LAN post-QA PASS; current counts 418/660/418, body242/170/6, publications/overrides131, Gold200 unchanged; source-metadata chain 485 tests/484 pass/0 fail/1 skip, typecheck/Web build/Web22 exit 0
-IN_PROGRESS=Gate 3 remains CHANGES_REQUIRED per e82e review (precision37.21% below automatic-selection target; no threshold/Gold change or full review reopening); five PASS summaries are published summary-only with selected=false/score=null/indexable=false, while five BLOCK and ten body HOLD rows remain excluded; fresh4 and Gate 4/5 formal reviews remain open
-NEXT=Use existing development results for offline error attribution without adding labels or tuning thresholds; finish unified-catalog fresh4 and source coverage/date/cadence/attachment evidence; preserve consumed fresh50 boundary
+CURRENT_SHA=36f6bce8e38e27d79ac70b2c1b9ce6dbb39d4716 (Ollama pilot + translation test fixture commits; docs update pending); NAS API/Web image remains d45f0d93f5374b7c72cdf0efb64ada6a03b84404
+STAGE=NAS Staging unchanged; exact2 source metadata, exact10 body and exact5 summary changes were previously independently postchecked; all source flags remain off
+GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT; Gate 3 CHANGES_REQUIRED; Gate 4/5 not passed
+REVIEW=Development-only local Ollama pilot used 12 fixed samples (4 select/8 reject), 30 local HTTP requests, no retries; after output freeze and independent label join, 7 scored rows yielded threshold candidates TP3/FP1/FN1/TN2; summaries 3/4 fully grounded, one had an overbroad geographic statement
+BLOCKERS=Pilot is not holdout or Gate evidence; Gate 3 remains CHANGES_REQUIRED; source quality/coverage, strict 90-day and daily runtime behavior, attachment HOLD workflow, full automation, and Gate 4/5 acceptance remain open
+COMPLETED=Guarded local pilot code and guard tests committed; translation test fixture ordering fix committed; focused guard tests 10/10 and typecheck passed; final npm test 495 total/490 pass/0 fail/5 DB-configuration skips
+NEXT=Two-case offline FP/FN attribution memo is complete (hypotheses only); if continuing, use a matched development diagnostic with human dimension rationales, then validate full understanding and app chatJson path to local inference (container GET /v1/models is verified; chat completion is not); no Gold/threshold/prompt changes; continue source/date/schedule/attachment/automation and Gate acceptance
 ```
 
-当前问题盘点和剩余工作顺序见[2026-10-26开发剩余工作交接](HANDOFFS/DEVELOPMENT_PROGRESS_2026-10-26.md)。通用能力已有，但财政金融行业配置仍未完成运行验收。最新状态、计数和来源保护如上。10/26局域网Ollama原生HTTP smoke共5次：health有效；首轮低cap预筛/摘要均到token上限无输出；请求加`reasoning_effort=none`并调高任务cap后，单样本预筛schema通过，摘要经项目parser解析且源事实QA通过。该测试绕过应用receipt、预算和worker，不代表正式集成、稳定吞吐或总体准确率；项目模型配置、采集、worker及Gate状态不变。详见[Ollama smoke交接](HANDOFFS/OLLAMA_LAN_SMOKE_2026-10-26.md)。
-
+本轮冻结预测、receipt/attempt核验与4条摘要grounding结果、5个skip原因及scope限制见[局域网Ollama小批量交接](HANDOFFS/OLLAMA_LOCAL_PILOT_2026-10-26.md)。测试使用隔离本地PostgreSQL和本地stub，没有部署、业务表写入或付费provider调用；这不是生产provider接入或Gate通过。
 站点现有分类为9类，`ITEM_TYPES`仍为8种；用户确认“国家级重大民生政策也纳入，即使没有明确财政金融安排”和“央行日常公告放在全部动态，出现重要操作或政策变化时才精选”。d45于2026-10-24 02:15:43Z以app-only方式部署到Staging；A独立只读QA结论为`PASS_WITH_DOCUMENTED_LIMITATIONS`，仅验收此次部署保护和公开面，不代表Gate 3/4/5通过，也不是本地fresh-preview验收。结论sidecar SHA-256 `66be92b12b5e771ff22a88a38c7160f58e6b5121fbc25f3fbcbabcda604dfa4a`；历史source/settings补证的SHA-256 `00663d6f80b251fc1fe170ad6907405cf50fca455b7a93f8d0d3a5f397db7049`。cd0 selection-score候选已在development150中复测，但未接受为自动精选规则、未部署且无质量改善结论；PBOC详情字段候选也仅在仓库，未同步Staging source catalog。development150 native-offline结果不是fresh holdout，也不代表真实provider流程或understanding quality；不要据此即时调阈值或改Gold。新评测、部署QA证据及类别交接见[Development150和重大民生政策交接](HANDOFFS/DEVELOPMENT150_AND_MAJOR_POLICY_2026-10-24.md)。
 
 b5 exact20、b6 exact47及b7 exact37正文均已提交并经独立QA。b5 exact10、b6 exact22、b7 exact19 PASS摘要已按canonical summary-only合同提交并通过独立DB/LAN后验；b6余25 BLOCK、b7余18 BLOCK未写。b7阶段的Staging快照为418 articles/626 revisions/418 discoveries，body208 `ok`/204 `pending`/6 `unconfirmed`，48个来源flags全0，publications/overrides各105；Gold200 base count/hash不变，protected rowset drift=0。之后b13 exact9摘要导入使pub/override变为114/114，见下方最新检查点。b7 37项草稿经A独立grounding后为19 PASS/18 BLOCK；使用两份冻结f4 manifest和tested f60 CLI分chunk预检、提交。PBOC selector候选经17条历史capture回放（13篇不同文章）和4文件离线QA通过，但仓库改动尚未同步运行目录，source仍disabled/未admitted。b5/b6/b7详细证据和本阶段限制见[2026-10-24 b5/b6正文与摘要交接](HANDOFFS/PENDING_BODY_BATCHES_B5_B6_SUMMARY_2026-10-24.md)。
