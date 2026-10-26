@@ -2,21 +2,23 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
-## 2026-10-25 Gold v2、rem28正文与native摘要收尾（当前）
+## 2026-10-26 开发剩余工作盘点（当前）
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=647769f181ad439158ba76f13d820ef8c06a31ce (source-metadata selector and fixture/test checkpoint; docs checkpoint follows; NAS application runtime remains d45f0d93f5374b7c72cdf0efb64ada6a03b84404)
+CURRENT_SHA=7b6564cf197dc3d1cae4458715856cc9185c775a (latest code-bearing checkpoint; this handoff is docs-only; NAS application runtime remains d45f0d93f5374b7c72cdf0efb64ada6a03b84404)
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
 STAGE=NAS Staging remains on d45 app-only api/web image digest sha256:54d1a34f104b665ccdecc60e82f4cb67acf114fb3171b742990464ee6d4c7bc6; PBOC and policy/treasury/Shanghai metadata selector candidates are repo-only and not synced to runtime
 GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT; Gate 3 CHANGES_REQUIRED; Gate 4/5 not passed (64/64 row hashes, 64/64 inventory, 16/16 sequence state are Gate 5 restore subitems only)
 REVIEW=Canonical Gold200 base remains 200 confirmed (29 select/171 reject); independent v2 overlay records two user-confirmed development rejects, giving 27 select/173 reject overall and 24/126 development; holdout remains 3/47 and consumed
-BLOCKERS=Gate 3 CHANGES_REQUIRED; cd0 candidate is not accepted for automatic selection; Gate 4/5 formal reviews remain open
+BLOCKERS=Gate 3 CHANGES_REQUIRED; no Gate 4/5 formal pass; full industry source coverage and strict 90-day/daily runtime behavior are unproven; attachments remain partly unresolved
 COMPLETED=Gold v2 fixed-prediction development comparison and cd0 native provenance QA complete; d45 Staging rollout and b5/b6/b7/b13 postchecks passed; exact1 and rem28 exact23 body-only CAS independently postchecked; rem28 capture 28 dispatch/27 complete/1 timeout/0 skip/0 retry; GPT-6.1 Sol medium exact23 native draft independently grounded (12 PASS/11 BLOCK), frozen f60 preflight passed and Root-approved exact12 summary-only apply COMMITTED once; Luna independent DB/LAN postsummary QA PASS; saved-response metadata selector proposal for three sources passed independent raw/fixture QA and software chain 485 tests/484 pass/0 fail/1 skip, typecheck/Web build/Web22 exit 0; latest Staging 418 articles/650 revisions/418 discoveries, body232 ok/180 pending/6 unconfirmed, publications/overrides126, sources48 all flags off, Gold200 hash unchanged
-IN_PROGRESS=e82e prompt has software QA only, no new scoring/effect evaluation or deployment; successful rem28 capture initiating command/session attribution permanently unresolved; PBOC and policy/treasury/Shanghai metadata selector changes remain repo-only, sources disabled and not admitted; no new GET or database write for these changes; Gate 4/5 formal review open
-NEXT=Review saved-response metadata selector changes as bounded metadata-only candidates; no source catalog sync, enablement, or admission claim without separate authorization and evidence; preserve Gold/thresholds and consumed fresh50 boundaries
+IN_PROGRESS=e82e development150 score-only inputs for the exact reused 87-PASS subset are prepared and independently validated, not scored; exact4 fresh prepare was rejected by catalog-drift guard; exact2 metadata CAS plan independently reviewed PASS_WITH_PREWRITE_PROTECTED_ROWSET_EVIDENCE_GAP; Gate 4/5 formal reviews open
+NEXT=Complete two independent fresh fork-none score runs and QA for Gate 3; also complete exact2 full backup/protected-rowset hashes and exact-CAS review, then fresh4 on unified Staging catalog; use ordered exit criteria in [2026-10-26 development progress handoff](HANDOFFS/DEVELOPMENT_PROGRESS_2026-10-26.md); preserve Gold/thresholds and consumed fresh50 boundary
 ```
+
+本轮只做代码能力与任务书退出条件的盘点，不运行代码测试、不改业务代码或运行数据。通用站点、后台、采集、内容处理、聚簇、报表和worker schedule已有实现；项目整体仍未通过Gate 3/4/5。e82e selection-score候选的development150双轮score-only输入已准备并独立通过准备验证，尚未评分；150条case/input/body/prefilter hashes完全一致后，复用了原87 PASS/63 BLOCK prefilter，未读取fresh50或Gold。PBOC及policy/treasury/Shanghai selector已由Root审查、提交，并基于4篇保存文章完成本地mock replay；四个旧raw目标的fresh exact4 prepare因catalog drift guard拒绝，没有生成manifest/proposal，且无业务写入/GET/CAS。Root已授权为policy release和Shanghai两个已测试source准备三字段metadata CAS；C独立QA为`PASS_WITH_PREWRITE_PROTECTED_ROWSET_EVIDENCE_GAP`，执行前须全库备份和所有受保护表fresh rowset hashes，Root再精确hash核准应用，随后fresh4。C于10/26 07:16上海时间独立只读复核Staging：418/650/418、body232/180/6、48 source flags全0、pub/override126、Gold200；与10/25聚合rowset一致，无jobs/job_runs/fetch_runs/analyses/receipts。运行容器仅web/api/db，没有worker；scheduler/cron配置未知。各项还欠什么及顺序见[2026-10-26开发剩余工作交接](HANDOFFS/DEVELOPMENT_PROGRESS_2026-10-26.md)。
 
 站点现有分类为9类，`ITEM_TYPES`仍为8种。用户确认：“国家级重大民生政策也纳入，即使没有明确财政金融安排”；“央行日常公告放在全部动态，出现重要操作或政策变化时才精选”。d45于2026-10-24 02:15:43Z以app-only方式部署到NAS Staging；独立只读QA结果为`PASS_WITH_DOCUMENTED_LIMITATIONS`，范围仅为该次Staging部署保护与公开面检查，不代表Gate 3/4/5通过，也不是本地fresh-preview验收。部署镜像实际digest为`sha256:54d1a34f104b665ccdecc60e82f4cb67acf114fb3171b742990464ee6d4c7bc6`；独立QA sidecar及历史source/settings对照见[Development150和重大民生政策交接](HANDOFFS/DEVELOPMENT150_AND_MAJOR_POLICY_2026-10-24.md)。development150 native-offline结果不是fresh holdout，不能代表provider流程或understanding质量，不据此即时调整Gold、prompt或门槛。
 
