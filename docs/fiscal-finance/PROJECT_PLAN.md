@@ -6,7 +6,7 @@
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
-CURRENT_SHA=7b6564cf197dc3d1cae4458715856cc9185c775a (latest code-bearing checkpoint; this handoff is docs-only; NAS application runtime remains d45f0d93f5374b7c72cdf0efb64ada6a03b84404)
+CURRENT_SHA=7b6564cf197dc3d1cae4458715856cc9185c775a (code-bearing smoke baseline; tracked docs baseline 0e9abec; Ollama smoke changed no code/config; NAS application runtime remains d45f0d93f5374b7c72cdf0efb64ada6a03b84404)
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
 STAGE=NAS Staging remains on d45 app-only api/web image digest sha256:54d1a34f104b665ccdecc60e82f4cb67acf114fb3171b742990464ee6d4c7bc6; exact2 policy-release/Shanghai metadata-only source.config CAS and exact5 summary-only apply are committed and independently postchecked; all source flags remain off
@@ -18,7 +18,7 @@ IN_PROGRESS=Gate 3 remains CHANGES_REQUIRED per e82e review (precision37.21% bel
 NEXT=Do development-only error attribution without new labels or tuning; finish unified-catalog fresh4, then source quality/coverage, strict date/cadence, attachment workflow, Gate 4 and Gate 5; preserve consumed fresh50 boundary
 ```
 
-本轮e82e两轮native评分已独立溯源并完成Gold v2 development150离线评估，仍由Root裁定为Gate 3 `CHANGES_REQUIRED`（precision37.21%，未达自动精选要求；无需重开全量review或修改阈值/Gold）。exact2 policy-release/Shanghai metadata CAS、exact10 body-only CAS与exact5 summary-only apply均已独立post-QA；最新计数418/660/418、body242/170/6、publications/overrides131，Gold200和source flags保护不变。五条PASS仅应用摘要，selected=false、score=null、indexable=false；五条BLOCK和十条正文HOLD未发布。通用站点、后台、采集、内容处理、聚簇、报表和worker schedule代码已有；worker未运行，行业端到端链路及25–35来源/90天/每日/附件验收仍不足。10/26完成局域网Ollama端点的三次原生HTTP smoke：简短health JSON有效，但真实预筛和摘要请求都在token上限处终止且没有final content；这不是paidRequest/receipt或worker链路验收，也不证明零费用或模型内容质量。Gate 3/4/5状态不变，详见[局域网Ollama smoke交接](HANDOFFS/OLLAMA_LAN_SMOKE_2026-10-26.md)。当前Staging只读快照见开发交接。
+本轮e82e两轮native评分已独立溯源并完成Gold v2 development150离线评估，仍由Root裁定为Gate 3 `CHANGES_REQUIRED`（precision37.21%，未达自动精选要求；无需重开全量review或修改阈值/Gold）。exact2 policy-release/Shanghai metadata CAS、exact10 body-only CAS与exact5 summary-only apply均已独立post-QA；最新计数418/660/418、body242/170/6、publications/overrides131，Gold200和source flags保护不变。五条PASS仅应用摘要，selected=false、score=null、indexable=false；五条BLOCK和十条正文HOLD未发布。通用站点、后台、采集、内容处理、聚簇、报表和worker schedule代码已有；worker未运行，行业端到端链路及25–35来源/90天/每日/附件验收仍不足。10/26局域网Ollama原生HTTP smoke共5次：首轮低cap预筛/摘要均以`finish_reason=length`结束且无输出；加`reasoning_effort=none`并提高任务token cap后，单样本预筛通过schema，摘要经项目parser解析且源事实QA通过。原生HTTP smoke绕过paidRequest/receipt及worker，不证明正式pipeline、稳定吞吐或总体准确率。项目模型配置与Gate 3/4/5状态不变；基线及限制见[局域网Ollama smoke交接](HANDOFFS/OLLAMA_LAN_SMOKE_2026-10-26.md)。当前Staging只读快照见开发交接。
 
 站点现有分类为9类，`ITEM_TYPES`仍为8种。用户确认：“国家级重大民生政策也纳入，即使没有明确财政金融安排”；“央行日常公告放在全部动态，出现重要操作或政策变化时才精选”。d45于2026-10-24 02:15:43Z以app-only方式部署到NAS Staging；独立只读QA结果为`PASS_WITH_DOCUMENTED_LIMITATIONS`，范围仅为该次Staging部署保护与公开面检查，不代表Gate 3/4/5通过，也不是本地fresh-preview验收。部署镜像实际digest为`sha256:54d1a34f104b665ccdecc60e82f4cb67acf114fb3171b742990464ee6d4c7bc6`；独立QA sidecar及历史source/settings对照见[Development150和重大民生政策交接](HANDOFFS/DEVELOPMENT150_AND_MAJOR_POLICY_2026-10-24.md)。development150 native-offline结果不是fresh holdout，不能代表provider流程或understanding质量，不据此即时调整Gold、prompt或门槛。
 
