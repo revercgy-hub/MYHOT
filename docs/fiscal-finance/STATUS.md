@@ -1,6 +1,12 @@
 # 项目状态
 
-## 2026-10-27 NAS夜间理解任务已安装（当前）
+## 2026-10-27 近7天官方增量与6篇摘要已公开（当前）
+
+两波固定近7天采集合计32次官方GET，新增21篇（12正文ok、9pending），article/revision/discovery为439/681/439；来源配置与Gold200未变。随后6篇严格正文的原生Luna辅助摘要经Sol逐句grounding、canonical QA、PG17备份与只读preflight，Root精确授权后一次CAS提交。独立DB/LAN后验PASS，publication/override从131到137，selected均false、score/reason为空，摘要与原文链接公开、正文不外露；/all包含6个新标题，公开最新发布日期为上海2026-10-27 09:35，近24小时公开3篇（采集库6篇）。
+
+独立重建证明除精确6项的raw provenance/override/publication/audit外无附带修改，20个其它protected rowsets保持不变。此轮不启用自动采集、worker或source admission，不等于runtime provider流程或Gate通过。详见[最新增量与原生摘要交接](HANDOFFS/FRESHNESS_INCREMENT_AND_NATIVE_SUMMARY_2026-10-27.md)。
+
+## 2026-10-27 NAS夜间理解任务已安装（独立范围）
 
 上海时间每日02:00的NAS user cron已安装：owned job恰1条、401B，原nonowned内容0B保持不变，原备份与清理备份最终0600。首个计划触发为2026-10-28 02:00。独立QA确认228文件、入口/Node/镜像pins；从`cwd=/`经真实flock运行得到`NOOP_OUTSIDE_WINDOW`，state/results为空，16个Docker IDs不变。本次实际模型请求0，尚未验证8次计划structure→understand调用或grounding。资源不足会skip，Gate 3仍`CHANGES_REQUIRED`，Gate 4/5未通过。
 
