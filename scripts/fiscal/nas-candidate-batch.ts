@@ -26,9 +26,7 @@ type GuardedResponse = { status: number; url: string; headers: Headers; body: Bu
 
 const ROOT = process.env.AIHOT_APP_ROOT ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const appModule = (relative: string) => pathToFileURL(path.resolve(ROOT, relative)).href;
-const CATALOG_PATH = path.join(ROOT, "industry/sources.json");
-const CATALOG_BYTES = readFileSync(CATALOG_PATH);
-const CATALOG = JSON.parse(CATALOG_BYTES.toString("utf8")) as { sources: Array<Record<string, any>> };
+const APP_CATALOG_PATH = path.join(ROOT, "industry/sources.json");
 const CAPTURE_ROOT = "/data/operators/runs";
 const PILOT_CAPTURE_RUN_ID = "nas-mof-budget-pilot-20261022";
 const PILOT_CAPTURE_OPERATOR_SHA256 = "9f7822b4d7de81e882eb86a9d059333d9660d82aea703021708603e0f2e838c8";
@@ -36,6 +34,23 @@ const PILOT_CAPTURE_RAW_SHA256 = "9ddd111bfa9dbc9edde1954f2e2af75d5e57dbeb6ab956
 const PILOT_CAPTURE_LEGACY_DECODED_SHA256 = "84e4a8da1fee6a44ffc058a33c17c048a26e3147f33004d7417664d8b7991339";
 const PILOT_CAPTURE_DECODED_SHA256 = "4456c71613c83c0de91a7d3285f93f617c3ddf8b2ef04ffdf89d9a2b1810b148";
 const DEFAULT_SOURCE_IDS = ["mof-budget-work"];
+export const DAILY_LATEST_PRESET = Object.freeze({
+  name: "daily-latest",
+  catalogSha256: "27af3250bbc472ed20019983093b43336cc1967b9ae3193e6b202da4df27ad3f",
+  appCatalogSha256: "b5287d7f66ab91ed535d23128796f284f39c7c2c60f126082a820e891d5b252a",
+  recentDays: 7,
+  maxNewPerSource: 10,
+  maxDetailsTotal: 30,
+  maxDispatches: 50,
+  sourceIds: Object.freeze([
+    "mof-budget-work", "mof-policy-release", "mof-finance-notices", "mof-accounting-notices",
+    "fujian-finance-notices", "xiamen-finance-debt", "pboc-xiamen-work", "xiamen-csrc-regulatory-work",
+    "mof-fujian-supervision-dynamics", "mof-xiamen-supervision-dynamics", "mof-beijing-supervision-dynamics",
+    "mof-shanghai-supervision-dynamics", "mof-henan-supervision-dynamics", "mof-hubei-supervision-dynamics",
+    "mof-hunan-supervision-dynamics", "mof-guangdong-supervision-dynamics", "mof-jiangsu-supervision-dynamics",
+    "mof-zhejiang-supervision-dynamics", "mof-sichuan-supervision-dynamics", "mof-chongqing-supervision-dynamics",
+  ]),
+});
 const MAX_SOURCES = 48;
 const MAX_NEW_PER_SOURCE = 30;
 const MAX_NEW_TOTAL = 600;
@@ -53,6 +68,132 @@ const stableJson = (value: unknown): string => {
   }
   return JSON.stringify(value) ?? "null";
 };
+
+export interface CandidateBatchScopeInput {
+  preset?: string;
+  sourceIds: string[];
+  maxNewPerSource: number;
+  maxDetailsTotal: number;
+  recentDays?: number;
+  catalogSha256: string;
+  explicitlyProvidedOptions?: readonly string[];
+}
+
+export interface CandidateCatalog {
+  path: string;
+  mode: "app-root" | "explicit-operator-override";
+  inputSha256: string;
+  appRootSha256: string;
+  sources: Array<Record<string, any>>;
+}
+
+/** Load an optional separately staged catalog only for the pinned daily preset. */
+export function loadCandidateCatalog(input: { appRootPath: string; overridePath?: string; preset?: string }): CandidateCatalog {
+  if (input.overridePath && input.preset !== DAILY_LATEST_PRESET.name) {
+    throw new Error("AIHOT_SOURCE_CATALOG_PATH is allowed only with daily-latest");
+  }
+  const appBytes = readFileSync(input.appRootPath);
+  const appRootSha256 = sha256(appBytes);
+  if (input.preset === DAILY_LATEST_PRESET.name && process.env.AIHOT_APP_ROOT &&
+      appRootSha256 !== DAILY_LATEST_PRESET.appCatalogSha256) {
+    throw new Error("daily-latest application image catalog drift; refusing scope");
+  }
+  let catalogPath = input.appRootPath;
+  let mode: CandidateCatalog["mode"] = "app-root";
+  if (input.overridePath) {
+    if (!path.isAbsolute(input.overridePath)) throw new Error("AIHOT_SOURCE_CATALOG_PATH must be absolute");
+    let stat;
+    try { stat = lstatSync(input.overridePath); }
+    catch { throw new Error("operator catalog is unavailable"); }
+    if (!stat.isFile() || stat.isSymbolicLink()) throw new Error("operator catalog must be a regular non-symlink file");
+    catalogPath = input.overridePath;
+    mode = "explicit-operator-override";
+  }
+  const bytes = readFileSync(catalogPath);
+  const inputSha256 = sha256(bytes);
+  if (input.preset === DAILY_LATEST_PRESET.name && inputSha256 !== DAILY_LATEST_PRESET.catalogSha256) {
+    throw new Error("daily-latest catalog hash drift; refusing scope");
+  }
+  let parsed: unknown;
+  try { parsed = JSON.parse(bytes.toString("utf8")); }
+  catch { throw new Error("source catalog is invalid JSON"); }
+  if (!parsed || typeof parsed !== "object" || !Array.isArray((parsed as { sources?: unknown }).sources)) {
+    throw new Error("source catalog must contain a sources array");
+  }
+  return { path: catalogPath, mode, inputSha256, appRootSha256,
+    sources: (parsed as { sources: Array<Record<string, any>> }).sources };
+}
+
+export interface CandidateBatchScope {
+  preset: "daily-latest" | null;
+  sourceIds: string[];
+  maxNewPerSource: number;
+  maxDetailsTotal: number;
+  recentDays: number | null;
+  requirePublishedAt: boolean;
+  maxDispatches: number;
+}
+
+/** Resolve the approved immutable daily scope before any database or HTTP work. */
+export function resolveCandidateBatchScope(input: CandidateBatchScopeInput): CandidateBatchScope {
+  if (input.preset !== undefined) {
+    if (input.preset !== DAILY_LATEST_PRESET.name) throw new Error("unknown candidate batch preset");
+    const incompatible = new Set(["--source-ids", "--max-new-per-source", "--max-details", "--recent-days", "--capture-replay-from"]);
+    if ((input.explicitlyProvidedOptions ?? []).some((name) => incompatible.has(name))) {
+      throw new Error("daily-latest preset does not accept scope overrides or capture replay");
+    }
+    if (input.catalogSha256 !== DAILY_LATEST_PRESET.catalogSha256) throw new Error("daily-latest catalog hash drift; refusing scope");
+    return {
+      preset: "daily-latest", sourceIds: [...DAILY_LATEST_PRESET.sourceIds],
+      maxNewPerSource: DAILY_LATEST_PRESET.maxNewPerSource, maxDetailsTotal: DAILY_LATEST_PRESET.maxDetailsTotal,
+      recentDays: DAILY_LATEST_PRESET.recentDays, requirePublishedAt: true,
+      maxDispatches: DAILY_LATEST_PRESET.maxDispatches,
+    };
+  }
+  const recentDays = input.recentDays ?? null;
+  if (recentDays !== null && (!Number.isSafeInteger(recentDays) || recentDays < 1 || recentDays > 3650)) {
+    throw new Error("recent-days must be an integer from 1 to 3650");
+  }
+  return { preset: null, sourceIds: input.sourceIds, maxNewPerSource: input.maxNewPerSource,
+    maxDetailsTotal: input.maxDetailsTotal, recentDays, requirePublishedAt: false,
+    maxDispatches: Math.min(MAX_DISPATCHES, input.sourceIds.length + input.maxDetailsTotal) };
+}
+
+export function isCandidateInFreshnessWindow(input: {
+  publishedAt: unknown; anchorMs: number; recentDays: number; requirePublishedAt: boolean;
+}): boolean {
+  if (!Number.isFinite(input.anchorMs) || !Number.isSafeInteger(input.recentDays) || input.recentDays < 1 || input.recentDays > 3650) return false;
+  if (input.publishedAt === null || input.publishedAt === undefined || input.publishedAt === "") return !input.requirePublishedAt;
+  const date = input.publishedAt instanceof Date ? input.publishedAt : new Date(input.publishedAt as string | number);
+  const dateMs = date.getTime();
+  return Number.isFinite(dateMs) && dateMs <= input.anchorMs && dateMs >= input.anchorMs - input.recentDays * 86_400_000;
+}
+
+/** Refuse execution if the selected live database rows differ from the approved input catalog. */
+export function assertDatabaseSourcesMatchCatalog(input: {
+  sourceIds: readonly string[];
+  databaseSources: Array<{ id: string; kind: string; name: string; config: unknown; enabled: boolean;
+    site_fulltext: boolean; syndicate_fulltext: boolean }>;
+  catalogSources: Array<Record<string, any>>;
+}): void {
+  if (new Set(input.sourceIds).size !== input.sourceIds.length || input.databaseSources.length !== input.sourceIds.length) {
+    throw new Error("one or more configured source rows are missing in target database");
+  }
+  const expectedIds = new Set(input.sourceIds);
+  const catalogById = new Map(input.catalogSources.map((source) => [String(source.id), source]));
+  const databaseById = new Map(input.databaseSources.map((source) => [source.id, source]));
+  if (databaseById.size !== input.sourceIds.length || [...expectedIds].some((id) => !databaseById.has(id))) {
+    throw new Error("one or more configured source rows are missing in target database");
+  }
+  for (const id of input.sourceIds) {
+    const row = databaseById.get(id)!;
+    const catalog = catalogById.get(id);
+    if (!catalog || row.kind !== catalog.kind || row.name !== catalog.name || stableJson(row.config) !== stableJson(catalog.config) ||
+        row.enabled !== false || row.site_fulltext !== false || row.syndicate_fulltext !== false) {
+      throw new Error(`source config or safety flags differ from fixed catalog: ${id}`);
+    }
+  }
+}
 
 export interface BatchSourcePlan {
   id: string;
@@ -360,19 +501,23 @@ class ResponseCapture {
   close() { for (const unsubscribe of this.listeners) unsubscribe(); }
 }
 
-function parseCli() {
+function parseCli(argv = process.argv.slice(2)) {
   return parseArgs({ options: {
+    preset: { type: "string" },
     "source-ids": { type: "string", default: DEFAULT_SOURCE_IDS.join(",") },
     "max-new-per-source": { type: "string", default: "30" },
     "max-details": { type: "string", default: "0" },
+    "recent-days": { type: "string" },
     "capture-replay-from": { type: "string" },
     "run-id": { type: "string" },
     execute: { type: "boolean", default: false },
-  }, strict: true });
+  }, strict: true, args: argv });
 }
 
 async function main() {
-  const args = parseCli().values;
+  const argv = process.argv.slice(2);
+  const parsed = parseCli(argv);
+  const args = parsed.values;
   // Set all runtime valves before importing backend config, HTTP or database modules.
   for (const key of ["COLLECT_ENABLED", "MODEL_CALLS_ENABLED", "JINA_BODY_FALLBACK", "FEISHU_CONTENT_PUSH_ENABLED",
     "FEISHU_INTERNAL_ENABLED", "INDEXNOW_SUBMIT_ENABLED", "EMBEDDINGS_ENABLED", "OCR_RUN_ENABLED", "WORKER_ENABLED",
@@ -383,26 +528,45 @@ async function main() {
     "GOOGLE_API_KEY", "DASHSCOPE_API_KEY", "EMBEDDING_API_KEY", "JINA_API_KEY", "OCR_API_KEY", "SOCIALDATA_API_KEY",
     "DAJIALA_API_KEY", "FEISHU_APP_ID", "FEISHU_APP_SECRET", "FEISHU_CONTENT_PUSH_WEBHOOK", "FEISHU_INTERNAL_WEBHOOK",
     "INDEXNOW_KEY", "EGRESS_PROXY_URL", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"]) delete process.env[key];
-  const sourceIds = String(args["source-ids"]).split(",").map((id) => id.trim());
-  const maxNewPerSource = Number(args["max-new-per-source"]);
-  const maxDetailsTotal = Number(args["max-details"]);
+  const catalog = loadCandidateCatalog({ appRootPath: APP_CATALOG_PATH, overridePath: process.env.AIHOT_SOURCE_CATALOG_PATH,
+    preset: args.preset });
+  const catalogSha256 = catalog.inputSha256;
+  const explicitlyProvidedOptions = argv.filter((token) => token.startsWith("--")).map((token) => token.split("=", 1)[0]!);
+  const requestedScope = resolveCandidateBatchScope({
+    preset: args.preset,
+    sourceIds: String(args["source-ids"]).split(",").map((id) => id.trim()),
+    maxNewPerSource: Number(args["max-new-per-source"]),
+    maxDetailsTotal: Number(args["max-details"]),
+    recentDays: args["recent-days"] === undefined ? undefined : Number(args["recent-days"]),
+    catalogSha256,
+    explicitlyProvidedOptions,
+  });
+  const sourceIds = requestedScope.sourceIds;
+  const maxNewPerSource = requestedScope.maxNewPerSource;
+  const maxDetailsTotal = requestedScope.maxDetailsTotal;
   const captureReplayDir = args["capture-replay-from"] ?? null;
   const { unsupportedConfig } = await import(appModule("packages/backend/src/sources/config-keys.ts")) as any;
-  const sourcePlan = buildSourcePlan({ catalogSources: CATALOG.sources, sourceIds, maxNewPerSource, maxDetailsTotal, unsupportedConfig });
+  const sourcePlan = buildSourcePlan({ catalogSources: catalog.sources, sourceIds, maxNewPerSource, maxDetailsTotal, unsupportedConfig });
   if (captureReplayDir && (sourcePlan.length !== 1 || sourcePlan[0]?.kind !== "web_list" || maxDetailsTotal !== 0)) {
     throw new Error("capture replay is limited to one web-list source with zero details");
   }
   const totalNewCap = Math.min(MAX_NEW_TOTAL, sourcePlan.length * maxNewPerSource);
   const totalDetailCap = Math.min(MAX_DETAILS_TOTAL, maxDetailsTotal,
     sourcePlan.reduce((sum, source) => sum + source.maxDetails, 0));
-  const catalogSha256 = sha256(CATALOG_BYTES);
+  const networkDispatchBudget = captureReplayDir ? 0 : sourcePlan.length + totalDetailCap;
+  if (requestedScope.preset === DAILY_LATEST_PRESET.name && networkDispatchBudget > DAILY_LATEST_PRESET.maxDispatches) {
+    throw new Error("daily-latest effective dispatch budget exceeds its 50-request cap");
+  }
   const operatorSha256 = sha256(readFileSync(fileURLToPath(import.meta.url)));
   const startedAt = new Date().toISOString();
   const plan = { result: args.execute ? "EXECUTE_SCOPE_READONLY_PREFLIGHT_PASS" : "PLAN_ONLY_NO_DATABASE_NO_HTTP_NO_WRITES",
-    startedAt, sourceIds, catalogSha256, operatorSha256, fixedAppSha: FIXED_APP_SHA,
+    preset: requestedScope.preset, startedAt, sourceIds, catalogSha256, appRootCatalogSha256: catalog.appRootSha256,
+    catalogInputMode: catalog.mode, operatorSha256, fixedAppSha: FIXED_APP_SHA,
     networkMode: captureReplayDir ? "capture-replay" : "live", replaySourceRunId: captureReplayDir ? path.basename(captureReplayDir) : null,
-    maxDispatches: captureReplayDir ? 0 : sourcePlan.length + totalDetailCap,
-    networkDispatchBudget: captureReplayDir ? 0 : sourcePlan.length + totalDetailCap,
+    freshnessWindow: { days: requestedScope.recentDays ?? "source-config", anchor: startedAt,
+      requirePublishedAt: requestedScope.preset ? true : "source-config", rejectFuture: true },
+    maxDispatches: networkDispatchBudget,
+    networkDispatchBudget,
     listObservationBudget: sourcePlan.length,
     maxNewPerSource, maxNewTotal: totalNewCap, maxDetailsTotal: totalDetailCap,
     minIntervalMs: MIN_INTERVAL_MS, serial: true, redirects: 0, retries: 0, queueProcessing: false,
@@ -432,16 +596,9 @@ async function main() {
     const ids = sourcePlan.map((source) => source.id);
     const dbSources: Array<SourceRow & { id: string; source_row_text: string; site_fulltext: boolean; syndicate_fulltext: boolean; name: string }> = await sql<Array<SourceRow & { id: string; source_row_text: string; site_fulltext: boolean; syndicate_fulltext: boolean; name: string }>>`
       SELECT s.*, to_jsonb(s)::text AS source_row_text FROM sources s WHERE s.id = ANY(${ids}) ORDER BY s.id`;
-    if (dbSources.length !== sourcePlan.length) throw new Error("one or more configured source rows are missing in target database");
-    const catalogById = new Map(CATALOG.sources.map((source) => [source.id, source]));
+    assertDatabaseSourcesMatchCatalog({ sourceIds: sourcePlan.map((source) => source.id),
+      databaseSources: dbSources, catalogSources: catalog.sources });
     const sourceById = new Map<string, (typeof dbSources)[number]>(dbSources.map((row: (typeof dbSources)[number]) => [row.id, row]));
-    for (const row of dbSources) {
-      const catalog = catalogById.get(row.id)!;
-      if (row.kind !== catalog.kind || row.name !== catalog.name || stableJson(row.config) !== stableJson(catalog.config) ||
-          row.enabled !== false || row.site_fulltext !== false || row.syndicate_fulltext !== false) {
-        throw new Error(`source config or safety flags differ from fixed catalog: ${row.id}`);
-      }
-    }
     if (!args["run-id"] || !/^[a-z0-9][a-z0-9_-]{2,80}$/iu.test(args["run-id"])) throw new Error("--execute requires a fresh safe --run-id");
     const replayCapture = captureReplayDir ? readCaptureReplay({ directory: captureReplayDir, database: dbName,
       sourceId: sourcePlan[0]!.id, expectedUrl: sourcePlan[0]!.url,
@@ -460,16 +617,20 @@ async function main() {
     const { noiseFiltered } = await import(appModule("packages/backend/src/sources/collect.ts")) as any;
     const runId = String(args["run-id"]);
     const manifestPath = path.join(outDir, "scope.json");
-    const scope = { schemaVersion: "nas-candidate-batch.v1", runId, database: dbName, startedAt,
+    const scope = { schemaVersion: "nas-candidate-batch.v1", preset: requestedScope.preset, runId, database: dbName, startedAt,
       networkMode: replayCapture ? "capture-replay" : "live", replaySource: replayCapture ? { runId: replayCapture.originalRunId,
         operatorSha256: replayCapture.originalOperatorSha256, sourceId: replayCapture.sourceId, method: replayCapture.method,
         url: replayCapture.sourceUrl, status: replayCapture.status, contentType: replayCapture.contentType,
         contentEncoding: replayCapture.contentEncoding, bytes: replayCapture.bytes, rawSha256: replayCapture.sha256,
         eof: replayCapture.eof, decodedTextSha256: replayCapture.decodedTextSha256,
         legacyManifestDecodedTextSha256: replayCapture.legacyManifestDecodedTextSha256 } : null,
-      networkDispatchBudget: replayCapture ? 0 : sourcePlan.length + totalDetailCap, listObservationBudget: sourcePlan.length,
-      catalogSha256, operatorSha256, fixedAppSha: FIXED_APP_SHA, sourceIds, maxNewPerSource, maxNewTotal: totalNewCap, maxDetailsTotal: totalDetailCap,
-      minIntervalMs: MIN_INTERVAL_MS, limits: { listGetsPerSource: 1, maxRedirects: 0, retries: 0, maxBodyBytes: MAX_CAPTURE_BYTES },
+      freshnessWindow: { days: requestedScope.recentDays ?? "source-config", anchor: startedAt,
+        requirePublishedAt: requestedScope.preset ? true : "source-config", rejectFuture: true },
+      networkDispatchBudget: replayCapture ? 0 : networkDispatchBudget, listObservationBudget: sourcePlan.length,
+      catalogSha256, appRootCatalogSha256: catalog.appRootSha256, catalogInputMode: catalog.mode,
+      operatorSha256, fixedAppSha: FIXED_APP_SHA, sourceIds, maxNewPerSource, maxNewTotal: totalNewCap, maxDetailsTotal: totalDetailCap,
+      maxDispatches: networkDispatchBudget, recentDays: requestedScope.recentDays,
+      minIntervalMs: MIN_INTERVAL_MS, serial: true, limits: { listGetsPerSource: 1, maxRedirects: 0, retries: 0, maxBodyBytes: MAX_CAPTURE_BYTES },
       sources: sourcePlan.map((p) => ({ ...p, sourceRowSha256: sha256(sourceById.get(p.id)!.source_row_text) })) };
     writeFileSync(manifestPath, `${JSON.stringify(scope, null, 2)}\n`, { flag: "wx", mode: 0o600 });
 
@@ -479,7 +640,7 @@ async function main() {
       beforeDispatch({ url, method, redirectHop }: { url: URL; method: string; redirectHop: number }) {
         const wait = MIN_INTERVAL_MS - (Date.now() - lastDispatchAt);
         if (wait > 0) throw new Error("dispatch rate guard rejected an early request");
-        if (dispatches >= MAX_DISPATCHES || !isBatchDispatchInScope({ source, url, expectedUrl, method, redirectHop, type, allowed })) {
+        if (dispatches >= networkDispatchBudget || dispatches >= MAX_DISPATCHES || !isBatchDispatchInScope({ source, url, expectedUrl, method, redirectHop, type, allowed })) {
           throw new Error(`network scope rejected request for ${sourceId}`);
         }
         lastDispatchAt = Date.now();
@@ -515,15 +676,12 @@ async function main() {
         const candidateIdentities = [...new Set(candidates.map((candidate) => identityKeyFor({ ...candidate, sourceId: source.id, via: "fetch" })))];
         const known = await findKnownIdentityKeys(sql, candidateIdentities);
         const filtered = candidates.filter((candidate) => allowed(candidate.url, source) && !noiseFiltered(candidate, source));
-        const firstImportMonths = Number(source.config._aihot?.initialBackfillMonths ?? 3);
-        const cutoff = Date.now() - Math.max(1, firstImportMonths) * 30 * 86_400_000;
         const result = classifyCandidates({ candidates: filtered, source, knownIdentities: known,
           identityKeyFor, allowed, rewrite: source.config.itemUrlPrefixRewrite, maxNew: Math.max(0, Math.min(planRow.maxNew, totalNewCap - globalNew)),
-          inWindow: (candidate) => {
-            if (!candidate.publishedAt) return source.config._aihot?.initialBackfillRequirePublishedAt !== true;
-            const date = candidate.publishedAt instanceof Date ? candidate.publishedAt : new Date(candidate.publishedAt as never);
-            return Number.isFinite(date.getTime()) && date.getTime() <= Date.now() && date.getTime() >= cutoff;
-          } });
+          inWindow: (candidate) => isCandidateInFreshnessWindow({ publishedAt: candidate.publishedAt,
+            anchorMs: Date.parse(startedAt), recentDays: requestedScope.recentDays ??
+              Math.max(1, Number(source.config._aihot?.initialBackfillMonths ?? 3)) * 30,
+            requirePublishedAt: requestedScope.preset ? true : source.config._aihot?.initialBackfillRequirePublishedAt === true }) });
         phase = "detail";
         const detailTargets: Array<{ identityKey: string; candidate: Candidate; got?: Awaited<ReturnType<typeof fetchDetail>>; bodyOk?: boolean; hold?: string }> =
           result.eligible.map((item) => ({ ...item }));
@@ -555,6 +713,9 @@ async function main() {
             else if (!got.title) target.hold = "detail_title_unconfirmed";
             else if (got.title.trim().normalize("NFKC") !== target.candidate.title.trim().normalize("NFKC")) target.hold = "detail_title_mismatch";
             else if (!got.publishedAt) target.hold = "detail_date_unconfirmed";
+            else if (!isCandidateInFreshnessWindow({ publishedAt: got.publishedAt, anchorMs: Date.parse(startedAt),
+              recentDays: requestedScope.recentDays ?? Math.max(1, Number(source.config._aihot?.initialBackfillMonths ?? 3)) * 30,
+              requirePublishedAt: true })) target.hold = "detail_date_outside_freshness_window";
             else if (target.candidate.publishedAt &&
               !sameConfiguredDay(target.candidate.publishedAt, got.publishedAt, String(source.config.detail.publishedAtUtcOffset ?? source.config.publishedAtUtcOffset ?? "+08:00"))) target.hold = "detail_date_mismatch";
             else target.bodyOk = !target.hold;
@@ -616,12 +777,15 @@ async function main() {
         if (phase !== "list") break;
       }
     }
-    const report = { schemaVersion: "nas-candidate-batch-result.v1", model: "gpt-6-luna high", providerCalls: 0,
+    const report = { schemaVersion: "nas-candidate-batch-result.v1", preset: requestedScope.preset,
+      freshnessWindow: { days: requestedScope.recentDays ?? "source-config", anchor: startedAt,
+        requirePublishedAt: requestedScope.preset ? true : "source-config", rejectFuture: true },
+      model: null, modelCalls: 0, providerCalls: 0,
       runId: String(args["run-id"]), operatorSha256, fixedAppSha: FIXED_APP_SHA, startedAt,
       completedAt: new Date().toISOString(), database: dbName, catalogSha256, networkMode: replayCapture ? "capture-replay" : "live",
       replaySourceRunId: replayCapture?.originalRunId ?? null, networkDispatches: dispatches,
       listObservations: results.filter((r) => Number(r.listObservations ?? 0) > 0).length, sourceIds,
-      limits: { maxDispatches: replayCapture ? 0 : sourcePlan.length + totalDetailCap, maxNewPerSource, maxNewTotal: totalNewCap, maxDetailsTotal: totalDetailCap, minIntervalMs: MIN_INTERVAL_MS,
+      limits: { maxDispatches: replayCapture ? 0 : networkDispatchBudget, maxNewPerSource, maxNewTotal: totalNewCap, maxDetailsTotal: totalDetailCap, minIntervalMs: MIN_INTERVAL_MS,
         redirects: 0, retries: 0, queueProcessing: false, collectSource: false, sourceWrites: false },
       flags: Object.fromEntries(["COLLECT_ENABLED", "MODEL_CALLS_ENABLED", "JINA_BODY_FALLBACK", "FEISHU_CONTENT_PUSH_ENABLED",
         "FEISHU_INTERNAL_ENABLED", "INDEXNOW_SUBMIT_ENABLED", "EMBEDDINGS_ENABLED", "OCR_RUN_ENABLED", "WORKER_ENABLED"].map((key) => [key, process.env[key]])),
