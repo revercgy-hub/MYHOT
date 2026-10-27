@@ -1,5 +1,13 @@
 # 财政金融热点站阶段计划
 
+## 2026-10-27 NAS近7天轻量采集调度已安装（当前新增范围）
+
+`CURRENT_SHA=fe482eaa7861cf8f95dacc91b0b60c0e18756b60`（本轮代码/测试提交；本计划文档另行提交）。
+
+Root依据用户持续采集与改善时效授权，批准固定20个已验证源的无模型独立operator调度：上海时间每日06:00、12:00、18:00，近7天、发布日期必需且不超固定anchor、每源最多10篇新增、整轮最多30详情/50次GET。新cron已安装并经独立只读后验通过；本次实际新GET和模型调用均0，首个计划触发为2026-10-28 06:00。它只写采集材料，不自动生成或公开摘要，首页更新仍走既有独立QA与授权流程。
+
+本范围不启用source admission、global采集开关或worker，不变更Gold200、阈值或prompt；operator catalog override与可信`/app` backend隔离，允许现有API容器内独立one-shot，不重启主进程。与02:00理解任务共享原锁，新增owned cron须保留原night五行字节不变。核心静态复核已确认catalog双pin、旧source回溯期兼容与详情日期再校验；新增322B job与入口pins相符，原night五行525B逐字节保留、marker外新增0、备份0600；首次真实运行证据仍待计划触发。Gate 3仍`CHANGES_REQUIRED`，Gate 4/5未通过。详见[近7天轻量采集交接](HANDOFFS/DAILY_LATEST_COLLECTOR_2026-10-27.md)。
+
 ## 2026-10-27 近7天官方增量与6篇摘要已公开（当前）
 
 两波固定近7天采集合计32次官方GET，新增21篇（12正文ok、9pending），article/revision/discovery为439/681/439；来源配置与Gold200未变。随后6篇严格正文的原生Luna辅助摘要经Sol逐句grounding、canonical QA、PG17备份与只读preflight，Root精确授权后一次CAS提交。独立DB/LAN后验PASS，publication/override从131到137，selected均false、score/reason为空，摘要与原文链接公开、正文不外露；/all包含6个新标题，公开最新发布日期为上海2026-10-27 09:35，近24小时公开3篇（采集库6篇）。
