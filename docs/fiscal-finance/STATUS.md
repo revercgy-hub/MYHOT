@@ -1,6 +1,22 @@
 # 项目状态
 
-## 2026-10-26 局域网 Ollama 小批量验收（当前）
+## 2026-10-27 NAS理解链路预检（当前）
+
+```text
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CODE_SHA=d2d49e97097518de45ec65234c283ef07b6fac30 (guarded isolated structure/understand runner; no NAS deployment)
+NAS_RUNTIME=d45f0d93f5374b7c72cdf0efb64ada6a03b84404; unchanged, API/Web process was not started or modified
+GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT; Gate 3 CHANGES_REQUIRED; Gate 4/5 not passed
+SOFTWARE_QA=guard 7/7; typecheck, strict runner tsc, node checks, npm test 497/502 pass 0 fail 5 config skips; Web build/tests 22/22
+PREFLIGHT=three read-only snapshots at ~57s spacing: MemAvailable 3,094,584→2,133,144→1,335,720 kB (2.95→2.03→1.27 GiB); SwapFree 28/36/48 kB; below required 4 GiB
+PILOT=4 fixed development samples; 8 planned structure+understand requests under cap 12; actual provider calls 0, containers 0, NAS test DB/migrations 0, NAS business writes 0
+BLOCKER=resource guard stopped NAS setup before port/container/database preparation; no receipt or grounding result exists
+NEXT=wait until a new read-only snapshot confirms MemAvailable >=4 GiB and port 55433 is free; recheck image/dependency and isolation provenance, freeze inputs/code, then require Root authorization for the 8-call run
+```
+
+预检证据、四个固定输入hash、代码文件hash及本机软件测试范围见[2026-10-27 NAS容器内understand预检交接](HANDOFFS/UNDERSTAND_CONTAINER_PREFLIGHT_2026-10-27.md)。本次只用一个只读`/api/ps` GET确认本来已加载的qwen3.5:9b；0次chat completion。资源门槛未达到，故未创建NAS容器/测试库/执行迁移。此项只验证代码可离线准备，不表示容器provider receipt或understand质量通过。Gate 3仍`CHANGES_REQUIRED`，Gate 4/5未通过。
+
+## 2026-10-26 局域网 Ollama 小批量验收（历史）
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot

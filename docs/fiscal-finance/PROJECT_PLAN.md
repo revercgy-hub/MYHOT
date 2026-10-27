@@ -2,7 +2,23 @@
 
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
-## 2026-10-26 局域网 Ollama 小批量验收（当前）
+## 2026-10-27 NAS understand链路资源预检（当前）
+
+```text
+BRANCH=feat/fiscal-finance-hot
+CODE_SHA=d2d49e97097518de45ec65234c283ef07b6fac30; base=1290ad86c4532b6465ae16337d3c29a545e782dc
+NAS_RUNTIME=d45f0d93f5374b7c72cdf0efb64ada6a03b84404 unchanged; no API process, image, DB or source state touched
+GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT; Gate 3 CHANGES_REQUIRED; Gate 4/5 not passed
+SCOPE=Four fixed, previously used development request-only inputs; planned direct structure→understand, 8 serial calls total, HTTP cap 12; no prefilter, scoring, selection, normalizeAnalysis or publication
+SOFTWARE=guard 7/7; typecheck/strict runner tsc/node checks pass; npm test 502 total, 497 pass/0 fail/5 existing DB-config skips; Web build and 22/22 tests pass
+RESOURCE=three read-only snapshots ~57s apart; latest MemAvailable 1,335,720 kB ~=1.27 GiB, below 4 GiB pre-container condition; SwapFree 48 kB
+ACTUAL=0 model calls, 0 NAS containers, 0 NAS test DB/migrations, 0 NAS business writes
+NEXT=after resource recovery, recheck minimum 4 GiB and free 55433; verify image/runtime/dependency provenance and isolated client+PG namespace, freeze exact input hashes and code, then obtain Root authorization for the eight planned calls
+```
+
+尚无receipt、provider response、understand输出或grounding结果。资源侧车与严格边界见[2026-10-27 NAS容器内understand预检交接](HANDOFFS/UNDERSTAND_CONTAINER_PREFLIGHT_2026-10-27.md)。新代码不构成Gate证据，不改变阈值、Gold、提示词、NAS运行代码或行业业务表。Gate 2 bounded P4结论不变；Gate 3仍`CHANGES_REQUIRED`，Gate 4/5未通过。
+
+## 2026-10-26 局域网 Ollama 小批量验收（历史）
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
