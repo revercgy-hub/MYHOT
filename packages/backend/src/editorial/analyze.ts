@@ -245,7 +245,7 @@ async function runScores(a: AnalyzeInputArticle, threshold: number, opts: StepOp
   return { model, threshold, values, receiptIds, reused };
 }
 
-async function runStructure(a: AnalyzeInputArticle, opts: StepOpts): Promise<NonNullable<AnalysisRun["structure"]>> {
+export async function runStructure(a: AnalyzeInputArticle, opts: StepOpts): Promise<NonNullable<AnalysisRun["structure"]>> {
   const model = await stepModel("structure", opts);
   checkAnalysisRunning();
   const res = await chatJson({
@@ -265,7 +265,7 @@ async function runStructure(a: AnalyzeInputArticle, opts: StepOpts): Promise<Non
 }
 
 /** The content understanding; null when the model's content filter declines the material. */
-async function runUnderstand(a: AnalyzeInputArticle, opts: StepOpts, failOnRefusal = false): Promise<AnalysisRun["writing"]> {
+export async function runUnderstand(a: AnalyzeInputArticle, opts: StepOpts, failOnRefusal = false): Promise<AnalysisRun["writing"]> {
   const model = await stepModel("understand", opts);
   const text = understandUser(a);
   const call = (image: ContentPart | null) => {
