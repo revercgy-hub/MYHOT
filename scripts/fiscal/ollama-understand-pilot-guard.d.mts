@@ -5,6 +5,7 @@ export interface UnderstandPilotGuardStats {
   inFlight: number;
   requestCap: number;
   expectedCalls: number;
+  requestStartedAtEpochMs: number[];
 }
 
 export type UnderstandPilotGuardedFetch = typeof fetch & { readonly stats: UnderstandPilotGuardStats };
@@ -23,6 +24,8 @@ export function createUnderstandPilotFetchGuard(options: {
   nativeFetch?: typeof fetch;
   expectedBaseUrl?: string;
   expectedModel?: string;
+  deadlineEpochMs?: number | null;
+  now?: () => number;
 }): UnderstandPilotGuardedFetch;
 
 export const UNDERSTAND_PILOT_CONSTANTS: Readonly<{

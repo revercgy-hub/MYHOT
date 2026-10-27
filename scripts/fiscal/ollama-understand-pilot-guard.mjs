@@ -105,15 +105,21 @@ export function createUnderstandPilotFetchGuard({
   nativeFetch = globalThis.fetch.bind(globalThis),
   expectedBaseUrl = LOCAL_BASE_URL,
   expectedModel = LOCAL_MODEL,
+  deadlineEpochMs = null,
+  now = () => Date.now(),
 } = {}) {
   if (!apiKey || typeof apiKey !== "string") throw new UnderstandPilotGuardError("LLM_API_KEY must be injected into the isolated test process");
   const endpoint = new URL(`${expectedBaseUrl.replace(/\/$/u, "")}/chat/completions`);
   if (endpoint.protocol !== "http:" || endpoint.hostname !== "192.168.3.100" || endpoint.port !== "11435" || endpoint.pathname !== "/v1/chat/completions") {
     throw new UnderstandPilotGuardError("The approved local chat endpoint is invalid");
   }
+  if (deadlineEpochMs !== null && (!Number.isSafeInteger(deadlineEpochMs) || deadlineEpochMs <= 0)) {
+    throw new UnderstandPilotGuardError("The scheduled request deadline is invalid");
+  }
 
   let requests = 0;
   let inFlight = 0;
+  const requestStartedAtEpochMs = [];
   const guardedFetch = async (input, init = {}) => {
     let url;
     try {
@@ -143,10 +149,19 @@ export function createUnderstandPilotFetchGuard({
     if (requests >= REQUEST_CAP) throw new UnderstandPilotGuardError("Pilot HTTP request cap reached");
     if (inFlight !== 0) throw new UnderstandPilotGuardError("Concurrent provider requests are disabled for this pilot");
 
+    const stageTimeoutMs = body.max_tokens === 800 ? 120_000 : 180_000;
+    const requestStartedAt = now();
+    if (deadlineEpochMs !== null && requestStartedAt + stageTimeoutMs > deadlineEpochMs) {
+      throw new UnderstandPilotGuardError("The night window does not have enough time for this request");
+    }
+
     requests += 1;
     inFlight += 1;
+    requestStartedAtEpochMs.push(requestStartedAt);
     try {
-      const response = await nativeFetch(input, { ...init, redirect: "manual" });
+      const deadlineSignal = deadlineEpochMs === null ? undefined : AbortSignal.timeout(Math.max(1, deadlineEpochMs - requestStartedAt));
+      const signal = deadlineSignal ? (init.signal ? AbortSignal.any([init.signal, deadlineSignal]) : deadlineSignal) : init.signal;
+      const response = await nativeFetch(input, { ...init, redirect: "manual", ...(signal ? { signal } : {}) });
       if (!response.ok) {
         const requestId = response.headers.get("x-request-id");
         return new Response(JSON.stringify({ error: "Local provider error body suppressed" }), {
@@ -179,7 +194,7 @@ export function createUnderstandPilotFetchGuard({
       inFlight -= 1;
     }
   };
-  Object.defineProperty(guardedFetch, "stats", { get: () => ({ requests, inFlight, requestCap: REQUEST_CAP, expectedCalls: EXPECTED_TOKEN_SEQUENCE.length }) });
+  Object.defineProperty(guardedFetch, "stats", { get: () => ({ requests, inFlight, requestCap: REQUEST_CAP, expectedCalls: EXPECTED_TOKEN_SEQUENCE.length, requestStartedAtEpochMs: [...requestStartedAtEpochMs] }) });
   return guardedFetch;
 }
 

@@ -1,8 +1,14 @@
 # 财政金融热点站阶段计划
 
+## 2026-10-27 NAS夜间理解任务已安装（当前）
+
+上海时间每日02:00的NAS user cron已安装：owned job恰1条、401B，原nonowned内容0B保持不变，原备份与清理备份最终0600。首个计划触发为2026-10-28 02:00。独立QA确认228文件、入口/Node/镜像pins；从`cwd=/`经真实flock运行得到`NOOP_OUTSIDE_WINDOW`，state/results为空，16个Docker IDs不变。本次实际模型请求0，尚未验证8次计划structure→understand调用或grounding。资源不足会skip，Gate 3仍`CHANGES_REQUIRED`，Gate 4/5未通过。
+
+冻结核心软件QA：focused25/25、typecheck、全npm517项（512pass/0fail/5既有skip）、Web build与22/22通过。早期误加的marker外SHELL/PATH两行已凭exact证据清除，并用同版installer重装；详情、hash及限制见[夜间任务安装交接](HANDOFFS/UNDERSTAND_NIGHTLY_INSTALL_2026-10-27.md)。下方预检是安装前历史，不再表示当前未安装。
+
 本计划依据仓库根目录的[《财政金融热点站完整开发与部署任务书.md》](../../财政金融热点站完整开发与部署任务书.md)及仓库 `AGENTS.md`、`docs/customize.md`、`docs/sources.md`、`docs/selection.md`、`docs/deploy.md` 整理。任务书原件位于仓库父目录，仓库内副本 SHA-256 完全一致。若任务书与 `AGENTS.md` 或当前代码能力冲突，按优先级记录并解决，不为符合计划而破坏通用架构。
 
-## 2026-10-27 NAS understand链路资源预检（当前）
+## 2026-10-27 NAS understand链路资源预检（安装前历史）
 
 ```text
 BRANCH=feat/fiscal-finance-hot

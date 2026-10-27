@@ -92,7 +92,11 @@ test("passes only the actual serial structure and understand token caps to the e
   }
   assert.equal(hits, 8);
   assert.equal(redirect, "manual");
-  assert.deepEqual(guard.stats, { requests: 8, inFlight: 0, requestCap: 12, expectedCalls: 8 });
+  assert.equal(guard.stats.requests, 8);
+  assert.equal(guard.stats.inFlight, 0);
+  assert.equal(guard.stats.requestCap, 12);
+  assert.equal(guard.stats.expectedCalls, 8);
+  assert.equal(guard.stats.requestStartedAtEpochMs.length, 8);
   await assert.rejects(guard(...request({ index: 8 })), /stage or token cap rejected/u);
 });
 
@@ -150,4 +154,41 @@ test("rejects overlapping requests before a second provider call", async () => {
   release();
   await first;
   assert.equal(guard.stats.requests, 1);
+});
+
+test("scheduled deadline refuses a request without its full stage timeout remaining", async () => {
+  let hits = 0;
+  const now = 1_000_000;
+  const guard = createUnderstandPilotFetchGuard({
+    apiKey: key,
+    now: () => now,
+    deadlineEpochMs: now + UNDERSTAND_PILOT_CONSTANTS.stageTimeoutMs.structure - 1,
+    nativeFetch: async () => { hits += 1; return validResponse(0); },
+  });
+  await assert.rejects(guard(...request({ index: 0 })), /enough time for this request/u);
+  assert.equal(hits, 0);
+  assert.equal(guard.stats.requests, 0);
+});
+
+test("deadline abort is combined with the stage timeout signal without replacing it", async () => {
+  const controller = new AbortController();
+  const now = 1_000_000;
+  let combinedSignal: AbortSignal | undefined;
+  const guard = createUnderstandPilotFetchGuard({
+    apiKey: key,
+    now: () => now,
+    deadlineEpochMs: now + UNDERSTAND_PILOT_CONSTANTS.stageTimeoutMs.structure,
+    nativeFetch: async (_input, init) => {
+      combinedSignal = init?.signal as AbortSignal;
+      assert.notEqual(combinedSignal, controller.signal);
+      controller.abort();
+      assert.equal(combinedSignal.aborted, true);
+      return validResponse(0);
+    },
+  });
+  const [url, init] = request({ index: 0 });
+  const withTimeout = { ...init, signal: controller.signal };
+  await guard(url, withTimeout);
+  assert.equal(guard.stats.requests, 1);
+  assert.deepEqual(guard.stats.requestStartedAtEpochMs, [now]);
 });

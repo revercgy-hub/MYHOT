@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, readSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -67,9 +67,27 @@ function sha256(value: string | Buffer): string {
   return createHash("sha256").update(value).digest("hex").toUpperCase();
 }
 
+function readApiKeyLineFromStdin(): string {
+  const bytes: number[] = [];
+  const one = Buffer.alloc(1);
+  const maxBytes = 4096;
+  while (bytes.length <= maxBytes) {
+    const count = readSync(0, one, 0, 1, null);
+    if (count === 0) throw new Error("API key stdin must end with LF");
+    if (one[0] === 10) break;
+    if (one[0] === 13 || one[0] === 0) throw new Error("API key stdin framing is invalid");
+    bytes.push(one[0]!);
+  }
+  if (bytes.length === 0 || bytes.length > maxBytes) throw new Error("API key stdin length is invalid");
+  const value = Buffer.from(bytes).toString("utf8");
+  if (!/^[\x21-\x7e]+$/u.test(value)) throw new Error("API key stdin encoding is invalid");
+  return value;
+}
+
 function configureProcess(): { apiKey: string; databaseUrl: string; containerId: string; hostname: string } {
   if (process.env.NODE_OPTIONS || process.env.NODE_PATH) throw new Error("Unexpected Node preload or module path configuration");
-  const apiKey = process.env.LLM_API_KEY?.trim();
+  if (process.env.OLLAMA_PILOT_API_KEY_STDIN !== "1" || process.env.LLM_API_KEY?.trim()) throw new Error("The approved API key stdin mode is required");
+  const apiKey = readApiKeyLineFromStdin();
   const databaseUrl = process.env.DATABASE_URL;
   const containerId = process.env.OLLAMA_PILOT_CONTAINER_ID ?? "";
   if (!apiKey) throw new Error("LLM_API_KEY must be injected by the isolated local operator");
@@ -87,6 +105,7 @@ function configureProcess(): { apiKey: string; databaseUrl: string; containerId:
   for (const name of Object.keys(process.env)) if (/^FEISHU_.*_ENABLED$/u.test(name)) process.env[name] = "false";
   Object.assign(process.env, DISABLED_FLAGS);
   process.env.LLM_API_KEY = apiKey;
+  delete process.env.OLLAMA_PILOT_API_KEY_STDIN;
   process.env.DATABASE_URL = databaseUrl;
   process.env.LLM_BASE_URL = UNDERSTAND_PILOT_CONSTANTS.baseUrl;
   process.env.LLM_MODEL = UNDERSTAND_PILOT_CONSTANTS.model;
@@ -150,7 +169,8 @@ async function main(): Promise<void> {
   });
 
   const originalFetch = globalThis.fetch;
-  const fetchGuard = createUnderstandPilotFetchGuard({ apiKey: processConfig.apiKey });
+  const deadlineEpochMs = process.env.OLLAMA_PILOT_DEADLINE_EPOCH_MS === undefined ? null : Number(process.env.OLLAMA_PILOT_DEADLINE_EPOCH_MS);
+  const fetchGuard = createUnderstandPilotFetchGuard({ apiKey: processConfig.apiKey, deadlineEpochMs });
   globalThis.fetch = fetchGuard as typeof fetch;
   let closeDb: (() => Promise<void>) | undefined;
   try {
@@ -265,6 +285,7 @@ async function main(): Promise<void> {
       businessRowCountsUnchanged: true,
       sampleCount: selected.length,
       callsPerSample: ["structure", "understand"],
+      requestStartedAtEpochMs: fetchGuard.stats.requestStartedAtEpochMs,
       promptVersions: analyze.PROMPT_VERSIONS,
       results,
     };
