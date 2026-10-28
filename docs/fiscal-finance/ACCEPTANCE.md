@@ -1,5 +1,35 @@
 # 验收清单
 
+## 2026-10-29 当前试运行验收
+
+- [x] 42条正文 CAS及独立只读后验：`pending-body-20261028-r1`，42 proposals通过、8 holds未变、受保护rowsets exact、source flags关闭、Gold200未变；505/789/505，body306/190/9，publication/override137/137。post-CAS audit SHA-256 `81b6fc45bacf64063a04d23831b7412c3822ecbebbe0179eaf4a17a34db56813`。这更新了10/28快照，不能再写“未CAS”。
+- [x] 新API/UI Staging只读QA：image897/ee9，LAN smoke30/30；匿名`/api/admin/summary-drafts`401、`/admin/summary-drafts`302登录；summary route chunk与本地build相同SHA42107b80…58891。公开all样例body null/noindex，selected为空。没有完成管理员认证操作或批准draft。
+- [x] Summary nightly plan-only：r4 exact operator c2d231…799db；10/29 01:16 run `summary-draft-plan-20261029-0116-4081654` roster10 unique、10 `plan-only`、providerCalls0、once/draft/intent文件0。只证明计划解析路径可运行，不是生成10条草稿或03:30 scheduled run。
+- [x] PG17 daily backup operator focused tests：旧版run operator/test SHA84a716…f495a9/900972…c2170测试9/9；已完成NAS manual run。后续存原schema.sql及normalized fingerprint增强版本SHA F50F86A5CA2A0AA1119A0E89F03226BD8C4C3CEFF535E722058B624289A43B1B、test SHA835FED67F1F55F6D9594FBB59E92142AFAFF1734575961B9AB4BFE14E4881E82，focused10/10+nodecheck PASS。备份不重跑。
+- [x] 集成最终全树回归：typecheck PASS、npm 532 total/526 pass/0 fail/6 skip（旧228 artifact positive 1 + existing DB skips 5）、Web build PASS、Web tests25/25；Node24.16/PG17.11/36 migrations。日志见`.data/fiscal-qa/final-suite-20261029`。
+- [x] NAS Staging app/runtime/cron readback：image `sha256:ee9ead66eb33d557bbc6206c975ed9649b87973a6de15b4049b4f18543ec54ba`，四owned marker latest06/12/18、understand02、summary03:30、backup01:00均逐条读回；(当前已部署状态不代表计划触发成功)。 final crontab SHA `843520657abd32fd389b82c2dd64f5cefa3ea3d585a33c6bb14b75dcae4fd2bb`/1898B/0600，marker外0字节。NAS 01:20:35+08时今日02/03:30/06/12/18待触发，首个计划backup 10/30 01:00。
+- [x] NAS manual PG17.11 backup：run `pg17daily-20261028T170513Z-fb171fdf716d`，dump 2,036,885B / SHA `ace17130aca76b71dc60f75405d0214195e6c347ceeb404fa48c79d3b0a92da2`，manifest verified/manual，fixed `fiscalhot_staging`；mode0600，restore-list raw SHA match。schema raw 84,572B hash保留；PG17每次生成的匹配restrict/unrestrict token之外字节一致，normalized SHA `f0144ff2230accae53eaf9c7800558197bf071b26ea62c130b0d80a07276c666`。不prune/upload。01:00首次计划backup仍待10/30。
+- [x] 独立隔离restore：现有PG17.11 image79bd…，唯一容器`fiscalhot-restore-trial-20261029`，`--network none`/ports none/mounts none，到`fiscalhot_restore_test`执行`pg_restore --exit-on-error --no-owner --no-privileges`成功。64 public tables、557 constraints、123 indexes、36 migrations；505/789/505、body306/190/9、publication/override137/137、receipts0。删除精确owned容器/副本，保留原dump；不声称全64表rowhash一致。Gate5仍未通过。
+- [x] Oldnight source freeze与窗外NOOP：Node24.22.1私有runtime，`verifyFrozenFiles` 228 files、code manifest DFB2EDAA…0922B06、input95370FAA…1271517、wrapper84D754…FFD968、launcher8B2AB…08CAE5、package-lock canonical5C05F560…6E902C。client image54d1…与network-anchor ee9…分列；01:22 cron-style run `NOOP_OUTSIDE_WINDOW`、state/results aggregate SHA/1 file未变，lock76:161641同inode无holder，provider0。
+- [ ] 按NAS 10/29 01:20:35+08只读确认：今日02:00 oldnight、03:30 summary、06/12/18 collector尚待触发；backup安装时已错过当天01:00，首个scheduled backup为10/30 01:00。安装、plan-only、窗外NOOP不能替代实际计划运行证据。
+- [x] r2 final4部分捕获、proposal与backup-bound preflight独立QA：13 attempts=12 complete/1 timeout/8 notRequested；10 READY/11 HOLD、coverage incomplete，backup proof/preflight绑定一致且PREFLIGHT_PASS_NO_WRITES。
+- [x] Root精确GO后执行一次10条r2 READY CAS并独立post-CAS QA：execute report SHA `331449edf41c39c221984aace994e4ae033e73a41d15ae7d9d4a796e0acb3d5e`；10条article及revision2正文/HTML/content hashes逐条一致，11 hold rows精确未变；articles/revisions以外所有冻结rowsets exact；counts505/799/505、body316/180/9、pub/override137/137、Gold200、receipts0、source flags0。独立sidecar `.data/fiscal-qa/pending-body-20261029-r2/recovery-r2/postcas-independent-qa.json` SHA `f01af15f20201d151c9340ea286a574e8d83190052731d71daa8c9146dfbc976`。partial coverage remains incomplete.
+- [ ] 来源90日/分页覆盖及跨周期稳定性、body pending/unconfirmed处理、摘要逐项人工审核仍未完成。Gate 3 `CHANGES_REQUIRED`；Gate 4/5未通过。
+
+当前分项与限制见[试运行交接](HANDOFFS/TRIAL_RUN_2026-10-28.md)。下方10/28记录作为历史快照保留。
+
+## 2026-10-28 Staging试运行当前结果
+
+- [ ] 10/28计划cron运行验收：02:00 understand及06:00、12:00 daily-latest均因owned QA PID `2630524`持共享night lock而skip；当日scheduled collector discovered=0。该历史仍算计划任务未成功，后续manual run不回填。
+- [x] 既有Staging页面/出口只读smoke：`node scripts/smoke.ts --base http://192.168.3.100:3221`，2026-10-28 exit0、30/30；匿名`GET /api/admin/review-batches`为401，`/admin/review`为302登录；7日`mode=all`返回13条且均`selected=false`，`mode=selected`返回0；样例detail body=null、indexable=false，HTML/headers noindex。`readingMode=full`指非`visibility=summary-only`的常规detail projection，与body_mode/是否有正文正交，不代表全文权限；Root裁定本次没有正文泄露或待修缺陷。此项不勾Gate 4整体。
+- [x] 20源manual bounded trial：`daily-latest-manual-20261028-1601`固定20源，30 GET、10新增，scope/raw/hash/7日窗口/预算均复核通过；10/10当前body hash与run结果匹配，各1 revision/discovery，0 publication/override，Gold/source/其余受保护rowsets不变。settings逐key唯一差异为heartbeat.api:3001的value hash和updated_at；updated_by不变，selected_ledger_epoch不变。DB只读快照较after约晚5分钟，非同一MVCC；没有逐请求timestamps，不能证明实际间隔。`PASS_WITH_DOCUMENTED_LIMITATION`。
+- [x] remaining26 manual list-only trial：`remaining26-manual-20261028-1630`按实际app-root plan (`dfb833c2…`)和冻结operator执行一次；26/26 GET为HTTP200、完整、零重试/重定向、26/26 source结果ok、0失败、0详情，发现56条。39项bundle manifest及全部26 raw/解压hash独立复核通过；A核对56/56 ID/来源/URL/日期/body_status，before dump不存在，每项各1 revision/discovery、无publication/override。保护rowsets before/after无变化；当前较新快照只有heartbeat.api:3001更新，值hash/时间变，updater不变；selected_ledger_epoch完整不变。after 449/691/449→505/747/505，body264/179/6→264/232/9，pub/override137/137，source flags48/0/0/0。`PASS_WITH_DOCUMENTED_LIMITATION`：0详情导致56条并非可摘要正文；257列表项中56新增、25已知、176 parse-held；不能据此宣称90日/分页/源质量通过。没有逐请求timestamps，无法独立证明真实GET间隔。sidecar SHA `18fc0b87440e8106291c7ef9a06c37e3fe147f3749f48364db186d1eaeda01b7`。
+- [ ] 正文清理：最新快照为505/747/505、264 ok/232 pending/9 unconfirmed；继续严格按当前revision/body hash更新待办和旧快照，不可靠正文保持HOLD。不由摘要生成器补正文或自动精选。
+- [ ] 摘要草稿与人工审核：r4 Staging plan-only已读10个target、provider0、未写draft；待03:30首次真实job及逐项领域审核。`/admin/summary-drafts`审批只生成canonical `body_mode=summary` public publication，原文链接可见，body null、`selected=false`/noindex/不syndicate；它不涉及Gold或精选。管理员如另行决定精选，须通过`/admin/content`→“人工修正”→精选“强制入选”单独设置。旧受限visibility记录不迁移。
+- [x] Gate5备份/恢复子项：一次PG17.11 manual dump verified，私有run目录、0600、sha/list核验；隔离restore exit0且临时容器已清理，business DB未重启。此为单次备份与恢复可读性子项，不能替代01:00计划运行、多个周期、受控重启/故障恢复，Gate5整体仍未通过。
+
+Gate1与无关历史软件套件不在本轮重跑；冻结的core suite证据见`.data/fiscal-qa/final-suite-20261029`。部署后Staging route/smoke和operator plan-only验收不等于正式Gate4整体通过；25–35高质量来源/栏目及90日覆盖仍未证。Gate3仍`CHANGES_REQUIRED`，fresh50已消费；Gate4/5整体未通过。完整证据与后续计划见[试运行交接](HANDOFFS/TRIAL_RUN_2026-10-28.md)。
+
 ## Gate 1：静态行业改造
 
 - [x] taxonomy、ITEM_TYPES、category fallback、topics 与提示词白名单一致。
@@ -15,7 +45,7 @@
 - [x] Gate 2：正式状态为 `PASSED_FOR_BOUNDED_P4_PILOT`，只允许 `GATE_2_REVIEW.md` 列明的三个核心来源中逐篇身份、日期、正文及附件均核实通过的固定小样进入有界 P4 准备；不代表48项来源目录、35个地方局或无人值守采集全部通过。
 - [ ] Gate 3：Gold Dataset 开发集与留出集完成，精选规则和门槛有评测依据。
 - [ ] Gate 4：25—35 个高质量信源、本地完整页面与 smoke 验收通过。
-- [ ] Gate 5：NAS Staging 连续运行、备份恢复、重启和故障恢复验证通过后，才允许 Production。
+- [ ] Gate 5：NAS Staging 连续运行、实际备份恢复、重启和故障恢复验证通过后，才允许 Production。local备份job代码准备与测试不能替代任何真实时间观察或恢复演练。
 
 ### 2026-10-24 NAS Staging d45 rollout review
 
