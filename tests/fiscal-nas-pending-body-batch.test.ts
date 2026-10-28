@@ -9,9 +9,9 @@ import path from "node:path";
 import { brotliCompressSync, deflateSync, gzipSync } from "node:zlib";
 import postgres from "postgres";
 import { applyPendingBodyCas, buildPendingManifest, capturePendingBodies, parsePendingArticleIds,
-  buildPartialCaptureRunResult,
+  buildPartialCaptureRecovery, buildPartialCaptureRunResult,
   captureWithPartialRecovery, parsePendingCapture, readPendingSnapshot, selectRoundRobinPendingTargets, validatePendingTarget,
-  validatePartialCaptureRecovery,
+  validatePartialCaptureProposal, validatePartialCaptureRecovery,
   verifyFreshBackupProof, buildPendingProposalBundle, assertPendingProposalBundle, assertRuntimeSafetyFlags,
   parseExistingUrlEvidence, assertOnlyExpectedArticleChanges, assertDispatchNetworkGuard, decodePendingCapturedResponse,
   adaptLegacyExecutionDispatch, asLegacyOfflineCaptureRecord, singleReusableLegacyDispatch, reusableIdenticalLegacyDispatchGroup, timeoutPauseReason,
@@ -562,8 +562,9 @@ test("fail-fast capture persists hash-bound partial partition and offline recove
     articleId, sourceId: source.id, url: `${source.config.allowUrlPrefixes[0]}${articleId}.html`, title: "财政监督工作动态通知",
     publishedAt: "2026-10-21T00:00:00+08:00", revision: 1, contentHash: sha256(`old-${articleId}`), excerpt: null,
     sourceRowSha256: sha256(`source-${articleId}`), rowText: "{}", rowSha256: sha256("{}") }));
-  const manifest = buildPendingManifest({ runId: "partial-recovery-test", operatorBytes: Buffer.from("frozen old capture operator"),
+  const manifest = buildPendingManifest({ runId: "partial-recovery-test", operatorBytes: readFileSync("scripts/fiscal/nas-pending-body-batch.ts"),
     database: "fiscalhot_pending_test", snapshot: { database: "fiscalhot_pending_test", capturedAt: "2026-10-22T00:00:00Z", counts: {}, rowsets: {} }, targets });
+  manifest.operatorSha256 = "ef3515718b67952f78ba9075364e3212355ff9173fecba312ddaa99c8766ff9f";
   const manifestPath = path.join(dir, "manifest.json"), recoveryPath = path.join(dir, "capture-recovery.json");
   writeFileSync(manifestPath, `${JSON.stringify(manifest)}\n`, { flag: "wx", mode: 0o600 });
   const manifestSha = sha256(readFileSync(manifestPath));
@@ -580,13 +581,13 @@ test("fail-fast capture persists hash-bound partial partition and offline recove
     }, fetchDetail: async (url, _source, _need, options) => options.fetcher(url, { timeoutMs: 20_000, maxBytes: 6 * 1024 * 1024 }) });
   try {
     await assert.rejects(captureWithPartialRecovery({ manifest, manifestSha256: manifestSha, captureDir, out: recoveryPath,
-      recoveryOperatorSha256: sha256("current recovery parser"), capture: run }), /lacks complete bounded raw bytes/u,
+      recoveryOperatorSha256: sha256(readFileSync("scripts/fiscal/nas-pending-body-batch.ts")), capture: run }), /lacks complete bounded raw bytes/u,
     "the original fail-fast capture remains nonzero after atomic partial evidence is written");
     assert.equal(existsSync(recoveryPath), true);
     const recovery = JSON.parse(readFileSync(recoveryPath, "utf8"));
     assert.equal(recovery.schemaVersion, "nas-pending-body-capture-recovery.v1");
     assert.equal(recovery.captureOperatorSha256, manifest.operatorSha256, "capture provenance remains the frozen old operator hash");
-    assert.equal(recovery.recoveryOperatorSha256, sha256("current recovery parser"), "recovery parser provenance is separately recorded");
+    assert.equal(recovery.recoveryOperatorSha256, sha256(readFileSync("scripts/fiscal/nas-pending-body-batch.ts")), "recovery parser provenance is separately recorded");
     assert.deepEqual(recovery.targets.map((row: any) => row.status), ["captured", "captured", "failed", "notRequested"]);
     assert.equal(recovery.records.length, 2);
     validatePartialCaptureRecovery({ recovery, manifest, manifestSha256: manifestSha, captureDir });
@@ -596,6 +597,11 @@ test("fail-fast capture persists hash-bound partial partition and offline recove
       JINA_BODY_FALLBACK: "false", FEISHU_CONTENT_PUSH_ENABLED: "false", FEISHU_INTERNAL_ENABLED: "false",
       INDEXNOW_SUBMIT_ENABLED: "false", EMBEDDINGS_ENABLED: "false", OCR_RUN_ENABLED: "false", WORKER_ENABLED: "false",
       ALLOW_PRIVATE_NETWORK_FETCH: "false" };
+    assert.throws(() => execFileSync(process.execPath, ["--disable-warning=ExperimentalWarning", path.resolve("scripts/fiscal/nas-pending-body-batch.ts"),
+      "--mode=recover-partial", `--manifest=${manifestPath}`, `--approval-sha256=${sha256("wrong manifest approval")}`,
+      `--capture-dir=${captureDir}`, `--out=${path.join(dir, "wrong-recovery.json")}`],
+    { encoding: "utf8", timeout: 30_000, stdio: "pipe", env }), /reviewed exact manifest SHA-256/u,
+    "recovery rejects a nonmatching manifest approval SHA");
     const recoveredStdout = execFileSync(process.execPath, ["--disable-warning=ExperimentalWarning", path.resolve("scripts/fiscal/nas-pending-body-batch.ts"),
       "--mode=recover-partial", `--manifest=${manifestPath}`, `--approval-sha256=${manifestSha}`, `--capture-dir=${captureDir}`, `--out=${rebuiltRecoveryPath}`],
       { encoding: "utf8", timeout: 30_000, env });
@@ -605,16 +611,45 @@ test("fail-fast capture persists hash-bound partial partition and offline recove
     assert.equal(rebuiltRecovery.captureOperatorSha256, manifest.operatorSha256,
       "offline reconstruction accepts an old frozen capture operator without rewriting its provenance");
     const stdout = execFileSync(process.execPath, ["--disable-warning=ExperimentalWarning", path.resolve("scripts/fiscal/nas-pending-body-batch.ts"),
-      "--mode=offline-parse", "--partial-recovery", `--manifest=${manifestPath}`, `--captures=${recoveryPath}`,
+      "--mode=offline-parse", "--partial-recovery", `--manifest=${manifestPath}`, `--approval-sha256=${manifestSha}`, `--captures=${recoveryPath}`,
       `--capture-dir=${captureDir}`, `--out=${proposalsPath}`], { encoding: "utf8", timeout: 30_000, env });
     const report = JSON.parse(stdout.trim()), bundle = JSON.parse(readFileSync(proposalsPath, "utf8"));
     assert.equal(report.result, "OFFLINE_PARTIAL_RECOVERY_COMPLETE");
     assert.equal(report.coverageComplete, false);
-    assert.deepEqual(report.partialCaptureRecovery, { recoverySha256: sha256(readFileSync(recoveryPath)), capturedCount: 2, failedCount: 1, notRequestedCount: 1 });
+    assert.deepEqual(report.partialCaptureRecovery, { schemaVersion: "nas-pending-body-capture-recovery.v1", coverageComplete: false,
+      recoverySha256: sha256(readFileSync(recoveryPath)), captureOperatorSha256: manifest.operatorSha256,
+      recoveryOperatorSha256: sha256(readFileSync("scripts/fiscal/nas-pending-body-batch.ts")),
+      capturedCount: 2, failedCount: 1, failedDispatchCount: 1, dispatchIntentCount: 3, notRequestedCount: 1 });
     assert.ok(bundle.proposals.some((row: any) => row.articleId === targets[0]!.articleId), "valid captured response can be READY");
     assert.ok(bundle.holds.some((row: any) => row.articleId === targets[1]!.articleId), "selector mismatch is HOLD");
     for (const target of targets.slice(2)) assert.ok(bundle.holds.some((row: any) => row.articleId === target.articleId), `${target.articleId} is HOLD`);
     assert.equal(bundle.partialCaptureRecovery.capturedCount, 2, "proposal bundle retains partial coverage status");
+    assert.equal(bundle.freshDispatchCount, 3, "partial fresh dispatch count includes completed and failed dispatch intents");
+    const recoveryBytes = readFileSync(recoveryPath);
+    await validatePartialCaptureProposal({ bundle, recovery, recoveryBytes, manifest, manifestSha256: manifestSha, captureDir,
+      currentOperatorSha256: sha256(readFileSync("scripts/fiscal/nas-pending-body-batch.ts")), sources: new Map([[source.id, source]]), fetchDetail });
+    const wrongCaptureOperator = structuredClone(recovery); wrongCaptureOperator.captureOperatorSha256 = sha256("unreviewed capture source");
+    await assert.rejects(validatePartialCaptureProposal({ bundle, recovery: wrongCaptureOperator, recoveryBytes, manifest, manifestSha256: manifestSha,
+      captureDir, currentOperatorSha256: sha256(readFileSync("scripts/fiscal/nas-pending-body-batch.ts")), sources: new Map([[source.id, source]]), fetchDetail }), /exact evidence bytes/u);
+    const wrongParser = structuredClone(recovery); wrongParser.recoveryOperatorSha256 = sha256("different parser");
+    const wrongParserBytes = Buffer.from(JSON.stringify(wrongParser));
+    await assert.rejects(validatePartialCaptureProposal({ bundle, recovery: wrongParser, recoveryBytes: wrongParserBytes, manifest,
+      manifestSha256: manifestSha, captureDir, currentOperatorSha256: sha256(readFileSync("scripts/fiscal/nas-pending-body-batch.ts")),
+      sources: new Map([[source.id, source]]), fetchDetail }), /operator lineage/u);
+    const rogueManifest = structuredClone(manifest); rogueManifest.operatorSha256 = sha256("unreviewed old capture source");
+    const rogueManifestBytes = Buffer.from(`${JSON.stringify(rogueManifest)}\n`), rogueManifestSha = sha256(rogueManifestBytes);
+    const rogueRecovery = buildPartialCaptureRecovery(rogueManifest, rogueManifestSha, captureDir,
+      sha256(readFileSync("scripts/fiscal/nas-pending-body-batch.ts")));
+    const rogueRecoveryBytes = Buffer.from(JSON.stringify(rogueRecovery));
+    const rogueMarker = { schemaVersion: rogueRecovery.schemaVersion, coverageComplete: false as const, recoverySha256: sha256(rogueRecoveryBytes),
+      captureOperatorSha256: rogueRecovery.captureOperatorSha256, recoveryOperatorSha256: rogueRecovery.recoveryOperatorSha256,
+      capturedCount: 2, failedCount: 1, failedDispatchCount: 1, dispatchIntentCount: 3, notRequestedCount: 1 };
+    const rogueBundle = buildPendingProposalBundle(rogueManifest, rogueManifestSha, rogueRecovery.records,
+      { proposals: bundle.proposals, holds: bundle.holds }, rogueMarker);
+    await assert.rejects(validatePartialCaptureProposal({ bundle: rogueBundle, recovery: rogueRecovery, recoveryBytes: rogueRecoveryBytes,
+      manifest: rogueManifest, manifestSha256: rogueManifestSha, captureDir,
+      currentOperatorSha256: sha256(readFileSync("scripts/fiscal/nas-pending-body-batch.ts")), sources: new Map([[source.id, source]]), fetchDetail }),
+    /reviewed capture\/recovery operator lineage/u, "a general stale operator SHA is not an authorized partial lineage");
 
     const rejectRecovery = (value: any, label: string) => assert.throws(() => validatePartialCaptureRecovery({ recovery: value, manifest,
       manifestSha256: manifestSha, captureDir }), /.+/u, label);

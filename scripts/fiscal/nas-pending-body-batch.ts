@@ -20,6 +20,7 @@ const MAX_DETAIL_BYTES = 6 * 1024 * 1024;
 const TIMEOUT_MS = 20_000;
 const MAX_DECODED_BYTES = 6 * 1024 * 1024;
 const APPROVED_LEGACY_INVENTORY_SHA256 = "a67f047a2e4b90afc7cbcd0b9abe66b9f470dbcaa5da702189b8e5fa06367ee2";
+const REVIEWED_PARTIAL_CAPTURE_OPERATOR_SHA256 = "ef3515718b67952f78ba9075364e3212355ff9173fecba312ddaa99c8766ff9f";
 const LEGACY_MANIFEST_SHA256: Record<string, string> = {
   ".data/fiscal-qa/pending-body-20261012/evidence/fiscalhot_source_expand_b2_20261012_test/manifest.json": "af47b70358a9f14f5a3e2fa221664966210c2b9909d10226f11d8b6234508636",
   ".data/fiscal-qa/pending-body-full-20261013/http-body-evidence/manifest.json": "d0065e5afca39d70a548d0173fa2c6cfb49fa098220df4d7b2ef170f790ed6a6",
@@ -397,7 +398,9 @@ export interface PendingProposalBundle {
   freshDispatchCount: number;
   legacyOfflineCaptureCount: number;
   historicalNetworkCompliance: "PASS_FOR_FRESH_DISPATCHES_ONLY" | "UNPROVEN_HISTORICAL_CADENCE";
-  partialCaptureRecovery?: { recoverySha256: string; capturedCount: number; failedCount: number; notRequestedCount: number };
+  partialCaptureRecovery?: { schemaVersion: "nas-pending-body-capture-recovery.v1"; coverageComplete: false; recoverySha256: string;
+    captureOperatorSha256: string; recoveryOperatorSha256: string; capturedCount: number; failedCount: number; failedDispatchCount: number;
+    dispatchIntentCount: number; notRequestedCount: number };
   proposals: CandidateBodyCasRow[];
   holds: Array<{ articleId: string; reason: string; bodySha256: string | null }>;
 }
@@ -941,7 +944,7 @@ export function buildPendingProposalBundle(manifest: PendingBodyManifest, manife
   if ([...captureIds].some((id) => !targetIds.has(id)) || parsed.proposals.some((proposal) => !captureIds.has(proposal.articleId)) ||
       parsed.holds.some((hold) => !targetIds.has(hold.articleId))) throw new Error("capture/proposal rows exceed frozen target IDs");
   const capturesSha256 = sha256(stableJson(captureRecords));
-  const freshDispatchCount = freshDispatches.length;
+  const freshDispatchCount = partialCaptureRecovery?.dispatchIntentCount ?? freshDispatches.length;
   const legacyOfflineCaptureCount = legacyCaptures.length;
   const historicalNetworkCompliance = legacyOfflineCaptureCount ? "UNPROVEN_HISTORICAL_CADENCE" as const : "PASS_FOR_FRESH_DISPATCHES_ONLY" as const;
   const digestInput = { runId: manifest.runId, manifestSha256, capturesSha256, freshDispatchCount, legacyOfflineCaptureCount,
@@ -1123,6 +1126,36 @@ export function assertPendingProposalBundle(bundle: PendingProposalBundle, manif
       bundle.holds.some((hold) => hold.articleId === proposal.articleId))) throw new Error("proposal bundle contains invalid body/hold overlap or count");
 }
 
+export async function validatePartialCaptureProposal(input: { bundle: PendingProposalBundle;
+  recovery: PartialCaptureRecovery; recoveryBytes: Buffer; manifest: PendingBodyManifest; manifestSha256: string;
+  captureDir: string; currentOperatorSha256: string; sources: Map<string, Record<string, any>>;
+  fetchDetail: (url: string, source: any, need: any, options: any) => Promise<any> }): Promise<void> {
+  const { bundle, recovery, recoveryBytes, manifest, manifestSha256, captureDir, currentOperatorSha256, sources, fetchDetail } = input;
+  assertPendingProposalBundle(bundle, manifestSha256);
+  const recoveryFromBytes = JSON.parse(recoveryBytes.toString("utf8")) as PartialCaptureRecovery;
+  if (stableJson(recoveryFromBytes) !== stableJson(recovery)) throw new Error("partial recovery object differs from its exact evidence bytes");
+  validatePartialCaptureRecovery({ recovery, manifest, manifestSha256, captureDir });
+  const marker = bundle.partialCaptureRecovery;
+  const oldOrCurrentCaptureOperator = manifest.operatorSha256 === currentOperatorSha256 ||
+    manifest.operatorSha256 === REVIEWED_PARTIAL_CAPTURE_OPERATOR_SHA256;
+  if (!marker || !oldOrCurrentCaptureOperator || recovery.captureOperatorSha256 !== manifest.operatorSha256 ||
+      recovery.recoveryOperatorSha256 !== currentOperatorSha256 || marker.schemaVersion !== recovery.schemaVersion ||
+      marker.coverageComplete !== false || marker.recoverySha256 !== sha256(recoveryBytes) ||
+      marker.captureOperatorSha256 !== recovery.captureOperatorSha256 || marker.recoveryOperatorSha256 !== recovery.recoveryOperatorSha256 ||
+      marker.capturedCount !== recovery.targets.filter((row) => row.status === "captured").length ||
+      marker.failedCount !== recovery.targets.filter((row) => row.status === "failed").length ||
+      marker.failedDispatchCount !== recovery.targets.filter((row) => row.status === "failed" && row.dispatchIntentSha256).length ||
+      marker.dispatchIntentCount !== marker.capturedCount + marker.failedDispatchCount ||
+      marker.notRequestedCount !== recovery.targets.filter((row) => row.status === "notRequested").length ||
+      marker.capturedCount + marker.failedCount + marker.notRequestedCount !== manifest.targets.length ||
+      bundle.freshDispatchCount !== marker.dispatchIntentCount || bundle.legacyOfflineCaptureCount !== 0) {
+    throw new Error("partial proposal does not bind the reviewed capture/recovery operator lineage and exact coverage");
+  }
+  const parsed = await parsePendingCapture({ manifest, records: recovery.records, captureDir, sources, fetchDetail });
+  const expected = buildPendingProposalBundle(manifest, manifestSha256, recovery.records, parsed, marker);
+  if (stableJson(bundle) !== stableJson(expected)) throw new Error("partial proposal does not match offline parsing of verified raw responses");
+}
+
 function readPrivateJsonBytes(pathName: string): Buffer {
   const absolute = path.resolve(pathName);
   const metadata = lstatSync(absolute);
@@ -1176,6 +1209,7 @@ async function main(): Promise<void> {
     "run-id": { type: "string" }, manifest: { type: "string" }, captures: { type: "string" }, "capture-dir": { type: "string" },
     "exclude-evidence": { type: "string" }, "legacy-evidence": { type: "string" }, "legacy-evidence-sha256": { type: "string" },
     "reuse-prior-captures": { type: "boolean" }, proposals: { type: "string" }, "backup-proof": { type: "string" },
+    "recovery-evidence": { type: "string" }, "manifest-approval-sha256": { type: "string" },
     "approval-sha256": { type: "string" }, "continue-after-timeout": { type: "boolean" }, "partial-recovery": { type: "boolean" }, out: { type: "string" } }, strict: true });
   const mode = values.mode;
   if (!["prepare", "capture", "legacy-adapt", "recover-partial", "offline-parse", "preflight-only", "execute"].includes(String(mode))) {
@@ -1217,6 +1251,9 @@ async function main(): Promise<void> {
     const manifest = JSON.parse(manifestBytes.toString("utf8")) as PendingBodyManifest;
     if (mode === "recover-partial" && values["approval-sha256"] !== sha256(manifestBytes)) {
       throw new Error("recover-partial requires reviewed exact manifest SHA-256");
+    }
+    if (mode === "recover-partial" && manifest.operatorSha256 !== REVIEWED_PARTIAL_CAPTURE_OPERATOR_SHA256) {
+      throw new Error("recover-partial accepts only the reviewed original capture operator SHA-256");
     }
     if (manifest.schemaVersion !== "nas-pending-body-batch.v1" || (!values["partial-recovery"] && mode !== "recover-partial" &&
         manifest.operatorSha256 !== sha256(readFileSync(fileURLToPath(import.meta.url)))) ||
@@ -1335,19 +1372,27 @@ async function main(): Promise<void> {
     const capturesBytes = readPrivateJsonBytes(values.captures!);
     const captures = JSON.parse(capturesBytes.toString("utf8"));
     if (values["partial-recovery"]) {
+      if (values["approval-sha256"] !== sha256(manifestBytes)) throw new Error("partial offline parse requires reviewed exact manifest SHA-256");
       const recovery = captures as PartialCaptureRecovery;
       validatePartialCaptureRecovery({ recovery, manifest, manifestSha256: sha256(manifestBytes), captureDir: path.resolve(values["capture-dir"]!) });
       const { fetchDetail } = await import(appModule("packages/backend/src/sources/web-list.ts"));
       const sources = new Map(CATALOG.sources.map((source) => [String(source.id), source]));
       const parsed = await parsePendingCapture({ manifest, records: recovery.records, captureDir: path.resolve(values["capture-dir"]!), sources, fetchDetail });
-      const partialCaptureRecovery = { recoverySha256: sha256(capturesBytes),
+      const partialCaptureRecovery = { schemaVersion: recovery.schemaVersion, coverageComplete: false as const, recoverySha256: sha256(capturesBytes),
+        captureOperatorSha256: recovery.captureOperatorSha256, recoveryOperatorSha256: recovery.recoveryOperatorSha256,
         capturedCount: recovery.targets.filter((row) => row.status === "captured").length,
         failedCount: recovery.targets.filter((row) => row.status === "failed").length,
+        failedDispatchCount: recovery.targets.filter((row) => row.status === "failed" && row.dispatchIntentSha256).length,
+        dispatchIntentCount: recovery.targets.filter((row) => row.status === "captured" || row.status === "failed" && row.dispatchIntentSha256).length,
         notRequestedCount: recovery.targets.filter((row) => row.status === "notRequested").length };
       const bundle = buildPendingProposalBundle(manifest, sha256(manifestBytes), recovery.records, parsed, partialCaptureRecovery);
+      await validatePartialCaptureProposal({ bundle, recovery, recoveryBytes: capturesBytes, manifest, manifestSha256: sha256(manifestBytes),
+        captureDir: path.resolve(values["capture-dir"]!), currentOperatorSha256: sha256(readFileSync(fileURLToPath(import.meta.url))),
+        sources, fetchDetail });
       writePrivate(path.resolve(values.out!), bundle);
       console.log(JSON.stringify({ result: "OFFLINE_PARTIAL_RECOVERY_COMPLETE", proposalInputSha256: bundle.inputSha256,
-        proposals: bundle.proposals.length, holds: bundle.holds.length, coverageComplete: false, partialCaptureRecovery, output: path.resolve(values.out!) }));
+        proposals: bundle.proposals.length, holds: bundle.holds.length, freshDispatchCount: bundle.freshDispatchCount,
+        completeCaptureRecordCount: recovery.records.length, coverageComplete: false, partialCaptureRecovery, output: path.resolve(values.out!) }));
       return;
     }
     const manifestHasReusePlan = Array.isArray(manifest.legacyReuseGroups) && manifest.legacyReuseGroups.length > 0;
@@ -1504,7 +1549,26 @@ async function main(): Promise<void> {
     const manifestBytes = readPrivateJsonBytes(values.manifest!);
     const manifest = JSON.parse(manifestBytes.toString("utf8")) as PendingBodyManifest;
     const manifestSha256 = sha256(manifestBytes);
-    if (manifest.schemaVersion !== "nas-pending-body-batch.v1" || manifest.operatorSha256 !== sha256(readFileSync(fileURLToPath(import.meta.url))) ||
+    const currentOperatorSha256 = sha256(readFileSync(fileURLToPath(import.meta.url)));
+    let proposalBundle: PendingProposalBundle | undefined;
+    let approvedPartialLineage = false;
+    if (mode === "preflight-only" || mode === "execute") {
+      const proposalBytes = readPrivateJsonBytes(values.proposals!);
+      proposalBundle = JSON.parse(proposalBytes.toString("utf8")) as PendingProposalBundle;
+      assertPendingProposalBundle(proposalBundle, manifestSha256);
+      if (proposalBundle.partialCaptureRecovery) {
+        if (values["manifest-approval-sha256"] !== manifestSha256 || !values["recovery-evidence"] || !values["capture-dir"]) {
+          throw new Error("partial preflight/execute requires exact manifest approval, recovery evidence and capture-dir");
+        }
+        const recoveryBytes = readPrivateJsonBytes(values["recovery-evidence"]);
+        const recovery = JSON.parse(recoveryBytes.toString("utf8")) as PartialCaptureRecovery;
+        await validatePartialCaptureProposal({ bundle: proposalBundle, recovery, recoveryBytes, manifest, manifestSha256,
+          captureDir: path.resolve(values["capture-dir"]!), currentOperatorSha256, sources: new Map(CATALOG.sources.map((row) => [String(row.id), row])), fetchDetail });
+        approvedPartialLineage = true;
+      }
+    }
+    if (manifest.schemaVersion !== "nas-pending-body-batch.v1" ||
+        (manifest.operatorSha256 !== currentOperatorSha256 && !approvedPartialLineage) ||
         manifest.database !== database || manifest.snapshotSha256 !== sha256(stableJson(manifest.snapshot))) throw new Error("manifest version, operator, database or snapshot hash changed");
     if (mode === "capture") {
       if (values["approval-sha256"] !== manifestSha256) throw new Error("public capture requires reviewed exact manifest SHA-256");
@@ -1556,8 +1620,7 @@ async function main(): Promise<void> {
       return;
     }
 
-    const proposalBytes = readPrivateJsonBytes(values.proposals!);
-    const bundle = JSON.parse(proposalBytes.toString("utf8")) as PendingProposalBundle;
+    const bundle = proposalBundle ?? JSON.parse(readPrivateJsonBytes(values.proposals!).toString("utf8")) as PendingProposalBundle;
     assertPendingProposalBundle(bundle, manifestSha256);
     if (mode === "execute" && values["approval-sha256"] !== bundle.inputSha256) throw new Error("execute requires Root approval of the exact proposal input SHA-256");
     const backup = verifyFreshBackupProof(values["backup-proof"]!, manifest, { proposalInputSha256: bundle.inputSha256 });
@@ -1565,6 +1628,11 @@ async function main(): Promise<void> {
     const report = { schemaVersion: "nas-pending-body-result.v1", result: mode === "execute" ? "COMMITTED" : "PREFLIGHT_PASS_NO_WRITES",
       runId: manifest.runId, database, manifestSha256, proposalInputSha256: bundle.inputSha256,
       backupProofSha256: backup.proofSha256, dumpSha256: backup.dumpSha256, proposalCount: bundle.proposals.length, holdCount: bundle.holds.length,
+      freshDispatchCount: bundle.freshDispatchCount,
+      ...(bundle.partialCaptureRecovery ? { completeCaptureRecordCount: bundle.partialCaptureRecovery.capturedCount } : {}),
+      ...(bundle.partialCaptureRecovery ? { partialCaptureRecovery: bundle.partialCaptureRecovery,
+        captureOperatorSha256: bundle.partialCaptureRecovery.captureOperatorSha256,
+        recoveryOperatorSha256: bundle.partialCaptureRecovery.recoveryOperatorSha256 } : {}),
       writes: writes.length, revisions: writes.map((row: any) => ({ articleId: row.articleId, revision: row.revision })) };
     writePrivate(path.resolve(values.out!), report);
     console.log(JSON.stringify({ ...report, output: path.resolve(values.out!) }));
