@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -202,24 +202,46 @@ test("node runtime provenance requires the pinned private binary, version, and S
   }), /NIGHTLY_NODE_HASH_MISMATCH/u);
 });
 
-test("frozen file verifier binds pilot code, wrapper, launcher, and request-only input hashes", async () => {
+test("the old source-tree pin rejects the current tree after backend changes", async () => {
   const repoRootPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
   const wrapperFile = path.resolve(repoRootPath, "scripts/fiscal/ollama-understand-nightly.mjs");
   const wrapperHash = createHash("sha256").update(await readFile(wrapperFile)).digest("hex").toUpperCase();
-  const result = await verifyFrozenFiles(repoRootPath, {
+  await assert.rejects(verifyFrozenFiles(repoRootPath, {
     wrapperPath: wrapperFile,
     launcherPath: wrapperFile,
     expectedWrapperSha256: wrapperHash,
     expectedLauncherSha256: wrapperHash,
+  }), (error: unknown) => (error as { code?: string }).code === "FROZEN_SOURCE_TREE_HASH_MISMATCH");
+});
+
+const frozenArtifactRoot = process.env.AIHOT_NIGHTLY_FROZEN_ROOT;
+test("explicit old frozen artifact still verifies its pinned 228-file tree and evidence", {
+  skip: !frozenArtifactRoot ? "set AIHOT_NIGHTLY_FROZEN_ROOT to the private frozen 228-file artifact" : false,
+}, async () => {
+  const repoRootPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+  const artifactRoot = path.resolve(frozenArtifactRoot!);
+  assert.notEqual(await realpath(artifactRoot), await realpath(repoRootPath), "frozen artifact must be an external copy");
+  const wrapperFile = path.resolve(artifactRoot, "scripts/fiscal/ollama-understand-nightly.mjs");
+  const launcherFile = path.resolve(artifactRoot, "scripts/fiscal/ollama-understand-nightly-launcher.sh");
+  const wrapperHash = createHash("sha256").update(await readFile(wrapperFile)).digest("hex").toUpperCase();
+  const launcherHash = createHash("sha256").update(await readFile(launcherFile)).digest("hex").toUpperCase();
+  const result = await verifyFrozenFiles(artifactRoot, {
+    wrapperPath: wrapperFile,
+    launcherPath: launcherFile,
+    expectedWrapperSha256: wrapperHash,
+    expectedLauncherSha256: launcherHash,
   });
   assert.equal(result.inputSha256, NIGHTLY_PILOT_CONSTANTS.inputSha256);
+  assert.equal(result.sourceFiles && Object.keys(result.sourceFiles).length, 228);
   assert.equal(result.wrapperSha256, wrapperHash);
-  assert.equal(result.launcherSha256, wrapperHash);
+  assert.equal(result.launcherSha256, launcherHash);
   assert.equal(result.packageLockCanonicalSha256.length, 64);
   assert.equal(result.codeManifestSha256, codeManifestSha256(result.codeFiles));
-  await assert.rejects(verifyFrozenFiles(repoRootPath, {
-    wrapperPath: wrapperFile, launcherPath: wrapperFile,
-    expectedWrapperSha256: "0".repeat(64), expectedLauncherSha256: wrapperHash,
+  await assert.rejects(verifyFrozenFiles(artifactRoot, {
+    wrapperPath: wrapperFile,
+    launcherPath: launcherFile,
+    expectedWrapperSha256: "0".repeat(64),
+    expectedLauncherSha256: launcherHash,
   }), /NIGHTLY_EXECUTABLE_HASH_MISMATCH/u);
 });
 

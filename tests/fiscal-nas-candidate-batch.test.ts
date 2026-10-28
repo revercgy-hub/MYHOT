@@ -8,7 +8,7 @@ import { tmpdir } from "node:os";
 import { gzipSync } from "node:zlib";
 import type { Candidate, SourceRow } from "../packages/backend/src/sources/types.ts";
 import { unsupportedConfig } from "../packages/backend/src/sources/config-keys.ts";
-import { assertApprovedCaptureReplayMetadata, assertDatabaseSourcesMatchCatalog, buildSourcePlan, classifyCandidates, createBudgetedDetailFetcher, DAILY_LATEST_PRESET, decodeCapturedBody, decodeCapturedResponse, detailConfigIsDirectHtml, findKnownIdentityKeys, isBatchDispatchInScope, isCandidateInFreshnessWindow, loadCandidateCatalog, resolveCandidateBatchScope, sameConfiguredDay } from "../scripts/fiscal/nas-candidate-batch.ts";
+import { assertApprovedCaptureReplayMetadata, assertDatabaseSourcesMatchCatalog, buildSourcePlan, classifyCandidates, createBudgetedDetailFetcher, DAILY_LATEST_PRESET, decodeCapturedBody, decodeCapturedResponse, detailConfigIsDirectHtml, findKnownIdentityKeys, isBatchDispatchInScope, isCandidateInFreshnessWindow, loadCandidateCatalog, resolveCandidateBatchScope, sameConfiguredDay, SUMMARY_DRAFT_SOURCE_IDS } from "../scripts/fiscal/nas-candidate-batch.ts";
 import { fetchDetail, fromHtml } from "../packages/backend/src/sources/web-list.ts";
 
 const catalogBytes = readFileSync(resolve("industry/sources.json"));
@@ -20,22 +20,27 @@ const candidate = (url: string, title = "预算执行情况", daysAgo = 1): Cand
   url, title, publishedAt: new Date(Date.now() - daysAgo * 86_400_000), bodyText: null,
 });
 
-test("daily-latest preset binds 20 disabled sources, seven days, and hard caps", () => {
+test("daily-latest preset binds 46 disabled sources and summary drafting stays on the original 20", () => {
   const catalogSha256 = DAILY_LATEST_PRESET.catalogSha256;
   assert.equal(createHash("sha256").update(catalogBytes).digest("hex"), catalogSha256);
   const resolved = resolveCandidateBatchScope({ preset: "daily-latest", sourceIds: ["mof-budget-work"],
     maxNewPerSource: 30, maxDetailsTotal: 0, recentDays: 90, catalogSha256 });
   assert.equal(resolved.preset, "daily-latest");
-  assert.equal(resolved.sourceIds.length, 20);
-  assert.equal(new Set(resolved.sourceIds).size, 20);
+  assert.equal(resolved.sourceIds.length, 46);
+  assert.equal(new Set(resolved.sourceIds).size, 46);
+  assert.deepEqual(resolved.sourceIds.slice(0, SUMMARY_DRAFT_SOURCE_IDS.length), [...SUMMARY_DRAFT_SOURCE_IDS]);
+  assert.equal(SUMMARY_DRAFT_SOURCE_IDS.length, 20);
+  assert.equal(Object.isFrozen(SUMMARY_DRAFT_SOURCE_IDS), true);
+  assert.equal(resolved.sourceIds.includes("mof-treasury-debt-data"), false);
+  assert.equal(resolved.sourceIds.includes("pboc-open-market"), false);
   assert.equal(resolved.recentDays, 7);
   assert.equal(resolved.requirePublishedAt, true);
   assert.equal(resolved.maxNewPerSource, 10);
   assert.equal(resolved.maxDetailsTotal, 30);
-  assert.equal(resolved.maxDispatches, 50);
+  assert.equal(resolved.maxDispatches, 76);
   const plan = buildSourcePlan({ catalogSources: catalog, sourceIds: resolved.sourceIds,
     maxNewPerSource: resolved.maxNewPerSource, maxDetailsTotal: resolved.maxDetailsTotal, unsupportedConfig });
-  assert.equal(plan.length, 20);
+  assert.equal(plan.length, 46);
   assert.ok(plan.every((row) => row.maxNew === 10));
   assert.ok(plan.reduce((sum, row) => sum + row.maxDetails, 0) >= 30);
   assert.ok(plan.every((row) => catalog.find((s) => s.id === row.id)?.enabled === false));
@@ -68,7 +73,7 @@ test("daily-latest requires strict seven-day dates while legacy retains per-sour
     maxDetailsTotal: 0, recentDays: 0, catalogSha256: "legacy" }), /recent-days must be an integer/u);
 });
 
-test("daily-latest catalog override requires the exact approved raw hash", () => {
+test("daily-latest catalog override and image catalog require the new pinned raw hash", () => {
   const directory = mkdtempSync(join(tmpdir(), "nas-catalog-"));
   const appCatalogPath = join(directory, "image-sources.json");
   const overridePath = join(directory, "approved-sources.json");
@@ -80,6 +85,7 @@ test("daily-latest catalog override requires the exact approved raw hash", () =>
     const loaded = loadCandidateCatalog({ appRootPath: appCatalogPath, overridePath, preset: "daily-latest" });
     assert.equal(loaded.mode, "explicit-operator-override");
     assert.equal(loaded.inputSha256, DAILY_LATEST_PRESET.catalogSha256);
+    assert.equal(loaded.appRootSha256, "27af3250bbc472ed20019983093b43336cc1967b9ae3193e6b202da4df27ad3f");
     writeFileSync(overridePath, "{\"sources\":[]}\n");
     assert.throws(() => loadCandidateCatalog({ appRootPath: appCatalogPath, overridePath, preset: "daily-latest" }),
       /catalog hash drift/u);
@@ -89,6 +95,8 @@ test("daily-latest catalog override requires the exact approved raw hash", () =>
       /only with daily-latest/u);
     assert.throws(() => loadCandidateCatalog({ appRootPath: appCatalogPath, overridePath: "relative.json", preset: "daily-latest" }),
       /must be absolute/u);
+    writeFileSync(overridePath, catalogBytes);
+    writeFileSync(appCatalogPath, "{\"sources\":[]}\n");
     process.env.AIHOT_APP_ROOT = "/app";
     assert.throws(() => loadCandidateCatalog({ appRootPath: appCatalogPath, overridePath, preset: "daily-latest" }),
       /application image catalog drift/u);

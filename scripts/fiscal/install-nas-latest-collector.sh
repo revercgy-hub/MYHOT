@@ -2,11 +2,11 @@
 set -eu
 umask 077
 
-readonly WORKSPACE=/vol2/1000/docker/fiscalhot-latest-collector
+readonly WORKSPACE=/vol2/1000/docker/fiscalhot-latest-collector-20261028
 readonly NIGHT_LOCK=/vol2/1000/docker/fiscalhot-understand-nightly/state/ollama-understand-nightly.lock
 readonly CATALOG_SHA256=27af3250bbc472ed20019983093b43336cc1967b9ae3193e6b202da4df27ad3f
-readonly APP_CATALOG_SHA256=b5287d7f66ab91ed535d23128796f284f39c7c2c60f126082a820e891d5b252a
-readonly OPERATOR_SHA256=3ae90e31a08da2db5b77b8a08eb3eea05726210efeea3fde37765a424fc4f7bf
+readonly APP_CATALOG_SHA256=27af3250bbc472ed20019983093b43336cc1967b9ae3193e6b202da4df27ad3f
+readonly OPERATOR_SHA256=ed5216a0c56fb270e903e84507a905d62ceda354a9fdbca7ebf939c2b0296442
 readonly BEGIN_MARKER='# BEGIN CODEX NAS LATEST COLLECTOR v1'
 readonly END_MARKER='# END CODEX NAS LATEST COLLECTOR v1'
 
@@ -37,6 +37,25 @@ need cat
 [ "$(sha256sum "$candidate/source/industry/sources.json" | awk '{print $1}')" = "$CATALOG_SHA256" ] || fail CATALOG_HASH_MISMATCH
 [ "$(cat "$candidate/tools/operator.sha256")" = "$OPERATOR_SHA256" ] || fail OPERATOR_PIN_MISMATCH
 [ "$(cat "$candidate/tools/app-catalog.sha256")" = "$APP_CATALOG_SHA256" ] || fail APP_CATALOG_PIN_MISMATCH
+candidate_image=$(cat "$candidate/tools/api-image-id") || fail API_IMAGE_PIN_READ
+[ "$(sha256sum "$candidate/tools/candidate-manifest.json" | awk '{print $1}')" = "$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1],encoding="utf-8"))["runtimeManifestSha256"])' "$candidate/candidate-manifest.json")" ] || fail RUNTIME_MANIFEST_HASH_MISMATCH
+python3 - "$candidate/candidate-manifest.json" "$candidate/tools/candidate-manifest.json" "$candidate_image" "$OPERATOR_SHA256" "$CATALOG_SHA256" "$APP_CATALOG_SHA256" <<'PY' || fail CANDIDATE_MANIFEST_MISMATCH
+import json, re, sys
+with open(sys.argv[1], encoding="utf-8") as f: outer=json.load(f)
+with open(sys.argv[2], encoding="utf-8") as f: runtime=json.load(f)
+image, operator_sha, catalog_sha, app_sha=sys.argv[3:7]
+bound=outer.get("imagePinBound") is True
+valid=outer.get("schemaVersion")=="nas-latest-collector-candidate.v2" and runtime.get("schemaVersion")=="nas-latest-collector-candidate.v2"
+valid=valid and outer.get("apiImageId")==image and runtime.get("apiImageId")==image
+valid=valid and outer.get("operatorSha256")==operator_sha and runtime.get("operatorSha256")==operator_sha
+valid=valid and outer.get("catalogSha256")==catalog_sha and runtime.get("catalogSha256")==catalog_sha
+valid=valid and outer.get("appCatalogSha256")==app_sha and runtime.get("appCatalogSha256")==app_sha
+valid=valid and outer.get("imagePinBound")==runtime.get("imagePinBound")
+expected_guardrails={"fixedSources":46,"summaryDraftSources":20,"freshnessDays":7,"listRequests":46,"detailRequests":30,"totalGets":76,"maxNewPerSource":10,"maxNewTotal":460}
+valid=valid and all(outer.get("guardrails",{}).get(k)==v and runtime.get("guardrails",{}).get(k)==v for k,v in expected_guardrails.items())
+valid=valid and ((re.fullmatch(r"sha256:[a-f0-9]{64}",image) is not None) if bound else image=="UNBOUND")
+if not valid: raise SystemExit(1)
+PY
 
 mkdir -m 700 "$WORKSPACE"
 mkdir -m 700 "$WORKSPACE/source" "$WORKSPACE/source/scripts" "$WORKSPACE/source/scripts/fiscal" "$WORKSPACE/source/industry"
@@ -44,7 +63,7 @@ mkdir -m 700 "$WORKSPACE/tools" "$WORKSPACE/state" "$WORKSPACE/results" "$WORKSP
 cp "$candidate/source/scripts/fiscal/nas-candidate-batch.ts" "$WORKSPACE/source/scripts/fiscal/nas-candidate-batch.ts"
 cp "$candidate/source/industry/sources.json" "$WORKSPACE/source/industry/sources.json"
 cp "$candidate/tools/nas-latest-collector-launcher.sh" "$WORKSPACE/tools/nas-latest-collector-launcher.sh"
-for pin in operator.sha256 catalog.sha256 app-catalog.sha256 api-image-id node.sha256 latest-entrypoint.sh; do
+for pin in operator.sha256 catalog.sha256 app-catalog.sha256 api-image-id candidate-manifest.json node.sha256 latest-entrypoint.sh; do
   cp "$candidate/tools/$pin" "$WORKSPACE/tools/$pin"
 done
 cp "$candidate/cron/owned-block.candidate.txt" "$WORKSPACE/tools/owned-block.candidate.txt"
@@ -53,5 +72,5 @@ find "$WORKSPACE/source" -type f -exec chmod 600 {} \;
 chmod 700 "$WORKSPACE" "$WORKSPACE/tools" "$WORKSPACE/state" "$WORKSPACE/results" "$WORKSPACE/logs" "$WORKSPACE/backups"
 chmod 750 "$WORKSPACE/tools/nas-latest-collector-launcher.sh" "$WORKSPACE/tools/latest-entrypoint.sh"
 find "$WORKSPACE/tools" -type f ! -name nas-latest-collector-launcher.sh ! -name latest-entrypoint.sh -exec chmod 600 {} \;
-printf 'LATEST_COLLECTOR_STAGE=PREPARED_NOT_SCHEDULED\nWORKSPACE=%s\nOPERATOR_SHA256=%s\nCATALOG_SHA256=%s\nAPP_CATALOG_SHA256=%s\nCRON_BLOCK=%s\n' \
-  "$WORKSPACE" "$OPERATOR_SHA256" "$CATALOG_SHA256" "$APP_CATALOG_SHA256" "$WORKSPACE/tools/owned-block.candidate.txt"
+printf 'LATEST_COLLECTOR_STAGE=PREPARED_NOT_SCHEDULED\nIMAGE_PIN=%s\nWORKSPACE=%s\nOPERATOR_SHA256=%s\nCATALOG_SHA256=%s\nAPP_CATALOG_SHA256=%s\nCRON_BLOCK=%s\n' \
+  "$candidate_image" "$WORKSPACE" "$OPERATOR_SHA256" "$CATALOG_SHA256" "$APP_CATALOG_SHA256" "$WORKSPACE/tools/owned-block.candidate.txt"

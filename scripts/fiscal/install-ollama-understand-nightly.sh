@@ -2,16 +2,32 @@
 set -eu
 umask 077
 dry_run=0
-if [ "$#" -gt 0 ]; then
-  [ "$#" -eq 1 ] && [ "$1" = --dry-run ] || { printf 'INSTALL_PREFLIGHT_FAILED=UNKNOWN_ARGUMENT\n' >&2; exit 1; }
-  dry_run=1
-fi
+NETWORK_ANCHOR_API_IMAGE_ID=UNBOUND
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --dry-run) [ "$dry_run" -eq 0 ] || { printf 'INSTALL_PREFLIGHT_FAILED=DUPLICATE_DRY_RUN\n' >&2; exit 1; }; dry_run=1; shift ;;
+    --network-anchor-api-image-id)
+      [ "$#" -ge 2 ] && [ "$NETWORK_ANCHOR_API_IMAGE_ID" = UNBOUND ] || { printf 'INSTALL_PREFLIGHT_FAILED=NETWORK_ANCHOR_ARGUMENT_INVALID\n' >&2; exit 1; }
+      NETWORK_ANCHOR_API_IMAGE_ID=$2
+      shift 2
+      ;;
+    *) printf 'INSTALL_PREFLIGHT_FAILED=UNKNOWN_ARGUMENT\n' >&2; exit 1 ;;
+  esac
+done
+case "$NETWORK_ANCHOR_API_IMAGE_ID" in
+  UNBOUND) [ "$dry_run" -eq 1 ] || { printf 'INSTALL_PREFLIGHT_FAILED=NETWORK_ANCHOR_PIN_REQUIRED\n' >&2; exit 1; } ;;
+  sha256:*) network_anchor_hex=${NETWORK_ANCHOR_API_IMAGE_ID#sha256:}; case "$network_anchor_hex" in *[!a-f0-9]*|'') printf 'INSTALL_PREFLIGHT_FAILED=NETWORK_ANCHOR_IMAGE_ID_INVALID\n' >&2; exit 1;; esac; [ "${#network_anchor_hex}" -eq 64 ] || { printf 'INSTALL_PREFLIGHT_FAILED=NETWORK_ANCHOR_IMAGE_ID_INVALID\n' >&2; exit 1; } ;;
+  *) printf 'INSTALL_PREFLIGHT_FAILED=NETWORK_ANCHOR_IMAGE_ID_INVALID\n' >&2; exit 1 ;;
+esac
 
 readonly WORKSPACE=/vol2/1000/docker/fiscalhot-understand-nightly
 readonly API_CONTAINER=fiscalhot-staging-api-1
 readonly API_IMAGE=sha256:54d1a34f104b665ccdecc60e82f4cb67acf114fb3171b742990464ee6d4c7bc6
 readonly POSTGRES_IMAGE=sha256:79bd7c99e923138f136f8009d6bffa66e21e9d4fda5c0c561b00fc9c90cfe537
 readonly NODE_SHA256=e32e2d16081cf644f88392934288086e7662529d0d43277c34f7aad2207cfafb
+readonly PREVIOUS_LAUNCHER_SHA256=c293bac086b3bc42dcb8bd5182a881a0264fe66c530794383958222eff9dad71
+readonly PREVIOUS_ENTRYPOINT_SHA256=a49245eee12316cb90030653738ee1067c617d351b2b0059e4ef762c01850733
+readonly PREVIOUS_CODE_MANIFEST_SHA256=62376d64f110760cbd13b32bedd98b30c771a730acbce495876c16b55f17a4ca
 readonly BEGIN_MARKER='# BEGIN CODEX OLLAMA UNDERSTAND NIGHTLY v1'
 readonly END_MARKER='# END CODEX OLLAMA UNDERSTAND NIGHTLY v1'
 
@@ -64,10 +80,22 @@ cut_path=$(command -v cut)
 [ "$(sha256sum "$WORKSPACE/bin/node" | awk '{print $1}')" = "$NODE_SHA256" ] || fail PRIVATE_NODE_HASH
 
 docker info >/dev/null 2>&1 || fail DOCKER_ACCESS
-[ "$(docker inspect --format '{{.Image}}' "$API_CONTAINER" 2>/dev/null)" = "$API_IMAGE" ] || fail API_IMAGE_OR_CONTAINER_CHANGED
 [ "$(docker inspect --format '{{.State.Running}}' "$API_CONTAINER" 2>/dev/null)" = true ] || fail API_CONTAINER_NOT_RUNNING
+if [ "$NETWORK_ANCHOR_API_IMAGE_ID" != UNBOUND ]; then
+  [ "$(docker inspect --format '{{.Image}}' "$API_CONTAINER" 2>/dev/null)" = "$NETWORK_ANCHOR_API_IMAGE_ID" ] || fail NETWORK_ANCHOR_API_IMAGE_OR_CONTAINER_CHANGED
+  docker image inspect "$NETWORK_ANCHOR_API_IMAGE_ID" >/dev/null 2>&1 || fail PINNED_NETWORK_ANCHOR_IMAGE_MISSING
+fi
 docker image inspect "$POSTGRES_IMAGE" >/dev/null 2>&1 || fail PINNED_POSTGRES_IMAGE_MISSING
 docker image inspect "$API_IMAGE" >/dev/null 2>&1 || fail PINNED_API_IMAGE_MISSING
+if [ "$NETWORK_ANCHOR_API_IMAGE_ID" != UNBOUND ]; then
+  docker image inspect --format '{{json .Config.Env}}' "$NETWORK_ANCHOR_API_IMAGE_ID" | python3 -c '
+import json, re, sys
+values = json.load(sys.stdin)
+names = [item.split("=", 1)[0] for item in values or []]
+sensitive = any(re.search(r"(?:API_KEY|DATABASE_URL|BASE_URL|PROXY|TOKEN|SECRET|PASSWORD|CREDENTIAL)$", name, re.I) for name in names)
+raise SystemExit(1 if sensitive or "NODE_OPTIONS" in names or "NODE_PATH" in names else 0)
+' || fail NETWORK_ANCHOR_IMAGE_ENV_INVALID
+fi
 image_env_flags=$(docker image inspect --format '{{json .Config.Env}}' "$API_IMAGE" | python3 -c '
 import json, re, sys
 values = json.load(sys.stdin)
@@ -117,27 +145,14 @@ raise SystemExit(2)
 [ -n "$api_package_lock_sha" ] && [ "$api_package_lock_sha" = "$repo_package_lock_sha" ] || fail API_PACKAGE_LOCK_MISMATCH
 printf '%s\n' "$api_package_lock_sha" > "$tmp/tools/package-lock.canonical-sha256"
 chmod 600 "$tmp/tools/package-lock.canonical-sha256"
-mkdir -p "$tmp/source/packages/backend/src" "$tmp/source/packages/contracts/src" "$tmp/source/industry/prompts" "$tmp/source/database/migrations"
-cp "$repo_root/packages/backend/package.json" "$repo_root/packages/backend/tsconfig.json" "$tmp/source/packages/backend/"
-cp -R "$repo_root/packages/backend/src/." "$tmp/source/packages/backend/src/"
-cp "$repo_root/packages/contracts/package.json" "$repo_root/packages/contracts/tsconfig.json" "$tmp/source/packages/contracts/"
-cp -R "$repo_root/packages/contracts/src/." "$tmp/source/packages/contracts/src/"
-cp "$repo_root/industry/package.json" "$repo_root/industry/tsconfig.json" "$repo_root"/industry/*.ts "$tmp/source/industry/"
-cp "$repo_root"/industry/prompts/*.md "$tmp/source/industry/prompts/"
-cp "$repo_root"/database/migrations/*.sql "$tmp/source/database/migrations/"
-mkdir -p "$tmp/source/scripts/fiscal" "$tmp/source/.data/fiscal-qa/development150-local-pilot-20261026"
-cp "$repo_root/scripts/migrate.ts" "$tmp/source/scripts/migrate.ts"
-cp "$repo_root/scripts/fiscal/ollama-understand-container-pilot.ts" "$tmp/source/scripts/fiscal/"
-cp "$repo_root/scripts/fiscal/ollama-understand-pilot-guard.mjs" "$repo_root/scripts/fiscal/ollama-understand-pilot-guard.d.mts" "$tmp/source/scripts/fiscal/"
-cp "$repo_root/scripts/fiscal/ollama-understand-nightly.mjs" "$tmp/source/scripts/fiscal/"
-cp "$repo_root/scripts/fiscal/ollama-understand-nightly.d.mts" "$tmp/source/scripts/fiscal/"
-cp "$repo_root/.data/fiscal-qa/development150-local-pilot-20261026/inputs-request-only.json" "$tmp/source/.data/fiscal-qa/development150-local-pilot-20261026/"
+cp -R "$WORKSPACE/source/." "$tmp/source/" || fail EXISTING_FROZEN_SOURCE_COPY_FAILED
 cp "$repo_root/scripts/fiscal/ollama-understand-nightly-launcher.sh" "$tmp/tools/ollama-understand-nightly-launcher.sh"
 chmod 750 "$tmp/tools/ollama-understand-nightly-launcher.sh"
 printf '%s\n' "$API_IMAGE" > "$tmp/tools/api-image-id"
+printf '%s\n' "$NETWORK_ANCHOR_API_IMAGE_ID" > "$tmp/tools/network-anchor-api-image-id"
 printf '%s\n' "$POSTGRES_IMAGE" > "$tmp/tools/postgres-image-id"
 printf '%s\n' "$NODE_SHA256" > "$tmp/tools/node.sha256"
-chmod 600 "$tmp/tools/api-image-id" "$tmp/tools/postgres-image-id" "$tmp/tools/node.sha256"
+chmod 600 "$tmp/tools/api-image-id" "$tmp/tools/network-anchor-api-image-id" "$tmp/tools/postgres-image-id" "$tmp/tools/node.sha256"
 
 verify_frozen_tree() {
   "$WORKSPACE/bin/node" --input-type=module -e '
@@ -156,7 +171,7 @@ verify_frozen_tree() {
     process.stdout.write(frozen.codeManifestSha256 + "\n");
   ' "$1" "$2"
 }
-host_frozen_manifest=$(verify_frozen_tree "$repo_root" "$repo_root/scripts/fiscal/ollama-understand-nightly-launcher.sh") || fail HOST_SOURCE_FREEZE_VERIFICATION_FAILED
+host_frozen_manifest=$(verify_frozen_tree "$tmp/source" "$repo_root/scripts/fiscal/ollama-understand-nightly-launcher.sh") || fail HOST_SOURCE_FREEZE_VERIFICATION_FAILED
 staged_frozen_manifest=$(verify_frozen_tree "$tmp/source" "$tmp/tools/ollama-understand-nightly-launcher.sh") || fail STAGED_SOURCE_FREEZE_VERIFICATION_FAILED
 [ "$host_frozen_manifest" = "$staged_frozen_manifest" ] || fail BYTE_COPY_MANIFEST_MISMATCH
 
@@ -171,6 +186,7 @@ write_entrypoint() {
   _entry_lock=$6
   _entry_wrapper_sha=$7
   _entry_launcher_sha=$8
+  _entry_network_anchor_sha=$9
   cat > "$_entry_file" <<ENTRYPOINT
 #!/bin/sh
 set -eu
@@ -182,13 +198,14 @@ export OLLAMA_UNDERSTAND_STATE_PATH="$_entry_state"
 export OLLAMA_UNDERSTAND_RESULT_DIR="$_entry_results"
 export OLLAMA_UNDERSTAND_WRAPPER_SHA256="$_entry_wrapper_sha"
 export OLLAMA_UNDERSTAND_LAUNCHER_SHA256="$_entry_launcher_sha"
+export OLLAMA_UNDERSTAND_NETWORK_ANCHOR_API_IMAGE_SHA256="$_entry_network_anchor_sha"
 exec "$WORKSPACE/bin/node" "$_entry_repo/scripts/fiscal/ollama-understand-nightly.mjs"
 ENTRYPOINT
   chmod 750 "$_entry_file"
 }
 write_entrypoint "$tmp/tools/nightly-entrypoint.sh" "$WORKSPACE/source" "$WORKSPACE/tools/ollama-understand-nightly-launcher.sh" \
   "$WORKSPACE/state/ollama-understand-nightly.state.json" "$WORKSPACE/results" "$WORKSPACE/state/ollama-understand-nightly.lock" \
-  "$wrapper_sha" "$launcher_sha"
+  "$wrapper_sha" "$launcher_sha" "$(sha256sum "$tmp/tools/network-anchor-api-image-id" | awk '{print $1}')"
 entrypoint_sha=$(sha256sum "$tmp/tools/nightly-entrypoint.sh" | awk '{print $1}')
 
 # Native lock smoke: the inherited lock fd reaches Node, and a concurrent entrant is rejected.
@@ -234,7 +251,7 @@ smoke_state="$tmp/window-smoke/state.json"
 smoke_results="$tmp/window-smoke/results"
 mkdir -m 700 "$smoke_results"
 write_entrypoint "$tmp/window-smoke/nightly-entrypoint.sh" "$tmp/source" "$tmp/tools/ollama-understand-nightly-launcher.sh" \
-  "$smoke_state" "$smoke_results" "$tmp/window-smoke/lock" "$wrapper_sha" "$launcher_sha"
+  "$smoke_state" "$smoke_results" "$tmp/window-smoke/lock" "$wrapper_sha" "$launcher_sha" "$(sha256sum "$tmp/tools/network-anchor-api-image-id" | awk '{print $1}')"
 smoke_output=$("$flock_path" -n "$tmp/window-smoke/lock" /bin/sh "$tmp/window-smoke/nightly-entrypoint.sh") || fail OUTSIDE_WINDOW_WRAPPER_DRY_RUN_FAILED
 [ "$smoke_output" = NOOP_OUTSIDE_WINDOW ] || fail OUTSIDE_WINDOW_WRAPPER_DRY_RUN_UNEXPECTED
 [ ! -e "$smoke_state" ] || fail OUTSIDE_WINDOW_DRY_RUN_WROTE_STATE
@@ -309,13 +326,21 @@ cp "$old_cron" "$backup"
 chmod 600 "$backup"
 
 if [ -d "$WORKSPACE/source" ]; then
-  existing_frozen_manifest=$(verify_frozen_tree "$WORKSPACE/source" "$WORKSPACE/tools/ollama-understand-nightly-launcher.sh") || fail EXISTING_SOURCE_FREEZE_VERIFICATION_FAILED
-  [ "$existing_frozen_manifest" = "$host_frozen_manifest" ] || fail EXISTING_SOURCE_FREEZE_MISMATCH
+  existing_launcher_sha=$(sha256sum "$WORKSPACE/tools/ollama-understand-nightly-launcher.sh" | awk '{print $1}') || fail EXISTING_LAUNCHER_HASH_UNAVAILABLE
+  if [ "$existing_launcher_sha" = "$PREVIOUS_LAUNCHER_SHA256" ]; then
+    existing_frozen_manifest=$(verify_frozen_tree "$WORKSPACE/source" "$WORKSPACE/tools/ollama-understand-nightly-launcher.sh") || fail EXISTING_SOURCE_FREEZE_VERIFICATION_FAILED
+    [ "$existing_frozen_manifest" = "$PREVIOUS_CODE_MANIFEST_SHA256" ] || fail EXISTING_SOURCE_FREEZE_MISMATCH
+  elif [ "$existing_launcher_sha" = "$launcher_sha" ]; then
+    existing_frozen_manifest=$(verify_frozen_tree "$WORKSPACE/source" "$WORKSPACE/tools/ollama-understand-nightly-launcher.sh") || fail EXISTING_SOURCE_FREEZE_VERIFICATION_FAILED
+    [ "$existing_frozen_manifest" = "$host_frozen_manifest" ] || fail EXISTING_SOURCE_FREEZE_MISMATCH
+  else
+    fail EXISTING_LAUNCHER_HASH_UNRECOGNIZED
+  fi
 else
   mv "$tmp/source" "$WORKSPACE/source"
 fi
 if [ -d "$WORKSPACE/tools" ]; then
-  for name in api-image-id postgres-image-id node.sha256 package-lock.canonical-sha256 ollama-understand-nightly-launcher.sh; do
+  for name in api-image-id postgres-image-id node.sha256 package-lock.canonical-sha256; do
     [ -f "$WORKSPACE/tools/$name" ] && cmp -s "$tmp/tools/$name" "$WORKSPACE/tools/$name" || fail EXISTING_TOOL_PIN_MISMATCH
   done
   find "$WORKSPACE/tools" -mindepth 1 -maxdepth 1 ! -type f -print -quit | grep -q . && fail UNKNOWN_TOOL_PATH
@@ -323,14 +348,25 @@ if [ -d "$WORKSPACE/tools" ]; then
     [ -f "$path" ] || continue
     name=$(basename "$path")
     case "$name" in
-      api-image-id|postgres-image-id|node.sha256|package-lock.canonical-sha256|ollama-understand-nightly-launcher.sh|nightly-entrypoint.sh) ;;
+      api-image-id|network-anchor-api-image-id|postgres-image-id|node.sha256|package-lock.canonical-sha256|ollama-understand-nightly-launcher.sh|nightly-entrypoint.sh) ;;
       *) fail UNKNOWN_TOOL_FILE ;;
     esac
   done
-  if [ -e "$WORKSPACE/tools/nightly-entrypoint.sh" ]; then
-    [ -f "$WORKSPACE/tools/nightly-entrypoint.sh" ] && [ "$(sha256sum "$WORKSPACE/tools/nightly-entrypoint.sh" | awk '{print $1}')" = "$entrypoint_sha" ] || fail EXISTING_ENTRYPOINT_HASH_MISMATCH
+  if [ -e "$WORKSPACE/tools/ollama-understand-nightly-launcher.sh" ]; then
+    existing_launcher_sha=$(sha256sum "$WORKSPACE/tools/ollama-understand-nightly-launcher.sh" | awk '{print $1}')
+    [ "$existing_launcher_sha" = "$launcher_sha" ] || [ "$existing_launcher_sha" = "$PREVIOUS_LAUNCHER_SHA256" ] || fail EXISTING_LAUNCHER_HASH_UNRECOGNIZED
   else
-    cp "$tmp/tools/nightly-entrypoint.sh" "$WORKSPACE/tools/nightly-entrypoint.sh"
+    fail EXISTING_LAUNCHER_MISSING
+  fi
+  if [ -e "$WORKSPACE/tools/network-anchor-api-image-id" ]; then
+    existing_network_anchor=$(cat "$WORKSPACE/tools/network-anchor-api-image-id") || fail EXISTING_NETWORK_ANCHOR_PIN_READ
+    [ "$existing_network_anchor" = UNBOUND ] || [ "$existing_network_anchor" = "$NETWORK_ANCHOR_API_IMAGE_ID" ] || fail EXISTING_NETWORK_ANCHOR_PIN_UNRECOGNIZED
+  fi
+  if [ -e "$WORKSPACE/tools/nightly-entrypoint.sh" ]; then
+    existing_entrypoint_sha=$(sha256sum "$WORKSPACE/tools/nightly-entrypoint.sh" | awk '{print $1}')
+    [ -f "$WORKSPACE/tools/nightly-entrypoint.sh" ] && { [ "$existing_entrypoint_sha" = "$entrypoint_sha" ] || [ "$existing_entrypoint_sha" = "$PREVIOUS_ENTRYPOINT_SHA256" ]; } || fail EXISTING_ENTRYPOINT_HASH_MISMATCH
+  else
+    existing_entrypoint_sha=missing
   fi
 else
   mv "$tmp/tools" "$WORKSPACE/tools"
@@ -341,6 +377,33 @@ find "$WORKSPACE/source" -type f -exec chmod 600 {} \;
 chmod 750 "$WORKSPACE/tools/ollama-understand-nightly-launcher.sh"
 chmod 750 "$WORKSPACE/tools/nightly-entrypoint.sh"
 chmod 750 "$WORKSPACE/bin/node"
+
+if [ -d "$WORKSPACE/tools" ]; then
+  backup_stamp=$(date -u +%Y%m%dT%H%M%SZ).$$
+  for name in ollama-understand-nightly-launcher.sh nightly-entrypoint.sh network-anchor-api-image-id; do
+    source_file="$WORKSPACE/tools/$name"
+    [ -f "$source_file" ] || continue
+    case "$name" in
+      ollama-understand-nightly-launcher.sh) expected_old=$PREVIOUS_LAUNCHER_SHA256 ;;
+      nightly-entrypoint.sh) expected_old=$PREVIOUS_ENTRYPOINT_SHA256 ;;
+      network-anchor-api-image-id) expected_old=UNBOUND ;;
+    esac
+    if [ "$name" = network-anchor-api-image-id ]; then
+      [ "$(cat "$source_file")" = "$NETWORK_ANCHOR_API_IMAGE_ID" ] && continue
+    else
+      [ "$(sha256sum "$source_file" | awk '{print $1}')" = "$( [ "$name" = ollama-understand-nightly-launcher.sh ] && printf '%s' "$launcher_sha" || printf '%s' "$entrypoint_sha" )" ] && continue
+    fi
+    backup_file="$WORKSPACE/backups/$name.pre-network-anchor.$backup_stamp"
+    [ ! -e "$backup_file" ] || fail NETWORK_ANCHOR_BACKUP_ALREADY_EXISTS
+    cp "$source_file" "$backup_file"
+    chmod 600 "$backup_file"
+  done
+  cp "$tmp/tools/ollama-understand-nightly-launcher.sh" "$WORKSPACE/tools/ollama-understand-nightly-launcher.sh"
+  cp "$tmp/tools/network-anchor-api-image-id" "$WORKSPACE/tools/network-anchor-api-image-id"
+  cp "$tmp/tools/nightly-entrypoint.sh" "$WORKSPACE/tools/nightly-entrypoint.sh"
+  chmod 750 "$WORKSPACE/tools/ollama-understand-nightly-launcher.sh" "$WORKSPACE/tools/nightly-entrypoint.sh"
+  chmod 600 "$WORKSPACE/tools/network-anchor-api-image-id"
+fi
 
 if ! crontab "$new_cron"; then
   fail USER_CRONTAB_INSTALL_FAILED_BACKUP_RETAINED

@@ -4,7 +4,9 @@ umask 077
 
 readonly WORKSPACE=/vol2/1000/docker/fiscalhot-understand-nightly
 readonly API_CONTAINER=fiscalhot-staging-api-1
+# This remains the separate frozen client image used for the isolated model job.
 readonly API_IMAGE=sha256:54d1a34f104b665ccdecc60e82f4cb67acf114fb3171b742990464ee6d4c7bc6
+readonly NETWORK_ANCHOR_IMAGE_PIN=$WORKSPACE/tools/network-anchor-api-image-id
 readonly POSTGRES_IMAGE=sha256:79bd7c99e923138f136f8009d6bffa66e21e9d4fda5c0c561b00fc9c90cfe537
 readonly DB_NAME=fiscalhot_ollama_understand_20261027_test
 readonly GATEWAY_CONFIG=/vol2/1000/docker/ollama-gateway/default.conf
@@ -42,10 +44,17 @@ input_sha=${OLLAMA_PILOT_INPUT_SHA256:-}
 manifest_sha=${OLLAMA_PILOT_CODE_MANIFEST_SHA256:-}
 wrapper_sha=${OLLAMA_PILOT_WRAPPER_SHA256:-}
 launcher_sha=${OLLAMA_PILOT_LAUNCHER_SHA256:-}
+network_anchor_pin_sha=${OLLAMA_UNDERSTAND_NETWORK_ANCHOR_API_IMAGE_SHA256:-}
 case "$run_id" in ollama-understand-development-r1-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]) ;; *) fail RUN_ID_INVALID;; esac
 case "$deadline" in ''|*[!0-9]*) fail DEADLINE_INVALID;; esac
 is_sha "$input_sha" && is_sha "$manifest_sha" && is_sha "$wrapper_sha" && is_sha "$launcher_sha" || fail HASH_ARGUMENT_INVALID
 [ "$(sha256sum "$0" | awk '{print toupper($1)}')" = "$(printf '%s' "$launcher_sha" | tr '[:lower:]' '[:upper:]')" ] || fail LAUNCHER_HASH_MISMATCH
+is_sha "$network_anchor_pin_sha" || fail NETWORK_ANCHOR_PIN_HASH_INVALID
+[ -f "$NETWORK_ANCHOR_IMAGE_PIN" ] && [ "$(stat -c '%a' "$NETWORK_ANCHOR_IMAGE_PIN" 2>/dev/null || stat -f '%Lp' "$NETWORK_ANCHOR_IMAGE_PIN")" = 600 ] || fail NETWORK_ANCHOR_PIN_MISSING_OR_MODE
+[ "$(sha256sum "$NETWORK_ANCHOR_IMAGE_PIN" | awk '{print $1}')" = "$network_anchor_pin_sha" ] || fail NETWORK_ANCHOR_PIN_HASH_MISMATCH
+network_anchor_api_image=$(cat "$NETWORK_ANCHOR_IMAGE_PIN") || fail NETWORK_ANCHOR_PIN_READ
+case "$network_anchor_api_image" in sha256:*) network_anchor_hex=${network_anchor_api_image#sha256:};; *) fail NETWORK_ANCHOR_IMAGE_ID_INVALID;; esac
+valid_hex_id "$network_anchor_hex" || fail NETWORK_ANCHOR_IMAGE_ID_INVALID
 case "$result_path" in "$WORKSPACE/results/"*.result.json) ;; *) fail RESULT_PATH_OUTSIDE_PRIVATE_DIRECTORY;; esac
 [ -f "$WORKSPACE/tools/api-image-id" ] && [ "$(cat "$WORKSPACE/tools/api-image-id")" = "$API_IMAGE" ] || fail API_IMAGE_PIN_MISMATCH
 [ -f "$WORKSPACE/tools/postgres-image-id" ] && [ "$(cat "$WORKSPACE/tools/postgres-image-id")" = "$POSTGRES_IMAGE" ] || fail POSTGRES_IMAGE_PIN_MISMATCH
@@ -70,9 +79,10 @@ mem_bytes=$((mem_kb * 1024))
 [ "$mem_bytes" -ge "$MIN_WARM_BYTES" ] || write_resource_skip NAS_MEM_AVAILABLE_BELOW_GATE
 
 docker info >/dev/null 2>&1 || fail DOCKER_ACCESS
-[ "$(docker inspect --format '{{.Image}}' "$API_CONTAINER" 2>/dev/null)" = "$API_IMAGE" ] || fail API_IMAGE_OR_CONTAINER_CHANGED
+[ "$(docker inspect --format '{{.Image}}' "$API_CONTAINER" 2>/dev/null)" = "$network_anchor_api_image" ] || fail NETWORK_ANCHOR_API_IMAGE_OR_CONTAINER_CHANGED
 [ "$(docker inspect --format '{{.State.Running}}' "$API_CONTAINER" 2>/dev/null)" = true ] || fail API_CONTAINER_NOT_RUNNING
 docker image inspect "$API_IMAGE" >/dev/null 2>&1 || fail API_IMAGE_MISSING
+docker image inspect "$network_anchor_api_image" >/dev/null 2>&1 || fail NETWORK_ANCHOR_IMAGE_MISSING
 docker image inspect "$POSTGRES_IMAGE" >/dev/null 2>&1 || fail POSTGRES_IMAGE_MISSING
 docker inspect --format '{{json .Mounts}}' "$API_CONTAINER" | python3 -c '
 import json, sys

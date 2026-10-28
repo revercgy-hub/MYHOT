@@ -34,22 +34,34 @@ const PILOT_CAPTURE_RAW_SHA256 = "9ddd111bfa9dbc9edde1954f2e2af75d5e57dbeb6ab956
 const PILOT_CAPTURE_LEGACY_DECODED_SHA256 = "84e4a8da1fee6a44ffc058a33c17c048a26e3147f33004d7417664d8b7991339";
 const PILOT_CAPTURE_DECODED_SHA256 = "4456c71613c83c0de91a7d3285f93f617c3ddf8b2ef04ffdf89d9a2b1810b148";
 const DEFAULT_SOURCE_IDS = ["mof-budget-work"];
+export const SUMMARY_DRAFT_SOURCE_IDS = Object.freeze([
+  "mof-budget-work", "mof-policy-release", "mof-finance-notices", "mof-accounting-notices",
+  "fujian-finance-notices", "xiamen-finance-debt", "pboc-xiamen-work", "xiamen-csrc-regulatory-work",
+  "mof-fujian-supervision-dynamics", "mof-xiamen-supervision-dynamics", "mof-beijing-supervision-dynamics",
+  "mof-shanghai-supervision-dynamics", "mof-henan-supervision-dynamics", "mof-hubei-supervision-dynamics",
+  "mof-hunan-supervision-dynamics", "mof-guangdong-supervision-dynamics", "mof-jiangsu-supervision-dynamics",
+  "mof-zhejiang-supervision-dynamics", "mof-sichuan-supervision-dynamics", "mof-chongqing-supervision-dynamics",
+]);
+const DAILY_LATEST_ADDITIONAL_SOURCE_IDS = Object.freeze([
+  "govcn-policy-library", "mof-regional-supervision-dynamics", "mof-guangxi-supervision-dynamics",
+  "mof-hainan-supervision-dynamics", "mof-ningxia-supervision-dynamics", "mof-qinghai-supervision-dynamics",
+  "mof-shaanxi-supervision-dynamics", "mof-guizhou-supervision-dynamics", "mof-gansu-supervision-dynamics",
+  "mof-qingdao-supervision-dynamics", "mof-dalian-supervision-dynamics", "mof-ningbo-supervision-dynamics",
+  "mof-shenzhen-supervision-dynamics", "mof-tianjin-supervision-dynamics", "mof-hebei-supervision-dynamics",
+  "mof-shanxi-supervision-dynamics", "mof-inner-mongolia-supervision-dynamics", "mof-jilin-supervision-dynamics",
+  "mof-heilongjiang-supervision-dynamics", "mof-shandong-supervision-dynamics", "mof-anhui-supervision-dynamics",
+  "mof-jiangxi-supervision-dynamics", "mof-xinjiang-supervision-dynamics", "mof-liaoning-supervision-dynamics",
+  "mof-yunnan-supervision-dynamics", "nfra-regulatory-dynamics",
+]);
 export const DAILY_LATEST_PRESET = Object.freeze({
   name: "daily-latest",
   catalogSha256: "27af3250bbc472ed20019983093b43336cc1967b9ae3193e6b202da4df27ad3f",
-  appCatalogSha256: "b5287d7f66ab91ed535d23128796f284f39c7c2c60f126082a820e891d5b252a",
+  appCatalogSha256: "27af3250bbc472ed20019983093b43336cc1967b9ae3193e6b202da4df27ad3f",
   recentDays: 7,
   maxNewPerSource: 10,
   maxDetailsTotal: 30,
-  maxDispatches: 50,
-  sourceIds: Object.freeze([
-    "mof-budget-work", "mof-policy-release", "mof-finance-notices", "mof-accounting-notices",
-    "fujian-finance-notices", "xiamen-finance-debt", "pboc-xiamen-work", "xiamen-csrc-regulatory-work",
-    "mof-fujian-supervision-dynamics", "mof-xiamen-supervision-dynamics", "mof-beijing-supervision-dynamics",
-    "mof-shanghai-supervision-dynamics", "mof-henan-supervision-dynamics", "mof-hubei-supervision-dynamics",
-    "mof-hunan-supervision-dynamics", "mof-guangdong-supervision-dynamics", "mof-jiangsu-supervision-dynamics",
-    "mof-zhejiang-supervision-dynamics", "mof-sichuan-supervision-dynamics", "mof-chongqing-supervision-dynamics",
-  ]),
+  maxDispatches: 76,
+  sourceIds: Object.freeze([...SUMMARY_DRAFT_SOURCE_IDS, ...DAILY_LATEST_ADDITIONAL_SOURCE_IDS]),
 });
 const MAX_SOURCES = 48;
 const MAX_NEW_PER_SOURCE = 30;
@@ -555,7 +567,7 @@ async function main() {
     sourcePlan.reduce((sum, source) => sum + source.maxDetails, 0));
   const networkDispatchBudget = captureReplayDir ? 0 : sourcePlan.length + totalDetailCap;
   if (requestedScope.preset === DAILY_LATEST_PRESET.name && networkDispatchBudget > DAILY_LATEST_PRESET.maxDispatches) {
-    throw new Error("daily-latest effective dispatch budget exceeds its 50-request cap");
+    throw new Error(`daily-latest effective dispatch budget exceeds its ${DAILY_LATEST_PRESET.maxDispatches}-request cap`);
   }
   const operatorSha256 = sha256(readFileSync(fileURLToPath(import.meta.url)));
   const startedAt = new Date().toISOString();
