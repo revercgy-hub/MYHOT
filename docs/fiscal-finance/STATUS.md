@@ -5,7 +5,7 @@
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
 CURRENT_SHA=8136535506f0d6ffd9329053cef9a79283575d6d (final code/tool anchor; docs-only follow-up is not included in this SHA)
-API_IMAGE_SHA=8973827402b621445ea2d0546932da737a6223d6; image=sha256:ee9ead66eb33d557bbc6206c975ed9649b87973a6de15b4049b4f18543ec54ba
+API_CODE_SHA=8973827402b621445ea2d0546932da737a6223d6; image=sha256:ee9ead66eb33d557bbc6206c975ed9649b87973a6de15b4049b4f18543ec54ba
 BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
 WORKSPACE=D:\AI-work\MYHOT\AIHOT
 STAGE=NAS Staging bounded trial only; app-only image 8973827 deployed; four owned cron markers installed/read back; no Production action
