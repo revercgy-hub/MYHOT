@@ -2,7 +2,7 @@
 /** Prepare, capture, replay and CAS a bounded set of already-pending article bodies. */
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
@@ -156,6 +156,140 @@ export interface PendingCaptureRunOutcome {
   targets: Array<{ articleId: string; sourceId: string; url: string; status: "captured" | "reused" | "timeout" | "skipped"; triggerArticleId?: string }>;
 }
 
+export interface PartialCaptureRecovery {
+  schemaVersion: "nas-pending-body-capture-recovery.v1";
+  result: "PARTIAL_CAPTURE_RECOVERY";
+  runId: string;
+  manifestSha256: string;
+  captureOperatorSha256: string;
+  recoveryOperatorSha256: string;
+  targetCount: number;
+  records: PendingCaptureRecord[];
+  recordsSha256: string;
+  targets: Array<{ articleId: string; sourceId: string; url: string; status: "captured" | "failed" | "notRequested";
+    captureMetadataSha256?: string; dispatchIntentSha256?: string; failureSha256?: string }>;
+}
+
+export function buildPartialCaptureRecovery(manifest: PendingBodyManifest, manifestSha256: string, captureDir: string,
+  recoveryOperatorSha256: string): PartialCaptureRecovery {
+  if (!/^[a-f0-9]{64}$/u.test(manifestSha256) || !/^[a-f0-9]{64}$/u.test(recoveryOperatorSha256) ||
+      !/^[a-f0-9]{64}$/u.test(manifest.operatorSha256)) throw new Error("partial recovery provenance digest is invalid");
+  const records: PendingCaptureRecord[] = [];
+  const targets: PartialCaptureRecovery["targets"] = [];
+  for (const target of manifest.targets) {
+    const capturePath = path.join(captureDir, `capture-${target.articleId}.json`);
+    const failurePath = path.join(captureDir, `capture-failure-${target.articleId}.json`);
+    const intentPath = path.join(captureDir, `dispatch-intent-${target.articleId}.json`);
+    const hasCapture = existsSync(capturePath), hasFailure = existsSync(failurePath), hasIntent = existsSync(intentPath);
+    if (hasCapture && (hasFailure || !hasIntent)) throw new Error(`partial evidence overlaps or lacks dispatch intent for ${target.articleId}`);
+    if (hasFailure && hasCapture) throw new Error(`partial evidence has both capture and failure for ${target.articleId}`);
+    if (hasCapture) {
+      const captureBytes = readPrivateJsonBytes(capturePath);
+      const capture = JSON.parse(captureBytes.toString("utf8"));
+      if (capture.schemaVersion !== "nas-pending-body-capture.v1" || !Array.isArray(capture.records) || capture.records.length !== 1) {
+        throw new Error(`capture metadata is invalid for ${target.articleId}`);
+      }
+      records.push(capture.records[0]);
+      targets.push({ articleId: target.articleId, sourceId: target.sourceId, url: target.url, status: "captured",
+        captureMetadataSha256: sha256(captureBytes), dispatchIntentSha256: sha256(readPrivateJsonBytes(intentPath)) });
+    } else if (hasFailure) {
+      const failureBytes = readPrivateJsonBytes(failurePath);
+      const failure = JSON.parse(failureBytes.toString("utf8"));
+      if (failure.schemaVersion !== "nas-pending-body-capture-failure.v1" || failure.articleId !== target.articleId ||
+          failure.sourceId !== target.sourceId || failure.url !== target.url || failure.method !== "GET" ||
+          (failure.intentAt !== null && !hasIntent) || (failure.intentAt === null && hasIntent)) {
+        throw new Error(`capture failure evidence is invalid for ${target.articleId}`);
+      }
+      const intentSha256 = hasIntent ? sha256(readPrivateJsonBytes(intentPath)) : undefined;
+      targets.push({ articleId: target.articleId, sourceId: target.sourceId, url: target.url, status: "failed",
+        ...(intentSha256 ? { dispatchIntentSha256: intentSha256 } : {}), failureSha256: sha256(failureBytes) });
+    } else {
+      if (hasIntent) throw new Error(`not-requested target has a dispatch intent: ${target.articleId}`);
+      targets.push({ articleId: target.articleId, sourceId: target.sourceId, url: target.url, status: "notRequested" });
+    }
+  }
+  if (!targets.some((row) => row.status === "failed") || records.length + targets.filter((row) => row.status === "failed").length +
+      targets.filter((row) => row.status === "notRequested").length !== manifest.targets.length) {
+    throw new Error("partial recovery requires one failed target and exact frozen target coverage");
+  }
+  return { schemaVersion: "nas-pending-body-capture-recovery.v1", result: "PARTIAL_CAPTURE_RECOVERY", runId: manifest.runId,
+    manifestSha256, captureOperatorSha256: manifest.operatorSha256, recoveryOperatorSha256, targetCount: manifest.targets.length,
+    records, recordsSha256: sha256(stableJson(records)), targets };
+}
+
+export function validatePartialCaptureRecovery(input: { recovery: PartialCaptureRecovery; manifest: PendingBodyManifest;
+  manifestSha256: string; captureDir: string }): void {
+  const { recovery, manifest, manifestSha256, captureDir } = input;
+  if (recovery.schemaVersion !== "nas-pending-body-capture-recovery.v1" || recovery.result !== "PARTIAL_CAPTURE_RECOVERY" ||
+      recovery.runId !== manifest.runId || recovery.manifestSha256 !== manifestSha256 || recovery.captureOperatorSha256 !== manifest.operatorSha256 ||
+      !/^[a-f0-9]{64}$/u.test(recovery.recoveryOperatorSha256) || recovery.targetCount !== manifest.targets.length ||
+      recovery.targets.length !== manifest.targets.length || recovery.targets.some((row, index) => row.articleId !== manifest.targets[index]?.articleId ||
+        row.sourceId !== manifest.targets[index]?.sourceId || row.url !== manifest.targets[index]?.url ||
+        !["captured", "failed", "notRequested"].includes(row.status)) ||
+      new Set(recovery.targets.map((row) => row.articleId)).size !== manifest.targets.length ||
+      recovery.recordsSha256 !== sha256(stableJson(recovery.records))) throw new Error("partial recovery does not bind the exact ordered frozen target partition");
+  const recordById = new Map(recovery.records.map((row) => [row.articleId, row]));
+  if (recordById.size !== recovery.records.length || recovery.records.length !== recovery.targets.filter((row) => row.status === "captured").length) {
+    throw new Error("partial recovery record set differs from captured partition");
+  }
+  for (let index = 0; index < manifest.targets.length; index++) {
+    const target = manifest.targets[index]!;
+    const partition = recovery.targets[index]!;
+    const intentPath = path.join(captureDir, `dispatch-intent-${target.articleId}.json`);
+    const capturePath = path.join(captureDir, `capture-${target.articleId}.json`);
+    const failurePath = path.join(captureDir, `capture-failure-${target.articleId}.json`);
+    if (partition.status === "captured") {
+      const intentBytes = readPrivateJsonBytes(intentPath), captureBytes = readPrivateJsonBytes(capturePath);
+      const intent = JSON.parse(intentBytes.toString("utf8"));
+      const capture = JSON.parse(captureBytes.toString("utf8"));
+      const record = recordById.get(target.articleId);
+      if (!record || partition.dispatchIntentSha256 !== sha256(intentBytes) || partition.captureMetadataSha256 !== sha256(captureBytes) ||
+          intent.schemaVersion !== "nas-pending-body-dispatch-intent.v1" || intent.articleId !== target.articleId ||
+          intent.sourceId !== target.sourceId || intent.method !== "GET" || intent.url !== target.url ||
+          !Number.isFinite(Date.parse(intent.intentAt)) || capture.records?.length !== 1 || stableJson(capture.records[0]) !== stableJson(record) ||
+          record.articleId !== target.articleId || record.sourceId !== target.sourceId || record.url !== target.url || record.method !== "GET" ||
+          record.responseUrl !== target.url || record.status !== 200 || record.eof !== true || !Number.isSafeInteger(record.bytes) ||
+          record.bytes < 0 || record.bytes > MAX_DETAIL_BYTES || !/^text\/html(?:\s*;|$)/iu.test(record.contentType ?? "") ||
+          !/^responses\/[A-Za-z0-9_-]+-[a-f0-9]{12}\.body$/u.test(record.file) ||
+          !/^[a-f0-9]{64}$/u.test(record.bodySha256) || !Number.isFinite(Date.parse(record.dispatchedAt ?? "")) ||
+          !Number.isFinite(Date.parse(record.completedAt ?? "")) || Date.parse(record.completedAt!) < Date.parse(record.dispatchedAt!)) {
+        throw new Error(`captured partition evidence is invalid for ${target.articleId}`);
+      }
+      const bodyPath = path.resolve(captureDir, record.file);
+      if (!bodyPath.startsWith(`${path.resolve(captureDir)}${path.sep}`) || lstatSync(bodyPath).isSymbolicLink()) throw new Error("partial raw response path is unsafe");
+      const body = readFileSync(bodyPath);
+      if (body.length !== record.bytes || sha256(body) !== record.bodySha256) throw new Error(`partial raw response bytes/hash differ for ${target.articleId}`);
+    } else if (partition.status === "failed") {
+      if (recordById.has(target.articleId)) throw new Error(`failed target has a capture record: ${target.articleId}`);
+      const failureBytes = readPrivateJsonBytes(failurePath), failure = JSON.parse(failureBytes.toString("utf8"));
+      const intentBytes = existsSync(intentPath) ? readPrivateJsonBytes(intentPath) : null;
+      const intent = intentBytes ? JSON.parse(intentBytes.toString("utf8")) : null;
+      if (partition.failureSha256 !== sha256(failureBytes) || failure.schemaVersion !== "nas-pending-body-capture-failure.v1" ||
+          failure.articleId !== target.articleId || failure.sourceId !== target.sourceId || failure.url !== target.url || failure.method !== "GET" ||
+          !failure.errorName || !failure.stage || (failure.intentAt === null && (intentBytes || partition.dispatchIntentSha256 !== undefined)) ||
+          (failure.intentAt !== null && (!intentBytes || partition.dispatchIntentSha256 !== sha256(intentBytes) ||
+            intent.schemaVersion !== "nas-pending-body-dispatch-intent.v1" || intent.articleId !== target.articleId ||
+            intent.sourceId !== target.sourceId || intent.method !== "GET" || intent.url !== target.url || intent.intentAt !== failure.intentAt))) {
+        throw new Error(`failed target evidence is invalid for ${target.articleId}`);
+      }
+    } else {
+      if (recordById.has(target.articleId) || existsSync(intentPath) || existsSync(capturePath) || existsSync(failurePath)) {
+        throw new Error(`not-requested target has contradictory evidence: ${target.articleId}`);
+      }
+    }
+  }
+}
+
+export async function captureWithPartialRecovery(input: { manifest: PendingBodyManifest; manifestSha256: string; captureDir: string; out: string;
+  recoveryOperatorSha256: string; capture: () => Promise<PendingCaptureRunOutcome> }): Promise<PendingCaptureRunOutcome> {
+  try { return await input.capture(); }
+  catch (error) {
+    const recovery = buildPartialCaptureRecovery(input.manifest, input.manifestSha256, input.captureDir, input.recoveryOperatorSha256);
+    writePrivateAtomic(input.out, recovery);
+    throw error;
+  }
+}
+
 export function timeoutPauseReason(target: { sourceId: string; url: string }, causes: Array<{ sourceId: string; hostname: string; articleId: string }> | ReadonlyArray<{ sourceId: string; hostname: string; articleId: string }>): {
   reason: "same-source-after-timeout" | "same-host-after-timeout"; triggerArticleId: string;
 } | null {
@@ -263,6 +397,7 @@ export interface PendingProposalBundle {
   freshDispatchCount: number;
   legacyOfflineCaptureCount: number;
   historicalNetworkCompliance: "PASS_FOR_FRESH_DISPATCHES_ONLY" | "UNPROVEN_HISTORICAL_CADENCE";
+  partialCaptureRecovery?: { recoverySha256: string; capturedCount: number; failedCount: number; notRequestedCount: number };
   proposals: CandidateBodyCasRow[];
   holds: Array<{ articleId: string; reason: string; bodySha256: string | null }>;
 }
@@ -766,7 +901,8 @@ export async function parsePendingCapture(input: { manifest: PendingBodyManifest
 }
 
 export function buildPendingProposalBundle(manifest: PendingBodyManifest, manifestSha256: string,
-  captureRecords: PendingCaptureRecord[], parsed: { proposals: CandidateBodyCasRow[]; holds: Array<{ articleId: string; reason: string; bodySha256: string | null }> }): PendingProposalBundle {
+  captureRecords: PendingCaptureRecord[], parsed: { proposals: CandidateBodyCasRow[]; holds: Array<{ articleId: string; reason: string; bodySha256: string | null }> },
+  partialCaptureRecovery?: PendingProposalBundle["partialCaptureRecovery"]): PendingProposalBundle {
   if (!/^[a-f0-9]{64}$/u.test(manifestSha256)) throw new Error("proposal manifest digest is invalid");
   const captureIds = new Set<string>();
   let previousDispatch = Number.NEGATIVE_INFINITY;
@@ -803,13 +939,13 @@ export function buildPendingProposalBundle(manifest: PendingBodyManifest, manife
   }
   const targetIds = new Set(manifest.targets.map((target) => target.articleId));
   if ([...captureIds].some((id) => !targetIds.has(id)) || parsed.proposals.some((proposal) => !captureIds.has(proposal.articleId)) ||
-      parsed.holds.some((hold) => !captureIds.has(hold.articleId))) throw new Error("capture/proposal rows exceed frozen target IDs");
+      parsed.holds.some((hold) => !targetIds.has(hold.articleId))) throw new Error("capture/proposal rows exceed frozen target IDs");
   const capturesSha256 = sha256(stableJson(captureRecords));
   const freshDispatchCount = freshDispatches.length;
   const legacyOfflineCaptureCount = legacyCaptures.length;
   const historicalNetworkCompliance = legacyOfflineCaptureCount ? "UNPROVEN_HISTORICAL_CADENCE" as const : "PASS_FOR_FRESH_DISPATCHES_ONLY" as const;
   const digestInput = { runId: manifest.runId, manifestSha256, capturesSha256, freshDispatchCount, legacyOfflineCaptureCount,
-    historicalNetworkCompliance, proposals: parsed.proposals, holds: parsed.holds };
+    historicalNetworkCompliance, ...(partialCaptureRecovery ? { partialCaptureRecovery } : {}), proposals: parsed.proposals, holds: parsed.holds };
   return { schemaVersion: "nas-pending-body-proposals.v1", ...digestInput, inputSha256: sha256(stableJson(digestInput)) };
 }
 
@@ -977,6 +1113,7 @@ export function assertPendingProposalBundle(bundle: PendingProposalBundle, manif
   const digestInput = { runId: bundle.runId, manifestSha256: bundle.manifestSha256, capturesSha256: bundle.capturesSha256,
     freshDispatchCount: bundle.freshDispatchCount, legacyOfflineCaptureCount: bundle.legacyOfflineCaptureCount,
     historicalNetworkCompliance: bundle.historicalNetworkCompliance,
+    ...(bundle.partialCaptureRecovery ? { partialCaptureRecovery: bundle.partialCaptureRecovery } : {}),
     proposals: bundle.proposals, holds: bundle.holds };
   if (bundle.schemaVersion !== "nas-pending-body-proposals.v1" || bundle.manifestSha256 !== manifestSha256 ||
       !/^[a-f0-9]{64}$/u.test(bundle.capturesSha256) || bundle.inputSha256 !== sha256(stableJson(digestInput))) {
@@ -1021,15 +1158,28 @@ function writePrivate(pathName: string, value: unknown): void {
   writeFileSync(pathName, `${JSON.stringify(value, null, 2)}\n`, { flag: "wx", mode: 0o600 });
 }
 
+function writePrivateAtomic(pathName: string, value: unknown): void {
+  const absolute = path.resolve(pathName);
+  mkdirSync(path.dirname(absolute), { recursive: true, mode: 0o700 });
+  if (existsSync(absolute)) throw new Error("operator output already exists; refusing to overwrite evidence");
+  const temporary = `${absolute}.tmp-${process.pid}-${Date.now()}`;
+  try {
+    writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, { flag: "wx", mode: 0o600 });
+    renameSync(temporary, absolute);
+  } finally {
+    if (existsSync(temporary)) unlinkSync(temporary);
+  }
+}
+
 async function main(): Promise<void> {
   const { values } = parseArgs({ options: { mode: { type: "string" }, "article-ids": { type: "string" }, "next-eligible": { type: "boolean" },
     "run-id": { type: "string" }, manifest: { type: "string" }, captures: { type: "string" }, "capture-dir": { type: "string" },
     "exclude-evidence": { type: "string" }, "legacy-evidence": { type: "string" }, "legacy-evidence-sha256": { type: "string" },
     "reuse-prior-captures": { type: "boolean" }, proposals: { type: "string" }, "backup-proof": { type: "string" },
-    "approval-sha256": { type: "string" }, "continue-after-timeout": { type: "boolean" }, out: { type: "string" } }, strict: true });
+    "approval-sha256": { type: "string" }, "continue-after-timeout": { type: "boolean" }, "partial-recovery": { type: "boolean" }, out: { type: "string" } }, strict: true });
   const mode = values.mode;
-  if (!["prepare", "capture", "legacy-adapt", "offline-parse", "preflight-only", "execute"].includes(String(mode))) {
-    throw new Error("mode must be prepare, capture, legacy-adapt, offline-parse, preflight-only or execute");
+  if (!["prepare", "capture", "legacy-adapt", "recover-partial", "offline-parse", "preflight-only", "execute"].includes(String(mode))) {
+    throw new Error("mode must be prepare, capture, legacy-adapt, recover-partial, offline-parse, preflight-only or execute");
   }
   if (mode === "prepare" && (Boolean(values["article-ids"]) === Boolean(values["next-eligible"]) || !values["run-id"] || !values.out || !values["exclude-evidence"])) {
     throw new Error("prepare requires (--article-ids <id,id>|--next-eligible), --run-id, --exclude-evidence and --out");
@@ -1040,7 +1190,11 @@ async function main(): Promise<void> {
   }
   if (mode === "capture" && (!values.manifest || !values["capture-dir"] || !values.out || !values["approval-sha256"])) throw new Error("capture requires manifest, capture-dir, out and reviewed manifest --approval-sha256");
   if (values["continue-after-timeout"] && mode !== "capture") throw new Error("continue-after-timeout is valid only with --mode capture");
+  if (values["partial-recovery"] && mode !== "offline-parse") throw new Error("partial-recovery is valid only with --mode offline-parse");
   if (mode === "offline-parse" && (!values.manifest || !values.captures || !values["capture-dir"] || !values.out)) throw new Error("offline-parse requires manifest, captures, capture-dir and out");
+  if (mode === "recover-partial" && (!values.manifest || !values["capture-dir"] || !values.out || !values["approval-sha256"])) {
+    throw new Error("recover-partial requires manifest, capture-dir, out and reviewed exact manifest --approval-sha256");
+  }
   if (mode === "legacy-adapt" && (!values.manifest || !values["legacy-evidence"] || !values["legacy-evidence-sha256"] ||
       !values["capture-dir"] || !values.out || !values["approval-sha256"])) {
     throw new Error("legacy-adapt requires frozen manifest, reviewed manifest SHA, exact legacy evidence SHA, capture-dir and out");
@@ -1058,10 +1212,14 @@ async function main(): Promise<void> {
     "DASHSCOPE_API_KEY", "EMBEDDING_API_KEY", "JINA_API_KEY", "OCR_API_KEY", "SOCIALDATA_API_KEY", "DAJIALA_API_KEY",
     "FEISHU_APP_ID", "FEISHU_APP_SECRET", "FEISHU_CONTENT_PUSH_WEBHOOK", "FEISHU_INTERNAL_WEBHOOK", "INDEXNOW_KEY",
     "EGRESS_PROXY_URL", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"]) delete process.env[key];
-  if (mode === "offline-parse" || mode === "legacy-adapt") {
+  if (mode === "offline-parse" || mode === "legacy-adapt" || mode === "recover-partial") {
     const manifestBytes = readPrivateJsonBytes(values.manifest!);
     const manifest = JSON.parse(manifestBytes.toString("utf8")) as PendingBodyManifest;
-    if (manifest.schemaVersion !== "nas-pending-body-batch.v1" || manifest.operatorSha256 !== sha256(readFileSync(fileURLToPath(import.meta.url))) ||
+    if (mode === "recover-partial" && values["approval-sha256"] !== sha256(manifestBytes)) {
+      throw new Error("recover-partial requires reviewed exact manifest SHA-256");
+    }
+    if (manifest.schemaVersion !== "nas-pending-body-batch.v1" || (!values["partial-recovery"] && mode !== "recover-partial" &&
+        manifest.operatorSha256 !== sha256(readFileSync(fileURLToPath(import.meta.url)))) ||
         manifest.snapshotSha256 !== sha256(stableJson(manifest.snapshot))) throw new Error("manifest version, operator or snapshot hash changed");
     if (mode === "legacy-adapt") {
       const manifestSha256 = sha256(manifestBytes);
@@ -1162,8 +1320,36 @@ async function main(): Promise<void> {
         legacyInventorySha256: inventorySha256, capturesSha256: output.capturesSha256, output: path.resolve(values.out!) }));
       return;
     }
+    if (mode === "recover-partial") {
+      const recovery = buildPartialCaptureRecovery(manifest, sha256(manifestBytes), path.resolve(values["capture-dir"]!),
+        sha256(readFileSync(fileURLToPath(import.meta.url))));
+      writePrivateAtomic(path.resolve(values.out!), recovery);
+      console.log(JSON.stringify({ result: recovery.result, runId: recovery.runId, targetCount: recovery.targetCount,
+        capturedCount: recovery.targets.filter((row) => row.status === "captured").length,
+        failedCount: recovery.targets.filter((row) => row.status === "failed").length,
+        notRequestedCount: recovery.targets.filter((row) => row.status === "notRequested").length, coverageComplete: false,
+        manifestSha256: recovery.manifestSha256, captureOperatorSha256: recovery.captureOperatorSha256,
+        recoveryOperatorSha256: recovery.recoveryOperatorSha256, output: path.resolve(values.out!) }));
+      return;
+    }
     const capturesBytes = readPrivateJsonBytes(values.captures!);
     const captures = JSON.parse(capturesBytes.toString("utf8"));
+    if (values["partial-recovery"]) {
+      const recovery = captures as PartialCaptureRecovery;
+      validatePartialCaptureRecovery({ recovery, manifest, manifestSha256: sha256(manifestBytes), captureDir: path.resolve(values["capture-dir"]!) });
+      const { fetchDetail } = await import(appModule("packages/backend/src/sources/web-list.ts"));
+      const sources = new Map(CATALOG.sources.map((source) => [String(source.id), source]));
+      const parsed = await parsePendingCapture({ manifest, records: recovery.records, captureDir: path.resolve(values["capture-dir"]!), sources, fetchDetail });
+      const partialCaptureRecovery = { recoverySha256: sha256(capturesBytes),
+        capturedCount: recovery.targets.filter((row) => row.status === "captured").length,
+        failedCount: recovery.targets.filter((row) => row.status === "failed").length,
+        notRequestedCount: recovery.targets.filter((row) => row.status === "notRequested").length };
+      const bundle = buildPendingProposalBundle(manifest, sha256(manifestBytes), recovery.records, parsed, partialCaptureRecovery);
+      writePrivate(path.resolve(values.out!), bundle);
+      console.log(JSON.stringify({ result: "OFFLINE_PARTIAL_RECOVERY_COMPLETE", proposalInputSha256: bundle.inputSha256,
+        proposals: bundle.proposals.length, holds: bundle.holds.length, coverageComplete: false, partialCaptureRecovery, output: path.resolve(values.out!) }));
+      return;
+    }
     const manifestHasReusePlan = Array.isArray(manifest.legacyReuseGroups) && manifest.legacyReuseGroups.length > 0;
     const manifestHasDuplicateGroup = manifest.legacyReuseGroups?.some((group) => group.candidates.length > 1) ?? false;
     const isFresh = captures.schemaVersion === "nas-pending-body-captures.v1" && !manifestHasReusePlan;
@@ -1344,9 +1530,11 @@ async function main(): Promise<void> {
       assertDispatchNetworkGuard(appConfig);
       const captureDir = path.resolve(values["capture-dir"]!);
       const oldUrls = existingCaptureUrls(captureDir);
-      const captureOutcome = await capturePendingBodies({ targets: before.targets, sources: allowedCaptureSources, captureDir,
-        allowed, publicUrl: (url) => assertPublicUrl(url, false), fetchDetail, continueAfterTimeout: Boolean(values["continue-after-timeout"]),
-        makeFetcher: (budget) => createBudgetedDetailFetcher(budget, guardedFetch as never) });
+      const captureOutcome = await captureWithPartialRecovery({ manifest, manifestSha256, captureDir, out: path.resolve(values.out!),
+        recoveryOperatorSha256: sha256(readFileSync(fileURLToPath(import.meta.url))),
+        capture: () => capturePendingBodies({ targets: before.targets, sources: allowedCaptureSources, captureDir,
+          allowed, publicUrl: (url) => assertPublicUrl(url, false), fetchDetail, continueAfterTimeout: Boolean(values["continue-after-timeout"]),
+          makeFetcher: (budget) => createBudgetedDetailFetcher(budget, guardedFetch as never) }) });
       if (captureOutcome.targets.length !== manifest.targets.length ||
           new Set(captureOutcome.targets.map((row) => row.articleId)).size !== manifest.targets.length ||
           captureOutcome.targets.some((row, index) => row.articleId !== manifest.targets[index]?.articleId || row.url !== manifest.targets[index]?.url)) {
