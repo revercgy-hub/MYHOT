@@ -209,7 +209,7 @@ run_log="$WORKSPACE/logs/$run_id.log"
 touch "$run_log"
 chmod 600 "$run_log"
 tmp_sha=$(printf '%s' "$operator_sha" | cut -c1-12)
-remote_operator="/tmp/codex-summary-draft.$tmp_sha.$$.ts"
+remote_operator="/app/scripts/fiscal/.codex-summary-draft.$tmp_sha.$$.ts"
 docker cp "$OPERATOR" "$API_CONTAINER:$remote_operator" >/dev/null || fail OPERATOR_STAGE_FAILED
 api_uid=$(docker exec "$API_CONTAINER" id -u 2>/dev/null) || fail API_RUNTIME_UID_UNAVAILABLE
 api_gid=$(docker exec "$API_CONTAINER" id -g 2>/dev/null) || fail API_RUNTIME_GID_UNAVAILABLE

@@ -15,7 +15,7 @@ if (args.length) {
   API_IMAGE = args[1];
 }
 const imagePinBound = API_IMAGE !== "UNBOUND";
-const OUTPUT = path.join(ROOT, `.data/fiscal-qa/nas-latest-collector-candidate-20261028-${imagePinBound ? "bound" : "unbound"}`);
+const OUTPUT = path.join(ROOT, `.data/fiscal-qa/nas-latest-collector-candidate-20261029-r3-${imagePinBound ? "bound" : "unbound"}`);
 const WORKSPACE = "/vol2/1000/docker/fiscalhot-latest-collector-20261028";
 const OPERATOR = "scripts/fiscal/nas-candidate-batch.ts";
 const OPERATOR_SHA256 = "ed5216a0c56fb270e903e84507a905d62ceda354a9fdbca7ebf939c2b0296442";
@@ -91,7 +91,7 @@ const candidateManifest = {
   runtimeManifestSha256: manifestSha,
   entrypointSha256: entrypointSha, cronJobBytes: Buffer.byteLength(job, "utf8"),
   installerSha256: sha(installerBytes),
-  guardrails: { fixedSources: 46, summaryDraftSources: 20, listRequests: 46,
+  guardrails: { fixedSources: 46, summaryDraftSources: 20, freshnessDays: 7, listRequests: 46,
     detailRequests: 30, totalGets: 76, maxNewPerSource: 10, maxNewTotal: 460, serial: true,
     sourceFlags: false, globalCollect: false, modelCalls: false, worker: false,
     automaticSummary: false, selection: false, publication: false, planOnlyPerformed: false },
