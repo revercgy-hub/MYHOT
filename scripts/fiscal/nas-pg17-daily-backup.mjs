@@ -77,6 +77,32 @@ export function parseCliArgs(args) {
   throw new BackupError("arguments", "UNSUPPORTED_ARGUMENTS");
 }
 
+export function normalizeSchemaDdl(schemaBytes) {
+  let text;
+  try { text = new TextDecoder("utf-8", { fatal: true }).decode(schemaBytes); }
+  catch { throw new BackupError("schema_ddl_fingerprint", "SCHEMA_DDL_UTF8_INVALID"); }
+  const lines = text.split("\n");
+  const markers = [];
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const content = line.endsWith("\r") ? line.slice(0, -1) : line;
+    if (!content.startsWith("\\restrict") && !content.startsWith("\\unrestrict")) continue;
+    const match = /^(\\restrict|\\unrestrict) ([A-Za-z0-9_-]{1,256})$/u.exec(content);
+    if (!match) throw new BackupError("schema_ddl_fingerprint", "SCHEMA_DDL_RESTRICT_MARKER_INVALID");
+    markers.push({ index, command: match[1], token: match[2], crlf: line.endsWith("\r") });
+  }
+  const restrict = markers.filter((marker) => marker.command === "\\restrict");
+  const unrestrict = markers.filter((marker) => marker.command === "\\unrestrict");
+  if (restrict.length !== 1 || unrestrict.length !== 1 || restrict[0].token !== unrestrict[0].token ||
+      restrict[0].index >= unrestrict[0].index) {
+    throw new BackupError("schema_ddl_fingerprint", "SCHEMA_DDL_RESTRICT_PAIR_INVALID");
+  }
+  for (const marker of markers) {
+    lines[marker.index] = `${marker.command} <normalized-key>${marker.crlf ? "\r" : ""}`;
+  }
+  return Buffer.from(lines.join("\n"), "utf8");
+}
+
 function parsePgMajor(output) {
   const match = /\bPostgreSQL\)?\s+(\d+)(?:\.\d+)?/u.exec(output);
   if (!match) throw new BackupError("tool_version", "POSTGRES_TOOL_VERSION_UNREADABLE");
@@ -224,11 +250,14 @@ export async function runDailyBackup(options = {}) {
     const schemaDdl = await invoke(options.pgRestore ?? "pg_restore", ["--schema-only", "--file", "-", dumpPart], childEnvironment,
       { maxStdout: MAX_RESTORE_LIST_BYTES, timeoutMs: 30_000 });
     if (schemaDdl.stdout.length === 0) throw new BackupError("schema_ddl_fingerprint", "SCHEMA_DDL_EMPTY");
+    const normalizedSchemaDdl = normalizeSchemaDdl(schemaDdl.stdout);
+    const schemaDdlSha256 = createHash("sha256").update(schemaDdl.stdout).digest("hex");
+    const normalizedSchemaDdlSha256 = createHash("sha256").update(normalizedSchemaDdl).digest("hex");
+    await writePrivateNew(path.join(runDir, "schema.ddl.sql"), schemaDdl.stdout);
 
     stage = "backup_hash";
     const dumpSha256 = await sha256File(dumpPart);
     const restoreListSha256 = createHash("sha256").update(list.stdout).digest("hex");
-    const schemaDdlSha256 = createHash("sha256").update(schemaDdl.stdout).digest("hex");
     await rename(dumpPart, dumpFinal);
     await chmod(dumpFinal, 0o600);
     const finalInfo = await lstat(dumpFinal);
@@ -252,8 +281,11 @@ export async function runDailyBackup(options = {}) {
       bytes: finalInfo.size,
       sha256: dumpSha256,
       pgRestoreListSha256: restoreListSha256,
+      schemaDdlFile: "schema.ddl.sql",
       schemaDdlBytes: schemaDdl.stdout.length,
       schemaDdlSha256,
+      normalizedSchemaAlgorithm: "pg17-restrict-key-pair-v1",
+      normalizedSchemaDdlSha256,
     };
     await writePrivateAtomicNew(path.join(runDir, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
     return manifest;

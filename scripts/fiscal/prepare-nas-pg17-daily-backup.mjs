@@ -15,7 +15,7 @@ if (args.length) {
   apiImageId = args[1];
 }
 const bound = apiImageId !== "UNBOUND";
-const OUTPUT = path.join(ROOT, `.data/fiscal-qa/pg17-daily-backup-candidate-20261028-r1-${bound ? "bound" : "unbound"}`);
+const OUTPUT = path.join(ROOT, `.data/fiscal-qa/pg17-daily-backup-candidate-20261029-r2-${bound ? "bound" : "unbound"}`);
 const WORKSPACE = "/vol2/1000/docker/fiscalhot-pg17-backup-nightly";
 const OPERATOR = "scripts/fiscal/nas-pg17-daily-backup.mjs";
 const LAUNCHER = "scripts/fiscal/nas-pg17-daily-backup-launcher.sh";

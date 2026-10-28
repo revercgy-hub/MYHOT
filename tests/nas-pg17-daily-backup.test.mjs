@@ -1,13 +1,31 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { mkdtemp, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { parseCliArgs, parseDatabaseUrl, pgDumpArgs, runDailyBackup } from "../scripts/fiscal/nas-pg17-daily-backup.mjs";
+import { normalizeSchemaDdl, parseCliArgs, parseDatabaseUrl, pgDumpArgs, runDailyBackup } from "../scripts/fiscal/nas-pg17-daily-backup.mjs";
 
 const databaseUrl = "postgresql://backup_user:sensitive%21pass@postgres:5432/fiscalhot_staging";
 const now = new Date("2026-10-29T17:00:00.000Z");
 const runId = "pg17daily-20261029T170000Z-0123456789ab";
+const schemaDdl = (token, ddl = "CREATE TABLE sample(id integer);") => Buffer.from(`\\restrict ${token}\n${ddl}\n\\unrestrict ${token}\n`);
+
+test("schema fingerprint removes only one matching PostgreSQL restrict token pair", () => {
+  const first = schemaDdl("AlphaKey_123");
+  const second = schemaDdl("DifferentKey_456");
+  const firstNormalized = normalizeSchemaDdl(first);
+  const secondNormalized = normalizeSchemaDdl(second);
+  assert.notEqual(createHash("sha256").update(first).digest("hex"), createHash("sha256").update(second).digest("hex"));
+  assert.deepEqual(firstNormalized, secondNormalized);
+  assert.notDeepEqual(firstNormalized, normalizeSchemaDdl(schemaDdl("DifferentKey_456", "CREATE TABLE sample(id bigint);")));
+  assert.throws(() => normalizeSchemaDdl(Buffer.from("\\restrict only-one\nCREATE TABLE sample(id integer);\n")),
+    (error) => error.code === "SCHEMA_DDL_RESTRICT_PAIR_INVALID");
+  assert.throws(() => normalizeSchemaDdl(Buffer.from(schemaDdl("first-token").toString().replace("\\unrestrict first-token", "\\unrestrict other-token"))),
+    (error) => error.code === "SCHEMA_DDL_RESTRICT_PAIR_INVALID");
+  assert.throws(() => normalizeSchemaDdl(Buffer.from("\\restrict a\n\\restrict b\n\\unrestrict b\n")),
+    (error) => error.code === "SCHEMA_DDL_RESTRICT_PAIR_INVALID");
+});
 
 test("database URL parser rejects wrong database and unsupported connection options", () => {
   assert.deepEqual(parseDatabaseUrl(databaseUrl), {
@@ -42,7 +60,7 @@ test("verified backup writes a private manifest and checks PG17 archive listing"
     }
     if (args[0] === "--list") return { stdout: Buffer.from("; Archive created at 2026-10-29\n; PostgreSQL database dump\n") };
     assert.deepEqual(args.slice(0, 3), ["--schema-only", "--file", "-"]);
-    return { stdout: Buffer.from("CREATE TABLE sample(id integer);\n") };
+    return { stdout: schemaDdl("test-key-001") };
   };
 
   const manifest = await runDailyBackup({ env: { DATABASE_URL: databaseUrl, SAFE_FLAG: "yes" }, now, runId, outputDir, runTool });
@@ -53,6 +71,9 @@ test("verified backup writes a private manifest and checks PG17 archive listing"
   assert.match(manifest.sha256, /^[a-f0-9]{64}$/u);
   assert.match(manifest.pgRestoreListSha256, /^[a-f0-9]{64}$/u);
   assert.match(manifest.schemaDdlSha256, /^[a-f0-9]{64}$/u);
+  assert.equal(manifest.schemaDdlFile, "schema.ddl.sql");
+  assert.equal(manifest.normalizedSchemaAlgorithm, "pg17-restrict-key-pair-v1");
+  assert.match(manifest.normalizedSchemaDdlSha256, /^[a-f0-9]{64}$/u);
   assert.ok(manifest.schemaDdlBytes > 0);
   assert.equal(JSON.stringify(manifest).includes("sensitive"), false);
   assert.equal(seen.length, 5);
@@ -64,9 +85,12 @@ test("verified backup writes a private manifest and checks PG17 archive listing"
   }
   const runDir = path.join(outputDir, runId);
   const files = await readdir(runDir);
-  assert.deepEqual(files.sort(), ["database.dump", "manifest.json"]);
+  assert.deepEqual(files.sort(), ["database.dump", "manifest.json", "schema.ddl.sql"]);
   const manifestStat = await stat(path.join(runDir, "manifest.json"));
   if (process.platform !== "win32") assert.equal(manifestStat.mode & 0o777, 0o600);
+  const schemaStat = await stat(path.join(runDir, "schema.ddl.sql"));
+  if (process.platform !== "win32") assert.equal(schemaStat.mode & 0o777, 0o600);
+  assert.equal(createHash("sha256").update(await readFile(path.join(runDir, "schema.ddl.sql"))).digest("hex"), manifest.schemaDdlSha256);
   const folderStat = await stat(runDir);
   if (process.platform !== "win32") assert.equal(folderStat.mode & 0o777, 0o700);
   assert.equal((await readFile(path.join(runDir, "manifest.json"), "utf8")).includes("sensitive"), false);
@@ -99,7 +123,7 @@ test("restore-list failure is retained as a failure and does not create a succes
       return { stdout: Buffer.alloc(0) };
     }
     if (args[0] === "--list") throw new Error("simulated pg_restore failure");
-    return { stdout: Buffer.from("CREATE TABLE sample(id integer);\n") };
+    return { stdout: schemaDdl("test-key-002") };
   };
   await assert.rejects(runDailyBackup({ env: { DATABASE_URL: databaseUrl }, now, runId, outputDir, runTool }), (error) => error.code === "UNEXPECTED_FAILURE");
   const runDir = path.join(outputDir, runId);
@@ -128,7 +152,7 @@ test("manual mode permits one daytime backup and is recorded in the manifest", a
       return { stdout: Buffer.alloc(0) };
     }
     if (args[0] === "--list") return { stdout: Buffer.from("; Archive\n") };
-    return { stdout: Buffer.from("CREATE TABLE sample(id integer);\n") };
+    return { stdout: schemaDdl("test-key-003") };
   };
   const manifest = await runDailyBackup({ env: { DATABASE_URL: databaseUrl }, now: new Date("2026-10-29T20:00:00.000Z"),
     runId: manualRunId, outputDir, runTool, manual: parseCliArgs(["--manual"]) });
@@ -155,7 +179,7 @@ test("run ID is never overwritten or reused", async (t) => {
       return { stdout: Buffer.alloc(0) };
     }
     if (args[0] === "--list") return { stdout: Buffer.from("; Archive\n") };
-    return { stdout: Buffer.from("CREATE TABLE sample(id integer);\n") };
+    return { stdout: schemaDdl("test-key-004") };
   };
   await runDailyBackup({ env: { DATABASE_URL: databaseUrl }, now, runId, outputDir, runTool });
   const manifestPath = path.join(outputDir, runId, "manifest.json");
