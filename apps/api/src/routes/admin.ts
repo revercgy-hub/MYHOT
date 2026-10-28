@@ -13,6 +13,7 @@ import { listMonitorEvents, listMonitorPosts, relinkPost, resolveMonitorPost, re
 import { releaseReceipt, requeueFailedArticles, resolveDelivery, runsOverview } from "@aihot/backend/admin/runs";
 import { listBudgets, listTargets, replaceContactQr, setTargetEnabled, updateBudget } from "@aihot/backend/admin/settings";
 import { exportReviewOverlay, getReviewBatch, listReviewBatches, recordReviewDecisions } from "@aihot/backend/admin/review-batches";
+import { getSummaryDraft, listSummaryDrafts, reviewSummaryDrafts } from "@aihot/backend/admin/summary-drafts";
 import { createSource, fetchNow, listSources, previewSource, sourceDetail, updateSource } from "@aihot/backend/admin/sources";
 import { sql } from "@aihot/backend/db";
 import { loadContact } from "@aihot/backend/site/contact";
@@ -152,6 +153,17 @@ export function registerAdmin(app: FastifyInstance) {
     if (!overlay) return notFound(req, reply);
     return reply.header("Content-Disposition", `attachment; filename="gold-review-${overlay.batchHash}.json"`).type("application/json; charset=utf-8").send(overlay);
   }));
+
+  // Local model summary drafts. This review path publishes summary-only after explicit approval;
+  // it is separate from Gold labels and never changes selection.
+  app.get("/api/admin/summary-drafts", adminHandler(async (req) => listSummaryDrafts({
+    status: q(req).status, limit: q(req).limit, offset: q(req).offset,
+  })));
+  app.get("/api/admin/summary-drafts/:id", adminHandler(async (req, reply) =>
+    orNotFound(req, reply, await getSummaryDraft(param(req, "id")))));
+  app.post("/api/admin/summary-drafts/review", adminHandler(async (req, _reply, admin) => reviewSummaryDrafts({
+    input: body(req), requestId: String(req.headers["idempotency-key"] ?? ""), actor: actorOf(admin),
+  })));
 
   // Attention counts for the navigation.
   app.get("/api/admin/nav-counts", adminHandler(async () => {
