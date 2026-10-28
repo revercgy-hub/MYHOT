@@ -217,7 +217,7 @@ async function listEligible(anchor: Date, limit = 120) {
   const sourceIds = [...SUMMARY_DRAFT_SOURCE_IDS];
   const [counts] = await sql<{ total: number; enabled: number; siteFulltext: number; syndicate: number }[]>`
     SELECT count(*)::int AS total,count(*) FILTER (WHERE enabled)::int AS enabled,
-      count(*) FILTER (WHERE site_fulltext)::int AS siteFulltext,count(*) FILTER (WHERE syndicate_fulltext)::int AS syndicate
+      count(*) FILTER (WHERE site_fulltext)::int AS "siteFulltext",count(*) FILTER (WHERE syndicate_fulltext)::int AS syndicate
     FROM sources`;
   if (!counts || counts.total !== 48 || counts.enabled !== 0 || counts.siteFulltext !== 0 || counts.syndicate !== 0) throw new Error("source safety flags are not all disabled");
   const approvedSources = await sql<{ id: string; enabled: boolean; site_fulltext: boolean; syndicate_fulltext: boolean; participation_mode: string; first_party: boolean }[]>`
