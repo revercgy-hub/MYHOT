@@ -22,7 +22,13 @@
 - fresh snapshot：48 sources、523 articles/817 revisions/523 discoveries；publications/overrides137/137、receipts/attempts9/9、Gold cases200，pgboss jobs0。15 READY write targets、4 retained HOLD。
 - 第一份备份因shell引号错误生成0字节，PG17 restore-list拒绝；没有proof或写入资格，空文件原样保留。改用传递完整shell脚本重新备份，避免跨shell引号问题。
 - 有效PG17.11 dump为2,119,326 bytes，SHA `78f5822979a9c0124b7c44f749005ba683666fbb69cf4f3dab02581757c8f661`；proof SHA `ea895229531ca595101999814ad9a6c4edfbac459c0994d7dfd0d74a30a9b5be`，mode600，`pg_restore --list`校验通过，绑定plan SHA及snapshot rowsets。
-- 共享flock下的完整source/rowset/Gold/目标行预检`PREFLIGHT_NO_WRITES`通过。执行/后验状态另追加，不把预检记作已回写。
+- 共享flock下的完整source/rowset/Gold/目标行预检`PREFLIGHT_NO_WRITES`通过。CI通过后按上述精确plan SHA执行一次COMMITTED，15条均revision1→2；后验15/15正文/HTML/hash/revision一致，4条HOLD完整native行未变，受保护rowsets差异0。
+
+另外使用不同实现的READ ONLY SQL复核：将当前目标行恢复投影为冻结的原native文本后，整个articles rowset hash等于写前；从当前revisions剔除恰好15个新增revision2后，完整旧revisions hash等于写前。验证了全部非目标文章/旧修订未变，15个新修订与方案逐字一致，22项其它rowsets与4个HOLD均未变。该复核由同一agent另写SQL完成，不声称独立人工审查。sidecar SHA `06dac25c7db9a465e052d5a4d91bcfbbe0bb074d63c572165466f2bb11a6d536`。
+
+当前523 articles/832 revisions/523 discoveries，body345 ok/169 pending/9 unconfirmed；有ok正文样本的source数32→35，但不代表35源准入或90日覆盖。publication/override137/137、Gold cases200、receipts/attempts9/9、selected0不变。API未重启，LAN smoke30/30通过。
+
+完整runtime/evidence/plan/backup/execute/postcheck归档为NAS `/data/operators/reviewed-body-application-20261029-r3-evidence.tar.gz`，2,529,197 bytes，SHA `f0958b89f4e798f748f53468857730436e4dd8a419c9f76599ccac775bcf7988`。已镜像到本机同名`.data/fiscal-qa`文件，hash一致。
 
 ## Gate 3接续
 
@@ -30,8 +36,20 @@
 
 新的五篇development诊断在全新`fiscalhot_user5_phase2_20261029_test`运行，最多15次本地qwen3.5:9b请求、串行、无自动retry，和上轮25次及unknown receipt分别记录。选择三个错判、彩票资金管理正例及清理PDF坐标后的会计解释材料；原始正文hash保留。不是独立holdout，不能宣称泛化质量。
 
-18:00 collector已真实触发：46源45成功1失败、新增6、详情5；不能把COMPLETE日志解释为所有来源成功。API容器未重启。source/全文/精选和Gate结论保持原边界。
+实际五篇全部完成，15 request/15 received，无重试、failed/unknown0。业务sources/articles/analyses/publications/fetch_runs/job_runs全0，仅独立测试库回执变化，测试集群已停止。旧测试库的unknown receipt原样保留，本次是在代码/提示词和长文渲染已改变后的新实验，不回填旧失败为成功。
+
+| 材料 | 两轮分数 | 本轮判断 | 用户决定 |
+|---|---|---|---|
+| 山西事务所检查 |5/6|不精选|不精选|
+| 台胞金融服务中心 |7/6|不精选|不精选|
+| 厦门普惠金融监管 |6/6|不精选|精选|
+| 彩票资金管理办法 |87/82|精选|精选|
+| 会计解释第21号征求意见 |85/85|精选|精选|
+
+4/5与已知反馈一致，仍漏选厦门普惠金融稿；对地方稿分数明显压低，不能凭两个FP消失就确认评分标准校准完成。长文首次完整走通预筛和双评分，但单次成功不能证明稳定性或单独归因全部来自坐标清理。根目录私有产物`.data/fiscal-qa/user5-phase2-regression-20261029`，保留输入、模型digest、prompt版本和完整回执状态。用户已被询问第9条的主要工作价值，以明确条线优先与方法可复用之间的取舍，等待答复。
+
+18:00 collector已真实触发：46源45成功1失败（湖南列表timeout）、新增6、详情5；51次dispatch、50份完整raw字节数/SHA复核通过、1次timeout无response、provider0。result SHA `9a743dd7c1f7ba1979e1617436fbcac20951633643a6c8d0c206d4eb91193c53`。不能把COMPLETE日志解释为所有来源成功；12:00失败的是河北，本轮没有重试它们。API容器未重启。source/全文/精选和Gate结论保持原边界。
 
 ## 检查
 
-本轮focused32项31通过/1专库条件skip、Node24.16 typecheck通过。完整CI及实际模型、CAS结果将在完成后补充。
+本轮focused32项31通过/1专库条件skip、Node24.16 typecheck通过。1dc3a36代码的[Check40867625196](https://github.com/revercgy-hub/MYHOT/actions/runs/40867625196) check及docker均成功：563项555通过/8跳过/0失败、Web25/25、build/typecheck与两项smoke均通过。新增数据库回归另在fresh `fiscalhot_reviewed_metadata_20261029_test`迁移36项后运行26/26，无skip，验证两源的真实CAS只改正文并保留全套source及protected rowsets；该test-only新增晚于上述CI，不能把CI SHA混作最终test文件SHA。

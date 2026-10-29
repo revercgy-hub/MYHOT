@@ -1,5 +1,11 @@
 # 项目状态
 
+## 2026-10-29 15条正文已应用与五篇复测
+
+15条保存响应正文已在fresh PG17备份及精确plan SHA保护下body-only CAS回写，15/15后验通过；4条附件/正文HOLD及全部非目标文章/旧修订、source、Gold、publication等受保护rowsets未变。当前523文章/832修订/523发现，正文345 ok/169 pending/9 unconfirmed；35源有ok正文样本，尚不等于来源准入/90日覆盖。pub/override137/137，receipts9，selected0，API未重启，LAN smoke30/30。18:00采集45/46源成功，湖南列表timeout，新增6、provider0。
+
+新的五篇本地qwen诊断15次调用全部received；两个FP修正，彩票办法正例保留，会计解释长文首次完整走通；厦门普惠金融稿仍FN（6/6）。这是已知反馈development小样4/5匹配，不是holdout或校准通过。已询问用户第9条主要价值，待回复；旧unknown不重写。1dc3a36的Check40867625196全绿（563项555通过/8跳过/0失败，Web25/25与Docker）；新增专库回归另26/26通过。详情见[正文应用与评分接续](HANDOFFS/REVIEWED_METADATA_BODY_APPLICATION_2026-10-29.md)。Gate 3–5仍未整体通过。
+
 ## 2026-10-29 九条业务决定与本地回归最终结果
 
 九条决定已齐：1–6全部动态，7–9精选；私有Gold v5及前版本、三份原文packet已保留并备份到NAS。评分示例已更新，权重/门槛不变。qwen3.5:9b独立测试库小样实际25次request（原19+未请求尾部6），24 received/1 unknown，无重试：8篇双评分完成、5篇与用户一致；山西普通检查和台胞服务中心误选，厦门普惠金融监管漏选；会计解释长文预筛超时仍未完成。已增加严格PDF坐标注记清洗，原始正文/hash不变，实际长文效果待验证。最终软件e5d579c的Check40845845778全部成功（561项553通过/8跳过/0失败、Web25/25、Docker/built-site smoke通过）。Source metadata候选仍未安装，15条正文尚未CAS；测试库已停止，NAS公开内容未改动。Gate 3–5仍未整体通过。详见[本轮交接](HANDOFFS/HUMAN_CALIBRATION_AND_SOURCE_METADATA_2026-10-29.md)。下段保留本轮早期进度。

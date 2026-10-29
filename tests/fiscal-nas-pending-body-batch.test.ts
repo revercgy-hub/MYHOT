@@ -79,6 +79,46 @@ test("only a hash-bound manifest opt-in repairs saved response metadata; legacy 
   } finally { rmSync(directory, { recursive: true, force: true }); }
 });
 
+test("reviewed metadata DB regression commits bodies while leaving canonical source rows and protected rowsets unchanged", async (t) => {
+  const databaseUrl = process.env.REVIEWED_METADATA_TEST_DATABASE_URL;
+  if (!databaseUrl) return t.skip("requires the dedicated loopback fiscalhot_reviewed_metadata_20261029_test DB");
+  const parsed = new URL(databaseUrl);
+  assert.ok(["127.0.0.1", "localhost"].includes(parsed.hostname));
+  assert.equal(parsed.pathname, "/fiscalhot_reviewed_metadata_20261029_test");
+  const sql = postgres(databaseUrl, { max: 1 });
+  const suffix = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const sourceIds = ["mof-fujian-supervision-dynamics", "mof-xiamen-supervision-dynamics"];
+  const ids = sourceIds.map((_, index) => `reviewed_meta_${suffix}_${index}`);
+  try {
+    for (const [index, id] of ids.entries()) {
+      const row = sourceFor(sourceIds[index]!);
+      await sql`INSERT INTO articles(id,source_id,identity_key,url,title,published_at,discovered_at,timeline_at,revision,content_hash,body_status)
+        VALUES(${id},${row.id},${`url:https://example.invalid/${id}`},${`${row.config.allowUrlPrefixes[0]}${id}.htm`},${`隔离metadata正文 ${index}`},'2026-10-12',now(),now(),1,${sha256(id)},'pending')`;
+      await sql`INSERT INTO article_revisions(article_id,revision,content_hash,title,body_text) VALUES(${id},1,${sha256(id)},${`隔离metadata正文 ${index}`},NULL)`;
+    }
+    await assert.rejects(sql.begin(async tx => readPendingSnapshot(tx, ids, async () => undefined, allowed)), /configured disabled direct-HTML scope/u);
+    const frozen = await sql.begin(async tx => { await tx`SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY`; return readPendingSnapshot(tx, ids, async () => undefined, allowed, true, sourceIds); });
+    const manifest = buildPendingManifest({ runId: `reviewed_meta_${suffix}`, operatorBytes: Buffer.from("operator"), database: parsed.pathname.slice(1),
+      snapshot: frozen.snapshot, targets: frozen.targets, reviewedMetadataSourceIds: sourceIds });
+    const bodyText = "财政部门核验预算执行和资金拨付情况，检查原始凭证并督促相关单位整改。".repeat(3);
+    const proposals: CandidateBodyCasRow[] = frozen.targets.map(target => ({ articleId: target.articleId, expectedRowText: target.rowText,
+      expectedRowSha256: target.rowSha256, expectedRevision: target.revision, expectedContentHash: target.contentHash,
+      expectedTitle: target.title, expectedExcerpt: target.excerpt, expectedSourceId: target.sourceId, bodyText, bodyHtml: `<p>${bodyText}</p>`,
+      bodyTextSha256: sha256(bodyText), bodyHtmlSha256: sha256(`<p>${bodyText}</p>`),
+      nextContentHash: sha256([target.title.replace(/\s+/gu, " ").trim(), bodyText, target.excerpt ?? ""].join("\u0001")) }));
+    assert.deepEqual(await applyPendingBodyCas(sql, manifest, proposals, false), []);
+    assert.equal((await applyPendingBodyCas(sql, manifest, proposals, true)).length, 2);
+    const after = await sql.begin(tx => readPendingSnapshot(tx, ids, async () => undefined, allowed, false, sourceIds));
+    for (const name of Object.keys(frozen.snapshot.rowsets).filter(name => !["articles", "revisions"].includes(name))) assert.deepEqual(after.snapshot.rowsets[name], frozen.snapshot.rowsets[name]);
+    const rows = await sql`SELECT revision,body_status,body_text FROM articles WHERE id=ANY(${sql.array(ids,1009)})`;
+    assert.ok(rows.every(row => row.revision === 2 && row.body_status === "ok" && row.body_text === bodyText));
+  } finally {
+    await sql`DELETE FROM article_revisions WHERE article_id=ANY(${sql.array(ids,1009)})`;
+    await sql`DELETE FROM articles WHERE id=ANY(${sql.array(ids,1009)})`;
+    await sql.end();
+  }
+});
+
 test("pending IDs and next-batch selection stay bounded and metadata-only", () => {
   assert.deepEqual(parsePendingArticleIds("one, two"), ["one", "two"]);
   assert.throws(() => parsePendingArticleIds("same,same"), /unique/);
