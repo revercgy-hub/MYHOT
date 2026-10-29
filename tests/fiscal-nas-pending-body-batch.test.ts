@@ -14,7 +14,7 @@ import { applyPendingBodyCas, buildPendingManifest, capturePendingBodies, parseP
   validatePartialCaptureProposal, validatePartialCaptureRecovery,
   verifyFreshBackupProof, buildPendingProposalBundle, assertPendingProposalBundle, assertRuntimeSafetyFlags,
   parseExistingUrlEvidence, assertOnlyExpectedArticleChanges, assertDispatchNetworkGuard, decodePendingCapturedResponse,
-  adaptLegacyExecutionDispatch, asLegacyOfflineCaptureRecord, singleReusableLegacyDispatch, reusableIdenticalLegacyDispatchGroup, timeoutPauseReason,
+  adaptLegacyExecutionDispatch, asLegacyOfflineCaptureRecord, singleReusableLegacyDispatch, reusableIdenticalLegacyDispatchGroup, timeoutPauseReason, pendingReplaySource,
   type PendingTarget } from "../scripts/fiscal/nas-pending-body-batch.ts";
 import { type CandidateBodyCasRow } from "../scripts/fiscal/nas-candidate-body-cas.ts";
 import { createBudgetedDetailFetcher, detailConfigIsDirectHtml } from "../scripts/fiscal/nas-candidate-batch.ts";
@@ -35,6 +35,49 @@ const catalog = JSON.parse(readFileSync("industry/sources.json", "utf8")).source
 const source = catalog.find((row) => row.id === "mof-beijing-supervision-dynamics")!;
 const sourceFor = (id: string) => catalog.find((row) => row.id === id)!;
 const allowed = (url: string, row: Record<string, any>) => row.config.allowUrlPrefixes.some((prefix: string) => url.startsWith(prefix));
+
+test("reviewed saved-body metadata is explicit, limited to two disabled sources, and leaves source rows unchanged", async () => {
+  for (const id of ["mof-fujian-supervision-dynamics", "mof-xiamen-supervision-dynamics"]) {
+    const original = structuredClone(sourceFor(id)), before = structuredClone(original);
+    const article = { id: "reviewed_scope", url: `${original.config.allowUrlPrefixes[0]}202610/t20261012_12345.htm`, body_status: "pending", body_text: null, body_html: null };
+    const input = { catalogSource: sourceFor(id), allowed, publicUrl: async () => undefined };
+    assert.throws(() => validatePendingTarget(original, article, input), /configured disabled direct-HTML scope/u);
+    await validatePendingTarget(original, article, { ...input, reviewedMetadataSourceIds: [id] });
+    assert.deepEqual(original, before);
+    assert.equal(pendingReplaySource(original, [id]).config.detail.titleSelector, "h2.title_con");
+    assert.throws(() => pendingReplaySource({ ...original, enabled: true }, [id]), /scope/u);
+    assert.throws(() => pendingReplaySource(original, ["other"]), /unreviewed/u);
+    assert.throws(() => pendingReplaySource(original, [id, id]), /unreviewed/u);
+    const changed = structuredClone(original); changed.config.detail.bodySelector = "body";
+    assert.throws(() => validatePendingTarget(changed, article, { ...input, reviewedMetadataSourceIds: [id] }), /scope/u);
+  }
+});
+
+test("only a hash-bound manifest opt-in repairs saved response metadata; legacy replay still holds the same body", async () => {
+  const reviewed = sourceFor("mof-fujian-supervision-dynamics");
+  const title = "财政部福建监管局：开展预算执行核查";
+  const url = `${reviewed.config.allowUrlPrefixes[0]}202610/t20261012_12345.htm`;
+  const target: PendingTarget = { articleId: "reviewed_body", sourceId: reviewed.id, url, title, publishedAt: "2026-10-12T00:00:00+08:00", revision: 1,
+    contentHash: sha256("old"), excerpt: null, sourceRowSha256: sha256("source"), rowText: "{}", rowSha256: sha256("{}") };
+  const html = `<html><head><meta name="ArticleTitle" content="${title}"><meta name="PubDate" content="2026-10-12 10:00:00"></head><body><h2 class="title_con">${title}</h2><div class="my_doccontent"><p>${"财政部门检查预算执行情况，核实资金拨付与项目进度，督促整改问题。".repeat(30)}</p></div></body></html>`;
+  const bytes = Buffer.from(html), directory = mkdtempSync(path.join(os.tmpdir(), "reviewed-body-metadata-"));
+  try {
+    writeFileSync(path.join(directory, "capture.body"), bytes);
+    const manifest = buildPendingManifest({ runId: "reviewed_body_metadata", operatorBytes: Buffer.from("operator"), database: "fiscalhot_test",
+      snapshot: { database: "fiscalhot_test", capturedAt: "2026-10-29T00:00:00Z", counts: {}, rowsets: {} }, targets: [target], reviewedMetadataSourceIds: [reviewed.id] });
+    const records = [{ articleId: target.articleId, sourceId: target.sourceId, url, responseUrl: url, method: "GET" as const, status: 200, eof: true,
+      bytes: bytes.length, bodySha256: sha256(bytes), contentType: "text/html", contentEncoding: "identity", file: "capture.body", dispatchedAt: null, completedAt: null }];
+    const sources = new Map([[reviewed.id, reviewed]]);
+    const repaired = await parsePendingCapture({ manifest, records, captureDir: directory, sources, fetchDetail });
+    assert.equal(repaired.proposals.length, 1);
+    assert.equal(repaired.holds.length, 0);
+    const legacy = { ...manifest }; delete legacy.reviewedMetadataSourceIds;
+    assert.notEqual(sha256(stableCanonicalJson(manifest)), sha256(stableCanonicalJson(legacy)));
+    const old = await parsePendingCapture({ manifest: legacy, records, captureDir: directory, sources, fetchDetail });
+    assert.equal(old.proposals.length, 0);
+    assert.equal(old.holds[0]?.reason, "detail_title_mismatch");
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
 
 test("pending IDs and next-batch selection stay bounded and metadata-only", () => {
   assert.deepEqual(parsePendingArticleIds("one, two"), ["one", "two"]);

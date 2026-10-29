@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
 import { brotliDecompressSync, gunzipSync, inflateSync } from "node:zlib";
 import { applyCandidateBodyCas, type CandidateBodyCasRow } from "./nas-candidate-body-cas.ts";
+import { prepareDetailMetadataCandidate } from "./source-detail-metadata-candidate.mjs";
 import { createBudgetedDetailFetcher, decodeCapturedBody, detailConfigIsDirectHtml, sameConfiguredDay } from "./nas-candidate-batch.ts";
 
 const ROOT = process.env.AIHOT_APP_ROOT ?? path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
@@ -97,6 +98,8 @@ export interface PendingBodyManifest {
   runId: string;
   operatorSha256: string;
   catalogSha256: string;
+  /** Reviewed metadata applies only to this saved-response batch; canonical source rows stay unchanged. */
+  reviewedMetadataSourceIds?: string[];
   database: string;
   snapshot: PendingSnapshot;
   snapshotSha256: string;
@@ -629,13 +632,24 @@ function supportsPendingDirectHtmlDetail(source: Record<string, any>): boolean {
   return detailConfigIsDirectHtml(source as never);
 }
 
+function reviewedMetadataIds(ids: string[]): string[] {
+  if (!Array.isArray(ids) || new Set(ids).size !== ids.length || ids.some(id =>
+    !["mof-fujian-supervision-dynamics", "mof-xiamen-supervision-dynamics"].includes(id))) throw new Error("unreviewed detail metadata scope");
+  return [...ids].sort();
+}
+
+export function pendingReplaySource(source: Record<string, any>, ids: string[] = []): Record<string, any> {
+  return reviewedMetadataIds(ids).includes(source.id) ? prepareDetailMetadataCandidate(source).candidate : source;
+}
+
 export function validatePendingTarget(source: Record<string, any>, article: Record<string, any>, input: {
   catalogSource: Record<string, any> | undefined;
   allowed: (url: string, source: Record<string, any>) => boolean;
   publicUrl: (url: string) => Promise<unknown>;
+  reviewedMetadataSourceIds?: string[];
 }): Promise<void> {
   if (!input.catalogSource || source.enabled !== false || source.site_fulltext !== false || source.syndicate_fulltext !== false ||
-      stableJson(source.config) !== stableJson(input.catalogSource.config) || !supportsPendingDirectHtmlDetail(source)) {
+      stableJson(source.config) !== stableJson(input.catalogSource.config) || !supportsPendingDirectHtmlDetail(pendingReplaySource(source, input.reviewedMetadataSourceIds ?? []))) {
     throw new Error(`source is outside the configured disabled direct-HTML scope: ${String(source.id)}`);
   }
   if (article.body_status !== "pending" || article.body_text !== null || article.body_html !== null) throw new Error(`article is not an empty pending body: ${String(article.id)}`);
@@ -651,7 +665,8 @@ export function validatePendingTarget(source: Record<string, any>, article: Reco
 
 /** Full rowsets are hashed in-process; only counts and digests are written to the manifest. */
 export async function readPendingSnapshot(tx: any, targetIds: string[], publicUrl: (url: string) => Promise<unknown>, allowed: (url: string, source: any) => boolean,
-  includeTargets = true): Promise<{ snapshot: PendingSnapshot; targets: PendingTarget[] }> {
+  includeTargets = true, metadataSourceIds: string[] = []): Promise<{ snapshot: PendingSnapshot; targets: PendingTarget[] }> {
+  reviewedMetadataIds(metadataSourceIds);
   const db = (await tx`SELECT current_database() AS database`)[0]?.database;
   const sources: Array<any> = await tx`SELECT to_jsonb(s)::text AS row_text FROM sources s ORDER BY id`;
   const articles: Array<any> = await tx`SELECT to_jsonb(a)::text AS row_text FROM articles a ORDER BY id`;
@@ -685,7 +700,7 @@ export async function readPendingSnapshot(tx: any, targetIds: string[], publicUr
     await validatePendingTarget({ id: row.source_id, enabled: row.source_enabled, site_fulltext: row.site_fulltext,
       syndicate_fulltext: row.syndicate_fulltext, kind: row.kind, config: row.config },
     { id: row.id, url: row.url, body_status: row.body_status, body_text: row.body_text, body_html: row.body_html },
-    { catalogSource: catalogById.get(row.source_id), allowed, publicUrl });
+    { catalogSource: catalogById.get(row.source_id), allowed, publicUrl, reviewedMetadataSourceIds: metadataSourceIds });
     if (!row.content_hash || !Number.isSafeInteger(Number(row.revision)) || Number(row.revision) < 1) throw new Error(`article baseline is incomplete: ${row.id}`);
     targets.push({ articleId: row.id, sourceId: row.source_id, url: row.url, title: row.title,
       publishedAt: row.published_at, revision: Number(row.revision), contentHash: row.content_hash, excerpt: row.excerpt,
@@ -699,16 +714,18 @@ export async function readPendingSnapshot(tx: any, targetIds: string[], publicUr
 export function buildPendingManifest(input: { runId: string; operatorBytes: Buffer; catalogBytes?: Buffer; database: string;
   snapshot: PendingSnapshot; targets: PendingTarget[]; selectionStrategy?: PendingBodyManifest["selection"]["strategy"];
   excludedResponseUrlEvidence?: { sha256: string; entries: ExistingUrlEvidence["entries"] }; legacyInventorySha256?: string;
-  legacyReuseGroups?: PendingBodyManifest["legacyReuseGroups"] }): PendingBodyManifest {
+  legacyReuseGroups?: PendingBodyManifest["legacyReuseGroups"]; reviewedMetadataSourceIds?: string[] }): PendingBodyManifest {
   if (!/^[A-Za-z0-9_-]{1,80}$/u.test(input.runId) || input.targets.length < 1 || input.targets.length > CAP ||
       new Set(input.targets.map((target) => target.articleId)).size !== input.targets.length) throw new Error("invalid pending body manifest scope");
   if (input.snapshot.database !== input.database) throw new Error("manifest database does not match frozen snapshot");
   const perSource = new Map<string, number>();
   for (const target of input.targets) perSource.set(target.sourceId, (perSource.get(target.sourceId) ?? 0) + 1);
+  const metadataIds = reviewedMetadataIds(input.reviewedMetadataSourceIds ?? []);
+  if (metadataIds.some(id => !perSource.has(id))) throw new Error("reviewed metadata source has no frozen target");
   for (const [sourceId, count] of perSource) {
     const source = CATALOG.sources.find((row) => row.id === sourceId);
     const cap = Math.min(10, Number(source?.config?.detail?.maxFetches ?? 0));
-    if (!source || !supportsPendingDirectHtmlDetail(source) || count > cap) throw new Error(`per-source target cap exceeds configured direct-detail budget: ${sourceId}`);
+    if (!source || !supportsPendingDirectHtmlDetail(pendingReplaySource(source, metadataIds)) || count > cap) throw new Error(`per-source target cap exceeds configured direct-detail budget: ${sourceId}`);
   }
   const manifest: PendingBodyManifest = { schemaVersion: "nas-pending-body-batch.v1", runId: input.runId,
     operatorSha256: sha256(input.operatorBytes), catalogSha256: sha256(input.catalogBytes ?? CATALOG_BYTES), database: input.database,
@@ -720,6 +737,7 @@ export function buildPendingManifest(input: { runId: string; operatorBytes: Buff
       excludedResponseUrls: input.excludedResponseUrlEvidence?.entries ?? [],
       ...(input.legacyInventorySha256 ? { legacyInventorySha256: input.legacyInventorySha256 } : {}) }, targets: input.targets };
   if (input.legacyReuseGroups) manifest.legacyReuseGroups = input.legacyReuseGroups;
+  if (metadataIds.length) manifest.reviewedMetadataSourceIds = metadataIds;
   return manifest;
 }
 
@@ -896,8 +914,9 @@ export async function parsePendingCapture(input: { manifest: PendingBodyManifest
     if (!capturePath.startsWith(`${path.resolve(input.captureDir)}${path.sep}`) || lstatSync(capturePath).isSymbolicLink()) throw new Error("capture file path is unsafe");
     const raw = readFileSync(capturePath);
     if (raw.length !== capture.bytes || raw.length > MAX_DETAIL_BYTES || sha256(raw) !== capture.bodySha256) throw new Error(`capture bytes/hash differ for ${target.articleId}`);
-    const source = input.sources.get(target.sourceId);
-    if (!source) throw new Error(`target source is missing: ${target.sourceId}`);
+    const originalSource = input.sources.get(target.sourceId);
+    if (!originalSource) throw new Error(`target source is missing: ${target.sourceId}`);
+    const source = pendingReplaySource(originalSource, input.manifest.reviewedMetadataSourceIds ?? []);
     let got: any;
     try {
       let bodyEncoding: string | null;
@@ -1100,7 +1119,7 @@ export async function applyPendingBodyCas(sql: any, manifest: PendingBodyManifes
     if (Number(sourceSafety?.total) < 1 || Number(sourceSafety?.enabled) !== 0 || Number(sourceSafety?.site_fulltext) !== 0 ||
         Number(sourceSafety?.syndicate) !== 0) throw new Error("source collection/fulltext safety flags are not all disabled");
     const { snapshot } = await readPendingSnapshot(tx, ids, async () => undefined, (url, source) =>
-      source.config.allowUrlPrefixes.some((prefix: string) => url.startsWith(prefix)));
+      source.config.allowUrlPrefixes.some((prefix: string) => url.startsWith(prefix)), true, manifest.reviewedMetadataSourceIds ?? []);
     if (stableJson(snapshot.counts) !== stableJson(manifest.snapshot.counts) || stableJson(snapshot.rowsets) !== stableJson(manifest.snapshot.rowsets)) {
       throw new Error("pending body baseline rowset changed before CAS");
     }
