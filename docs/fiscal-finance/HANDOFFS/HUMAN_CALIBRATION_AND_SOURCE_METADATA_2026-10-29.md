@@ -15,7 +15,11 @@
 
 只用既有e82e冻结预测作development复算：v4 TP16/FP27/FN5/TN102，precision37.21%、recall76.19%、F1 50%。**分数变化来自人工标签版本变化，模型没有重新运行，不能宣称模型效果提升。** 原v2为16/27/8/99，precision同为37.21%。历史预测和评测保留。
 
-第三批（企业会计准则解释征求意见、彩票市场调控资金管理办法、厦门普惠金融监管工作）packet SHA `4da0670d48be24302e5928d6ddbc8386c71611c57ff1de0962b7855892be9580`，当前待用户答复，不推定同意或沿用前六条结论。
+第三批（企业会计准则解释征求意见、彩票市场调控资金管理办法、厦门普惠金融监管工作）packet SHA `4da0670d48be24302e5928d6ddbc8386c71611c57ff1de0962b7855892be9580`，用户随后逐项确认均“进入精选”。三条都是再次确认既有select，没有更改决策。v5 overlay SHA `e4beb6e95ea4e9f0db54cbc566af62623fdba92eac773c25b86482d0ceac04bd`，manifest SHA `eee411a8ef87cab8fe2659c001cf6dc8a2954d5c3d99c2e426dae743d6417427`；validator READY_FOR_EVALUATION，人数/分集/既有预测复算指标与v4一致。
+
+据这九条及原业务画像，在评分提示词新增三项取舍示例：具体财政贴息/创业担保等业务不因缺金额/处理结果机械降分；单期操作、产品审批、服务网点不因规模/数量自动抬分；一般财政工作总结有数字/案例也不自动证明重点价值。这是本轮开发归纳，不是用户逐字提供的理由；八种类型、五轴权重、门槛60/65/76和既有数据保持不变。提示词调整尚未安装到NAS，需新的development效果验证。
+
+前两批v3/v4及三份packet已私有备份到NAS `/vol2/1000/docker/fiscalhot-human-review-v3-v4-20261029`，目录700/文件600。archive SHA `e9943b4c3b6b4f91603aaebcf5beec12d64ded8e03855c40a7d7cd7d64a7a6f7`，NAS读回v4 manifest hash一致。该备份不改变数据库或公开内容。
 
 新增`calibration-review-packet.mjs`：正文hash验证、明确development范围、唯一身份校验，输出不包含旧标签、评分或门槛；决策一律初始pending。初版已生成的三份packet另经Gold落盘脚本核对development身份和正文hash，后续CLI还要求提供明确的development manifest。
 
@@ -35,6 +39,6 @@
 
 ## 验证与Gate结论
 
-Node24.16专项5/5通过，覆盖中性审阅包的正文/身份/分集拒绝，候选只改预期metadata，真实提取器对正确标题日期成功、错误标题/日期及附件仍拒绝。Gold v4 validator通过；既有预测复算不触发模型/数据库。当前新增源码未安装到NAS，先前r8摘要与r2理解任务安排不变。
+Node24.16专项5/5、全部mjs19/19、typecheck通过，覆盖中性审阅包的正文/身份/分集拒绝，候选只改预期metadata，真实提取器对正确标题日期成功、错误标题/日期及附件仍拒绝。Gold v4/v5 validator通过；既有预测复算不触发模型/数据库。提交9352444的[Check40843362677](https://github.com/revercgy-hub/MYHOT/actions/runs/40843362677) check及docker均成功；该CI早于第三批决定后的提示词改动，不能追认测试新prompt。当前新增源码未安装到NAS，先前r8摘要与r2理解任务安排不变。
 
-Gate 3仍CHANGES_REQUIRED；Gate 4/5仍未整体通过。下一步接收第三批业务决定、继续development规则校准；对metadata候选作完整软件/部署预检；观察18:00采集和下一凌晨任务。
+Gate 3仍CHANGES_REQUIRED；Gate 4/5仍未整体通过。下一步完成新提示词的development诊断；对metadata候选作完整软件/部署预检；观察18:00采集和下一凌晨任务。
