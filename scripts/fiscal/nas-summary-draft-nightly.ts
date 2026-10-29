@@ -4,6 +4,7 @@ import { existsSync } from "node:fs";
 import { lstat, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import postgres from "postgres";
 import { z } from "zod";
 import { SUMMARY_DRAFT_SOURCE_IDS } from "./nas-candidate-batch.ts";
 import { config } from "../../packages/backend/src/config.ts";
@@ -126,19 +127,35 @@ export function installLocalFetchGuard(options: { fetchImpl?: typeof fetch; base
 }
 
 export async function acquireSummaryDraftExecutionLock(): Promise<(() => Promise<void>) | null> {
-  const reserved = await sql.reserve();
-  let locked = false;
+  // The worker intentionally runs with DATABASE_POOL_MAX=1. Holding a reservation from the
+  // shared business pool here would leave no connection for the first business query.
+  const lockSql = postgres(config.databaseUrl, {
+    max: 1,
+    idle_timeout: 0,
+    max_lifetime: 0,
+    connect_timeout: 10,
+    onnotice: () => {},
+    connection: { application_name: "aihot-summary-draft-lock-v1", jit: "off" },
+  });
+  let keepConnection = false;
   try {
-    const [row] = await reserved<{ acquired: boolean }[]>`SELECT pg_try_advisory_lock(hashtext('aihot.summary-draft-nightly.v1')) AS acquired`;
-    locked = row?.acquired === true;
-    if (!locked) { reserved.release(); return null; }
+    const [row] = await lockSql<{ acquired: boolean }[]>`SELECT pg_try_advisory_lock(hashtext('aihot.summary-draft-nightly.v1')) AS acquired`;
+    if (row?.acquired !== true) return null;
+    keepConnection = true;
+    let released = false;
     return async () => {
-      try { await reserved`SELECT pg_advisory_unlock(hashtext('aihot.summary-draft-nightly.v1'))`; }
-      finally { reserved.release(); }
+      if (released) return;
+      released = true;
+      try {
+        const [unlock] = await lockSql<{ released: boolean }[]>`SELECT pg_advisory_unlock(hashtext('aihot.summary-draft-nightly.v1')) AS released`;
+        if (unlock?.released !== true) throw new Error("summary draft advisory lock was not held during release");
+      } finally {
+        // Ending this dedicated session also releases its session lock if explicit unlock fails.
+        await lockSql.end({ timeout: 5 });
+      }
     };
-  } catch (error) {
-    if (!locked) reserved.release();
-    throw error;
+  } finally {
+    if (!keepConnection) await lockSql.end({ timeout: 5 });
   }
 }
 

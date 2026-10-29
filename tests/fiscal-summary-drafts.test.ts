@@ -1,19 +1,22 @@
 import assert from "node:assert/strict";
+import { execFile } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { createServer } from "node:http";
 import { rm } from "node:fs/promises";
 import path from "node:path";
 import { after, before, test } from "node:test";
+import { promisify } from "node:util";
 import { closeDb, sql } from "@aihot/backend/db";
 import { SESSION_COOKIE } from "@aihot/backend/admin/auth";
 import { config } from "@aihot/backend/config";
 import { getSummaryDraft, reviewSummaryDrafts, SummaryDraftSchema, summaryDraftId, writeSummaryDraft } from "@aihot/backend/admin/summary-drafts";
 import { sha256 } from "@aihot/backend/lib/ids";
 import { buildApp } from "../apps/api/src/app.ts";
-import { acquireSummaryDraftExecutionLock, assertNightWindow, executeRoster, installLocalFetchGuard, parseSummaryDraftRoster, runWithinNightWindow } from "../scripts/fiscal/nas-summary-draft-nightly.ts";
+import { assertNightWindow, executeRoster, installLocalFetchGuard, parseSummaryDraftRoster, runWithinNightWindow } from "../scripts/fiscal/nas-summary-draft-nightly.ts";
 import { tag } from "./setup.ts";
 
 const T = tag();
+const execFileAsync = promisify(execFile);
 const app = await buildApp();
 const sourceId = `summary-draft-${T}`;
 const userName = `summary-draft-admin-${T}`;
@@ -144,14 +147,33 @@ test("night cutoff aborts an in-flight call and prevents another dispatch", asyn
   assert.deepEqual(results.map((row) => row.status), ["HOLD", "HOLD_night_window_closed"]);
 });
 
-test("database advisory lock excludes a concurrent operator and releases cleanly", async () => {
-  const release = await acquireSummaryDraftExecutionLock();
-  assert.equal(typeof release, "function");
-  assert.equal(await acquireSummaryDraftExecutionLock(), null);
-  await release!();
-  const afterRelease = await acquireSummaryDraftExecutionLock();
-  assert.equal(typeof afterRelease, "function");
-  await afterRelease!();
+test("database advisory lock uses a separate session when the business pool has one connection", async () => {
+  const script = `
+    const { acquireSummaryDraftExecutionLock } = await import("./scripts/fiscal/nas-summary-draft-nightly.ts");
+    const { sql } = await import("./packages/backend/src/db.ts");
+    let release;
+    try {
+      release = await acquireSummaryDraftExecutionLock();
+      if (typeof release !== "function") throw new Error("initial lock acquisition failed");
+      const [businessQuery] = await sql\`SELECT 42 AS answer\`;
+      if (businessQuery?.answer !== 42) throw new Error("single-connection business query did not complete while lock was held");
+      if (await acquireSummaryDraftExecutionLock() !== null) throw new Error("competing lock acquisition unexpectedly succeeded");
+      await release();
+      release = undefined;
+      const afterRelease = await acquireSummaryDraftExecutionLock();
+      if (typeof afterRelease !== "function") throw new Error("lock was not available after release");
+      await afterRelease();
+      console.log("SUMMARY_LOCK_POOL1=PASS");
+    } finally {
+      if (release) await release();
+      await sql.end({ timeout: 5 });
+    }
+  `;
+  const env = { ...process.env, DATABASE_POOL_MAX: "1", MODEL_CALLS_ENABLED: "false" };
+  const { stdout } = await execFileAsync(process.execPath, ["--input-type=module", "-e", script], {
+    cwd: process.cwd(), env, timeout: 20_000, maxBuffer: 1024 * 1024,
+  });
+  assert.match(stdout, /SUMMARY_LOCK_POOL1=PASS/u);
 });
 
 test("local provider guard rejects redirects before a second loopback endpoint receives the body", async () => {

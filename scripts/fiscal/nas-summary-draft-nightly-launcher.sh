@@ -116,6 +116,8 @@ trap 'exit 143' TERM
 [ "$(docker inspect --format '{{.Image}}' "$API_CONTAINER" 2>/dev/null)" = "$api_image" ] || fail API_IMAGE_PIN_MISMATCH
 [ "$(docker inspect --format '{{.State.Running}}' "$API_CONTAINER" 2>/dev/null)" = true ] || fail API_CONTAINER_NOT_RUNNING
 [ "$(docker exec "$API_CONTAINER" node --version 2>/dev/null)" = v24.22.1 ] || fail API_NODE_VERSION
+docker exec "$API_CONTAINER" test -x /usr/bin/timeout || fail API_GNU_TIMEOUT_UNAVAILABLE
+[ "$(docker exec "$API_CONTAINER" /usr/bin/timeout --version 2>/dev/null | awk 'NR==1 {print; exit}')" = "timeout (GNU coreutils) 9.7" ] || fail API_GNU_TIMEOUT_VERSION
 [ "$(docker exec "$API_CONTAINER" sha256sum /app/industry/sources.json 2>/dev/null | cut -d ' ' -f 1)" = "$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1],encoding="utf-8"))["appCatalogSha256"])' "$MANIFEST")" ] || fail API_CATALOG_PIN_MISMATCH
 
 # Prove docker exec inherits a host process environment value before handling the real key.
@@ -224,6 +226,14 @@ exec_operator() {
     node "$remote_operator" "$@"
 }
 
+exec_operator_bounded() {
+  local limit_seconds=$1
+  shift
+  docker exec --env DATABASE_URL --env LLM_API_KEY "$API_CONTAINER" env \
+    AIHOT_APP_ROOT=/app AIHOT_DATA_DIR="$DATA_DIR" DATABASE_POOL_MAX=1 MODEL_CALLS_ENABLED=false \
+    /usr/bin/timeout --foreground --signal=TERM --kill-after=10s "${limit_seconds}s" node "$remote_operator" "$@"
+}
+
 set +e
 exec_operator --prepare-roster --source-run-id "$source_run_id" --out "$roster_file" >> "$run_log" 2>&1
 prepare_rc=$?
@@ -236,11 +246,25 @@ plan_rc=$?
 set -e
 [ "$plan_rc" -eq 0 ] || fail PLAN_ONLY_FAILED
 if [ "$mode_arg" = execute ]; then
+  now_epoch=$(TZ=Asia/Shanghai date +%s) || fail EXECUTE_DEADLINE_CLOCK_UNAVAILABLE
+  cutoff_epoch=$(TZ=Asia/Shanghai date -d "$day 06:00:00" +%s) || fail EXECUTE_DEADLINE_CLOCK_UNAVAILABLE
+  execute_limit=$((cutoff_epoch - now_epoch))
+  [ "$execute_limit" -gt 0 ] || fail OUTSIDE_NIGHT_WINDOW
+  [ "$execute_limit" -le 1500 ] || execute_limit=1500
+  printf 'EXECUTE_START runId=%s timeoutSeconds=%s termGraceSeconds=10 supervisor=/usr/bin/timeout\n' "$run_id" "$execute_limit" >> "$run_log"
   set +e
-  exec_operator --roster "$roster_file" --roster-sha256 "$roster_sha" --run-id "$run_id" --execute >> "$run_log" 2>&1
+  exec_operator_bounded "$execute_limit" --roster "$roster_file" --roster-sha256 "$roster_sha" --run-id "$run_id" --execute >> "$run_log" 2>&1
   execute_rc=$?
   set -e
-  [ "$execute_rc" -eq 0 ] || fail SUMMARY_EXECUTION_FAILED_NO_RETRY
+  if [ "$execute_rc" -eq 0 ]; then
+    printf 'EXECUTE_FINISHED runId=%s exit=0\n' "$run_id" >> "$run_log"
+  elif [ "$execute_rc" -eq 124 ] || [ "$execute_rc" -eq 137 ]; then
+    printf 'EXECUTE_TIMEOUT runId=%s exit=%s termGraceSeconds=10 noRetry=1\n' "$run_id" "$execute_rc" >> "$run_log"
+    fail SUMMARY_EXECUTION_TIMEOUT_NO_RETRY
+  else
+    printf 'EXECUTE_FAILED runId=%s exit=%s noRetry=1\n' "$run_id" "$execute_rc" >> "$run_log"
+    fail SUMMARY_EXECUTION_FAILED_NO_RETRY
+  fi
   printf 'SUMMARY_DRAFT=COMPLETED runId=%s sourceRunId=%s rosterSha256=%s\n' "$run_id" "$source_run_id" "$roster_sha"
 else
   printf 'SUMMARY_DRAFT=PLAN_ONLY runId=%s sourceRunId=%s rosterSha256=%s\n' "$run_id" "$source_run_id" "$roster_sha"
