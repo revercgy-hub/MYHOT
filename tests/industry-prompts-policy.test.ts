@@ -49,6 +49,14 @@ test("policy alignment preserves the existing item types, scoring weights and se
   assert.match(score, /不要改权重/u);
 });
 
+test("current fiscal-financial regulatory priority does not require a reusable method or imply automatic selection", () => {
+  assert.match(score, /直接属于上述财政金融监管业务的具体工作，应优先评估其注意力价值/u);
+  assert.match(score, /不额外要求必须提供可复用方法/u);
+  assert.match(score, /不等于凡有相关关键词就自动高分或自动精选/u);
+  assert.match(score, /不能仅以其写作形式是工作介绍、总结或经验稿而按普通宣传压低/u);
+  assert.match(score, /不将监管机关的所有工作都扩为该重点/u);
+});
+
 test("major livelihood policy is a distinct category and a valid policy_release category tag", () => {
   assert.deepEqual(CATEGORIES.map((entry) => entry.key).filter((key) => key !== "major-livelihood-policy"), [
     "fiscal-policy", "government-debt", "fiscal-finance", "financial-regulation", "monetary-finance",

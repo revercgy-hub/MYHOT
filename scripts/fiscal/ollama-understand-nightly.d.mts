@@ -39,6 +39,7 @@ export interface NightlyPilotState {
 export function getShanghaiSchedule(date: Date): ShanghaiSchedule;
 export function parseMemAvailableBytes(text: string): number;
 export function codeManifestSha256(codeFiles: Record<string, string>): string;
+export function launcherFailureCode(stderr: string, launcherSource: string): string | null;
 export function verifyNodeRuntimeMetadata(options: {
   version: string;
   actualPath: string;
@@ -85,6 +86,7 @@ export function runNightlyPilot(options: {
     frozen: FrozenNightlyFiles;
   }) => Promise<{
     exitCode: number | null;
+    failureCode?: string | null;
     timedOut?: boolean;
     readResult: (path: string) => Promise<Record<string, unknown>>;
   }>;

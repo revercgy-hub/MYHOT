@@ -8,6 +8,7 @@ import { after, test } from "node:test";
 import {
   codeManifestSha256,
   minimalLauncherEnv,
+  launcherFailureCode,
   getShanghaiSchedule,
   NIGHTLY_PILOT_CONSTANTS,
   parseMemAvailableBytes,
@@ -18,6 +19,15 @@ import {
 } from "../scripts/fiscal/ollama-understand-nightly.mjs";
 
 const harnessDirectory = await mkdtemp(path.join(os.tmpdir(), "nightly-harness-"));
+
+test("launcher diagnostics persist only a single declared failure constant and discard other stderr", () => {
+  const source = 'command || fail CLIENT_CONTAINER_CREATE_FAILED\ncommand || fail PG_READY_TIMEOUT\n';
+  assert.equal(launcherFailureCode('private diagnostic payload\nLAUNCHER_FAILED=PG_READY_TIMEOUT\n', source), 'PG_READY_TIMEOUT');
+  for (const stderr of ['Bearer private-value', 'LAUNCHER_FAILED=UNKNOWN_SECRET', 'LAUNCHER_FAILED=PG_READY_TIMEOUT extra',
+    'LAUNCHER_FAILED=PG_READY_TIMEOUT\nLAUNCHER_FAILED=CLIENT_CONTAINER_CREATE_FAILED', 'prefix LAUNCHER_FAILED=PG_READY_TIMEOUT']) {
+    assert.equal(launcherFailureCode(stderr, source), null);
+  }
+});
 after(() => rm(harnessDirectory, { recursive: true, force: true }));
 const repoRoot = path.join(harnessDirectory, "repo");
 const statePath = path.join(harnessDirectory, "state.json");

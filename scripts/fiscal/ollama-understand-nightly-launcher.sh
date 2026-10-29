@@ -30,8 +30,8 @@ valid_hex_id() { case "$1" in *[!a-fA-F0-9]*|'') return 1;; esac; [ "${#1}" -eq 
 
 cleanup() {
   [ -z "$api_key" ] || unset api_key
-  if [ "$client_created" -eq 1 ]; then docker rm -f "$client_name" >/dev/null 2>&1 || true; fi
   if [ "$pg_created" -eq 1 ] && [ "$preserve_pg" -eq 0 ]; then docker rm -f "$pg_name" >/dev/null 2>&1 || true; fi
+  if [ "$client_created" -eq 1 ] && [ "$preserve_pg" -eq 0 ]; then docker rm -f "$client_name" >/dev/null 2>&1 || true; fi
   [ -z "$tmpdir" ] || rm -rf "$tmpdir"
 }
 trap cleanup EXIT
@@ -216,27 +216,34 @@ chmod 700 "$result_dir"
 tmpdir=$(mktemp -d "$WORKSPACE/.run-${suffix}.XXXXXX") || fail PRIVATE_TEMP_CREATE
 chmod 700 "$tmpdir"
 
-docker create --name "$pg_name" --network "container:$API_CONTAINER" \
+# Keep a private client hostname for the frozen runtime identity guard. Docker forbids
+# --hostname with container networking, so only the disposable PG joins the client namespace.
+api_network=$(docker inspect --format '{{json .NetworkSettings.Networks}}' "$API_CONTAINER" | python3 -c 'import json,sys; names=list(json.load(sys.stdin)); assert len(names)==1; print(names[0])') || fail API_BRIDGE_NETWORK_UNAVAILABLE
+case "$api_network" in ''|*[!a-zA-Z0-9_.-]*) fail API_BRIDGE_NETWORK_INVALID;; esac
+[ "$(docker network inspect --format '{{.Driver}}' "$api_network")" = bridge ] || fail API_BRIDGE_NETWORK_INVALID
+docker create --name "$client_name" --hostname "fiscal-understand-$suffix" \
+  --network "$api_network" --memory=768m --cpus=2 --pids-limit=128 \
+  --workdir /app --entrypoint /bin/sh "$API_IMAGE" -c 'while :; do sleep 3600; done' >/dev/null || fail CLIENT_CONTAINER_CREATE_FAILED
+client_created=1
+
+docker create --name "$pg_name" --network "container:$client_name" \
   --memory=512m --cpus=1 --pids-limit=128 \
   --tmpfs /var/lib/postgresql/data:rw,noexec,nosuid,size=256m \
   --env POSTGRES_DB="$DB_NAME" --env POSTGRES_HOST_AUTH_METHOD=trust \
   "$POSTGRES_IMAGE" -c listen_addresses=127.0.0.1 -p 55433 >/dev/null || fail PG_CONTAINER_CREATE_FAILED
 pg_created=1
-docker create --name "$client_name" --hostname "fiscal-understand-$suffix" \
-  --network "container:$API_CONTAINER" --memory=768m --cpus=2 --pids-limit=128 \
-  --workdir /app --entrypoint /bin/sh "$API_IMAGE" -c 'while :; do sleep 3600; done' >/dev/null || fail CLIENT_CONTAINER_CREATE_FAILED
-client_created=1
-
-docker start "$pg_name" >/dev/null || fail PG_CONTAINER_START_FAILED
 docker start "$client_name" >/dev/null || fail CLIENT_CONTAINER_START_FAILED
+docker start "$pg_name" >/dev/null || fail PG_CONTAINER_START_FAILED
 client_id=$(docker inspect --format '{{.Id}}' "$client_name")
 pg_id=$(docker inspect --format '{{.Id}}' "$pg_name")
 valid_hex_id "$client_id" && valid_hex_id "$pg_id" || fail CONTAINER_ID_INVALID
-docker exec "$client_name" sh -c 'test -z "$(find /app -type f -name ".env*" -print -quit 2>/dev/null)" && mkdir -p /run/ollama-understand-pilot' || fail CLIENT_ENV_FILE_PRESENT_OR_RUNTIME_INVALID
+docker exec "$client_name" sh -c 'test -z "$(find /app -type f -name ".env*" ! -path /app/.env.example -print -quit 2>/dev/null)" && test "$(sha256sum /app/.env.example | cut -d " " -f 1)" = 23d9220f9938efc199039739b1ee3ad6bac0f816f3257bb47c92022c3981f78a' || fail CLIENT_ENV_FILE_PRESENT_OR_RUNTIME_INVALID
+docker exec --user 0 "$client_name" sh -c 'mkdir -p /run/ollama-understand-pilot && chown node:node /run/ollama-understand-pilot && chmod 700 /run/ollama-understand-pilot' || fail CLIENT_RUNTIME_DIRECTORY_FAILED
 printf '%s\n' "$client_id" | docker exec -i "$client_name" sh -c 'cat > /run/ollama-understand-pilot/container-id' || fail CLIENT_MARKER_WRITE_FAILED
 
 # Copy the allowlisted private tree into the client writable layer; no host bind mounts.
 docker cp "$WORKSPACE/source/." "$client_name:/app/" >/dev/null || fail CLIENT_SOURCE_COPY_FAILED
+docker exec --user 0 "$client_name" chown -R node:node /app || fail CLIENT_SOURCE_OWNER_FAILED
 docker exec "$client_name" sh -c 'test ! -e /app/.data/fiscal-qa/development-understand-container-20261027/predictions-r1.json' || fail CLIENT_OUTPUT_ALREADY_EXISTS
 
 ready=0
@@ -309,9 +316,9 @@ mv "$sidecar_tmp" "$result_path"
 
 # Only named job containers are removed after successful artifact verification.
 preserve_pg=0
-docker rm -f "$client_name" >/dev/null
-client_created=0
 docker rm -f "$pg_name" >/dev/null
 pg_created=0
+docker rm -f "$client_name" >/dev/null
+client_created=0
 printf 'LAUNCHER_RESULT=COMPLETED\nPROVIDER_REQUESTS=8\nPREDICTIONS_SHA256=%s\nRECEIPT_EVIDENCE_SHA256=%s\nPG_DUMP_SHA256=%s\n' \
   "$prediction_sha" "$evidence_sha" "$dump_sha"

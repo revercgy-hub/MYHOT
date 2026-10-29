@@ -543,7 +543,7 @@ export async function runNightlyPilot({
     return { outcome: "SKIPPED_RESOURCE", state: skipped };
   }
   if (launch?.exitCode !== 0 || launch?.timedOut === true) {
-    const blocked = { ...running, status: "REVIEW_REQUIRED", reason: launch?.timedOut ? "WINDOW_DEADLINE_REACHED" : "LAUNCHER_FAILED_OR_INTERRUPTED", updatedAt: now().toISOString() };
+    const blocked = { ...running, status: "REVIEW_REQUIRED", reason: launch?.timedOut ? "WINDOW_DEADLINE_REACHED" : launch?.failureCode ?? "LAUNCHER_FAILED_OR_INTERRUPTED", updatedAt: now().toISOString() };
     await writeState(statePath, blocked);
     return { outcome: "REVIEW_REQUIRED", state: blocked };
   }
@@ -622,12 +622,24 @@ export function minimalLauncherEnv({ runId, deadlineEpochMs, resultPath, frozen 
   return env;
 }
 
-function runLauncher({ launcherPath, repoRoot, runId, deadlineEpochMs, resultPath, frozen }) {
+/** Persist only an exact constant declared by the pinned launcher, never arbitrary stderr. */
+export function launcherFailureCode(stderr, launcherSource) {
+  const known = new Set([...launcherSource.matchAll(/\bfail ([A-Z][A-Z0-9_]{0,95})\b/gu)].map(match => match[1]));
+  const codes = [...String(stderr).matchAll(/^LAUNCHER_FAILED=([A-Z][A-Z0-9_]{0,95})\r?$/gmu)].map(match => match[1]);
+  return codes.length === 1 && known.has(codes[0]) ? codes[0] : null;
+}
+
+async function runLauncher({ launcherPath, repoRoot, runId, deadlineEpochMs, resultPath, frozen }) {
   const env = minimalLauncherEnv({ runId, deadlineEpochMs, resultPath, frozen });
+  const launcherSource = await readFile(launcherPath, "utf8");
   const remainingMs = Math.max(0, deadlineEpochMs - Date.now());
   return new Promise((resolve, reject) => {
     if (remainingMs <= 0) return resolve({ exitCode: null, timedOut: true });
-    const child = spawn(launcherPath, [], { cwd: repoRoot, env, stdio: "ignore", windowsHide: true });
+    const child = spawn(launcherPath, [], { cwd: repoRoot, env, stdio: ["ignore", "ignore", "pipe"], windowsHide: true });
+    let stderr = Buffer.alloc(0);
+    child.stderr.on("data", chunk => {
+      if (stderr.length < 8192) stderr = Buffer.concat([stderr, chunk.subarray(0, 8192 - stderr.length)]);
+    });
     let finished = false;
     let killTimer;
     const deadlineTimer = setTimeout(() => {
@@ -645,7 +657,8 @@ function runLauncher({ launcherPath, repoRoot, runId, deadlineEpochMs, resultPat
       clearTimeout(deadlineTimer);
       reject(new NightlyPilotError("LAUNCHER_SPAWN_FAILED"));
     });
-    child.once("close", (code, signal) => settle({ exitCode: code, signal, timedOut: Date.now() >= deadlineEpochMs }));
+    child.once("close", (code, signal) => settle({ exitCode: code, signal, timedOut: Date.now() >= deadlineEpochMs,
+      failureCode: launcherFailureCode(stderr.toString("utf8"), launcherSource) }));
   });
 }
 
