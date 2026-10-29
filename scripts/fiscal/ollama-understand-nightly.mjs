@@ -604,11 +604,14 @@ async function writeStateFile(statePath, value) {
   await rename(temp, statePath);
 }
 
-function minimalLauncherEnv({ runId, deadlineEpochMs, resultPath, frozen }) {
+export function minimalLauncherEnv({ runId, deadlineEpochMs, resultPath, frozen }, inheritedEnv = process.env) {
   const env = {};
   for (const name of ["PATH", "HOME", "USER", "LOGNAME", "LANG", "LC_ALL", "TZ"]) {
-    if (process.env[name]) env[name] = process.env[name];
+    if (inheritedEnv[name]) env[name] = inheritedEnv[name];
   }
+  const anchorPin = inheritedEnv.OLLAMA_UNDERSTAND_NETWORK_ANCHOR_API_IMAGE_SHA256;
+  if (!HEX_SHA256.test(anchorPin?.toUpperCase() ?? "")) throw new NightlyPilotError("NETWORK_ANCHOR_PIN_HASH_INVALID");
+  env.OLLAMA_UNDERSTAND_NETWORK_ANCHOR_API_IMAGE_SHA256 = anchorPin.toLowerCase();
   env.OLLAMA_PILOT_RUN_ID = runId;
   env.OLLAMA_PILOT_DEADLINE_EPOCH_MS = String(deadlineEpochMs);
   env.OLLAMA_PILOT_RESULT_PATH = resultPath;

@@ -109,3 +109,4 @@ export const NIGHTLY_PILOT_CONSTANTS: Readonly<{
   inputSha256: string;
   frozenCodeFiles: Readonly<Record<string, string>>;
 }>;
+export function minimalLauncherEnv(input: { runId: string; deadlineEpochMs: number; resultPath: string; frozen: { inputSha256: string; codeManifestSha256: string; wrapperSha256: string; launcherSha256: string } }, inheritedEnv?: NodeJS.ProcessEnv): Record<string, string>;

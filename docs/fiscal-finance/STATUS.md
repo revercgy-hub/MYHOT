@@ -1,5 +1,9 @@
 # 项目状态
 
+## 2026-10-29 Gate 3–5开发整改
+
+新增development-only校准错例/门槛复核工具与采集结果核验工具。Gate3复核最新既有development150结果为16/27/8/99（TP/FP/FN/TN），保留60/65/76，35条错例待签收。Gate4当前本地typecheck/build/Web25通过、NAS现有镜像smoke30通过；48来源中32有ok正文，16无ok正文，历史覆盖未证明。Gate5已修复02:00任务漏传network-anchor pin的缺陷并安装r2独立wrapper；NAS228文件与最小环境验证、窗外NOOP通过，原失败记录保留，新state尚未创建。没有新增真实模型请求或公开发布。各Gate均仍未整体通过；下一步及完整pins见[整改报告](GATES_3_5_REMEDIATION_2026-10-29.md)。
+
 ## 2026-10-29 15:12+08 接续更新
 
 12:00采集已按计划执行：46源中45成功、河北列表超时1，新增7篇，provider0；当前517文章/811 revisions、正文325 ok/183 pending/9 unconfirmed、137 publications、9 receipts，来源开关全关闭。r8摘要分类/标签及独立prompt资产已安装到既有Staging；修复安装后发现的宿主/容器路径混用，真实launcher plan-only通过，API image ee9未重启。03:30计划不变、今日once marker保留，未新增模型执行或公开内容。完整回归533通过/6跳过/0失败；补齐专用DB后另43项全通过。详细版本、安装回退和下一步见[本地核验接续记录](HANDOFFS/LOCAL_REVIEW_2026-10-29.md)。Gate 3仍CHANGES_REQUIRED、Gate 4/5未通过。

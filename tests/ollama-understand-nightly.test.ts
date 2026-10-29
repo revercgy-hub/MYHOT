@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import {
   codeManifestSha256,
+  minimalLauncherEnv,
   getShanghaiSchedule,
   NIGHTLY_PILOT_CONSTANTS,
   parseMemAvailableBytes,
@@ -31,6 +32,18 @@ const frozen = {
   codeFiles,
 };
 const normalTime = new Date("2026-10-27T18:00:00.000Z"); // 02:00 Asia/Shanghai
+
+test("nightly child inherits the pinned network anchor without inheriting credentials or node overrides", () => {
+  const pin = "a".repeat(64);
+  const input = { runId: "fixture", deadlineEpochMs: 1, resultPath: "/private/result", frozen };
+  const env = minimalLauncherEnv(input, { PATH: "/bin", OLLAMA_UNDERSTAND_NETWORK_ANCHOR_API_IMAGE_SHA256: pin,
+    LLM_API_KEY: "must-not-leak", DATABASE_URL: "must-not-leak", NODE_OPTIONS: "must-not-leak" });
+  assert.equal(env.OLLAMA_UNDERSTAND_NETWORK_ANCHOR_API_IMAGE_SHA256, pin);
+  assert.equal(env.PATH, "/bin");
+  for (const key of ["LLM_API_KEY", "DATABASE_URL", "NODE_OPTIONS"]) assert.equal(env[key], undefined);
+  assert.throws(() => minimalLauncherEnv(input, {}), /NETWORK_ANCHOR_PIN_HASH_INVALID/u);
+  assert.throws(() => minimalLauncherEnv(input, { OLLAMA_UNDERSTAND_NETWORK_ANCHOR_API_IMAGE_SHA256: "invalid" }), /NETWORK_ANCHOR_PIN_HASH_INVALID/u);
+});
 
 function receiptEvidence() {
   const timestamp = "2026-10-27T18:01:00Z";

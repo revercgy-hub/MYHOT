@@ -1,5 +1,9 @@
 # Gate 3 正式审查（2026-10-23）
 
+## 2026-10-29 development整改复核增量
+
+本轮复核10/26 e82e、Gold v2的development150既有结果：TP16/FP27/FN8/TN99，precision37.21%、recall66.67%；生成35条错例人工审阅包，独立重算各门槛计数。将T1由60提高至70时precision43.75%但recall29.17%，不足以据此确认校准完成。保持60/65/76，不改Gold和提示词、不读取fresh50调参。Gate 3继续CHANGES_REQUIRED。工具、证据和下一步见[Gate 3–5整改](GATES_3_5_REMEDIATION_2026-10-29.md)。下文为10/23原审查记录。
+
 **RESULT=CHANGES_REQUIRED；Gate 3未通过。** 本次审查接受Gold200标签与分集证据、sealed新版holdout预测冻结链和只读native评测链；实际查准率与查全率不足以支持精选体系已校准可用。Root保留现有阈值60/65/76，不以holdout改阈值或提示。任务书§32未规定量化Gate3分数线，本审查不另造硬阈值。
 
 ## 按任务书退出条件审查
