@@ -60,8 +60,14 @@ Node24.16专项5/5、全部mjs19/19、typecheck通过，覆盖中性审阅包的
 
 这是已知反馈的development小样，仅前六条完成、全为人工负例；不报告九篇完整准确率/precision/recall，不与先前不同模型的Luna结果作因果比较。原始`failure.json`、冻结request-only input及只读恢复的18条完整response/1条unknown在`.data/fiscal-qa/user9-local-regression-20261029`；received仅表示provider输出已收到，不谎称持久化analysis或全部receipt completed。
 
-第8/9篇此前无任何receipt或attempt，随后在原27次总上限内为这两条准备最多6次的独立tail阶段，不重试第7篇。tail启动前再次验证原19条回执、未知项数量、两个目标零attempt与业务表全0；校验其正文不含坐标标记，因此新清洗代码不改变这两条的渲染输入。tail结果另记。
+第8/9篇此前无任何receipt或attempt，随后在原27次总上限内为这两条准备最多6次的独立tail阶段，不重试第7篇。tail启动前再次验证原19条回执、未知项数量、两个目标零attempt与业务表全0；校验其正文不含坐标标记，因此新清洗代码不改变这两条的渲染输入。tail实际6次且两条完成：第8条彩票资金管理办法62/68、均值65，精选，与用户一致；第9条厦门普惠金融监管42/42，不精选，与用户不一致。
+
+合计原19+tail6=25次provider request，24 received/1 unknown，无retry，第7条unknown不变；8条完成双评分、1条未完成，8条中5条与用户一致。仍有第3/4条FP和第9条FN，不能据此宣称已校准或外推全站质量。tail结果在`.data/fiscal-qa/user9-local-regression-tail-20261029/result.json`。完整运行及只读恢复后均已停止55438测试集群；NAS业务数据库和公开内容未改动。
 
 第7篇正文含大量保存PDF的`[page=… y=…] [x=…]`排版注记，原24,110字符，去掉严格匹配的坐标注记后10,302字符。新增`stripPdfLayoutAnnotations`用于非X材料的预筛context及评分input，在构造提示词时删除这些格式标记，保留原始正文、body hash、业务数字与日期。只匹配行首完整PDF前缀；普通正文、未锚定或残缺标记不变。专项6/6（含现有评分策略权重/门槛检查）、typecheck通过。长度下降不是已证明的超时修复；仍需后续新的受控长文验证，不重发本次unknown请求。
+
+PDF清洗代码提交e5d579c的[Check40845845778](https://github.com/revercgy-hub/MYHOT/actions/runs/40845845778) check及docker全部通过：561项553通过/8跳过/0失败，Web25/25，typecheck/build、built-site smoke及Docker smoke通过。该CI测试软件行为，不证明新的模型判断符合用户偏好，也不补齐第7篇实际长文执行证据。
+
+下轮开发聚焦三个已知差异：区分普通事务所检查与重要会计制度变化；区分银行服务网点推广中顺带提到金融工具，与以财政贴息/创业担保监管为主线的材料；以development材料验证改进后再取新独立样本。保持门槛不变，不用当前8条已知反馈成绩选threshold。
 
 Gate 3仍CHANGES_REQUIRED；Gate 4/5仍未整体通过。下一步完成新提示词的development诊断；对metadata候选作完整软件/部署预检；观察18:00采集和下一凌晨任务。

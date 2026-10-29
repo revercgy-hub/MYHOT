@@ -1,5 +1,9 @@
 # 项目状态
 
+## 2026-10-29 九条业务决定与本地回归最终结果
+
+九条决定已齐：1–6全部动态，7–9精选；私有Gold v5及前版本、三份原文packet已保留并备份到NAS。评分示例已更新，权重/门槛不变。qwen3.5:9b独立测试库小样实际25次request（原19+未请求尾部6），24 received/1 unknown，无重试：8篇双评分完成、5篇与用户一致；山西普通检查和台胞服务中心误选，厦门普惠金融监管漏选；会计解释长文预筛超时仍未完成。已增加严格PDF坐标注记清洗，原始正文/hash不变，实际长文效果待验证。最终软件e5d579c的Check40845845778全部成功（561项553通过/8跳过/0失败、Web25/25、Docker/built-site smoke通过）。Source metadata候选仍未安装，15条正文尚未CAS；测试库已停止，NAS公开内容未改动。Gate 3–5仍未整体通过。详见[本轮交接](HANDOFFS/HUMAN_CALIBRATION_AND_SOURCE_METADATA_2026-10-29.md)。下段保留本轮早期进度。
+
 ## 2026-10-29 用户参与校准与来源补缺
 
 用户确认前两批六篇均“仅放全部动态”、第三批三篇均“进入精选”；已保存私有v3/v4/v5标签overlay，未覆盖原Gold或Staging标签。v5 development为21 select/129 reject，既有e82e预测复算16/27/5/102，precision37.21%，变化来自标签版本、没有模型提升结论。已据明确反馈补充评分取舍示例，五轴/权重/门槛不变；正在独立本地测试库对9篇做当前本地模型小样回归，不能视为全150或新holdout。四优先来源44条pending中找到19条完整历史响应；独立metadata修复候选使严格离线合格数1→15，另4条附件/正文HOLD。候选未安装，正文未回写，来源重放externalRequests0。新审阅包和metadata候选专项5/5、全部mjs19/19、Node24 typecheck通过；9352444的Check40843362677已通过（559项551通过/8跳过/0失败），新prompt仍需新回归。完整输入版本、限制和应用顺序见[人工校准与来源metadata交接](HANDOFFS/HUMAN_CALIBRATION_AND_SOURCE_METADATA_2026-10-29.md)。Gate结论保持未通过。
