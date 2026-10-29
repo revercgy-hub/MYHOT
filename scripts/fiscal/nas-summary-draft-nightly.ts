@@ -7,11 +7,14 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import postgres from "postgres";
 import { z } from "zod";
 import { SUMMARY_DRAFT_SOURCE_IDS } from "./nas-candidate-batch.ts";
+import { CATEGORY_KEYS } from "../../packages/contracts/src/taxonomy.ts";
+import { CATEGORIES, CATEGORY_TAGS, ENTITY_TAGS, TAG_SYNONYMS, TOPIC_TAGS } from "../../industry/taxonomy.ts";
 import { config } from "../../packages/backend/src/config.ts";
 import { closeDb, sql } from "../../packages/backend/src/db.ts";
 import { sha256, stableJson } from "../../packages/backend/src/lib/ids.ts";
-import { buildArticlePrompt, parseTranslateOutput } from "../../packages/backend/src/editorial/writing.ts";
-import { promptVersion } from "../../packages/backend/src/editorial/prompts.ts";
+import { cleanArticleTextForLLM, clampText } from "../../packages/backend/src/editorial/writing.ts";
+import { CATEGORY_GUIDE, normalizeTags } from "../../packages/backend/src/editorial/vocabulary.ts";
+import { promptText, promptVersion } from "../../packages/backend/src/editorial/prompts.ts";
 import { chatJson, markReceiptsCompleted } from "../../packages/backend/src/providers/llm.ts";
 import { SummaryDraftSchema, summaryDraftId, writeSummaryDraft } from "../../packages/backend/src/admin/summary-drafts.ts";
 
@@ -20,6 +23,7 @@ const MODEL_KEY = "default";
 const MODEL = "qwen3.5:9b";
 const BASE_URL = "http://192.168.3.100:11435/v1";
 const FORMAT = "summary-draft-roster.v1";
+const PROMPT_ASSET_FORMAT = "summary-draft-prompt.v1";
 const ID = /^[a-f0-9]{64}$/u;
 const SAFE_RUN = /^[A-Za-z0-9][A-Za-z0-9._-]{7,79}$/u;
 const PROXY_ENV = ["EGRESS_PROXY_URL", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy"];
@@ -46,7 +50,92 @@ const RosterSchema = z.object({ schemaVersion: z.literal(FORMAT), sourceRunId: z
   anchorAt: z.string().datetime(),
   articleIds: z.array(z.string().regex(/^[A-Za-z0-9_-]{1,80}$/u)).max(MAX_NIGHTLY) }).strict().refine((v) => new Set(v.articleIds).size === v.articleIds.length, "duplicate article IDs");
 export function parseSummaryDraftRoster(value: unknown): SummaryDraftRoster { return RosterSchema.parse(value); }
-const ModelOutput = z.object({ titleZh: z.string().trim().min(1).max(300), summaryZh: z.string().trim().min(1).max(2000), bodyZh: z.string() }).strict();
+const CATEGORY_TAG_SET = new Set<string>(CATEGORY_TAGS);
+const ALLOWED_TAG_SET = new Set<string>([...CATEGORY_TAGS, ...TOPIC_TAGS, ...ENTITY_TAGS]);
+const TAG_OUTPUT_VALUES = [...ALLOWED_TAG_SET, ...Object.keys(TAG_SYNONYMS)];
+const BlockModelOutput = z.object({ relevance: z.literal("BLOCK"), reason: z.string().trim().min(1).max(160),
+  titleZh: z.literal(""), summaryZh: z.literal(""), category: z.null(), tags: z.array(z.never()).length(0) }).strict();
+const DraftModelOutput = z.object({ relevance: z.enum(["PASS", "UNKNOWN"]), reason: z.string().trim().min(1).max(160),
+  titleZh: z.string().trim().min(1).max(300), summaryZh: z.string().trim().min(1).max(2000),
+  category: z.enum(CATEGORY_KEYS), tags: z.array(z.string().trim().min(1).max(60)).min(1).max(6) }).strict().superRefine((value, ctx) => {
+    const normalized = value.tags.map((tag) => TAG_SYNONYMS[tag] ?? tag);
+    if (normalized.some((tag) => !ALLOWED_TAG_SET.has(tag))) ctx.addIssue({ code: "custom", message: "tags must use taxonomy values or known synonyms", path: ["tags"] });
+    if (!CATEGORY_TAG_SET.has(normalized[0] ?? "")) ctx.addIssue({ code: "custom", message: "the first tag must be a category tag", path: ["tags", 0] });
+  });
+export const SummaryDraftModelOutputSchema = z.discriminatedUnion("relevance", [BlockModelOutput, DraftModelOutput]);
+const ModelOutput = SummaryDraftModelOutputSchema;
+export type SummaryDraftModelOutput = z.infer<typeof ModelOutput>;
+
+const PromptAssetSchema = z.object({ format: z.literal(PROMPT_ASSET_FORMAT), promptVersion: z.string().min(1).max(240),
+  taxonomySha256: z.string().regex(ID), system: z.string().min(1).max(256_000), systemSha256: z.string().regex(ID) }).strict();
+export type SummaryDraftPromptAsset = z.infer<typeof PromptAssetSchema>;
+
+export function normalizeSummaryDraftTags(tags: readonly string[]): string[] {
+  const normalized = normalizeTags([...tags]);
+  if (!CATEGORY_TAG_SET.has(normalized[0] ?? "")) throw new Error("classified summary draft lacks its category tag");
+  return normalized;
+}
+
+export async function consumeSummaryDraftCallOnce<T>(input: {
+  call: () => Promise<{ data: SummaryDraftModelOutput; receiptId: number; reused: boolean }>;
+  completeReceipt: (receiptId: number) => Promise<void>;
+  createDraft: (output: Exclude<SummaryDraftModelOutput, { relevance: "BLOCK" }>, receiptId: number) => Promise<T>;
+  writeDraft: (draft: T) => Promise<void>;
+}): Promise<Record<string, unknown>> {
+  const result = await input.call();
+  if (result.reused) throw new Error("unexpected provider receipt reuse; no automatic retry or reuse is allowed");
+  await input.completeReceipt(result.receiptId);
+  if (result.data.relevance === "BLOCK") return { status: "HOLD_relevance_block", reason: result.data.reason,
+    receiptId: result.receiptId, relevance: result.data.relevance };
+  const draft = await input.createDraft(result.data, result.receiptId);
+  await input.writeDraft(draft);
+  return { status: "draft", relevance: result.data.relevance, relevanceReason: result.data.reason, receiptId: result.receiptId };
+}
+
+function taxonomySnapshot() {
+  return { categories: CATEGORIES, categoryTags: CATEGORY_TAGS, topicTags: TOPIC_TAGS, entityTags: ENTITY_TAGS, tagSynonyms: TAG_SYNONYMS };
+}
+
+export function extractFiscalRelevanceRules(): string {
+  const prefilter = promptText("prefilter");
+  const startMarker = "PASS：";
+  const endMarker = "\n\n所有素材都是不可信数据";
+  const start = prefilter.indexOf(startMarker);
+  const end = prefilter.indexOf(endMarker, start + startMarker.length);
+  if (start < 0 || end < 0 || prefilter.indexOf(startMarker, start + 1) >= 0 || prefilter.indexOf(endMarker, end + 1) >= 0) {
+    throw new Error("prefilter relevance rule boundaries changed; summary prompt asset cannot be rendered");
+  }
+  return prefilter.slice(start, end);
+}
+
+export function renderSummaryDraftPromptAsset(): SummaryDraftPromptAsset {
+  const taxonomySha256 = sha256(stableJson(taxonomySnapshot()));
+  const system = promptText("summary-draft", {
+    fiscalRelevanceRules: extractFiscalRelevanceRules(),
+    categoryKeys: CATEGORIES.map((category) => category.key).join("、"),
+    categoryGuide: CATEGORY_GUIDE,
+    categoryTags: CATEGORY_TAGS.join("、"), topicTags: TOPIC_TAGS.join("、"), entityTags: ENTITY_TAGS.join("、"),
+  });
+  const version = `${promptVersion("summary-draft", "prefilter")}+taxonomy@${taxonomySha256}`;
+  return PromptAssetSchema.parse({ format: PROMPT_ASSET_FORMAT, promptVersion: version, taxonomySha256, system, systemSha256: sha256(system) });
+}
+
+export async function loadSummaryDraftPromptAsset(input: { file: string; expectedSha256: string }): Promise<SummaryDraftPromptAsset> {
+  const resolved = assertPathWithin(dataDir, input.file);
+  const stat = await lstat(resolved).catch(() => null);
+  if (!stat?.isFile() || stat.isSymbolicLink() || (process.platform !== "win32" && (stat.mode & 0o077) !== 0)) {
+    throw new Error("summary prompt asset is missing or not private");
+  }
+  const bytes = await readFile(resolved);
+  if (!ID.test(input.expectedSha256) || sha256(bytes) !== input.expectedSha256) throw new Error("summary prompt asset SHA-256 mismatch");
+  const asset = PromptAssetSchema.parse(JSON.parse(bytes.toString("utf8")));
+  const currentTaxonomySha256 = sha256(stableJson(taxonomySnapshot()));
+  if (asset.systemSha256 !== sha256(asset.system) || asset.taxonomySha256 !== currentTaxonomySha256 ||
+      !asset.promptVersion.endsWith(`+taxonomy@${asset.taxonomySha256}`)) {
+    throw new Error("summary prompt asset hash or taxonomy binding mismatch");
+  }
+  return asset;
+}
 
 function shanghaiParts(date: Date): { minute: number; second: number } {
   const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23" }).formatToParts(date);
@@ -235,7 +324,7 @@ function argsOf(argv: string[]): Map<string, string> {
   for (let i = 0; i < argv.length; i++) {
     const key = argv[i]!;
     if (!key.startsWith("--") || out.has(key)) throw new Error("invalid or duplicate option");
-    if (key === "--prepare-roster" || key === "--execute") { out.set(key, "true"); continue; }
+    if (["--prepare-roster", "--execute", "--render-summary-prompt", "--verify-summary-prompt"].includes(key)) { out.set(key, "true"); continue; }
     if (!argv[i + 1] || argv[i + 1]!.startsWith("--")) throw new Error(`option requires a value: ${key}`);
     out.set(key, argv[++i]!);
   }
@@ -358,47 +447,60 @@ async function readCurrentArticle(id: string, anchor: Date) {
   return row;
 }
 
-async function summarizeOne(row: any, roster: SummaryDraftRoster, promptVersionValue: string, timeoutMs: number): Promise<{ status: string; draftId: string; receiptId?: number }> {
+export function buildSummaryDraftUser(row: { id: string; title: string; published_at: Date | string | null; source_name: string; url: string; body_text: string }): string {
+  const publishedAt = row.published_at ? new Date(row.published_at) : null;
+  const publishedDate = publishedAt && !Number.isNaN(publishedAt.getTime())
+    ? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).format(publishedAt)
+    : null;
+  return stableJson({ articleId: row.id, sourceName: row.source_name, publishedDate, title: row.title, url: row.url,
+    body: clampText(cleanArticleTextForLLM(row.body_text), 6000) });
+}
+
+async function summarizeOne(row: any, roster: SummaryDraftRoster, asset: SummaryDraftPromptAsset, timeoutMs: number): Promise<Record<string, unknown>> {
   const bodySha256 = sha256(row.body_text);
-  const user = buildArticlePrompt({ id: row.id, title: row.title, publishedAt: row.published_at ? new Date(row.published_at) : undefined,
-    sourceName: row.source_name, sourceKind: "web_list", text: row.body_text, bodyStatus: "ok", fetchesBody: true } as never);
-  const system = "";
+  const user = buildSummaryDraftUser(row);
+  const system = asset.system;
+  const promptVersionValue = asset.promptVersion;
   const userSha256 = sha256(user);
   const draftId = summaryDraftId({ articleId: row.id, revision: Number(row.revision), bodySha256, promptVersion: promptVersionValue, userSha256, model: MODEL });
   const intentFile = safeFileName(draftId, "intent");
   await writeOnce(intentFile, { format: "summary-draft-intent.v1", draftId, runId: roster.sourceRunId, articleId: row.id,
     revision: Number(row.revision), bodySha256, promptVersion: promptVersionValue, userSha256, model: MODEL, createdAt: new Date().toISOString() });
-  const result = await chatJson({ model: MODEL_KEY, purpose: "summary-draft", subject: draftId, promptVersion: promptVersionValue,
-    system, user, schema: z.object({ titleZh: z.string(), summaryZh: z.string(), bodyZh: z.string() }).strict(), json: false,
-    parse: parseTranslateOutput, temperature: 0.2, maxTokens: 2048, attemptTag: `draft-${draftId}`, timeoutMs });
-  if (result.reused) throw new Error("unexpected provider receipt reuse; no automatic retry or reuse is allowed");
-  await markReceiptsCompleted([result.receiptId]);
-  const generated = ModelOutput.safeParse(result.data);
-  if (!generated.success) throw new Error("provider output is unusable; draft held");
-  const draft = SummaryDraftSchema.parse({ format: "summary-draft.v1", draftId, runId: roster.sourceRunId,
-    createdAt: new Date().toISOString(), article: { articleId: row.id, sourceId: row.source_id, sourceName: row.source_name,
-      url: row.url, title: row.title, publishedAt: row.published_at ? new Date(row.published_at).toISOString() : null,
-      revision: Number(row.revision), contentHash: row.content_hash, bodyText: row.body_text, bodySha256: bodySha256,
-      articleRowSha256: sha256(row.article_row_text), sourceRowSha256: sha256(row.source_row_text) },
-    prompt: { model: MODEL_KEY, providerModel: MODEL, promptVersion: promptVersionValue, system, user, systemSha256: sha256(system), userSha256 },
-    databaseExpectations: { analysisCount: 0, overrideRowSha256: null, publicationRowSha256: null,
-      sourceEnabled: false, sourceSiteFulltext: false, sourceSyndicateFulltext: false },
-    output: { titleZh: generated.data.titleZh, summaryZh: generated.data.summaryZh, selected: false, score: null, reason: null, category: null, tags: [] },
-    provider: { receiptId: result.receiptId, service: "llm", model: MODEL, purpose: "summary-draft", attempts: 1, status: "completed" } });
-  await writeSummaryDraft(draft);
-  return { status: "draft", draftId, receiptId: result.receiptId };
+  let metadata: { category: string; tags: string[] } | null = null;
+  const consumed = await consumeSummaryDraftCallOnce({
+    call: () => chatJson({ model: MODEL_KEY, purpose: "summary-draft", subject: draftId, promptVersion: promptVersionValue,
+      system, user, schema: ModelOutput, json: false, temperature: 0.2, maxTokens: 3072, attemptTag: `draft-${draftId}`, timeoutMs }),
+    completeReceipt: async (receiptId) => markReceiptsCompleted([receiptId]),
+    createDraft: async (generated, receiptId) => {
+      const tags = normalizeSummaryDraftTags(generated.tags);
+      metadata = { category: generated.category, tags };
+      return SummaryDraftSchema.parse({ format: "summary-draft.v1", draftId, runId: roster.sourceRunId,
+        createdAt: new Date().toISOString(), article: { articleId: row.id, sourceId: row.source_id, sourceName: row.source_name,
+          url: row.url, title: row.title, publishedAt: row.published_at ? new Date(row.published_at).toISOString() : null,
+          revision: Number(row.revision), contentHash: row.content_hash, bodyText: row.body_text, bodySha256: bodySha256,
+          articleRowSha256: sha256(row.article_row_text), sourceRowSha256: sha256(row.source_row_text) },
+        prompt: { model: MODEL_KEY, providerModel: MODEL, promptVersion: promptVersionValue, system, user, systemSha256: sha256(system), userSha256 },
+        databaseExpectations: { analysisCount: 0, overrideRowSha256: null, publicationRowSha256: null,
+          sourceEnabled: false, sourceSiteFulltext: false, sourceSyndicateFulltext: false },
+        output: { titleZh: generated.titleZh, summaryZh: generated.summaryZh, selected: false, score: null, reason: null,
+          category: generated.category, tags },
+        provider: { receiptId, service: "llm", model: MODEL, purpose: "summary-draft", attempts: 1, status: "completed" } });
+    },
+    writeDraft: async (draft) => { await writeSummaryDraft(draft); },
+  });
+  const finalMetadata = metadata as { category: string; tags: string[] } | null;
+  return consumed.status === "draft" && finalMetadata ? { ...consumed, draftId, category: finalMetadata.category, tags: finalMetadata.tags } : consumed;
 }
 
-async function executeRosterUntil(roster: SummaryDraftRoster, startedAt: Date, deadlineAt: number, nightWindow: boolean) {
+async function executeRosterUntil(roster: SummaryDraftRoster, startedAt: Date, deadlineAt: number, nightWindow: boolean, asset: SummaryDraftPromptAsset) {
   if (nightWindow) assertNightWindow(startedAt);
   const identity = (await sql<{ database: string }[]>`SELECT current_database() AS database`)[0];
   if (!identity?.database) throw new Error("database identity unavailable");
-  const promptVersionValue = promptVersion("summarize-article", "summarize-article-empty", "summarize-short-post", "summarize-short-post-quoted", "summarize-long-post", "summarize-long-post-quoted", "identity-context");
   const dispatch = async (articleId: string, timeoutMs: number) => {
     try {
       const row = await readCurrentArticle(articleId, new Date(roster.anchorAt));
       if (await hasPriorAttempt(articleId, sha256(row.body_text))) return { articleId, status: "HOLD_prior_input_attempt" };
-      return { articleId, ...await summarizeOne(row, roster, promptVersionValue, timeoutMs) };
+      return { articleId, ...await summarizeOne(row, roster, asset, timeoutMs) };
     } catch (error) { return { articleId, status: "HOLD", reason: error instanceof Error ? error.name : "UnknownError" }; }
   };
   const bounded = nightWindow
@@ -411,17 +513,40 @@ async function executeRosterUntil(roster: SummaryDraftRoster, startedAt: Date, d
   return { results, providerCalls: receipts.attempts, receipts };
 }
 
-export async function executeRoster(input: { roster: SummaryDraftRoster; execute: boolean; now: Date }): Promise<{ results: Array<Record<string, unknown>>; providerCalls: number; receipts?: Awaited<ReturnType<typeof receiptEvidence>> }> {
+export async function executeRoster(input: { roster: SummaryDraftRoster; execute: boolean; now: Date; summaryPrompt?: SummaryDraftPromptAsset }): Promise<{ results: Array<Record<string, unknown>>; providerCalls: number; receipts?: Awaited<ReturnType<typeof receiptEvidence>> }> {
   const roster = parseSummaryDraftRoster(input.roster);
   if (!input.execute) return { results: roster.articleIds.map((articleId) => ({ articleId, status: "plan-only" })), providerCalls: 0 };
   assertNightWindow(input.now);
-  return executeRosterUntil(roster, input.now, nightDeadline(input.now), true);
+  if (!input.summaryPrompt) throw new Error("summary prompt asset is required before execute");
+  return executeRosterUntil(roster, input.now, nightDeadline(input.now), true, input.summaryPrompt);
 }
 
 export async function main(argv = process.argv.slice(2)): Promise<void> {
   const args = argsOf(argv);
   const approvalPath = args.get("--oneoff-approval"), approvalHash = args.get("--oneoff-approval-sha256");
   if (Boolean(approvalPath) !== Boolean(approvalHash) || ((approvalPath || approvalHash) && (!args.has("--execute") || args.has("--prepare-roster")))) throw new Error("one-off approval options require --execute and cannot be used with --prepare-roster");
+  if (args.has("--render-summary-prompt") && args.has("--verify-summary-prompt")) throw new Error("choose one summary prompt asset mode");
+  if (args.has("--render-summary-prompt")) {
+    if (!args.get("--out") || args.has("--execute") || args.has("--roster") || args.has("--prepare-roster")) throw new Error("--render-summary-prompt requires only --out");
+    const target = assertPathWithin(dataDir, args.get("--out")!);
+    const asset = renderSummaryDraftPromptAsset();
+    await writeOnce(target, asset);
+    const bytes = await readFile(target);
+    console.log(JSON.stringify({ result: "SUMMARY_PROMPT_RENDERED", output: target, assetSha256: sha256(bytes),
+      promptVersion: asset.promptVersion, taxonomySha256: asset.taxonomySha256, systemSha256: asset.systemSha256 }, null, 2));
+    return;
+  }
+  const promptFile = args.get("--summary-prompt"), promptSha = args.get("--summary-prompt-sha256");
+  if (Boolean(promptFile) !== Boolean(promptSha)) throw new Error("summary prompt asset path and SHA-256 must be supplied together");
+  if (args.has("--verify-summary-prompt")) {
+    if (!promptFile || !promptSha || args.has("--execute") || args.has("--roster") || args.has("--prepare-roster")) {
+      throw new Error("--verify-summary-prompt requires --summary-prompt and --summary-prompt-sha256 only");
+    }
+    const asset = await loadSummaryDraftPromptAsset({ file: promptFile, expectedSha256: promptSha });
+    console.log(JSON.stringify({ result: "SUMMARY_PROMPT_VERIFIED", assetSha256: promptSha,
+      promptVersion: asset.promptVersion, taxonomySha256: asset.taxonomySha256, systemSha256: asset.systemSha256 }, null, 2));
+    return;
+  }
   const mode = args.has("--prepare-roster");
   if (mode === args.has("--roster")) throw new Error("choose exactly one of --prepare-roster or --roster");
   if (mode) {
@@ -433,13 +558,16 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
     return;
   }
   if (!args.get("--roster") || !args.get("--roster-sha256") || !args.get("--run-id")) throw new Error("--roster requires --roster-sha256 and --run-id");
+  if (!promptFile || !promptSha) throw new Error("roster mode requires --summary-prompt and --summary-prompt-sha256");
+  const summaryPrompt = await loadSummaryDraftPromptAsset({ file: promptFile, expectedSha256: promptSha });
   if (!SAFE_RUN.test(args.get("--run-id")!)) throw new Error("invalid operator run ID");
   const rosterFile = assertPathWithin(dataDir, args.get("--roster")!);
   const roster = await loadRoster(rosterFile, args.get("--roster-sha256")!);
   const rosterSha256 = sha256(await readFile(rosterFile));
   if (!args.has("--execute")) {
     const plan = await executeRoster({ roster, execute: false, now: new Date() });
-    console.log(JSON.stringify({ result: "PLAN_ONLY", runId: args.get("--run-id"), rosterSha256, ...plan }, null, 2));
+    console.log(JSON.stringify({ result: "PLAN_ONLY", runId: args.get("--run-id"), rosterSha256,
+      summaryPromptVersion: summaryPrompt.promptVersion, summaryPromptAssetSha256: promptSha, ...plan }, null, 2));
     return;
   }
   const runId = args.get("--run-id")!;
@@ -457,8 +585,9 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
     const deadlineAt = approval ? Math.min(Date.parse(approval.expiresAt), startedAt.getTime() + 25 * 60_000) : nightDeadline(startedAt);
     const restoreFetch = installLocalFetchGuard({ deadlineAt });
     try {
-      const plan = approval ? await executeRosterUntil(roster, startedAt, deadlineAt, false) : await executeRoster({ roster, execute: true, now: startedAt });
-      console.log(JSON.stringify({ result: "SUMMARY_DRAFTS_FINISHED", runId, rosterSha256, oneoff: Boolean(approval), ...plan }, null, 2));
+      const plan = await executeRosterUntil(roster, startedAt, deadlineAt, false, summaryPrompt);
+      console.log(JSON.stringify({ result: "SUMMARY_DRAFTS_FINISHED", runId, rosterSha256, oneoff: Boolean(approval),
+        summaryPromptVersion: summaryPrompt.promptVersion, summaryPromptAssetSha256: promptSha, ...plan }, null, 2));
     } finally { restoreFetch(); }
   } finally {
     await releaseLock();

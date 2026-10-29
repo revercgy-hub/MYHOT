@@ -12,6 +12,7 @@ readonly NIGHT_WORKSPACE=/vol2/1000/docker/fiscalhot-understand-nightly
 readonly LOCK_FILE=$NIGHT_WORKSPACE/state/ollama-understand-nightly.lock
 readonly GATEWAY_CONFIG=/vol2/1000/docker/ollama-gateway/default.conf
 readonly DATA_DIR=/data
+readonly PROMPT_ASSET_DIR=$DATA_DIR/summary-draft-prompts
 readonly MODEL_NAME=qwen3.5:9b
 readonly MODEL_DIGEST=6488c96fa5faab64bb65cbd30d4289e20e6130ef535a93ef9a49f42eda893ea7
 readonly MIN_WARM_BYTES=4294967296
@@ -58,21 +59,31 @@ api_image=$(cat "$API_IMAGE_PIN") || fail API_IMAGE_PIN_READ
 case "$api_image" in sha256:*) api_hex=${api_image#sha256:};; *) fail API_IMAGE_ID_INVALID;; esac
 case "$api_hex" in *[!a-f0-9]*|'') fail API_IMAGE_ID_INVALID;; esac
 [ "${#api_hex}" -eq 64 ] || fail API_IMAGE_ID_INVALID
-manifest_api_image=$(python3 - "$MANIFEST" "$operator_sha" <<'PY'
+manifest_binding=$(python3 - "$MANIFEST" "$operator_sha" <<'PY'
 import json,re,sys
 try:
     value=json.load(open(sys.argv[1],encoding='utf-8'))
     image=value.get('apiImageId')
     guards=value.get('guardrails')
     expected={'fixedSummarySources':20,'maxNightlyArticles':10,'maxProviderCalls':10,'localOnly':True,'noRetry':True}
-    ok=value.get('schemaVersion')=='nas-summary-draft-candidate.v1' and value.get('imagePinBound') is True
+    prompt_sha=value.get('promptAssetSha256')
+    prompt_version=value.get('promptVersion')
+    taxonomy_sha=value.get('taxonomySha256')
+    ok=value.get('schemaVersion')=='nas-summary-draft-candidate.v2' and value.get('imagePinBound') is True
     ok=ok and value.get('operatorSha256')==sys.argv[2] and isinstance(image,str) and re.fullmatch(r'sha256:[a-f0-9]{64}',image) is not None
     ok=ok and isinstance(guards,dict) and all(guards.get(k)==v for k,v in expected.items())
+    ok=ok and isinstance(prompt_sha,str) and re.fullmatch(r'[a-f0-9]{64}',prompt_sha) is not None
+    ok=ok and isinstance(taxonomy_sha,str) and re.fullmatch(r'[a-f0-9]{64}',taxonomy_sha) is not None
+    ok=ok and isinstance(prompt_version,str) and re.fullmatch(r'[A-Za-z0-9_+@.-]{1,240}',prompt_version) is not None
+    ok=ok and prompt_version.endswith('+taxonomy@'+taxonomy_sha)
     if not ok: raise ValueError()
-    print(image)
+    print('|'.join((image,prompt_sha,prompt_version,taxonomy_sha)))
 except Exception: raise SystemExit(2)
 PY
 ) || fail IMAGE_MANIFEST_UNBOUND_OR_MISMATCH
+IFS='|' read -r manifest_api_image prompt_asset_sha prompt_version taxonomy_sha <<EOF
+$manifest_binding
+EOF
 [ "$manifest_api_image" = "$api_image" ] || fail IMAGE_MANIFEST_MISMATCH
 slot=$(TZ=Asia/Shanghai date +%H%M)
 day=$(TZ=Asia/Shanghai date +%Y%m%d)
@@ -119,6 +130,26 @@ trap 'exit 143' TERM
 docker exec "$API_CONTAINER" test -x /usr/bin/timeout || fail API_GNU_TIMEOUT_UNAVAILABLE
 [ "$(docker exec "$API_CONTAINER" /usr/bin/timeout --version 2>/dev/null | awk 'NR==1 {print; exit}')" = "timeout (GNU coreutils) 9.7" ] || fail API_GNU_TIMEOUT_VERSION
 [ "$(docker exec "$API_CONTAINER" sha256sum /app/industry/sources.json 2>/dev/null | cut -d ' ' -f 1)" = "$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1],encoding="utf-8"))["appCatalogSha256"])' "$MANIFEST")" ] || fail API_CATALOG_PIN_MISMATCH
+docker exec "$API_CONTAINER" sh -c '[ -d "$1" ] && [ ! -L "$1" ] && [ "$(stat -c %a "$1")" = 700 ]' sh "$PROMPT_ASSET_DIR" || fail PROMPT_ASSET_DIRECTORY_INVALID
+prompt_asset_path=$PROMPT_ASSET_DIR/$prompt_asset_sha.json
+docker exec "$API_CONTAINER" sh -c '[ -f "$1" ] && [ ! -L "$1" ]' sh "$prompt_asset_path" || fail PROMPT_ASSET_MISSING_OR_UNSAFE
+[ "$(docker exec "$API_CONTAINER" stat -c '%a' "$prompt_asset_path")" = 600 ] || fail PROMPT_ASSET_MODE_INVALID
+[ "$(docker exec "$API_CONTAINER" sha256sum "$prompt_asset_path" | cut -d ' ' -f 1)" = "$prompt_asset_sha" ] || fail PROMPT_ASSET_SHA_MISMATCH
+python3 - "$MANIFEST" "$WORKSPACE/tools/summary-draft-prompt.json" "$prompt_asset_sha" "$prompt_version" "$taxonomy_sha" <<'PY' || fail PROMPT_ASSET_SCHEMA_OR_PIN_MISMATCH
+import hashlib,json,re,sys
+runtime=json.load(open(sys.argv[1],encoding='utf-8'))
+asset=json.load(open(sys.argv[2],encoding='utf-8'))
+sha,version,taxonomy=sys.argv[3:]
+ok=set(asset)=={'format','promptVersion','taxonomySha256','system','systemSha256'}
+ok=ok and asset.get('format')=='summary-draft-prompt.v1' and isinstance(asset.get('system'),str)
+ok=ok and asset.get('promptVersion')==version and runtime.get('promptVersion')==version
+ok=ok and asset.get('taxonomySha256')==taxonomy and runtime.get('taxonomySha256')==taxonomy
+ok=ok and re.fullmatch(r'[a-f0-9]{64}',asset.get('systemSha256','')) is not None
+ok=ok and hashlib.sha256(asset.get('system','').encode('utf-8')).hexdigest()==asset.get('systemSha256')
+ok=ok and hashlib.sha256(open(sys.argv[2],'rb').read()).hexdigest()==sha and runtime.get('promptAssetSha256')==sha
+ok=ok and version.endswith('+taxonomy@'+taxonomy)
+if not ok: raise SystemExit(1)
+PY
 
 # Prove docker exec inherits a host process environment value before handling the real key.
 LLM_API_KEY=codex-nonsecret-env-probe-20261028
@@ -197,13 +228,6 @@ fi
 # run ID: each selected article remains bound to its own DB row/body hash and raw lineage.
 source_run_id="summary-draft-scope-$day"
 
-if [ "$mode_arg" = execute ]; then
-  once_file="$WORKSPACE/state/summary-draft-$day.started"
-  if [ -e "$once_file" ]; then printf 'SUMMARY_DRAFT=SKIPPED_ALREADY_STARTED runId=summary-draft-$day\n'; exit 0; fi
-  (set -C; printf 'summary-draft-%s\n' "$day" > "$once_file") 2>/dev/null || { printf 'SUMMARY_DRAFT=SKIPPED_ALREADY_STARTED runId=summary-draft-%s\n' "$day"; exit 0; }
-  chmod 600 "$once_file"
-fi
-
 if [ "$mode_arg" = execute ]; then run_id="summary-draft-$day-$slot"; else run_id="summary-draft-plan-$day-$slot-$$"; fi
 roster_file="$DATA_DIR/summary-draft-rosters/$run_id.roster.json"
 run_log="$WORKSPACE/logs/$run_id.log"
@@ -220,10 +244,17 @@ docker exec --user 0 "$API_CONTAINER" chown "$api_uid:$api_gid" "$remote_operato
 docker exec --user 0 "$API_CONTAINER" chmod 0600 "$remote_operator" || fail OPERATOR_STAGE_MODE_FAILED
 [ "$(docker exec "$API_CONTAINER" sha256sum "$remote_operator" | cut -d ' ' -f 1)" = "$operator_sha" ] || fail STAGED_OPERATOR_HASH_MISMATCH
 
+set +e
+docker exec --user "$api_uid" "$API_CONTAINER" env AIHOT_APP_ROOT=/app AIHOT_DATA_DIR="$DATA_DIR" \
+  node "$remote_operator" --verify-summary-prompt --summary-prompt "$prompt_asset_path" --summary-prompt-sha256 "$prompt_asset_sha" >> "$run_log" 2>&1
+verify_prompt_rc=$?
+set -e
+[ "$verify_prompt_rc" -eq 0 ] || fail API_TAXONOMY_OR_PROMPT_VERIFY_FAILED
+
 exec_operator() {
   docker exec --env DATABASE_URL --env LLM_API_KEY "$API_CONTAINER" env \
     AIHOT_APP_ROOT=/app AIHOT_DATA_DIR="$DATA_DIR" DATABASE_POOL_MAX=1 MODEL_CALLS_ENABLED=false \
-    node "$remote_operator" "$@"
+    node "$remote_operator" --summary-prompt "$prompt_asset_path" --summary-prompt-sha256 "$prompt_asset_sha" "$@"
 }
 
 exec_operator_bounded() {
@@ -231,7 +262,7 @@ exec_operator_bounded() {
   shift
   docker exec --env DATABASE_URL --env LLM_API_KEY "$API_CONTAINER" env \
     AIHOT_APP_ROOT=/app AIHOT_DATA_DIR="$DATA_DIR" DATABASE_POOL_MAX=1 MODEL_CALLS_ENABLED=false \
-    /usr/bin/timeout --foreground --signal=TERM --kill-after=10s "${limit_seconds}s" node "$remote_operator" "$@"
+    /usr/bin/timeout --foreground --signal=TERM --kill-after=10s "${limit_seconds}s" node "$remote_operator" --summary-prompt "$prompt_asset_path" --summary-prompt-sha256 "$prompt_asset_sha" "$@"
 }
 
 set +e
@@ -246,6 +277,10 @@ plan_rc=$?
 set -e
 [ "$plan_rc" -eq 0 ] || fail PLAN_ONLY_FAILED
 if [ "$mode_arg" = execute ]; then
+  once_file="$WORKSPACE/state/summary-draft-$day.started"
+  if [ -e "$once_file" ]; then printf 'SUMMARY_DRAFT=SKIPPED_ALREADY_STARTED runId=summary-draft-$day\n'; exit 0; fi
+  (set -C; printf 'summary-draft-%s\n' "$day" > "$once_file") 2>/dev/null || { printf 'SUMMARY_DRAFT=SKIPPED_ALREADY_STARTED runId=summary-draft-%s\n' "$day"; exit 0; }
+  chmod 600 "$once_file"
   now_epoch=$(TZ=Asia/Shanghai date +%s) || fail EXECUTE_DEADLINE_CLOCK_UNAVAILABLE
   cutoff_epoch=$(TZ=Asia/Shanghai date -d "$day 06:00:00" +%s) || fail EXECUTE_DEADLINE_CLOCK_UNAVAILABLE
   execute_limit=$((cutoff_epoch - now_epoch))

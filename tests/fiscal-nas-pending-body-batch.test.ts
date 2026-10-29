@@ -70,6 +70,57 @@ test("prior actual response evidence is canonical, unique, hash-bound and exclud
   ] }))), /unsafe or duplicate/);
 });
 
+test("pending direct-HTML scope admits only the exact reviewed GovCN JSON-list detail contract", async () => {
+  const govcn = sourceFor("govcn-policy-library");
+  assert.equal(sha256(readFileSync("industry/sources.json")), "27af3250bbc472ed20019983093b43336cc1967b9ae3193e6b202da4df27ad3f");
+  const article = { id: "i758oqu7el8o048ktmhec6qeu", url: "https://www.gov.cn/zhengce/zhengceku/202610/content_7084402.htm",
+    body_status: "pending", body_text: null, body_html: null };
+  const dbSource = { id: govcn.id, kind: govcn.kind, enabled: govcn.enabled, site_fulltext: govcn.site_fulltext,
+    syndicate_fulltext: govcn.syndicate_fulltext, config: structuredClone(govcn.config) };
+  let publicUrlChecks = 0;
+  const validate = (sourceOverride: Record<string, any> = dbSource, catalogOverride: Record<string, any> = govcn,
+    articleOverride: Record<string, any> = article) => validatePendingTarget(sourceOverride, articleOverride, {
+      catalogSource: catalogOverride, allowed, publicUrl: async () => { publicUrlChecks += 1; },
+    });
+  await assert.doesNotReject(validate());
+  assert.equal(publicUrlChecks, 1);
+  assert.equal(detailConfigIsDirectHtml(govcn), false, "the shared 46-source selector remains web_list-only");
+  const govcnTarget: PendingTarget = { articleId: article.id, sourceId: govcn.id, url: article.url, title: "农业农村部通知",
+    publishedAt: "2026-10-28T13:55:00.000Z", revision: 1, contentHash: sha256("existing body identity"), excerpt: null,
+    sourceRowSha256: sha256("govcn source row"), rowText: JSON.stringify(article), rowSha256: sha256(JSON.stringify(article)) };
+  const snapshot = { database: "fiscalhot_staging", capturedAt: new Date().toISOString(), counts: {}, rowsets: {} };
+  const manifest = buildPendingManifest({ runId: "govcn_json_detail_test", operatorBytes: Buffer.from("operator"),
+    database: "fiscalhot_staging", snapshot, targets: [govcnTarget] });
+  assert.deepEqual(manifest.selection.articleIds, [article.id]);
+  assert.throws(() => buildPendingManifest({ runId: "govcn_json_detail_cap_test", operatorBytes: Buffer.from("operator"),
+    database: "fiscalhot_staging", snapshot, targets: Array.from({ length: 6 }, (_, index) => ({ ...govcnTarget,
+      articleId: `govcn_cap_${index}`, url: `https://www.gov.cn/zhengce/zhengceku/202610/content_${7084402 + index}.htm` })) }),
+  /per-source target cap/u);
+  const changes: Array<(copy: Record<string, any>) => void> = [
+    (copy) => { copy.id = "other-json-list"; },
+    (copy) => { copy.kind = "web_list"; },
+    (copy) => { copy.config.detail.bodySelector = ".other"; },
+    (copy) => { copy.config.detail.titleRegex = "<title>(.*?)</title>"; },
+    (copy) => { copy.config.detail.publishedAtRegex = ""; },
+    (copy) => { copy.config.detail.publishedAtUtcOffset = "Z"; },
+    (copy) => { copy.config.summaryIsBody = true; },
+    (copy) => { copy.enabled = true; },
+    (copy) => { copy.site_fulltext = true; },
+    (copy) => { copy.syndicate_fulltext = true; },
+    (copy) => { copy.config.detail.attachmentSelector = ".pdf"; },
+  ];
+  for (const change of changes) {
+    const bad = structuredClone(dbSource); change(bad);
+    const badCatalog = structuredClone(govcn); badCatalog.config = structuredClone(bad.config);
+    badCatalog.id = bad.id; badCatalog.kind = bad.kind;
+    assert.throws(() => validate(bad, badCatalog), /source is outside/u);
+  }
+  for (const url of ["https://www.gov.cn/zhengce/zhengceku/not-a-policy.htm", "https://other.gov.cn/zhengce/zhengceku/202610/content_7084402.htm",
+    "https://www.gov.cn/zhengce/zhengceku/202610/content_7084402.htm?redirect=1", "https://www.gov.cn/zhengce/zhengceku/202610/content_7084402.html"]) {
+    assert.throws(() => validate(dbSource, govcn, { ...article, url }), /exact official detail pattern/u);
+  }
+});
+
 test("legacy adapter binds an allowlisted completed GET and leaves completion/cadence explicitly unproven", () => {
   const url = `${source.config.allowUrlPrefixes[0]}legacy-body.html`;
   const target: PendingTarget = { articleId: "legacy_article", sourceId: source.id, url, title: "legacy title",

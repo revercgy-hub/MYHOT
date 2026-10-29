@@ -19,6 +19,8 @@ const MIN_INTERVAL_MS = 1_100;
 const MAX_DETAIL_BYTES = 6 * 1024 * 1024;
 const TIMEOUT_MS = 20_000;
 const MAX_DECODED_BYTES = 6 * 1024 * 1024;
+const APPROVED_GOVCN_CATALOG_SHA256 = "27af3250bbc472ed20019983093b43336cc1967b9ae3193e6b202da4df27ad3f";
+const GOVCN_DETAIL_URL = /^https:\/\/www\.gov\.cn\/zhengce\/zhengceku\/\d{6}\/content_\d+\.htm$/u;
 const APPROVED_LEGACY_INVENTORY_SHA256 = "a67f047a2e4b90afc7cbcd0b9abe66b9f470dbcaa5da702189b8e5fa06367ee2";
 const REVIEWED_PARTIAL_CAPTURE_OPERATOR_SHA256 = "ef3515718b67952f78ba9075364e3212355ff9173fecba312ddaa99c8766ff9f";
 const LEGACY_MANIFEST_SHA256: Record<string, string> = {
@@ -595,16 +597,50 @@ export function decodePendingCapturedResponse(body: Buffer, contentType: string 
   return text;
 }
 
+/** The only JSON-list exception: this exact disabled GovCN source has a reviewed direct-HTML detail contract. */
+function supportsGovcnJsonDirectDetail(source: Record<string, any>): boolean {
+  if (sha256(CATALOG_BYTES) !== APPROVED_GOVCN_CATALOG_SHA256 || source.id !== "govcn-policy-library" || source.kind !== "json_list") return false;
+  const config = source.config, detail = config?.detail, pagination = config?.pagination;
+  const configKeys = ["url", "itemsPath", "titlePaths", "summaryPaths", "summaryIsBody", "publishedAtPath", "publishedAtUnit",
+    "publishedAtUtcOffset", "externalIdPath", "urlTemplate", "allowUrlPrefixes", "pagination", "detail", "_aihot"].sort();
+  const detailKeys = ["maxFetches", "titleRegex", "publishedAtRegex", "publishedAtUtcOffset", "bodySelector"].sort();
+  const paginationKeys = ["mode", "maxPagesPerRun", "maxDispatches"].sort();
+  const aiKeys = ["initialBackfillMonths", "initialBackfillRequirePublishedAt", "requireBodyReadyForAutomaticSelection"].sort();
+  return config && Object.keys(config).sort().join("\n") === configKeys.join("\n") &&
+    config.url === "https://sousuo.www.gov.cn/search-gov/data?q=&sort=score&sortType=1&searchfield=title&p=1&n=5&type=gwyzcwjk" &&
+    config.itemsPath === "searchVO.catMap.bumenfile.listVO" && JSON.stringify(config.titlePaths) === JSON.stringify(["title"]) &&
+    JSON.stringify(config.summaryPaths) === JSON.stringify(["summary"]) && config.summaryIsBody === false &&
+    config.publishedAtPath === "pubtime" && config.publishedAtUnit === "epoch_ms" && config.publishedAtUtcOffset === "+08:00" &&
+    config.externalIdPath === "id" && config.urlTemplate === "{raw:url}" &&
+    JSON.stringify(config.allowUrlPrefixes) === JSON.stringify(["https://www.gov.cn/zhengce/zhengceku/"]) &&
+    pagination && Object.keys(pagination).sort().join("\n") === paginationKeys.join("\n") &&
+    pagination.mode === "govcn_query_v1" && pagination.maxPagesPerRun === 2 && pagination.maxDispatches === 7 &&
+    detail && Object.keys(detail).sort().join("\n") === detailKeys.join("\n") && detail.maxFetches === 5 &&
+    detail.titleRegex === "<title>(.*?)_国务院部门文件_中国政府网</title>" &&
+    detail.publishedAtRegex === "name=\"firstpublishedtime\" content=\"(\\d{4}-\\d{2}-\\d{2})-\\d{2}:\\d{2}:\\d{2}\"" &&
+    detail.publishedAtUtcOffset === "+08:00" && detail.bodySelector === "#UCAP-CONTENT .trs_editor_view" &&
+    config._aihot && Object.keys(config._aihot).sort().join("\n") === aiKeys.join("\n") &&
+    config._aihot.initialBackfillMonths === 3 && config._aihot.initialBackfillRequirePublishedAt === true &&
+    config._aihot.requireBodyReadyForAutomaticSelection === true;
+}
+
+function supportsPendingDirectHtmlDetail(source: Record<string, any>): boolean {
+  if (source.id === "govcn-policy-library") return supportsGovcnJsonDirectDetail(source);
+  return detailConfigIsDirectHtml(source as never);
+}
+
 export function validatePendingTarget(source: Record<string, any>, article: Record<string, any>, input: {
   catalogSource: Record<string, any> | undefined;
   allowed: (url: string, source: Record<string, any>) => boolean;
   publicUrl: (url: string) => Promise<unknown>;
 }): Promise<void> {
   if (!input.catalogSource || source.enabled !== false || source.site_fulltext !== false || source.syndicate_fulltext !== false ||
-      source.kind !== "web_list" || stableJson(source.config) !== stableJson(input.catalogSource.config) ||
-      !detailConfigIsDirectHtml(source as never)) throw new Error(`source is outside the configured disabled direct-HTML scope: ${String(source.id)}`);
+      stableJson(source.config) !== stableJson(input.catalogSource.config) || !supportsPendingDirectHtmlDetail(source)) {
+    throw new Error(`source is outside the configured disabled direct-HTML scope: ${String(source.id)}`);
+  }
   if (article.body_status !== "pending" || article.body_text !== null || article.body_html !== null) throw new Error(`article is not an empty pending body: ${String(article.id)}`);
   const url = new URL(String(article.url));
+  if (source.id === "govcn-policy-library" && !GOVCN_DETAIL_URL.test(url.href)) throw new Error(`GovCN URL is outside the exact official detail pattern: ${String(article.id)}`);
   if (!input.allowed(url.href, source) || !Array.isArray(source.config.allowUrlPrefixes) ||
       !source.config.allowUrlPrefixes.some((prefix: string) => url.href.startsWith(prefix))) throw new Error(`article URL is outside the source allowlist: ${String(article.id)}`);
   if (url.username || url.password || url.hash || !["http:", "https:"].includes(url.protocol) || url.hostname === "r.jina.ai" || url.hostname.endsWith(".jina.ai")) {
@@ -672,7 +708,7 @@ export function buildPendingManifest(input: { runId: string; operatorBytes: Buff
   for (const [sourceId, count] of perSource) {
     const source = CATALOG.sources.find((row) => row.id === sourceId);
     const cap = Math.min(10, Number(source?.config?.detail?.maxFetches ?? 0));
-    if (!source || !detailConfigIsDirectHtml(source) || count > cap) throw new Error(`per-source target cap exceeds configured direct-detail budget: ${sourceId}`);
+    if (!source || !supportsPendingDirectHtmlDetail(source) || count > cap) throw new Error(`per-source target cap exceeds configured direct-detail budget: ${sourceId}`);
   }
   const manifest: PendingBodyManifest = { schemaVersion: "nas-pending-body-batch.v1", runId: input.runId,
     operatorSha256: sha256(input.operatorBytes), catalogSha256: sha256(input.catalogBytes ?? CATALOG_BYTES), database: input.database,

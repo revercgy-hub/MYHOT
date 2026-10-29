@@ -1,5 +1,9 @@
 # 项目状态
 
+## 2026-10-29 15:12+08 接续更新
+
+12:00采集已按计划执行：46源中45成功、河北列表超时1，新增7篇，provider0；当前517文章/811 revisions、正文325 ok/183 pending/9 unconfirmed、137 publications、9 receipts，来源开关全关闭。r8摘要分类/标签及独立prompt资产已安装到既有Staging；修复安装后发现的宿主/容器路径混用，真实launcher plan-only通过，API image ee9未重启。03:30计划不变、今日once marker保留，未新增模型执行或公开内容。完整回归533通过/6跳过/0失败；补齐专用DB后另43项全通过。详细版本、安装回退和下一步见[本地核验接续记录](HANDOFFS/LOCAL_REVIEW_2026-10-29.md)。Gate 3仍CHANGES_REQUIRED、Gate 4/5未通过。
+
 ## 2026-10-29 10:30+08 Staging试运行当前状态
 
 ```text

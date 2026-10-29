@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { chmodSync, copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { renderSummaryDraftPromptAsset } from "./nas-summary-draft-nightly.ts";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const args = process.argv.slice(2);
@@ -15,7 +16,7 @@ if (args.length) {
   apiImageId = args[1];
 }
 const imagePinBound = apiImageId !== "UNBOUND";
-const OUTPUT = path.join(ROOT, `.data/fiscal-qa/summary-draft-nightly-candidate-20261029-r6-${imagePinBound ? "bound" : "unbound"}`);
+const OUTPUT = path.join(ROOT, `.data/fiscal-qa/summary-draft-nightly-candidate-20261029-r8-${imagePinBound ? "bound" : "unbound"}`);
 const WORKSPACE = "/vol2/1000/docker/fiscalhot-summary-draft-nightly-20261028";
 const OPERATOR = "scripts/fiscal/nas-summary-draft-nightly.ts";
 const LAUNCHER = "scripts/fiscal/nas-summary-draft-nightly-launcher.sh";
@@ -35,6 +36,14 @@ const launcherBytes = readFileSync(path.join(ROOT, LAUNCHER));
 const installerBytes = readFileSync(path.join(ROOT, INSTALLER));
 const operatorSha = sha(operatorBytes);
 const launcherSha = sha(launcherBytes);
+const promptAsset = renderSummaryDraftPromptAsset();
+if (promptAsset.format !== "summary-draft-prompt.v1" || !/^[a-f0-9]{64}$/u.test(promptAsset.taxonomySha256) ||
+    typeof promptAsset.system !== "string" || typeof promptAsset.promptVersion !== "string" ||
+    !/^[a-f0-9]{64}$/u.test(promptAsset.systemSha256) || sha(Buffer.from(promptAsset.system, "utf8")) !== promptAsset.systemSha256 ||
+    !promptAsset.promptVersion.endsWith(`+taxonomy@${promptAsset.taxonomySha256}`)) {
+  console.error("SUMMARY_DRAFT_PREPARE_FAILED=PROMPT_ASSET_INVALID");
+  process.exit(1);
+}
 ensurePrivateDir(path.dirname(OUTPUT));
 ensurePrivateDir(OUTPUT);
 for (const dir of ["source/scripts/fiscal", "tools", "cron"]) ensurePrivateDir(path.join(OUTPUT, dir));
@@ -43,14 +52,20 @@ copyPrivate(path.join(ROOT, LAUNCHER), path.join(OUTPUT, "tools/nas-summary-draf
 copyPrivate(path.join(ROOT, INSTALLER), path.join(OUTPUT, "tools/install-nas-summary-draft-nightly.sh"));
 writePrivate(path.join(OUTPUT, "tools/api-image-id"), `${apiImageId}\n`);
 writePrivate(path.join(OUTPUT, "tools/operator.sha256"), `${operatorSha}\n`);
+const promptAssetBytes = Buffer.from(`${JSON.stringify(promptAsset, null, 2)}\n`, "utf8");
+const promptAssetSha = sha(promptAssetBytes);
+writePrivate(path.join(OUTPUT, "tools/summary-draft-prompt.json"), promptAssetBytes);
 const runtimeManifest = {
-  schemaVersion: "nas-summary-draft-candidate.v1",
+  schemaVersion: "nas-summary-draft-candidate.v2",
   deploymentState: imagePinBound ? "PREPARED_BOUND_NOT_SCHEDULED" : "PREPARED_UNBOUND_NOT_SCHEDULED",
   imagePinBound,
   apiImageId,
   operatorSha256: operatorSha,
   launcherSha256: launcherSha,
   appCatalogSha256: APP_CATALOG_SHA256,
+  promptAssetSha256: promptAssetSha,
+  promptVersion: promptAsset.promptVersion,
+  taxonomySha256: promptAsset.taxonomySha256,
   nodeSha256: NODE_SHA256,
   workspace: WORKSPACE,
   dataDir: "/data",
@@ -68,7 +83,7 @@ const job = `30 3 * * * /bin/sh -c 'cd "${WORKSPACE}" && test "$(sha256sum tools
 if (Buffer.byteLength(job, "utf8") >= 512) { console.error("SUMMARY_DRAFT_PREPARE_FAILED=CRON_JOB_LINE_TOO_LONG"); process.exit(1); }
 writePrivate(path.join(OUTPUT, "cron/owned-block.candidate.txt"), `${BEGIN}\nCRON_TZ=Asia/Shanghai\nTZ=Asia/Shanghai\n${job}\n${END}\n`);
 const candidateManifest = {
-  schemaVersion: "nas-summary-draft-candidate.v1",
+  schemaVersion: "nas-summary-draft-candidate.v2",
   deploymentState: imagePinBound ? "LOCAL_PREPARED_BOUND_NOT_INSTALLED" : "LOCAL_PREPARED_UNBOUND_NOT_INSTALLED",
   imagePinBound,
   apiImageId,
@@ -77,6 +92,9 @@ const candidateManifest = {
   runtimeManifestSha256: runtimeManifestSha,
   entrypointSha256: entrypointSha,
   appCatalogSha256: APP_CATALOG_SHA256,
+  promptAssetSha256: promptAssetSha,
+  promptVersion: promptAsset.promptVersion,
+  taxonomySha256: promptAsset.taxonomySha256,
   installerSha256: sha(installerBytes),
   cronJobBytes: Buffer.byteLength(job, "utf8"),
   guardrails: runtimeManifest.guardrails,
@@ -86,4 +104,4 @@ const candidateManifest = {
   modelCalls: "NOT_PERFORMED",
 };
 writePrivate(path.join(OUTPUT, "candidate-manifest.json"), `${JSON.stringify(candidateManifest, null, 2)}\n`);
-console.log(`SUMMARY_DRAFT_CANDIDATE=${imagePinBound ? "BOUND_PREPARED" : "UNBOUND_TEMPLATE_PREPARED"}\nOUTPUT=${OUTPUT}\nOPERATOR_SHA256=${operatorSha}\nLAUNCHER_SHA256=${launcherSha}\nRUNTIME_MANIFEST_SHA256=${runtimeManifestSha}\nENTRYPOINT_SHA256=${entrypointSha}\nCRON_JOB_BYTES=${candidateManifest.cronJobBytes}\nCRON_INSTALL=NOT_PERFORMED\nMODEL_CALLS=NOT_PERFORMED`);
+console.log(`SUMMARY_DRAFT_CANDIDATE=${imagePinBound ? "BOUND_PREPARED" : "UNBOUND_TEMPLATE_PREPARED"}\nOUTPUT=${OUTPUT}\nOPERATOR_SHA256=${operatorSha}\nLAUNCHER_SHA256=${launcherSha}\nPROMPT_ASSET_SHA256=${promptAssetSha}\nPROMPT_VERSION=${promptAsset.promptVersion}\nTAXONOMY_SHA256=${promptAsset.taxonomySha256}\nRUNTIME_MANIFEST_SHA256=${runtimeManifestSha}\nENTRYPOINT_SHA256=${entrypointSha}\nCRON_JOB_BYTES=${candidateManifest.cronJobBytes}\nCRON_INSTALL=NOT_PERFORMED\nMODEL_CALLS=NOT_PERFORMED`);
