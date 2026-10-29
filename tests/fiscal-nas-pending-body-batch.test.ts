@@ -173,8 +173,9 @@ test("legacy adapter binds an allowlisted completed GET and leaves completion/ca
   }));
 });
 
-test("legacy-adapt CLI imports complete reviewed scope offline with exact target coverage", () => {
+test("legacy-adapt CLI imports complete reviewed scope offline with exact target coverage", (t) => {
   const inventoryPath = ".data/fiscal-qa/pending-capture-inventory-20261022/inventory.json";
+  if (!existsSync(inventoryPath)) return t.skip("requires the private frozen legacy capture inventory and response files");
   const inventoryBytes = readFileSync(inventoryPath);
   const inventorySha = sha256(inventoryBytes);
   assert.equal(inventorySha, "a67f047a2e4b90afc7cbcd0b9abe66b9f470dbcaa5da702189b8e5fa06367ee2");
@@ -285,10 +286,19 @@ test("legacy-adapt CLI imports complete reviewed scope offline with exact target
 });
 
 test("duplicate legacy reuse candidate groups fail closed on raw, metadata, URL, origin or completeness differences", () => {
-  const inventory = JSON.parse(readFileSync(".data/fiscal-qa/pending-capture-inventory-20261022/inventory.json", "utf8"));
-  const record = inventory.records.find((row: any) => (row.evidence?.responseDispatches?.length ?? 0) > 1 &&
-    reusableIdenticalLegacyDispatchGroup(row, { articleId: "group_target", sourceId: row.sourceId, url: row.exactURL }));
-  assert.ok(record);
+  // Synthetic metadata exercises the group contract without private response files.
+  // The approved manifest path is still required by the production guard.
+  const manifestPath = ".data/fiscal-qa/catalog-sweep-20261013/evidence/manifest.json";
+  const url = `${source.config.allowUrlPrefixes[0]}synthetic-duplicate.html`;
+  const record = { exactURL: url, sourceId: source.id, evidence: {
+    responseDispatches: [1, 2].map((requestId) => ({ manifestPath, requestId, exactArticleURLRequest: true, requestURL: url,
+      method: "GET", statusCode: 200, contentType: "text/html", eof: true, captureTruncated: false, fileExists: true,
+      transportComplete: true, fileBytes: 20, declaredBytes: 20, fileSha256: "a".repeat(64), declaredSha256: "a".repeat(64),
+      responsePath: `responses/${requestId}.body`, rawFile: `responses/${requestId}.body` })),
+    rawCaptures: [1, 2].map((requestId) => ({ file: manifestPath, rawFile: `responses/${requestId}.body`, responseUrl: url,
+      fileExists: true, eof: true, captureTruncated: false, completeRaw: true, rawBytes: 20, rawSha256: "a".repeat(64),
+      contentType: "text/html", contentEncoding: "gzip", statusCode: 200 })),
+  } };
   const target = { articleId: "group_target", sourceId: record.sourceId, url: record.exactURL };
   const first = reusableIdenticalLegacyDispatchGroup(record, target)!;
   assert.equal(first.length, 2);

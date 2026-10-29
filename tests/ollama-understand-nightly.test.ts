@@ -4,7 +4,7 @@ import { mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { test } from "node:test";
+import { after, test } from "node:test";
 import {
   codeManifestSha256,
   minimalLauncherEnv,
@@ -17,11 +17,13 @@ import {
   verifyNodeRuntimeMetadata,
 } from "../scripts/fiscal/ollama-understand-nightly.mjs";
 
-const repoRoot = "/private/pilot-repo";
-const statePath = "/private/pilot-state/state.json";
-const launcherPath = "/private/pilot-state/launch-understand.sh";
-const wrapperPath = "/private/pilot-state/nightly.mjs";
-const resultDirectory = "/private/pilot-state/results";
+const harnessDirectory = await mkdtemp(path.join(os.tmpdir(), "nightly-harness-"));
+after(() => rm(harnessDirectory, { recursive: true, force: true }));
+const repoRoot = path.join(harnessDirectory, "repo");
+const statePath = path.join(harnessDirectory, "state.json");
+const launcherPath = path.join(harnessDirectory, "launch-understand.sh");
+const wrapperPath = path.join(harnessDirectory, "nightly.mjs");
+const resultDirectory = path.join(harnessDirectory, "results");
 const codeFiles = { "test-file": "C".repeat(64), nightlyWrapper: "D".repeat(64), nasLauncher: "E".repeat(64) };
 const frozen = {
   inputSha256: NIGHTLY_PILOT_CONSTANTS.inputSha256,
@@ -215,7 +217,7 @@ test("node runtime provenance requires the pinned private binary, version, and S
   }), /NIGHTLY_NODE_HASH_MISMATCH/u);
 });
 
-test("the old source-tree pin rejects the current tree after backend changes", async () => {
+test("the old code pins reject the current checkout after source or line-ending changes", async () => {
   const repoRootPath = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
   const wrapperFile = path.resolve(repoRootPath, "scripts/fiscal/ollama-understand-nightly.mjs");
   const wrapperHash = createHash("sha256").update(await readFile(wrapperFile)).digest("hex").toUpperCase();
@@ -224,7 +226,7 @@ test("the old source-tree pin rejects the current tree after backend changes", a
     launcherPath: wrapperFile,
     expectedWrapperSha256: wrapperHash,
     expectedLauncherSha256: wrapperHash,
-  }), (error: unknown) => (error as { code?: string }).code === "FROZEN_SOURCE_TREE_HASH_MISMATCH");
+  }), (error: unknown) => ["FROZEN_SOURCE_TREE_HASH_MISMATCH", "FROZEN_CODE_HASH_MISMATCH"].includes((error as { code?: string }).code ?? ""));
 });
 
 const frozenArtifactRoot = process.env.AIHOT_NIGHTLY_FROZEN_ROOT;

@@ -42,6 +42,7 @@ NAS已安装独立r2 wrapper，原228文件源码与输入不变：
 - 新entrypoint SHA `eb7821cee54d07790ab52dc61f077a0f197badab2f7b3fef19f9ad23750ca67c`，cron SHA `fb1187ef5a3180fb3d75f8112ae3655bb23e66c61a1739257308d93b437519ba`。cron只替换原02:00 job的entrypoint hash。
 - 新state路径为`state/ollama-understand-nightly-r2.state.json`；旧失败state保留，终态不重置。部署在15点之后，旧夜窗已关闭，没有白天模型重跑。
 - 新wrapper对NAS上228文件验证成功，新code manifest SHA `205091ABD95D9E52077C447C0AC1AA10D8F610E25B5E7CAAADEB0AB07110B7EC`。实际最小环境包含正确anchor pin。flock+entrypoint返回`NOOP_OUTSIDE_WINDOW`，新state未创建，model calls0。这不是夜间模型成功。
+- 另外执行了launcher的只读前段预检：固定截断在读取gateway凭据之前，并将资源不足分支改为只报错，防止诊断写入result。真实anchor、镜像、package-lock及敏感环境检查通过，输出`LAUNCHER_READONLY_PREFLIGHT=PASS_BEFORE_CREDENTIAL_OR_MODEL`。该诊断既不验证后续模型/容器阶段，也不记作完整launcher执行。
 - 回退材料保留在NAS `backups/nightly-entrypoint.pre-env-repair-20261029.sh`及`backups/cron.pre-env-repair-20261029.txt`。r2 wrapper为独立运维修复，不覆盖旧source wrapper；未来整体重装需保留/纳入该修复和新state路径，避免恢复旧终态配置。
 
 新增`trial-collector-review.mjs`核对source/counter/dispatch账目，把含失败源的完成任务明确标记为`PARTIAL_SOURCE_FAILURE`。实际复核12:00任务：46源45成功1失败（河北列表timeout）、7新增、6详情、52dispatch、provider0。51份raw hash已在前轮逐一校验。单次部分完成不代表稳定运行。
@@ -53,3 +54,9 @@ NAS已安装独立r2 wrapper，原228文件源码与输入不变：
 专项22项：21通过、1跳过（私有旧228 artifact的本地positive验证未配置；NAS对实际228文件另已通过）。新增两个离线工具各有正负例，拒绝留出集、重复/计数不一致、预算越界和未完成结果。typecheck通过，Web build与Web25/25，NAS smoke30/30。fresh `fiscalhot_gates_20261029_test`迁移36项，完整TypeScript回归540项中534通过/6跳过/0失败，测试后55438集群已停止。日志`.data/fiscal-qa/gates-full-tests-20261029.log`。本轮同时将`.test.mjs`加入默认npm test发现范围，避免两个新工具及原backup测试仅在手工专项运行。
 
 全部`.test.mjs`另跑14/14通过，日志`.data/fiscal-qa/gates-mjs-tests-20261029.log`。完整TypeScript与mjs测试分别运行，未声称在一次进程里验证新package命令的联合运行。
+
+## Linux CI修复增量
+
+提交3667e06的GitHub Check run40840441454中Docker job通过、check job失败。9项测试失败来自两类环境假设：private legacy inventory在fresh checkout不存在；nightly测试在Linux普通用户下尝试创建`/private/pilot-state/results`。另有旧pin负例只接受source-tree hash失败，而Linux检出因行尾字节差异更早触发code hash失败。
+
+修复仅改测试：nightly harness使用唯一系统临时目录并清理；旧pin负例接受两种明确的hash拒绝（生产逐字节pin不放宽）；需要真实private inventory的CLI整链用例明确skip，重复capture组的各项篡改负例改用synthetic metadata、仍走生产manifest allowlist。后者不读取private artifacts，CI持续执行，不通过skip隐藏负例。Windows focused41项39通过/2跳过/0失败，typecheck通过；后续Linux完整重跑结果另记。
