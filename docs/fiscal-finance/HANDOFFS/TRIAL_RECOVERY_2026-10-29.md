@@ -60,3 +60,7 @@ NAS直接SQL和no-proxy HTTP读回一致：`/all`与`/api/site/pool`均HTTP200�
 - 今天仍待观察的collector计划触发为12:00、18:00；backup首个计划运行是10/30 01:00。manual补采不补记06:00计划结果。
 - 新入库条目维持未发布状态；不批准摘要、不操作Gold、不启用自动精选。Gold200和筛选阈值不变。
 - 需要实际夜间草稿运行、摘要逐篇人工审核、来源90日/分页覆盖和多个稳定周期证据。Gate 3仍`CHANGES_REQUIRED`，Gate 4/5未通过；Staging试运行不代表Production资格。
+
+### 后续增量：白天one-off摘要草稿
+
+以上记录反映09:56前后的状态。当日稍后用户明确批准最多10篇的本地模型草稿运行；实际只运行9篇，全部生成私有`summary-draft.v1`并经独立QA确认。9篇仍待管理员人工审核，不代表approve、publication或cron成功；夜间默认03:30安排未改。完整候选筛选、授权、执行与逐篇核对见[白天摘要草稿交接](DAYTIME_SUMMARY_2026-10-29.md)，独立QA sidecar SHA-256为`5b78b25fe94ac8d3d99acbeb8b10e19f6d126d9a470e113938beb528bbf4f289`。

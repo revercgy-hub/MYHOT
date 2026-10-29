@@ -20,7 +20,15 @@ Root批准一次fixed46 manual recovery。`manual-recovery-20261029-0942` 46/46 
 
 ### 下一步
 
-继续如实记录今天12:00、18:00 collector计划运行和10/30 01:00 backup计划运行；manual、plan-only与smoke不代替cron结果。等夜间首次实际summary execute及逐篇人工审核，再评估是否可以保留可用草稿；不要seed/批准或自动精选。完成来源90日/栏目/分页覆盖、质量和多个周期稳定性证据前，不改变Gate 3/4/5状态。
+继续如实记录今天12:00、18:00 collector计划运行和10/30 01:00 backup计划运行；manual、plan-only与smoke不代替cron结果。逐篇人工审核现有草稿；不要seed/批准或自动精选。完成来源90日/栏目/分页覆盖、质量和多个周期稳定性证据前，不改变Gate 3/4/5状态。
+
+### 10/29白天一次性摘要草稿结果
+
+用户随后明确批准一次最多10篇的本地模型草稿运行。按用户业务偏好从严格scope内18个候选筛选9篇，未选择纯党建、学习、干部培训或泛会务内容。运行`summary-daytime-20261029-1019-curated`使用独立approval及单日claim、固定本地`qwen3.5:9b`，9次调用串行、无重试，容器内1500秒timeout监督，最终9/9草稿和receipt完成。该运行不是cron记录，未消费或替换夜间operator/once marker。
+
+Luna独立只读QA确认9个私有`summary-draft.v1`与article正文/revision、source、prompt及唯一completed receipt/received attempt一致；运行耗时约178.3秒，发生在approval有效期内。草稿均`selected=false`，尚未人工批准；`category=null`、`tags=[]`，未自动分类。当前510 articles / 804 revisions / 510 discoveries，正文319 ok / 182 pending / 9 unconfirmed；publications/editorial overrides 137/137、Gold200、source flags0。没有公开、Gold或来源状态写入。
+
+独立QA sidecar为`.data/fiscal-qa/daytime-summary-20261029-independent-qa.json`，SHA-256 `5b78b25fe94ac8d3d99acbeb8b10e19f6d126d9a470e113938beb528bbf4f289`；逐篇范围、审阅注意事项和执行hash见[白天摘要草稿交接](HANDOFFS/DAYTIME_SUMMARY_2026-10-29.md)。下一步由管理员逐篇审阅；默认夜间计划不变，来源覆盖/多周期稳定性及Gate 3/4/5仍未完成。
 
 ## 2026-10-29 01:20+08 开工状态与计划快照（历史）
 
