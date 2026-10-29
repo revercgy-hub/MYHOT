@@ -52,4 +52,6 @@
 
 ## 检查
 
+最终test提交`7854190`的[Check40869259396](https://github.com/revercgy-hub/MYHOT/actions/runs/40869259396)已成功完成，覆盖新增测试文件及完整软件检查。默认CI与下述实际专库26/26的证据分别记录；CI成功不改变业务质量、来源覆盖或真实计划周期尚未验收的结论。
+
 本轮focused32项31通过/1专库条件skip、Node24.16 typecheck通过。1dc3a36代码的[Check40867625196](https://github.com/revercgy-hub/MYHOT/actions/runs/40867625196) check及docker均成功：563项555通过/8跳过/0失败、Web25/25、build/typecheck与两项smoke均通过。新增数据库回归另在fresh `fiscalhot_reviewed_metadata_20261029_test`迁移36项后运行26/26，无skip，验证两源的真实CAS只改正文并保留全套source及protected rowsets；该test-only新增晚于上述CI，不能把CI SHA混作最终test文件SHA。

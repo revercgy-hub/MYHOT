@@ -1,5 +1,9 @@
 # 项目状态
 
+## 2026-10-29 最终检查接续
+
+最新提交`7854190`的[Check40869259396](https://github.com/revercgy-hub/MYHOT/actions/runs/40869259396)已完成且成功，包含新增正文CAS专库回归测试文件；工作区干净。此前专库实际26/26通过的证据仍单独保留，不把默认CI的条件跳过解释成实际数据库验证。Gate 3–5结论不变。后续顺序：先定位普惠金融漏选并复测完整development150，再用未参与调优的新独立样本验收；继续核验pending正文和来源90日覆盖；按实际触发证据验收10/30备份、理解、摘要任务及多个稳定周期。第9条业务价值追问仍待用户答复，不能替用户补写理由。
+
 ## 2026-10-29 15条正文已应用与五篇复测
 
 15条保存响应正文已在fresh PG17备份及精确plan SHA保护下body-only CAS回写，15/15后验通过；4条附件/正文HOLD及全部非目标文章/旧修订、source、Gold、publication等受保护rowsets未变。当前523文章/832修订/523发现，正文345 ok/169 pending/9 unconfirmed；35源有ok正文样本，尚不等于来源准入/90日覆盖。pub/override137/137，receipts9，selected0，API未重启，LAN smoke30/30。18:00采集45/46源成功，湖南列表timeout，新增6、provider0。
