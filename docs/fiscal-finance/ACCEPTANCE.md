@@ -1,6 +1,20 @@
 # 验收清单
 
-## 2026-10-29 当前试运行验收
+## 2026-10-29 09:49+08 恢复后当前验收
+
+- [x] 故障归因有证据：03:30 summary entrypoint实际传了`--execute`；其`PLAN_ONLY`日志只是预检。真实execute因唯一业务pool连接被`sql.reserve()`持有PG advisory lock而自锁。02:00 oldnight状态另为`REVIEW_REQUIRED`/`LAUNCHER_FAILED_OR_INTERRUPTED`；不归因其持锁。06:00 collector log为`SKIPPED_LOCK_BUSY`。
+- [x] 限定终止与锁恢复：仅终止容器内Node PID1281，API主服务未重启、restartCount0；保留once marker和lock inode76:161641，终止后无holder且前台取得/释放PASS。没有draft、intent、provider call或receipt。
+- [x] 修复回归：operator改用专用PG advisory-lock session，业务池仍max1；隔离PG17.11 `summary_lock_20261029_test` focused 7/7，测试持锁时业务查询可完成、竞争锁拒绝、释放后可重取；typecheck PASS。
+- [x] r6 bounded launcher安装：GNU timeout foreground限25分钟且不越过上海06:00，TERM后10秒KILL；保留02:00–05:59执行门、once、20 sources/max10/local-only/noRetry。容器timeout和时窗smoke由Core报告：TERM exit124、KILL exit137、目标PID退出；未提供独立原始smoke文件。首轮未加foreground的测试留下已退出zombie PID2072；不重启API处理该测试遗迹。
+- [x] r6实际运行时hash/cron readback：operator `03fcf23c…2c3704`、launcher `f7012eae…e2efd146d`、runtime manifest `729d0b69…965ee311`、entrypoint `a411682f…1642c2d3`，API image ee9。4 owned markers实际读回；crontab 1900B/SHA `274649597fe358a92894df0ebc5b76385953ce5c701340f177517e86b656e338`。summary block本身483B/SHA `e64809e2…c7be1`精确；仅有一个安装器/readback追加LF，其他三份job命令不变，结论`PASS_WITH_DOCUMENTED_FORMATTING_DELTA`。
+- [x] 安装后plan-only smoke：10 targets、providerCalls0、draft/intent0，once marker保留。它不证明有真实摘要生成。
+- [x] 补跑06:00缺口的单次manual fixed46采集并独立核验：run `manual-recovery-20261029-0942`，46/46 sources ok、49 GET、5 new、3 detail、0失败/model/provider。49份raw response长度/raw SHA/decoded SHA及EOF/HTTP/no-redirect复核通过；五个new ID各自revision1+discovery1，0 publication/override。此run是manual，不记作06:00 scheduled success。
+- [x] SQL及公开边界读回：510/804/510，body319/182/9，publications/editorial overrides137/137，Gold cases200、receipts0、source flags0。五个新条目没有公开。`/all`无7天过滤；直接no-proxy Web/pool HTTP200，137项/40每页/4页，latest published_at 10/27 09:35+08；近期没看到新文章来自无新publications，不是缓存/分页问题。private SQL/response QA sidecar `.data/fiscal-qa/manual-recovery-20261029-independent-qa.json` SHA `175e470abedf5d8a4f802a90b1fe7c483ccd333fc82f261a8854640f426aa82b`。
+- [ ] 今日12:00/18:00 collector与10/30 01:00 backup仍待真实计划触发；下一次summary为10/30 03:30，除非用户明确许可白天一次执行（目前尚未答复）。Gate 3 `CHANGES_REQUIRED`，Gate 4/5未通过；来源90日覆盖、多个周期稳定性及逐条摘要人工审核仍开放。
+
+详细时间线及版本见[10/29恢复交接](HANDOFFS/TRIAL_RECOVERY_2026-10-29.md)。
+
+## 2026-10-29 01:20+08 开工验收快照（历史）
 
 - [x] 42条正文 CAS及独立只读后验：`pending-body-20261028-r1`，42 proposals通过、8 holds未变、受保护rowsets exact、source flags关闭、Gold200未变；505/789/505，body306/190/9，publication/override137/137。post-CAS audit SHA-256 `81b6fc45bacf64063a04d23831b7412c3822ecbebbe0179eaf4a17a34db56813`。这更新了10/28快照，不能再写“未CAS”。
 - [x] 新API/UI Staging只读QA：image897/ee9，LAN smoke30/30；匿名`/api/admin/summary-drafts`401、`/admin/summary-drafts`302登录；summary route chunk与本地build相同SHA42107b80…58891。公开all样例body null/noindex，selected为空。没有完成管理员认证操作或批准draft。

@@ -1,6 +1,28 @@
 # 财政金融热点站阶段计划
 
-## 2026-10-29 当前阶段：NAS Staging有界试运行
+## 2026-10-29 09:49+08 当前阶段：NAS Staging恢复后有界试运行
+
+仅限现有Staging，无Production操作。Gate 2仍为`PASSED_FOR_BOUNDED_P4_PILOT`；Gate 3 `CHANGES_REQUIRED`，Gate 4/5未通过。当前代码/工具提交为`9f1f74423f760ea0c2b2c23f1f251e9080d3fd0a`；Staging API仍是app code `8973827402b621445ea2d0546932da737a6223d6`、image `sha256:ee9ead66eb33d557bbc6206c975ed9649b87973a6de15b4049b4f18543ec54ba`。
+
+### 10/29计划运行故障与修复
+
+- 03:30 summary cron确实传入`--execute`；`PLAN_ONLY`只是执行前计划步骤。真实execute因summary operator把PG advisory lock放在`DATABASE_POOL_MAX=1`业务池的唯一连接上，导致首个业务SQL永久等池连接。02:00 oldnight单独记为`REVIEW_REQUIRED`/`LAUNCHER_FAILED_OR_INTERRUPTED`，不是持锁约6小时的进程；03:30 summary Node PID1281才是共享锁持有者。
+- 06:00 fixed46 collector计划任务留下`SKIPPED_LOCK_BUSY`。Root于09:40仅终止容器中summary子PID1281，保留once marker及lockfile原inode 76:161641；API未重启、模型调用0、draft/intent/receipt 0。详情见[10/29恢复交接](HANDOFFS/TRIAL_RECOVERY_2026-10-29.md)。
+- operator以独立PG session持advisory lock、业务池继续max1。SHA `03fcf23c…2c3704`；专用PG17.11 `_test` pool1 regression 7/7与typecheck通过。host launcher SHA `f7012eae…e2efd146d`在容器内用GNU timeout foreground监督execute，最多25分钟且不越过上海06:00，TERM后10秒KILL；夜窗02:00–05:59、once marker、20 source/max10/local-only/noRetry不变。
+- r6绑定image ee9并实际安装：entrypoint `a411682f…1642c2d3`、runtime manifest `729d0b69…965ee311`；API进程restartCount=0。最终crontab 4个owned marker读回SHA `274649597fe358a92894df0ebc5b76385953ce5c701340f177517e86b656e338`/1900B。summary block精确（483B/SHA `e64809e2…c7be1`），和安装前相比非summary数据只有一个installer/readback多出的LF，其他三项计划命令不变；记`PASS_WITH_DOCUMENTED_FORMATTING_DELTA`。
+- 修复后只执行plan-only smoke：10 targets、provider0、没有draft/intent，once marker仍在。10/29夜窗已过且once已消费；用户对白天临时摘要生成的可选许可仍pending，未获明确答复前不触发白天模型。若未获授权，下一次计划summary是10/30 03:30。
+
+### 06:00缺口的手工恢复与用户看到的 /all
+
+Root批准一次fixed46 manual recovery。`manual-recovery-20261029-0942` 46/46 source成功、49 GET（46 list+3 detail）、5新增、0失败、模型/provider0；49份响应body长度和raw/decoded hashes复核通过。五行逐条对应article/revision1/discovery各一条，新增行无publication/override。补采后的数据库是510/804/510、body319 ok /182 pending /9 unconfirmed、publication/editorial override137/137、Gold cases200、receipts0、来源flags0。该手工运行不回填06:00 cron成功。
+
+`/all`实际调用`/api/site/pool`，代码无默认7天滚动窗口；每页40、137项共4页。NAS direct no-proxy `/all`和pool HTTP200；最新public `published_at`仍为10/27 09:35+08（`timeline_at`最新10/27 13:32+08）。五篇新采集内容没有发布，故不会出现于/all；不是缓存或分页缺项。完整独立SQL/HTTP/row核验及SHA见[handoff](HANDOFFS/TRIAL_RECOVERY_2026-10-29.md)、private sidecar`.data/fiscal-qa/manual-recovery-20261029-independent-qa.json`与r6读回sidecar`.data/fiscal-qa/summary-draft-r6-independent-qa-20261029.json`。
+
+### 下一步
+
+继续如实记录今天12:00、18:00 collector计划运行和10/30 01:00 backup计划运行；manual、plan-only与smoke不代替cron结果。等夜间首次实际summary execute及逐篇人工审核，再评估是否可以保留可用草稿；不要seed/批准或自动精选。完成来源90日/栏目/分页覆盖、质量和多个周期稳定性证据前，不改变Gate 3/4/5状态。
+
+## 2026-10-29 01:20+08 开工状态与计划快照（历史）
 
 仅限现有NAS Staging，不进行Production操作。Gate 2仍只授权有界P4试点；Gate 3 `CHANGES_REQUIRED`，Gate 4/5未通过。
 

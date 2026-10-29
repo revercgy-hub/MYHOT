@@ -1,6 +1,28 @@
 # 项目状态
 
-## 2026-10-29 Staging试运行当前状态
+## 2026-10-29 09:49+08 Staging试运行当前状态
+
+```text
+CURRENT_BRANCH=feat/fiscal-finance-hot
+CURRENT_SHA=9f1f74423f760ea0c2b2c23f1f251e9080d3fd0a (operator/launcher host fix; docs follow-up commit is separate)
+API_CODE_SHA=8973827402b621445ea2d0546932da737a6223d6; API_IMAGE=sha256:ee9ead66eb33d557bbc6206c975ed9649b87973a6de15b4049b4f18543ec54ba
+BASE_SHA=589f79eff09470b31ba8a7f1d9eb62d36ff2be6c
+WORKSPACE=D:\AI-work\MYHOT\AIHOT
+STAGE=NAS Staging bounded trial only; r6 summary host repair installed, no Production action
+GATE=Gate 2 PASSED_FOR_BOUNDED_P4_PILOT; Gate 3 CHANGES_REQUIRED; Gate 4/5 not passed
+REVIEW=Independent raw/scope/SQL QA of the 10/29 manual fixed46 recovery PASS; r6 operator/launcher/image/cron/lock readback PASS_WITH_DOCUMENTED_FORMATTING_DELTA; Gold200 and thresholds unchanged
+BLOCKERS=10/29 03:30 summary execute deadlocked because the max1 business SQL pool's only connection was reserved by the advisory-lock session; 06:00 collector skipped that lock. Summary was terminated at 09:40; no draft/provider call, once marker preserved. Today’s night window has passed; optional user permission for a daytime one-off remains unanswered, so no daytime summary execute. Source 90-day coverage, multiple stable cycles, and human review remain unproven.
+COMPLETED=Operator lock moved to dedicated PG session (SHA03fcf23…); r6 launcher uses bounded foreground timeout (SHAf7012e…); isolated PG17.11 pool1 focused test 7/7 and typecheck PASS; r6 installed and read back; manual-recovery-20261029-0942 independently verified 46/46 source results, 49 raw responses, 5 exact new article/revision/discovery rows; current 510/804/510, body319/182/9, publications/editorial overrides137/137, Gold cases200, receipts0, source flags0.
+IN_PROGRESS=No summary drafts exist; next summary plan is 10/30 03:30 Asia/Shanghai unless user explicitly authorizes a daytime run. Today’s 12:00/18:00 collector runs and 10/30 01:00 backup remain scheduled observations; manual 06:00 recovery does not count as cron success.
+NEXT=Read back each scheduled run and the shared lock; keep new articles private/unpublished; complete source 90-day coverage and human summary review before any Gate change.
+ALL_POOL=/all and /api/site/pool direct no-proxy HTTP200; 137 entries, 40/page, 4 pages, no rolling 7-day filter; max published_at 2026-10-27 09:35+08. The 5 recovered rows were not published.
+RECOVERY_QA=.data/fiscal-qa/manual-recovery-20261029-independent-qa.json SHA256=175e470abedf5d8a4f802a90b1fe7c483ccd333fc82f261a8854640f426aa82b; summary r6 independent readback details are in HANDOFFS/TRIAL_RECOVERY_2026-10-29.md
+SUMMARY_READBACK_QA=.data/fiscal-qa/summary-draft-r6-independent-qa-20261029.json SHA256=b7d135ec496a9b74a008b20598af2d908a02ae27372a71c2dd05fe12adf5aef1 (timeout smoke results are explicitly attributed to Core report)
+```
+
+详情见[2026-10-29恢复与独立QA交接](HANDOFFS/TRIAL_RECOVERY_2026-10-29.md)。下方10/29 01:20状态为开工时快照，保留当时证据，不代表当前状态。
+
+## 2026-10-29 01:20+08 Staging试运行开工快照（历史）
 
 ```text
 CURRENT_BRANCH=feat/fiscal-finance-hot
