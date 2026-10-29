@@ -50,3 +50,19 @@ NAS `/data/operators/canonical-body-application-20261030-r2`：
 新增工具测试3/3，Node24 typecheck、Web build和Web25/25通过。首次全量回归因调用进程显式设置`MODEL_CALLS_ENABLED=false`而拦住测试本地stub，失败记录保留；按现有CI测试方式，在另一个全新loopback专库、无真实凭据、推送和采集关闭条件重跑：567项560通过/7条件跳过/0失败。未改变业务运行开关。LAN post-CAS smoke全部通过。
 
 下一步先取得第9条业务取舍依据，再在development材料验证评分方案；准备新事件隔离样本用于最终独立验收。并行整改剩余正文/来源配置漂移与90日分页覆盖，待真实计划触发后检查备份、理解、摘要及恢复证据；这些子项均不能由CI或单次smoke代替。
+
+## 接续：总分单位候选已撤回，采集拒绝原因已细分
+
+在不改五轴/权重/门槛的前提下，曾在提示词最后增加“0–100总分区别于0–10单轴，五轴全6则总分60”的数学说明。候选通过一次新的五篇完整预筛+双评分开发实验：15 request/15 received、0 failed/unknown，无重试，业务表0。结果为山西62/62、台胞中心62/65、普惠金融62/62、彩票82/82、会计解释85/85。虽修正普惠漏选，两个FP再次出现，已知小样3/5不支持替换；已从工作树撤回该数学说明，正式提示词恢复9ba4c6f版本。没有将较好单篇当成整体改进，也不基于本样调整阈值。
+
+该实验`.data/fiscal-qa/user5-phase3-scale-regression-20261030/result.json` SHA `3430d4aee3593f8680e73ba620cbd58893faab0ac26ecce8992399b4f8c3765e`，候选score prompt版本`selection-score@94bb83a340`，原候选Markdown SHA `26b9e63642ce264a20af789d5b90296ee699bcf400823dc4cd1b9bc22d8f1eae`已保留，不覆盖旧实验。三组诊断/实验共21请求，三个独立DB、全部received；完整私有归档SHA `ddb1c382b227f2d8a48742e0d7d3c956dd0178500fcd7443c0dfb79546e2ebe2`已备份NAS host，mode600，与本机一致。仅本轮所有者启动的55438测试集群已停止。
+
+用户已收到业务取舍问题：同类普惠金融监管稿，应按直接属于财政金融监管业务优先评估，还是还必须有可复用的具体审核/监管方法，或继续逐篇判断。依据AGENTS.md“什么消息重要、什么是噪声”由使用者决定；本次不能擅自追加通用入选规则。等待回复期间没有修改重要性规则。
+
+另核对48源实际config与canonical：仅`mof-treasury-debt-data`和`pboc-open-market`存在detail title/date字段漂移，其他46项config一致；本次未修订数据库source或夜间runtime。
+
+对10/29 18:00预算司和金融司两份保存列表（原result SHA `9a743dd7c1f7ba1979e1617436fbcac20951633643a6c8d0c206d4eb91193c53`）做原始gzip bytes、decoded SHA及生产fromHtml离线解析，均10条、有效日期10/10；全部在7日和90日窗外。预算司最新上海日期2026-03-26，金融司最新2026-07-16。不能把`parseHeld=10`解释成日期解析失败。一次控制台汇总曾按Date对象默认字符串排序，误报最新年份2025；已转ISO字符串排序并更正用户说明。原始响应、逐条日期与超窗结论未变；正确报告`.data/fiscal-qa/zero-source-list-review-20261030/review-r2.json` SHA `5090ede2beaad2c5852f31f4dbf1740d68766f5b91c0e37c593379c7045a9e53`。这只是当前页观察，不证明栏目没有更近期材料或历史覆盖完整。
+
+因此在`nas-candidate-batch.ts`增加互斥holdReasons：URL越界、标题无效、日期/时间窗拒绝；保持原有过滤次序、eligible/known/duplicate/held/cap行为不变，并在后续结果中新增candidateHoldReasons，旧parseHeld兼容保留。测试覆盖原因计数相加等于held、非法URL/标题短路不访问时间窗。新字段尚未安装到NAS冻结collector，不追溯称既有结果已带新字段。
+
+新focused20项19通过/1专库条件skip，typecheck通过；fresh专库完整568项561通过/7条件skip/0失败。Web25、build及LAN smoke沿用本轮此前通过结果，页面代码未变；最终代码另提交完整CI。9ba4c6f的[Check40911030179](https://github.com/revercgy-hub/MYHOT/actions/runs/40911030179)已成功，但不混作后续holdReasons提交的CI。

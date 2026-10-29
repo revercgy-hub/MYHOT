@@ -267,6 +267,12 @@ export function buildSourcePlan(input: {
   });
 }
 
+export interface CandidateHoldReasons {
+  outOfScopeUrl: number;
+  invalidTitle: number;
+  freshnessRejected: number;
+}
+
 export function classifyCandidates(input: {
   candidates: Candidate[];
   source: SourceRow;
@@ -276,24 +282,28 @@ export function classifyCandidates(input: {
   rewrite?: { from: string; to: string };
   maxNew: number;
   inWindow: (candidate: Candidate) => boolean;
-}): { eligible: Array<{ identityKey: string; candidate: Candidate }>; known: number; duplicate: number; held: number; capped: boolean } {
+}): { eligible: Array<{ identityKey: string; candidate: Candidate }>; known: number; duplicate: number; held: number; holdReasons: CandidateHoldReasons; capped: boolean } {
   const identities = new Set<string>();
   const fresh: Array<{ identityKey: string; candidate: Candidate }> = [];
   let known = 0, duplicate = 0, held = 0;
+  const holdReasons: CandidateHoldReasons = { outOfScopeUrl: 0, invalidTitle: 0, freshnessRejected: 0 };
   for (const original of input.candidates) {
     let candidate = original;
     if (input.rewrite?.from && input.rewrite.to && candidate.url.startsWith(input.rewrite.from)) {
       candidate = { ...candidate, url: input.rewrite.to + candidate.url.slice(input.rewrite.from.length) };
     }
-    if (!input.allowed(original.url, input.source) || !input.allowed(candidate.url, input.source) ||
-        !candidate.title?.trim() || candidate.title.trim().length < 6 || !input.inWindow(candidate)) { held++; continue; }
+    const reason: keyof CandidateHoldReasons | null =
+      !input.allowed(original.url, input.source) || !input.allowed(candidate.url, input.source) ? "outOfScopeUrl" :
+      !candidate.title?.trim() || candidate.title.trim().length < 6 ? "invalidTitle" :
+      !input.inWindow(candidate) ? "freshnessRejected" : null;
+    if (reason) { held++; holdReasons[reason]++; continue; }
     const identityKey = input.identityKeyFor({ ...candidate, sourceId: input.source.id, via: "fetch" });
     if (identities.has(identityKey)) { duplicate++; continue; }
     identities.add(identityKey);
     if (input.knownIdentities.has(identityKey)) { known++; continue; }
     fresh.push({ identityKey, candidate });
   }
-  return { eligible: fresh.slice(0, input.maxNew), known, duplicate, held, capped: fresh.length > input.maxNew };
+  return { eligible: fresh.slice(0, input.maxNew), known, duplicate, held, holdReasons, capped: fresh.length > input.maxNew };
 }
 
 export function detailConfigIsDirectHtml(source: SourceRow): boolean {
@@ -779,6 +789,7 @@ async function main() {
           rawSha256: listRaw.sha256, eof: listRaw.eof, rawFile: replayCapture?.path ?? listRaw.file, decodedUtf8Sha256: sha256(decodedText),
           contentType: listRaw.contentType, contentEncoding: listRaw.contentEncoding, finalUrl: listRaw.url },
           found: candidates.length, eligibleNew: result.eligible.length, known: result.known, duplicate: result.duplicate, parseHeld: result.held,
+          candidateHoldReasons: result.holdReasons,
           capped: result.capped, cap: planRow.maxNew, detailsAttempted: capture.rows.slice(responseStart + 1).length,
           detailFailure, ...writeResult });
       } catch (error) {

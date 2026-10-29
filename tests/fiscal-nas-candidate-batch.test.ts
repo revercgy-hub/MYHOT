@@ -250,7 +250,25 @@ test("candidate classification deduplicates and excludes known, disallowed, unda
   assert.equal(result.known, 1);
   assert.equal(result.duplicate, 1);
   assert.equal(result.held, 2);
+  assert.deepEqual(result.holdReasons, { outOfScopeUrl: 1, invalidTitle: 0, freshnessRejected: 1 });
   assert.equal(result.capped, false);
+});
+
+test("candidate holds distinguish stale or undated samples from malformed titles and URL scope", () => {
+  const rows = [
+    candidate("https://example.org/out.html", "短"),
+    candidate("https://yss.mof.gov.cn/gongzuodongtai/short.html", "短"),
+    { ...candidate("https://yss.mof.gov.cn/gongzuodongtai/undated.html"), publishedAt: null },
+    candidate("https://yss.mof.gov.cn/gongzuodongtai/old.html", "较早预算执行通知", 365),
+  ];
+  const windowChecks: string[] = [];
+  const result = classifyCandidates({ candidates: rows, source, knownIdentities: new Set(), identityKeyFor, allowed, maxNew: 10,
+    inWindow: row => { windowChecks.push(row.url); return !!row.publishedAt && row.publishedAt.getTime() >= Date.now() - 7 * 86_400_000; } });
+  assert.equal(result.held, 4);
+  assert.deepEqual(result.holdReasons, { outOfScopeUrl: 1, invalidTitle: 1, freshnessRejected: 2 });
+  assert.equal(Object.values(result.holdReasons).reduce((sum, value) => sum + value, 0), result.held);
+  assert.equal(windowChecks.length, 2);
+  assert.equal(result.eligible.length, 0);
 });
 
 test("candidate cap reports a partial source instead of expanding storage", () => {
