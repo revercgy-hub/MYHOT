@@ -2,6 +2,8 @@
 
 ## 2026-10-29 Gate 3–5开发整改
 
+软件整改最终代码`fba9eba`已push；[GitHub Check40841015147](https://github.com/revercgy-hub/MYHOT/actions/runs/40841015147)的Linux check及Docker均成功，backend554项546通过/8跳过/0失败、Web25/25、构建后smoke及Docker smoke通过。此前run40840441454暴露测试私有文件依赖/根目录写入/行尾pin负例不兼容，已修复测试并保留失败记录。Gate 3质量、Gate 4来源与90日覆盖、Gate 5真实稳定周期仍未完成；CI全绿不改变整体Gate结论。
+
 新增development-only校准错例/门槛复核工具与采集结果核验工具。Gate3复核最新既有development150结果为16/27/8/99（TP/FP/FN/TN），保留60/65/76，35条错例待签收。Gate4当前本地typecheck/build/Web25通过、NAS现有镜像smoke30通过；48来源中32有ok正文，16无ok正文，历史覆盖未证明。Gate5已修复02:00任务漏传network-anchor pin的缺陷并安装r2独立wrapper；NAS228文件与最小环境验证、窗外NOOP通过，原失败记录保留，新state尚未创建。没有新增真实模型请求或公开发布。各Gate均仍未整体通过；下一步及完整pins见[整改报告](GATES_3_5_REMEDIATION_2026-10-29.md)。
 
 ## 2026-10-29 15:12+08 接续更新

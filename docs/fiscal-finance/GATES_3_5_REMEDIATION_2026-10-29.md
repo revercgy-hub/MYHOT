@@ -60,3 +60,5 @@ NAS已安装独立r2 wrapper，原228文件源码与输入不变：
 提交3667e06的GitHub Check run40840441454中Docker job通过、check job失败。9项测试失败来自两类环境假设：private legacy inventory在fresh checkout不存在；nightly测试在Linux普通用户下尝试创建`/private/pilot-state/results`。另有旧pin负例只接受source-tree hash失败，而Linux检出因行尾字节差异更早触发code hash失败。
 
 修复仅改测试：nightly harness使用唯一系统临时目录并清理；旧pin负例接受两种明确的hash拒绝（生产逐字节pin不放宽）；需要真实private inventory的CLI整链用例明确skip，重复capture组的各项篡改负例改用synthetic metadata、仍走生产manifest allowlist。后者不读取private artifacts，CI持续执行，不通过skip隐藏负例。Windows focused41项39通过/2跳过/0失败，typecheck通过；后续Linux完整重跑结果另记。
+
+最终代码提交`fba9eba`已推送至`origin/feat/fiscal-finance-hot`。[Check run40841015147](https://github.com/revercgy-hub/MYHOT/actions/runs/40841015147)对该代码提交的check与docker两job均成功：Linux backend554项、546通过/8跳过/0失败；Web25/25、typecheck/build、built-site smoke与Docker smoke全部通过。跳过项为专库/私有artifact缺失及平台条件；它们不代表已验证。原失败run40840441454保留，未重新归类为通过。当前文档追加不改变已验证软件SHA，也不改变Gate未通过结论。
