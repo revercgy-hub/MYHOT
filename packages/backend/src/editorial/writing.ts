@@ -13,6 +13,15 @@ export const UNDERSTAND_SYSTEM = promptText("understand");
 export const MAX_BODY_CHARS = 60_000;
 const capBody = (s: string) => (s.length > MAX_BODY_CHARS ? s.slice(0, MAX_BODY_CHARS) : s);
 
+/** Remove only the coordinate prefixes emitted by saved PDF line extraction. Keep all content. */
+export function stripPdfLayoutAnnotations(text: string): string {
+  return text.split("\n").map((line) => {
+    if (!/^\[page=\d+ y=-?\d+(?:\.\d+)?\]\s*\[x=-?\d+(?:\.\d+)?\]/u.test(line)) return line;
+    return line.replace(/^\[page=\d+ y=-?\d+(?:\.\d+)?\]\s*/u, "")
+      .replace(/\[x=-?\d+(?:\.\d+)?\]\s*/gu, "");
+  }).join("\n");
+}
+
 // ── Text helpers ─────────────────────────────────────────────────────────────────────────────
 
 export function clampText(s: string, maxChars: number): string {
@@ -111,7 +120,7 @@ export function renderContext(a: AnalyzeInputArticle, opts: { annotateQuoted?: b
   }
   lines.push("");
   lines.push(opts.annotateQuoted && quoted ? "【正文（作者自己的内容）】" : "【正文】");
-  lines.push(capBody(a.xPost ? String(a.xPost.text ?? a.title) : (a.bodyText ?? a.excerpt ?? "(无正文)")));
+  lines.push(capBody(a.xPost ? String(a.xPost.text ?? a.title) : stripPdfLayoutAnnotations(a.bodyText ?? a.excerpt ?? "(无正文)")));
   lines.push("");
   lines.push(`【材料质量】${materialQuality(a)}`);
   return lines.join("\n");

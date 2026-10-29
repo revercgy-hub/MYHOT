@@ -24,7 +24,7 @@ import { shutdownSignal } from "../jobs/queue.ts";
 import {
   buildArticlePrompt, buildLongTweetPrompt, buildShortTweetPrompt, finalizeCopy, isShortTweetInput, looksZh, MAX_BODY_CHARS, missingEvidence,
   needsShortTweetTranslation, parseTranslateOutput, PREFILTER_SYSTEM, prefilterUser, translateInputOf, UNDERSTAND_SYSTEM, understandUser,
-  type IdentityGuard,
+  stripPdfLayoutAnnotations, type IdentityGuard,
 } from "./writing.ts";
 import { CATEGORY_BY_ITEM_TYPE, CATEGORY_GUIDE, CATEGORY_TAGS, ENTITIES, ENTITY_TAGS, ITEM_TYPES, normalizeTags, TOPIC_TAGS } from "./vocabulary.ts";
 import { promptText, promptVersion } from "./prompts.ts";
@@ -91,7 +91,7 @@ export function buildScoreInput(a: AnalyzeInputArticle): string {
     const quoted = a.xPost.quoted?.text ? `\n\n[引用 ${a.xPost.quoted.handle ? `@${a.xPost.quoted.handle}` : "原推文"}]：${a.xPost.quoted.text}` : "";
     body = `${String(a.xPost.text ?? "").trim()}${quoted}`.trim();
   } else {
-    body = (a.bodyText ?? a.excerpt ?? "").trim();
+    body = stripPdfLayoutAnnotations(a.bodyText ?? a.excerpt ?? "").trim();
   }
   if (!body) body = a.title;
   const at = a.publishedAt ?? a.discoveredAt ?? null;

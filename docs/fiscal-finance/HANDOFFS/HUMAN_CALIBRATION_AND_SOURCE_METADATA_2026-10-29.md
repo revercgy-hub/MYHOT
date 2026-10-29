@@ -21,6 +21,8 @@
 
 前两批v3/v4及三份packet已私有备份到NAS `/vol2/1000/docker/fiscalhot-human-review-v3-v4-20261029`，目录700/文件600。archive SHA `e9943b4c3b6b4f91603aaebcf5beec12d64ded8e03855c40a7d7cd7d64a7a6f7`，NAS读回v4 manifest hash一致。该备份不改变数据库或公开内容。
 
+v5另备份至NAS `/vol2/1000/docker/fiscalhot-human-review-v5-20261029`，archive SHA `4839d3c8ff4e079367f57913aabf5c7f3b4a07f036a9be1895f1ca54d26a7110`，manifest SHA读回一致，目录700/文件600。9条用户决定都有可恢复的版本证据。
+
 新增`calibration-review-packet.mjs`：正文hash验证、明确development范围、唯一身份校验，输出不包含旧标签、评分或门槛；决策一律初始pending。初版已生成的三份packet另经Gold落盘脚本核对development身份和正文hash，后续CLI还要求提供明确的development manifest。
 
 ## Gate 4正文缺口的实际排查
@@ -40,5 +42,26 @@
 ## 验证与Gate结论
 
 Node24.16专项5/5、全部mjs19/19、typecheck通过，覆盖中性审阅包的正文/身份/分集拒绝，候选只改预期metadata，真实提取器对正确标题日期成功、错误标题/日期及附件仍拒绝。Gold v4/v5 validator通过；既有预测复算不触发模型/数据库。提交9352444的[Check40843362677](https://github.com/revercgy-hub/MYHOT/actions/runs/40843362677) check及docker均成功；该CI早于第三批决定后的提示词改动，不能追认测试新prompt。当前新增源码未安装到NAS，先前r8摘要与r2理解任务安排不变。
+
+提示词更新提交7dd20ae的[Check40844600846](https://github.com/revercgy-hub/MYHOT/actions/runs/40844600846) check及docker均成功：backend559项551通过/8跳过/0失败，Web25/25，typecheck/build、built-site及Docker smoke通过。该软件CI不等于模型质量通过。
+
+## 本地模型小样回归与长文缺口
+
+在全新loopback `fiscalhot_user9_20261029_test`迁移36项后，以同一9篇、标签不进入请求的方式运行当前qwen3.5:9b预筛及双评分。local endpoint固定192.168.3.100:11435，模型digest固定6488c96…，调用串行、上限27、无付费端点或官方来源抓取。实际第7篇预筛TimeoutError，停止且不重试：原阶段19次request，18 received、1 unknown；前六篇完成双评分。业务表sources/articles/analyses/publications/fetch_runs/job_runs始终全0，未触及NAS业务数据库。
+
+| 编号 | 两轮分数 | 当前60门槛结果 | 用户结果 |
+|---|---|---|---|
+| 1 国库现金招标结果 |18/18|不精选|不精选|
+| 2 彩票游戏发行审批 |25/45|不精选|不精选|
+| 3 山西事务所执业检查 |62/58|精选|不精选|
+| 4 台胞服务中心 |62/62|精选|不精选|
+| 5 云南转移支付案例 |58/42|不精选|不精选|
+| 6 湖南国资收益审核 |42/42|不精选|不精选|
+
+这是已知反馈的development小样，仅前六条完成、全为人工负例；不报告九篇完整准确率/precision/recall，不与先前不同模型的Luna结果作因果比较。原始`failure.json`、冻结request-only input及只读恢复的18条完整response/1条unknown在`.data/fiscal-qa/user9-local-regression-20261029`；received仅表示provider输出已收到，不谎称持久化analysis或全部receipt completed。
+
+第8/9篇此前无任何receipt或attempt，随后在原27次总上限内为这两条准备最多6次的独立tail阶段，不重试第7篇。tail启动前再次验证原19条回执、未知项数量、两个目标零attempt与业务表全0；校验其正文不含坐标标记，因此新清洗代码不改变这两条的渲染输入。tail结果另记。
+
+第7篇正文含大量保存PDF的`[page=… y=…] [x=…]`排版注记，原24,110字符，去掉严格匹配的坐标注记后10,302字符。新增`stripPdfLayoutAnnotations`用于非X材料的预筛context及评分input，在构造提示词时删除这些格式标记，保留原始正文、body hash、业务数字与日期。只匹配行首完整PDF前缀；普通正文、未锚定或残缺标记不变。专项6/6（含现有评分策略权重/门槛检查）、typecheck通过。长度下降不是已证明的超时修复；仍需后续新的受控长文验证，不重发本次unknown请求。
 
 Gate 3仍CHANGES_REQUIRED；Gate 4/5仍未整体通过。下一步完成新提示词的development诊断；对metadata候选作完整软件/部署预检；观察18:00采集和下一凌晨任务。
