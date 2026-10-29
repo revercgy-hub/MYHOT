@@ -3,7 +3,7 @@
 import { existsSync } from "node:fs";
 import { lstat, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import postgres from "postgres";
 import { z } from "zod";
 import { SUMMARY_DRAFT_SOURCE_IDS } from "./nas-candidate-batch.ts";
@@ -69,20 +69,77 @@ export async function runWithinNightWindow<T>(input: {
   dispatch: (item: T, timeoutMs: number, deadlineAt: number) => Promise<unknown>;
 }): Promise<Array<{ item: T; status: "completed" | "HOLD_night_window_closed" | "HOLD"; value?: unknown }>> {
   assertNightWindow(input.startedAt);
-  const deadline = nightDeadline(input.startedAt);
+  const results = await runWithinDeadline({ ...input, deadlineAt: nightDeadline(input.startedAt) });
+  return results.map((row): { item: T; status: "completed" | "HOLD_night_window_closed" | "HOLD"; value?: unknown } => ({
+    ...row, status: row.status === "HOLD_deadline_closed" ? "HOLD_night_window_closed" : row.status,
+  }));
+}
+
+export async function runWithinDeadline<T>(input: {
+  items: readonly T[]; deadlineAt: number; now?: () => Date;
+  dispatch: (item: T, timeoutMs: number, deadlineAt: number) => Promise<unknown>;
+}): Promise<Array<{ item: T; status: "completed" | "HOLD_deadline_closed" | "HOLD"; value?: unknown }>> {
   const now = input.now ?? (() => new Date());
-  const results: Array<{ item: T; status: "completed" | "HOLD_night_window_closed" | "HOLD"; value?: unknown }> = [];
+  const results: Array<{ item: T; status: "completed" | "HOLD_deadline_closed" | "HOLD"; value?: unknown }> = [];
   for (const item of input.items) {
     const current = now();
-    if (current.getTime() >= deadline) { results.push({ item, status: "HOLD_night_window_closed" }); continue; }
-    const remainingMs = Math.floor(deadline - current.getTime());
-    if (remainingMs <= 0) { results.push({ item, status: "HOLD_night_window_closed" }); continue; }
+    if (current.getTime() >= input.deadlineAt) { results.push({ item, status: "HOLD_deadline_closed" }); continue; }
+    const remainingMs = Math.floor(input.deadlineAt - current.getTime());
+    if (remainingMs <= 0) { results.push({ item, status: "HOLD_deadline_closed" }); continue; }
     try {
-      const value = await input.dispatch(item, Math.min(120_000, remainingMs), deadline);
+      const value = await input.dispatch(item, Math.min(120_000, remainingMs), input.deadlineAt);
       results.push({ item, status: "completed", value });
     } catch { results.push({ item, status: "HOLD" }); }
   }
   return results;
+}
+
+const OneoffApprovalSchema = z.object({
+  format: z.literal("summary-draft-oneoff-approval.v1"), runId: z.string().regex(SAFE_RUN), sourceRunId: z.string().regex(SAFE_RUN),
+  rosterSha256: z.string().regex(ID), model: z.literal(MODEL), endpoint: z.literal(BASE_URL), operatorSha256: z.string().regex(ID),
+  maxArticles: z.literal(MAX_NIGHTLY), maxCalls: z.literal(MAX_NIGHTLY), approvedAt: z.string().datetime(),
+  expiresAt: z.string().datetime(), approvedBy: z.literal("user"),
+}).strict();
+export type OneoffApproval = z.infer<typeof OneoffApprovalSchema>;
+
+function shanghaiDateKey(date: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Shanghai", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date);
+  const values = Object.fromEntries(parts.filter((part) => part.type !== "literal").map((part) => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+export async function validateOneoffApproval(input: { file: string; expectedSha256: string; runId: string; roster: SummaryDraftRoster; rosterSha256: string }): Promise<OneoffApproval> {
+  if (!ID.test(input.expectedSha256)) throw new Error("invalid one-off approval SHA-256");
+  const file = assertPathWithin(dataDir, input.file);
+  const rel = path.relative(dataDir, file).split(path.sep).filter(Boolean);
+  let parent = dataDir;
+  for (const component of rel.slice(0, -1)) {
+    parent = path.join(parent, component);
+    const st = await lstat(parent);
+    if (!st.isDirectory() || st.isSymbolicLink() || (process.platform !== "win32" && (st.mode & 0o077) !== 0)) throw new Error("one-off approval path is unsafe");
+  }
+  const st = await lstat(file);
+  if (!st.isFile() || st.isSymbolicLink() || st.size > 16_384 || (process.platform !== "win32" && (st.mode & 0o777) !== 0o600)) throw new Error("one-off approval file must be a private regular mode-600 file");
+  const bytes = await readFile(file);
+  if (sha256(bytes) !== input.expectedSha256) throw new Error("one-off approval SHA-256 mismatch");
+  const approval = OneoffApprovalSchema.parse(JSON.parse(bytes.toString("utf8")));
+  const actualOperatorSha256 = sha256(await readFile(fileURLToPath(import.meta.url)));
+  if (approval.runId !== input.runId || approval.sourceRunId !== input.roster.sourceRunId || approval.rosterSha256 !== input.rosterSha256 ||
+      approval.operatorSha256 !== actualOperatorSha256 || input.roster.articleIds.length > approval.maxArticles) throw new Error("one-off approval binding mismatch");
+  const approvedAt = Date.parse(approval.approvedAt), expiresAt = Date.parse(approval.expiresAt), now = Date.now();
+  if (!Number.isFinite(approvedAt) || !Number.isFinite(expiresAt) || expiresAt <= approvedAt || expiresAt - approvedAt > 30 * 60_000 || approvedAt > now || now >= expiresAt || shanghaiDateKey(new Date(approvedAt)) !== shanghaiDateKey(new Date(now))) throw new Error("one-off approval is expired or outside its validity period");
+  return approval;
+}
+
+export async function claimOneoffApproval(approvalSha256: string, runId: string, approvedAt: string, claimDirectory = intentDir): Promise<void> {
+  if (!ID.test(approvalSha256)) throw new Error("invalid one-off approval claim key");
+  const approvedMs = Date.parse(approvedAt);
+  if (!Number.isFinite(approvedMs)) throw new Error("invalid one-off approval claim date");
+  const dateKey = shanghaiDateKey(new Date(approvedMs));
+  await mkdir(claimDirectory, { recursive: true, mode: 0o700 });
+  const st = await lstat(claimDirectory);
+  if (!st.isDirectory() || st.isSymbolicLink() || (process.platform !== "win32" && (st.mode & 0o077) !== 0)) throw new Error("private output directory is unsafe");
+  await writeFile(path.join(claimDirectory, `oneoff-${dateKey}.claim.json`), `${stableJson({ format: "summary-draft-oneoff-claim.v1", dateKey, approvalSha256, runId, claimedAt: new Date().toISOString() })}\n`, { flag: "wx", mode: 0o600 });
 }
 
 export function configureLocalModel(env: NodeJS.ProcessEnv): void {
@@ -117,7 +174,7 @@ export function installLocalFetchGuard(options: { fetchImpl?: typeof fetch; base
     let signal = init?.signal;
     if (options.deadlineAt !== undefined) {
       const remaining = options.deadlineAt - Date.now();
-      if (remaining <= 0) throw new Error("summary draft night window closed before provider dispatch");
+      if (remaining <= 0) throw new Error("summary draft execution deadline closed before provider dispatch");
       const deadlineSignal = AbortSignal.timeout(remaining);
       signal = signal ? AbortSignal.any([signal, deadlineSignal]) : deadlineSignal;
     }
@@ -332,29 +389,39 @@ async function summarizeOne(row: any, roster: SummaryDraftRoster, promptVersionV
   return { status: "draft", draftId, receiptId: result.receiptId };
 }
 
-export async function executeRoster(input: { roster: SummaryDraftRoster; execute: boolean; now: Date }): Promise<{ results: Array<Record<string, unknown>>; providerCalls: number; receipts?: Awaited<ReturnType<typeof receiptEvidence>> }> {
-  const roster = parseSummaryDraftRoster(input.roster);
-  if (!input.execute) return { results: roster.articleIds.map((articleId) => ({ articleId, status: "plan-only" })), providerCalls: 0 };
-  assertNightWindow(input.now);
+async function executeRosterUntil(roster: SummaryDraftRoster, startedAt: Date, deadlineAt: number, nightWindow: boolean) {
+  if (nightWindow) assertNightWindow(startedAt);
   const identity = (await sql<{ database: string }[]>`SELECT current_database() AS database`)[0];
   if (!identity?.database) throw new Error("database identity unavailable");
   const promptVersionValue = promptVersion("summarize-article", "summarize-article-empty", "summarize-short-post", "summarize-short-post-quoted", "summarize-long-post", "summarize-long-post-quoted", "identity-context");
-  const bounded = await runWithinNightWindow({ items: roster.articleIds, startedAt: input.now, dispatch: async (articleId, timeoutMs) => {
+  const dispatch = async (articleId: string, timeoutMs: number) => {
     try {
       const row = await readCurrentArticle(articleId, new Date(roster.anchorAt));
       if (await hasPriorAttempt(articleId, sha256(row.body_text))) return { articleId, status: "HOLD_prior_input_attempt" };
       return { articleId, ...await summarizeOne(row, roster, promptVersionValue, timeoutMs) };
     } catch (error) { return { articleId, status: "HOLD", reason: error instanceof Error ? error.name : "UnknownError" }; }
-  } });
+  };
+  const bounded = nightWindow
+    ? await runWithinNightWindow({ items: roster.articleIds, startedAt, dispatch })
+    : await runWithinDeadline({ items: roster.articleIds, deadlineAt, dispatch });
   const results: Array<Record<string, unknown>> = bounded.map(({ item: articleId, status, value }) => status === "completed" && value && typeof value === "object"
     ? value as Record<string, unknown>
-    : { articleId, status: status === "completed" ? "HOLD" : status });
+    : { articleId, status: status === "completed" ? "HOLD" : status === "HOLD_deadline_closed" ? "HOLD_oneoff_deadline_closed" : status });
   const receipts = await receiptEvidence(roster);
   return { results, providerCalls: receipts.attempts, receipts };
 }
 
+export async function executeRoster(input: { roster: SummaryDraftRoster; execute: boolean; now: Date }): Promise<{ results: Array<Record<string, unknown>>; providerCalls: number; receipts?: Awaited<ReturnType<typeof receiptEvidence>> }> {
+  const roster = parseSummaryDraftRoster(input.roster);
+  if (!input.execute) return { results: roster.articleIds.map((articleId) => ({ articleId, status: "plan-only" })), providerCalls: 0 };
+  assertNightWindow(input.now);
+  return executeRosterUntil(roster, input.now, nightDeadline(input.now), true);
+}
+
 export async function main(argv = process.argv.slice(2)): Promise<void> {
   const args = argsOf(argv);
+  const approvalPath = args.get("--oneoff-approval"), approvalHash = args.get("--oneoff-approval-sha256");
+  if (Boolean(approvalPath) !== Boolean(approvalHash) || ((approvalPath || approvalHash) && (!args.has("--execute") || args.has("--prepare-roster")))) throw new Error("one-off approval options require --execute and cannot be used with --prepare-roster");
   const mode = args.has("--prepare-roster");
   if (mode === args.has("--roster")) throw new Error("choose exactly one of --prepare-roster or --roster");
   if (mode) {
@@ -369,21 +436,31 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
   if (!SAFE_RUN.test(args.get("--run-id")!)) throw new Error("invalid operator run ID");
   const rosterFile = assertPathWithin(dataDir, args.get("--roster")!);
   const roster = await loadRoster(rosterFile, args.get("--roster-sha256")!);
+  const rosterSha256 = sha256(await readFile(rosterFile));
   if (!args.has("--execute")) {
     const plan = await executeRoster({ roster, execute: false, now: new Date() });
-    console.log(JSON.stringify({ result: "PLAN_ONLY", runId: args.get("--run-id"), rosterSha256: sha256(await readFile(rosterFile)), ...plan }, null, 2));
+    console.log(JSON.stringify({ result: "PLAN_ONLY", runId: args.get("--run-id"), rosterSha256, ...plan }, null, 2));
     return;
   }
+  const runId = args.get("--run-id")!;
+  const approval = approvalPath && approvalHash ? await validateOneoffApproval({ file: approvalPath, expectedSha256: approvalHash, runId, roster, rosterSha256 }) : null;
+  if (!approval) assertNightWindow(new Date());
   configureLocalModel(process.env);
-  assertNightWindow(new Date());
   const releaseLock = await acquireSummaryDraftExecutionLock();
   if (!releaseLock) throw new Error("another summary draft operator holds the exclusive database lock");
-  const restoreFetch = installLocalFetchGuard({ deadlineAt: nightDeadline(new Date()) });
   try {
-    const plan = await executeRoster({ roster, execute: true, now: new Date() });
-    console.log(JSON.stringify({ result: "SUMMARY_DRAFTS_FINISHED", runId: args.get("--run-id"), rosterSha256: sha256(await readFile(rosterFile)), ...plan }, null, 2));
+    const startedAt = new Date();
+    if (approval) {
+      if (Date.now() >= Date.parse(approval.expiresAt)) throw new Error("one-off approval expired before execution");
+      await claimOneoffApproval(approvalHash!, runId, approval.approvedAt);
+    }
+    const deadlineAt = approval ? Math.min(Date.parse(approval.expiresAt), startedAt.getTime() + 25 * 60_000) : nightDeadline(startedAt);
+    const restoreFetch = installLocalFetchGuard({ deadlineAt });
+    try {
+      const plan = approval ? await executeRosterUntil(roster, startedAt, deadlineAt, false) : await executeRoster({ roster, execute: true, now: startedAt });
+      console.log(JSON.stringify({ result: "SUMMARY_DRAFTS_FINISHED", runId, rosterSha256, oneoff: Boolean(approval), ...plan }, null, 2));
+    } finally { restoreFetch(); }
   } finally {
-    restoreFetch();
     await releaseLock();
   }
 }

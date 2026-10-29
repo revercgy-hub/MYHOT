@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { createServer } from "node:http";
-import { rm } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { after, before, test } from "node:test";
 import { promisify } from "node:util";
@@ -12,7 +12,7 @@ import { config } from "@aihot/backend/config";
 import { getSummaryDraft, reviewSummaryDrafts, SummaryDraftSchema, summaryDraftId, writeSummaryDraft } from "@aihot/backend/admin/summary-drafts";
 import { sha256 } from "@aihot/backend/lib/ids";
 import { buildApp } from "../apps/api/src/app.ts";
-import { assertNightWindow, executeRoster, installLocalFetchGuard, parseSummaryDraftRoster, runWithinNightWindow } from "../scripts/fiscal/nas-summary-draft-nightly.ts";
+import { assertNightWindow, claimOneoffApproval, executeRoster, installLocalFetchGuard, parseSummaryDraftRoster, runWithinDeadline, runWithinNightWindow, validateOneoffApproval } from "../scripts/fiscal/nas-summary-draft-nightly.ts";
 import { tag } from "./setup.ts";
 
 const T = tag();
@@ -107,6 +107,7 @@ test("nightly summary roster is strict, capped, and plan-only makes no provider 
   const plan = await executeRoster({ roster, execute: false, now: new Date("2026-10-28T12:00:00.000Z") });
   assert.equal(plan.providerCalls, 0);
   assert.deepEqual(plan.results, [{ articleId: articleIds[0], status: "plan-only" }]);
+  await assert.rejects(executeRoster({ roster, execute: true, now: new Date() }), /02:00/u);
   assert.throws(() => parseSummaryDraftRoster({ schemaVersion: "summary-draft-roster.v1", sourceRunId: `collector-${T}`,
     anchorAt: "2026-10-28T19:00:00.000Z", articleIds: Array.from({ length: 11 }, (_, i) => `row-${i}`) }), /10/u);
   assert.throws(() => parseSummaryDraftRoster({ schemaVersion: "summary-draft-roster.v1", sourceRunId: `collector-${T}`,
@@ -145,6 +146,59 @@ test("night cutoff aborts an in-flight call and prevents another dispatch", asyn
     } });
   assert.deepEqual(dispatched, ["first"]);
   assert.deepEqual(results.map((row) => row.status), ["HOLD", "HOLD_night_window_closed"]);
+});
+
+test("one-off approval is exact, short-lived, private, single-use, and bounded without changing night guard", async () => {
+  const roster = parseSummaryDraftRoster({ schemaVersion: "summary-draft-roster.v1", sourceRunId: `day-source-${T}`,
+    anchorAt: new Date().toISOString(), articleIds: [articleIds[0]!, articleIds[1]!] });
+  const runId = `day-run-${T}`;
+  const rosterSha256 = sha256(JSON.stringify(roster));
+  const operatorPath = path.resolve("scripts/fiscal/nas-summary-draft-nightly.ts");
+  const operatorSha256 = sha256(await readFile(operatorPath));
+  const dir = path.join(config.dataDir, `oneoff-approval-test-${T}`);
+  await mkdir(dir, { recursive: true, mode: 0o700 });
+  const file = path.join(dir, "approval.json");
+  const now = Date.now();
+  const base = { format: "summary-draft-oneoff-approval.v1", runId, sourceRunId: roster.sourceRunId, rosterSha256,
+    model: "qwen3.5:9b", endpoint: "http://192.168.3.100:11435/v1", operatorSha256,
+    maxArticles: 10, maxCalls: 10, approvedAt: new Date(now - 1000).toISOString(), expiresAt: new Date(now + 5 * 60_000).toISOString(), approvedBy: "user" };
+  const save = async (value: unknown) => {
+    await rm(file, { force: true });
+    const bytes = Buffer.from(`${JSON.stringify(value)}\n`);
+    await writeFile(file, bytes, { mode: 0o600, flag: "wx" });
+    return sha256(bytes);
+  };
+  try {
+    const validHash = await save(base);
+    assert.deepEqual(await validateOneoffApproval({ file, expectedSha256: validHash, runId, roster, rosterSha256 }), base);
+    await assert.rejects(validateOneoffApproval({ file, expectedSha256: "0".repeat(64), runId, roster, rosterSha256 }), /SHA-256 mismatch/u);
+    await assert.rejects(validateOneoffApproval({ file, expectedSha256: validHash, runId: `${runId}-wrong`, roster, rosterSha256 }), /binding mismatch/u);
+    await assert.rejects(validateOneoffApproval({ file, expectedSha256: validHash, runId, roster, rosterSha256: "f".repeat(64) }), /binding mismatch/u);
+    for (const [field, value] of [["model", "other"], ["endpoint", "https://example.invalid"], ["operatorSha256", "f".repeat(64)],
+      ["sourceRunId", `wrong-${T}`], ["maxCalls", 11], ["maxArticles", 11]] as const) {
+      const hash = await save({ ...base, [field]: value });
+      await assert.rejects(validateOneoffApproval({ file, expectedSha256: hash, runId, roster, rosterSha256 }));
+    }
+    const expired = { ...base, approvedAt: new Date(now - 60_000).toISOString(), expiresAt: new Date(now - 1).toISOString() };
+    const expiredHash = await save(expired);
+    await assert.rejects(validateOneoffApproval({ file, expectedSha256: expiredHash, runId, roster, rosterSha256 }), /expired/u);
+    const longApproval = { ...base, expiresAt: new Date(now + 31 * 60_000).toISOString() };
+    const longHash = await save(longApproval);
+    await assert.rejects(validateOneoffApproval({ file, expectedSha256: longHash, runId, roster, rosterSha256 }), /expired/u);
+    await assert.rejects(validateOneoffApproval({ file: path.join(dir, "missing.json"), expectedSha256: validHash, runId, roster, rosterSha256 }));
+    assert.throws(() => assertNightWindow(new Date()), /02:00/u);
+    await rm(file, { force: true });
+    const serial: string[] = [];
+    const bounded = await runWithinDeadline({ items: ["one", "two"], deadlineAt: Date.now() + 10_000,
+      dispatch: async (item, timeoutMs, deadlineAt) => { serial.push(item); assert.ok(timeoutMs > 0 && timeoutMs <= 120_000); assert.ok(deadlineAt > Date.now()); return item; } });
+    assert.deepEqual(serial, ["one", "two"]);
+    assert.deepEqual(bounded.map((row) => row.status), ["completed", "completed"]);
+    const claimDir = path.join(dir, "claims");
+    await claimOneoffApproval(validHash, runId, base.approvedAt, claimDir);
+    await assert.rejects(claimOneoffApproval("f".repeat(64), `${runId}-replacement`, base.approvedAt, claimDir), /EEXIST|already exists/u);
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
 });
 
 test("database advisory lock uses a separate session when the business pool has one connection", async () => {
