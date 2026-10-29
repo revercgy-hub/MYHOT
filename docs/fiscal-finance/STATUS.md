@@ -1,5 +1,9 @@
 # 项目状态
 
+## 2026-10-29 用户参与校准与来源补缺
+
+用户明确确认前两批六篇均“仅放全部动态”，已保存私有v3/v4标签overlay，未覆盖原Gold或Staging标签；v4 development为21 select/129 reject，既有e82e预测复算16/27/5/102，precision37.21%，变化来自标签版本、没有模型提升结论。第三批三篇待答复。四优先来源44条pending中找到19条完整历史响应；独立metadata修复候选使严格离线合格数1→15，另4条附件/正文HOLD。候选未安装，正文未回写，externalRequests0。新审阅包和metadata候选专项5/5、全部mjs19/19、Node24 typecheck通过。完整输入版本、限制和应用顺序见[人工校准与来源metadata交接](HANDOFFS/HUMAN_CALIBRATION_AND_SOURCE_METADATA_2026-10-29.md)。Gate结论保持未通过。
+
 ## 2026-10-29 Gate 3–5开发整改
 
 软件整改最终代码`fba9eba`已push；[GitHub Check40841015147](https://github.com/revercgy-hub/MYHOT/actions/runs/40841015147)的Linux check及Docker均成功，backend554项546通过/8跳过/0失败、Web25/25、构建后smoke及Docker smoke通过。此前run40840441454暴露测试私有文件依赖/根目录写入/行尾pin负例不兼容，已修复测试并保留失败记录。Gate 3质量、Gate 4来源与90日覆盖、Gate 5真实稳定周期仍未完成；CI全绿不改变整体Gate结论。
