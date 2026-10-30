@@ -77,6 +77,12 @@ export function normalizeSummaryDraftTags(tags: readonly string[]): string[] {
   return normalized;
 }
 
+/** Site focus is not evidence that a source article concerns either locality. */
+export function groundSummaryDraftRegionTags(tags: readonly string[], article: { title: string; bodyText: string }): string[] {
+  const evidence = `${article.title}\n${article.bodyText}`;
+  return normalizeSummaryDraftTags(tags).filter(tag => (tag !== "福建" && tag !== "厦门") || evidence.includes(tag));
+}
+
 export async function consumeSummaryDraftCallOnce<T>(input: {
   call: () => Promise<{ data: SummaryDraftModelOutput; receiptId: number; reused: boolean }>;
   completeReceipt: (receiptId: number) => Promise<void>;
@@ -473,7 +479,7 @@ async function summarizeOne(row: any, roster: SummaryDraftRoster, asset: Summary
       system, user, schema: ModelOutput, json: false, temperature: 0.2, maxTokens: 3072, attemptTag: `draft-${draftId}`, timeoutMs }),
     completeReceipt: async (receiptId) => markReceiptsCompleted([receiptId]),
     createDraft: async (generated, receiptId) => {
-      const tags = normalizeSummaryDraftTags(generated.tags);
+      const tags = groundSummaryDraftRegionTags(generated.tags, { title: row.title, bodyText: row.body_text });
       metadata = { category: generated.category, tags };
       return SummaryDraftSchema.parse({ format: "summary-draft.v1", draftId, runId: roster.sourceRunId,
         createdAt: new Date().toISOString(), article: { articleId: row.id, sourceId: row.source_id, sourceName: row.source_name,

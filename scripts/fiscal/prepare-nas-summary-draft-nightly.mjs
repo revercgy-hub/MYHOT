@@ -16,7 +16,7 @@ if (args.length) {
   apiImageId = args[1];
 }
 const imagePinBound = apiImageId !== "UNBOUND";
-const OUTPUT = path.join(ROOT, `.data/fiscal-qa/summary-draft-nightly-candidate-20261030-r9-${imagePinBound ? "bound" : "unbound"}`);
+const OUTPUT = path.join(ROOT, `.data/fiscal-qa/summary-draft-nightly-candidate-20261030-r10-${imagePinBound ? "bound" : "unbound"}`);
 const WORKSPACE = "/vol2/1000/docker/fiscalhot-summary-draft-nightly-20261028";
 const OPERATOR = "scripts/fiscal/nas-summary-draft-nightly.ts";
 const LAUNCHER = "scripts/fiscal/nas-summary-draft-nightly-launcher.sh";

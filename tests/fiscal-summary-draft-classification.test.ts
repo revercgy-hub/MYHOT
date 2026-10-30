@@ -7,7 +7,7 @@ import { config } from "../packages/backend/src/config.ts";
 import { promptText } from "../packages/backend/src/editorial/prompts.ts";
 import { sha256, stableJson } from "../packages/backend/src/lib/ids.ts";
 import {
-  consumeSummaryDraftCallOnce, extractFiscalRelevanceRules, loadSummaryDraftPromptAsset, normalizeSummaryDraftTags,
+  consumeSummaryDraftCallOnce, extractFiscalRelevanceRules, groundSummaryDraftRegionTags, loadSummaryDraftPromptAsset, normalizeSummaryDraftTags,
   renderSummaryDraftPromptAsset, SummaryDraftModelOutputSchema, type SummaryDraftModelOutput,
 } from "../scripts/fiscal/nas-summary-draft-nightly.ts";
 
@@ -16,6 +16,13 @@ const pass: SummaryDraftModelOutput = SummaryDraftModelOutputSchema.parse({ rele
   summaryZh: "财政部门对预算执行开展核验并公布发现的问题。", category: "local-practice", tags: ["地方实践", "预算管理", "财政"] });
 const unknown: SummaryDraftModelOutput = SummaryDraftModelOutputSchema.parse({ relevance: "UNKNOWN", reason: "标题未说明活动结果，正文信息仍需人工判断。", titleZh: "财政部门开展预算执行核验",
   summaryZh: "财政部门对预算执行开展核验并公布发现的问题。", category: "local-practice", tags: ["地方实践", "预算管理", "财政"] });
+
+test("region tags require original article evidence, not site focus or generated text", () => {
+  const tags = ["地方实践", "内控", "福建省", "厦门市"];
+  assert.deepEqual(groundSummaryDraftRegionTags(tags, { title: "重庆监管局开展工作", bodyText: "开展财会监督。" }), ["地方实践", "内部控制"]);
+  assert.deepEqual(groundSummaryDraftRegionTags(tags, { title: "福建监管局开展工作", bodyText: "对接厦门市有关单位。" }), ["地方实践", "内部控制", "福建", "厦门"]);
+  assert.deepEqual(groundSummaryDraftRegionTags(tags, { title: "福建监管局开展工作", bodyText: "开展预算审核。" }), ["地方实践", "内部控制", "福建"]);
+});
 
 test("summary prompt asset reuses the unchanged fiscal prefilter rules and binds the taxonomy", () => {
   const prefilter = promptText("prefilter");
