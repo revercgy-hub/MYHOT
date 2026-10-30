@@ -16,6 +16,8 @@ test("development evidence quotes must come from the supplied full body and cann
   assert.throws(() => validateEvidenceDimensionScore({ ...value, evidenceQuotes: [quote, quote] }, quote), /unique verbatim/u);
   assert.throws(() => validateEvidenceDimensionScore({ ...value, attentionScore: 100 }, quote));
   assert.throws(() => validateEvidenceDimensionScore({ ...value, evidenceQuotes: [] }, quote));
+  assert.equal(validateEvidenceDimensionScore(value, "逐项核验贷款 合同、利息支付凭证和历年申报 档案").evidenceQuotes.length, 1);
+  assert.throws(() => validateEvidenceDimensionScore(value, "逐项核验贷款合同、利息支付凭证和本年申报档案"), /verbatim body spans/u);
   const quotes = Array.from({ length: 8 }, (_, i) => `第${i + 1}项逐笔核对贷款合同及利息支付凭证`);
   assert.equal(validateEvidenceDimensionScore({ ...value, evidenceQuotes: quotes }, quotes.join("；")).evidenceQuotes.length, 8);
   assert.throws(() => validateEvidenceDimensionScore({ ...value, evidenceQuotes: [...quotes, "第九项逐笔核对贷款合同及利息支付凭证"] }, quotes.join("；")));

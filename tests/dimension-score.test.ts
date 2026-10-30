@@ -32,3 +32,12 @@ test("candidate replaces output contracts while retaining business rules, weight
   assert.deepEqual(readScoreWeights(next), weights);
   assert.throws(() => buildDimensionScorePrompt(prompt.replace('{"attentionScore": 0}', '{"score": 0}')));
 });
+
+test("development scale anchors retain the existing rubric, strict output and all eight weight rows", () => {
+  const base = readFileSync("industry/prompts/selection-score-dimensions-candidate.md", "utf8");
+  const candidate = readFileSync("industry/prompts/selection-score-dimensions-anchored-candidate.md", "utf8");
+  const start = candidate.indexOf("## 尺度参照（开发候选）"), end = candidate.indexOf("## 五轴分别判断");
+  assert.ok(start >= 0 && end > start);
+  assert.equal(candidate.slice(0, start) + candidate.slice(end), base);
+  assert.deepEqual(readScoreWeights(candidate), readScoreWeights(base));
+});

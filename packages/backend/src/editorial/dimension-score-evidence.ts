@@ -7,7 +7,8 @@ export const EvidenceDimensionScoreSchema = DimensionScoreSchema.extend({
   evidenceQuotes: z.array(z.string().trim().min(12).max(220)).min(1).max(8),
 }).strict();
 
-const normalize = (text: string) => text.replace(/\s+/gu, " ").trim();
+// PDF extraction may insert spaces inside Chinese words and numbers; only whitespace is ignored.
+const normalize = (text: string) => text.replace(/\s+/gu, "");
 
 export function validateEvidenceDimensionScore(value: unknown, bodyText: string) {
   const parsed = EvidenceDimensionScoreSchema.parse(value);
