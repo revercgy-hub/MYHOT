@@ -16,6 +16,9 @@ test("development evidence quotes must come from the supplied full body and cann
   assert.throws(() => validateEvidenceDimensionScore({ ...value, evidenceQuotes: [quote, quote] }, quote), /unique verbatim/u);
   assert.throws(() => validateEvidenceDimensionScore({ ...value, attentionScore: 100 }, quote));
   assert.throws(() => validateEvidenceDimensionScore({ ...value, evidenceQuotes: [] }, quote));
+  const quotes = Array.from({ length: 8 }, (_, i) => `第${i + 1}项逐笔核对贷款合同及利息支付凭证`);
+  assert.equal(validateEvidenceDimensionScore({ ...value, evidenceQuotes: quotes }, quotes.join("；")).evidenceQuotes.length, 8);
+  assert.throws(() => validateEvidenceDimensionScore({ ...value, evidenceQuotes: [...quotes, "第九项逐笔核对贷款合同及利息支付凭证"] }, quotes.join("；")));
 });
 
 test("evidence candidate changes its output contract while preserving the entire original rubric and weights", () => {
