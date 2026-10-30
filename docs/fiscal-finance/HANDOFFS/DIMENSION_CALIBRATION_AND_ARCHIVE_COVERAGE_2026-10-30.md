@@ -37,3 +37,13 @@ r9 operator SHA256 `dc5cbfd95477c7b47f55d0b2e23efbd71f09b49a9b04f04c9b3ec4b52c5d
 后续该63条已按精确计划补入暂存库：计划SHA256 `e518800f37c1ad7ffe8a320fd9069211c7eeba20bd89268ddf249bf364ede9c5`；新PG17备份SHA256 `799534e3b8b7302954c1f97f3bc4e4c17bf96a4d9ab76fbc1d58613e99ff9636`。先恢复到独立本地测试库，实际跑通准备、备份验证、零写入预检、63条插入及后验；最初本地适配脚本因Windows绝对导入路径失败，修正测试副本路径后通过，NAS操作器未改。再在NAS共享锁内通过统一`upsertMaterial`入口插入，严格要求每项created、历史标记、正文pending、无已有身份覆盖；所有旧行及其余rowsets保持原hash。独立SQL复核首次仅因pgboss.job不存在而停止只读事务，补充缺失关系须为空基线的检查后全部通过，未重做任何写入。独立后验SHA256 `3c012375045a89d2f5fa65afb15628df25ac1f877f06309df95a528ce3db285e`，完整私有归档 `0c59b56492594ab97299b5307c213e975e9306b3cf8c844e58b610849e3ea8d9`。
 
 补录后588文章/913修订/588发现，正文362 ok/217 pending/9 unconfirmed。新增63条均为标题、日期、链接及证据引用，不是正文修复。未改变source flags、Gold、publications、receipts、队列或自动精选；全站smoke再次通过。
+
+## 后续摘要地域证据修复与人工审阅
+
+只读捕获11篇旧私有草稿，归档SHA256 `e5a441d7e0ebde559d70e691d6cbdcc8d55774b168a87142ed75c5a6897e7d94`；正文hash全部匹配，9篇旧版本缺少分类及标签，1篇重庆党课稿附带原文没有的福建/厦门标签。该检查不是语义质量验收，也不自动批准任何草稿。旧草稿和回执保留；分类不能靠自动猜测补齐。
+
+r10对新草稿的福建/厦门标签增加原始标题/正文证据检查，先规范化同义标签，再移除没有文字依据的上述地域标签；不使用生成摘要或站点关注地域作为证据。仅是必要条件，不能保证所有标签语义正确。新增回归验证重庆稿去除两标签、原文含地域时保留及局部保留；初次测试误将既有normalizeTags行为当作抛错，删除该不成立的预期后6项全部通过，正式模型输出首分类验证仍在schema入口。
+
+r10已在共享锁内备份安装，operator SHA256 `5da0c852678aafeb819fd9163d468fab8266aafcf7e849eef102a13e9bf813f8`；runtime manifest `ab8e373620b19df9156f9cfc1fe2d8660ace2236ef0a83567651e822ae7a6168`；entrypoint `09eb2cd18a2adff30a0be12b3964597b808c5c2ae8e78d98b1a47887ec277f7f`。原prompt asset及03:30计划不变，实际镜像内prepare-only验证通过；未白天调用模型。代码`b8ba9d6`的[Check40991830522](https://github.com/revercgy-hub/MYHOT/actions/runs/40991830522)已全部成功。
+
+向用户提出一篇江苏民航发展基金及基建贷款贴息审核的人工改写摘要，用于确认阅读风格；该提案与旧模型草稿区分留存，仅审风格，不是发布、精选或修改原草稿的授权。
