@@ -1,10 +1,10 @@
 # 项目状态
 
-## 2026-10-30 模型路径待决策，18条历史正文已补全
+## 2026-10-30 模型路径待决策，58条历史正文已补全
 
 完整150篇精选评估仍是查准34.78%、查全38.10%。五轴尺度、官方建议采样和已安装Gemma对照均未形成可用候选；单次本地思考诊断300016ms超时，unknown保留且未重试。两次临时模型配置均已清理，原六个模型保留，未改正式评分、Gold、权重或门槛。已向用户提交一次DeepSeek Flash对照方案（10篇、最多20次、总上限5元，保守估算约0.87元），此前付费延期决定尚未改变，未发生付费调用。等待期间继续正文工作。
 
-12:00实际采集45/46源成功，浙江列表超时，新增4条且正文ok；20条历史详情新GET完成，两端离线重放一致，18条经新PG17共享snapshot备份、零写入预检及共享锁内CAS提交，独立SQL后验全通过，2条HOLD保留。当前592文章/935修订/592发现，正文384 ok/199 pending/9 unconfirmed；pub/override137/137、receipts18、Gold200、source flags0不变，全站smoke通过。代码`e0eab20`的[Check41006300734](https://github.com/revercgy-hub/MYHOT/actions/runs/41006300734)全部成功。Gate 3–5仍未整体通过，详见[诊断与历史正文交接](HANDOFFS/LOCAL_MODEL_DIAGNOSTICS_AND_HISTORY_BODIES_2026-10-30.md)。
+12:00实际采集45/46源成功，浙江列表超时，新增4条且正文ok；两批44条历史详情新GET完成，两端离线重放一致，18+23条分别经新PG17共享snapshot备份、零写入预检及共享锁内CAS提交，独立SQL后验全通过。其余19条缓存材料找到18份完整原始响应，保持零新GET，两端重放16候选/3 HOLD；第三份新备份及预检后16条CAS提交，独立后验全通过。按请求URL及原始hash追加定位1条缓存，独立回写及后验通过；63条历史补缺现有58条正文完成、5条HOLD。当前592文章/975修订/592发现，正文424 ok/159 pending/9 unconfirmed；pub/override137/137、receipts18、Gold200、source flags0不变。代码`e0eab20`的[Check41006300734](https://github.com/revercgy-hub/MYHOT/actions/runs/41006300734)全部成功。Gate 3–5仍未整体通过，详见[诊断与历史正文交接](HANDOFFS/LOCAL_MODEL_DIAGNOSTICS_AND_HISTORY_BODIES_2026-10-30.md)。
 
 ## 2026-10-30 完整精选评估与历史覆盖推进中
 

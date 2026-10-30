@@ -20,6 +20,8 @@
 
 六组已完成/失败诊断的源码快照、原始回执库和结果归档SHA256 `8bdf566c69195f856f9af59f7da465429093b1430d6878e3d54083d6929d6505`，私有备份在NAS，mode600。完整150篇证据见上一交接。
 
+思考模式失败诊断另行归档：独立只读SQL确认1个unknown、1次attempt、response NULL，articles/publications/analyses均0；源码逐份匹配冻结hash，回执库dump SHA256 `a1b9dd0b0279eaf760b71e5f283ed3a6b0f1dfb27c86386fc9f3a42dbf62032d`。含临时模型清理证明的完整归档SHA256 `4e6ce5f54a647d490e3a9e8671d3f9e9439c403c10b14107b9fe03eae41dedb6`，本机与NAS一致，NAS mode600。未重试、无有效评分。
+
 ## 12:00实际采集与18条历史正文
 
 12:00计划真实触发，46源45成功、浙江列表超时，新增4条且4条正文ok；50次网络dispatch，49份完整原始响应字节及解码hash已逐份验证，0模型调用，不重试。原始证据归档SHA256 `0ce821ce7de678661b62b8dcd3fdf5a36c976d66169b8de36257bcddfda17693`。一次部分成功不替代多周期验收。
@@ -31,6 +33,32 @@ NAS和本机分别只读重放20份原始响应，均得到18条正文候选、2
 从精确冻结rowsets导出REPEATABLE READ READ ONLY共享snapshot，PG17 pg_dump使用同一snapshot生成新备份；2,251,567字节，SHA256 `c1296b0d0c74654fef6d0832dfa15dcb3b6e77ac5033450343e111fe9a3246be`。零写入预检通过后，在原共享flock内一次body-only CAS提交18条，revision1→2。独立SQL复核重建全部旧文章/旧修订hash，18条新正文与修订逐项匹配；source、Gold、publication、receipt、队列等全部受保护rowsets不变，2条HOLD原样保留。
 
 独立后验SHA256 `6859858b2ce233c0db683568bb644236d425119e4a028699d99f7ca6cff7b422`；完整操作、备份与后验私有归档 `6515277ba6ca8f22fc7152f3012637cea96b530267ac022d48e392f0d437e9e6`，已镜像到本机。当前592文章/935修订/592发现，正文384 ok/199 pending/9 unconfirmed；pub/override137/137、receipts/attempts18/18、Gold200、source flags0。全站smoke通过。Gate 4仍不因增加正文样本就整体通过。
+
+## 第二批23条历史正文
+
+排除上一批实际20次GET后，剩余24条从未捕获详情：广西5、海南10、四川9，逐源不超过10。24次GET全部完整返回；NAS与本机各自离线重放得到23候选、1条非正文容器HOLD，proposal input SHA256 `a291a6e7207fb461564100154bed428ebdb30525fd27a68fea6f6884a6a447ac`完全一致。正文219–2033字、23个hash均不同。正文抓取优先顺序不构成精选判断。
+
+新PG17共享snapshot备份2,301,384字节，SHA256 `21cbe5fdfecca4cb71174ca69db557f7b550c1a1e5448f762737e8b63cad5919`，proof SHA256 `fac7b028c73d0f5a9ba0841feec831d5ac1ad8d37a5a48ef61c174fc21820fa7`。零写入预检通过后，共享锁内一次提交23条body-only CAS；独立SQL逐项核验正文、新修订和所有受保护rowsets，allPass true。完整归档SHA256 `1e1b81c37779832eafa003bba587ef7152fe720008a755b1e34fc5e2d506db61`，NAS及本机一致。
+
+两批共41条正文补全，3条HOLD保持原状；63条历史补缺中的另外19条已有响应或正文引用，只读追溯缓存证据，禁止重复GET。当前592文章/958修订/592发现，正文407 ok/176 pending/9 unconfirmed；pub/override137/137、receipts18、Gold200、source flags0。NAS全站30项smoke再次通过。Gate 4仍未整体通过。
+
+## 16条缓存正文补全
+
+19条已有证据引用的材料先做只读追溯，18条找到此前保存正文；对2479份HTML/body/entity候选文件进一步定位原始响应，18条找到唯一原始字节hash和完整GET记录，初次按标题检索时1条尚未定位原始响应。每份原始响应与来源manifest的URL、GET、200、EOF、截断标记、长度及SHA256相符；保存原始manifest，压缩字节按可验证编码离线解码，未伪造新请求时间或历史节奏合规。历史网络节奏仍标记UNPROVEN_HISTORICAL_CADENCE。
+
+NAS与本机按当前catalog分别离线重放，16候选/3 HOLD一致，input SHA256 `5021ed85c712a796b80b7feb7e5f2c40ead4d48d5f124c90c14f12388c5526aa`。16条当前正文与历史保存正文仅空白排版不同；保留两版hash，不直接复制旧正文。3条分别因非正文容器、尚未定位原始响应、身份不一致保留HOLD（其中响应待定位项后续另批解决，原记录保留）。无新GET、模型调用或来源配置变更。
+
+第三份PG17共享snapshot备份2,359,167字节，SHA256 `90e3b86de0c1e3003b266b0949ad8ee553257133b396b3c1a3c44ffabceaa91d`，proof SHA256 `a601d4a7f070eb805602c80d193f22f945d4a32e9253e282e7e806bc94c3c495`。零写入预检通过后在原共享锁内一次提交16条；独立SQL后验allPass，旧行、旧修订及所有受保护rowsets不变。后验SHA256 `419e796b1785b5adcfea59877826e6b63de8a6c41194061a98e02316de0bde65`，完整私有归档SHA256 `f7f4827b9000679cf87833fa7b9d4a25d50e29b49b298b0fc9c90bd4909fb3ee`。
+
+63条历史补缺累计完成57条正文，余6条HOLD。当前592文章/974修订/592发现，正文423 ok/160 pending/9 unconfirmed；pub/override137/137、receipts18、Gold200、source flags0。这些正文补全不构成精选评估通过。
+
+## 追加原始hash定位与最终58条
+
+对未定位响应的一条广西驻村安全排查材料，继续按原始GET URL和body SHA256查询，找到了3份字节完全相同的历史保存副本；初次标题子串查找受不换行空格影响而漏掉。未重新GET，未把旧HOLD改成成功。另建单条r6快照及计划，两端当前解析均得到709字正文，内容与此前706字版本仅空白排版不同，input SHA256 `084b60163558642da175ea33b79310cab7c49bafb207b19024ad7ce72e9b01e8`。
+
+第四份新共享snapshot备份SHA256 `071d52817904a1c02f93b199c27dfca92862a9dc5bf510ab2216165c79060122`，零写入预检后共享锁内提交1条，独立后验allPass（SHA256 `d8b4450f6bfeb1d0fd7e243289249a814680dff92be7fb00763d9fd083ac338e`）。完整操作归档SHA256 `1475e050d4033f916e4edde451d02aaa1b67de7053eef93ef43ce71b075a7c15`，本机与NAS一致。
+
+最终63条历史补缺有58条正文完成、5条HOLD：海南转移支付绩效抽查、海南资产盘点、海南单位决算、广西单位决算、广西养老保险补助结算审核。保留原始容器及身份保护，后续须逐项解决相应证据边界，不能直接覆盖。全库592文章/975修订/592发现，正文424 ok/159 pending/9 unconfirmed；pub/override137/137、receipts18、Gold200、source flags0。精选质量、来源整体准入和夜间多周期验收仍分别待完成。缓存追溯、两端复核、单条追加审阅与剩余五条清单另归档SHA256 `5776a5d187ebe665035b74851f125d4b24761efaf3c5b2ffa2384421cdb3bba4`，本机/NAS一致，NAS mode600。
 
 ## 需要使用者决定的模型路径
 
