@@ -54,10 +54,11 @@ const CATEGORY_TAG_SET = new Set<string>(CATEGORY_TAGS);
 const ALLOWED_TAG_SET = new Set<string>([...CATEGORY_TAGS, ...TOPIC_TAGS, ...ENTITY_TAGS]);
 const TAG_OUTPUT_VALUES = [...ALLOWED_TAG_SET, ...Object.keys(TAG_SYNONYMS)];
 const BlockModelOutput = z.object({ relevance: z.literal("BLOCK"), reason: z.string().trim().min(1).max(160),
-  titleZh: z.literal(""), summaryZh: z.literal(""), category: z.null(), tags: z.array(z.never()).length(0) }).strict();
+  titleZh: z.string().max(300).transform(() => "" as const), summaryZh: z.literal(""), category: z.null(), tags: z.array(z.never()).length(0) }).strict();
 const DraftModelOutput = z.object({ relevance: z.enum(["PASS", "UNKNOWN"]), reason: z.string().trim().min(1).max(160),
   titleZh: z.string().trim().min(1).max(300), summaryZh: z.string().trim().min(1).max(2000),
-  category: z.enum(CATEGORY_KEYS), tags: z.array(z.string().trim().min(1).max(60)).min(1).max(6) }).strict().superRefine((value, ctx) => {
+  category: z.enum(CATEGORY_KEYS), tags: z.array(z.string().trim().min(1).max(60)).min(1).max(6)
+    .transform(tags => tags.map(tag => TAG_SYNONYMS[tag] ?? tag).filter(tag => ALLOWED_TAG_SET.has(tag))) }).strict().superRefine((value, ctx) => {
     const normalized = value.tags.map((tag) => TAG_SYNONYMS[tag] ?? tag);
     if (normalized.some((tag) => !ALLOWED_TAG_SET.has(tag))) ctx.addIssue({ code: "custom", message: "tags must use taxonomy values or known synonyms", path: ["tags"] });
     if (!CATEGORY_TAG_SET.has(normalized[0] ?? "")) ctx.addIssue({ code: "custom", message: "the first tag must be a category tag", path: ["tags", 0] });

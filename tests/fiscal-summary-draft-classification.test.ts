@@ -37,7 +37,8 @@ test("classifier output accepts valid fiscal taxonomy, canonicalizes known synon
   assert.equal(SummaryDraftModelOutputSchema.safeParse(block).success, true);
   assert.deepEqual(normalizeSummaryDraftTags(pass.tags), ["地方实践", "预算管理", "财政收支"]);
   assert.equal(SummaryDraftModelOutputSchema.safeParse({ ...pass, category: "not-a-category" }).success, false);
-  assert.equal(SummaryDraftModelOutputSchema.safeParse({ ...pass, tags: ["地方实践", "发明标签"] }).success, false);
+  assert.deepEqual(SummaryDraftModelOutputSchema.parse({ ...pass, tags: ["地方实践", "发明标签"] }).tags, ["地方实践"]);
+  assert.equal(SummaryDraftModelOutputSchema.safeParse({ ...pass, tags: ["发明标签"] }).success, false);
   assert.equal(SummaryDraftModelOutputSchema.safeParse({ ...pass, tags: ["预算管理", "地方实践"] }).success, false);
   assert.equal(SummaryDraftModelOutputSchema.safeParse({ ...block, reason: "" }).success, false);
 });
@@ -68,6 +69,20 @@ test("one provider response records a reasoned BLOCK without writing a draft; UN
   assert.equal((drafted as any).relevance, "UNKNOWN");
   assert.equal((reviewRows[0] as any).relevance, "UNKNOWN");
   assert.deepEqual(completed, [7101, 7102]);
+});
+
+test("a BLOCK with a stray title stays blocked and unknown tags cannot invent a fallback category", async () => {
+  const discarded = SummaryDraftModelOutputSchema.parse({ ...block, titleZh: "不应作为摘要使用的原文标题" });
+  assert.equal(discarded.titleZh, "");
+  const held = await consumeSummaryDraftCallOnce({
+    call: async () => ({ data: discarded, receiptId: 7110, reused: false }),
+    completeReceipt: async () => {},
+    createDraft: async () => { throw new Error("blocked input cannot create a draft"); },
+    writeDraft: async () => { throw new Error("blocked input cannot write a draft"); },
+  });
+  assert.equal(held.status, "HOLD_relevance_block");
+  assert.equal(SummaryDraftModelOutputSchema.safeParse({ ...pass, tags: ["未知", "预算管理"] }).success, false);
+  assert.deepEqual(SummaryDraftModelOutputSchema.parse({ ...pass, tags: ["地方实践", "财政资金监管", "政策落实监督", "财政"] }).tags, ["地方实践", "财政收支"]);
 });
 
 test("prompt asset verification checks raw file hash and runtime taxonomy without accessing the prompt source tree", async () => {

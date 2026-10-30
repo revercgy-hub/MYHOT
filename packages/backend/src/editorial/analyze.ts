@@ -23,11 +23,12 @@ import { pageFetchable } from "../content/extract.ts";
 import { shutdownSignal } from "../jobs/queue.ts";
 import {
   buildArticlePrompt, buildLongTweetPrompt, buildShortTweetPrompt, finalizeCopy, isShortTweetInput, looksZh, MAX_BODY_CHARS, missingEvidence,
-  needsShortTweetTranslation, parseTranslateOutput, PREFILTER_SYSTEM, prefilterUser, translateInputOf, UNDERSTAND_SYSTEM, understandUser,
+  needsShortTweetTranslation, parseTranslateOutput, PREFILTER_SYSTEM, translateInputOf, UNDERSTAND_SYSTEM, understandUser,
   stripPdfLayoutAnnotations, type IdentityGuard,
 } from "./writing.ts";
 import { CATEGORY_BY_ITEM_TYPE, CATEGORY_GUIDE, CATEGORY_TAGS, ENTITIES, ENTITY_TAGS, ITEM_TYPES, normalizeTags, TOPIC_TAGS } from "./vocabulary.ts";
 import { promptText, promptVersion } from "./prompts.ts";
+import { buildPrefilterRequest, boundedPrefilterLabel } from "./prefilter-input.ts";
 
 export { buildMaterial, loadAnalyzeInput, type AnalyzeInputArticle };
 
@@ -105,7 +106,7 @@ export function buildScoreInput(a: AnalyzeInputArticle): string {
 
 // ── Step outputs ──────────────────────────────────────────────────────────────────────────
 
-const PrefilterSchema = z.object({
+export const PrefilterSchema = z.object({
   label: z.preprocess((v) => String(v ?? "").trim().toUpperCase(), z.enum(["PASS", "BLOCK", "UNKNOWN"])),
   reason: z.string().max(200).catch(""),
 });
@@ -199,20 +200,21 @@ const tagged = (attemptTag: string | undefined, step: string) => [attemptTag, st
 async function runPrefilter(a: AnalyzeInputArticle, opts: StepOpts): Promise<AnalysisRun["prefilter"]> {
   const model = await stepModel("prefilter", opts);
   checkAnalysisRunning();
+  const input = buildPrefilterRequest(a, PREFILTER_SYSTEM, PROMPT_VERSIONS.prefilter);
   const res = await chatJson({
     model,
     purpose: "prefilter_article",
     subject: subjectOf(a),
-    promptVersion: PROMPT_VERSIONS.prefilter,
-    system: PREFILTER_SYSTEM,
-    user: prefilterUser(a),
+    promptVersion: input.promptVersion,
+    system: input.system,
+    user: input.user,
     schema: PrefilterSchema,
     temperature: 0,
     maxTokens: 512,
     attemptTag: opts.attemptTag,
   });
   // A BLOCK without material to back it counts as UNKNOWN (which goes on).
-  const label = res.data.label === "BLOCK" && missingEvidence(a) ? "UNKNOWN" : res.data.label;
+  const label = res.data.label === "BLOCK" && missingEvidence(a) ? "UNKNOWN" : boundedPrefilterLabel(res.data.label, input.partial);
   return { label, reason: res.data.reason, model: res.model, receiptId: res.receiptId, reused: res.reused };
 }
 

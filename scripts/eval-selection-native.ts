@@ -9,7 +9,8 @@ import { readFileSync, writeFileSync, mkdirSync, lstatSync, realpathSync, chmodS
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
-import { PREFILTER_SYSTEM, prefilterUser } from "@aihot/backend/editorial/writing";
+import { PREFILTER_SYSTEM } from "@aihot/backend/editorial/writing";
+import { buildPrefilterRequest, boundedPrefilterLabel } from "../packages/backend/src/editorial/prefilter-input.ts";
 import { SCORE_CALLS, SCORE_SYSTEM, ScoreSchema, buildScoreInput, normalizeAnalysis, PROMPT_VERSIONS, type AnalysisRun, type AnalyzeInputArticle } from "@aihot/backend/editorial/analyze";
 import { validateManifest } from "./fiscal/gold-dataset.ts";
 import { SELECTION } from "@aihot/industry/selection";
@@ -47,7 +48,7 @@ interface BodyItem {
 interface PromptCase extends BodyItem {
   inputSha256: string;
   threshold: number | null;
-  prefilter: { system: string; user: string; systemPromptSha256: string; userPromptSha256: string; promptSha256: string };
+  prefilter: { system: string; user: string; systemPromptSha256: string; userPromptSha256: string; promptSha256: string; inputPartial?: boolean; promptVersion?: string };
   score: { system: string; user: string; systemPromptSha256: string; userPromptSha256: string; promptSha256: string };
 }
 
@@ -161,7 +162,8 @@ function makePrepared(input: unknown, inputSha256: string) {
   const parsed = parseBodyInput(input);
   const cases: PromptCase[] = parsed.items.map((item) => {
     const article = toAnalyzeInput(item);
-    const prefilter = promptPair(PREFILTER_SYSTEM, prefilterUser(article));
+    const request = buildPrefilterRequest(article, PREFILTER_SYSTEM, PROMPT_VERSIONS.prefilter);
+    const prefilter = { ...promptPair(request.system, request.user), inputPartial: request.partial, promptVersion: request.promptVersion };
     const score = promptPair(SCORE_SYSTEM, buildScoreInput(article));
     return { ...item, inputSha256: digest(item), threshold: SELECTION.thresholds[item.sourceTier] ?? null, prefilter, score };
   });
@@ -214,7 +216,7 @@ function createPrefilterPacket(p: ReturnType<typeof prepared>) {
 function createScorePacket(p: ReturnType<typeof prepared>, prefilterValue: unknown, prefilterBytesSha: string) {
   const prefilter = parsePrefilter(prefilterValue, p, createPrefilterPacket(p).packetSha256);
   const byId = new Map(prefilter.items.map((i) => [i.caseId, i]));
-  const cases = p.cases.filter((c) => byId.get(c.caseId)!.output.label !== "BLOCK" && c.threshold !== null).map((c) => ({
+  const cases = p.cases.filter((c) => boundedPrefilterLabel(byId.get(c.caseId)!.output.label, Boolean(c.prefilter.inputPartial)) !== "BLOCK" && c.threshold !== null).map((c) => ({
     caseId: c.caseId, inputSha256: c.inputSha256, bodySha256: c.bodySha256, threshold: c.threshold, prompt: c.score,
   }));
   const unsigned = {
@@ -248,7 +250,7 @@ function createPredictions(p: ReturnType<typeof prepared>, prefilterValue: unkno
   const scoreIds = new Set(scorePacket.cases.map((x) => x.caseId));
   const predictions = p.cases.map((c) => {
     const pf = preById.get(c.caseId)!;
-    const gate = pf.output.label;
+    const gate = boundedPrefilterLabel(pf.output.label, Boolean(c.prefilter.inputPartial));
     const scoreExpected = gate !== "BLOCK" && c.threshold !== null;
     if (scoreExpected !== scoreIds.has(c.caseId)) throw new Error(`gate/score packet mismatch for ${c.caseId}`);
     const v1 = first.byId.get(c.caseId)?.output.attentionScore;

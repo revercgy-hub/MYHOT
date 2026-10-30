@@ -447,7 +447,7 @@ function safeUrl(value: string): string {
   try { const u = new URL(value); u.username = ""; u.password = ""; return u.href; } catch { return "<invalid-url>"; }
 }
 
-class ResponseCapture {
+export class ResponseCapture {
   private readonly requestRows = new WeakMap<object, RawRecord & { chunks: Buffer[]; hasher: ReturnType<typeof createHash>; rawRequestUrl: string }>();
   private readonly listeners: Array<() => void> = [];
   private readonly responseDir: string;

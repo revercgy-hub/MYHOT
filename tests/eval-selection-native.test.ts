@@ -90,6 +90,23 @@ test("BLOCK stops before score prompts; PASS and UNKNOWN retain exact source-tie
   assert.equal(packet.cases[0]!.threshold, 65);
 });
 
+test("native preparation mirrors bounded long-document prefiltering without allowing a partial BLOCK to exclude full scoring", () => {
+  const body = "甲".repeat(12_000) + "尾部独有事实";
+  const p = prepared(makePrepared(input([{ caseId: "long", bodyText: body }]), hash("long-body-pack")));
+  assert.equal(p.cases[0]!.prefilter.inputPartial, true);
+  assert.ok(!p.cases[0]!.prefilter.user.includes("尾部独有事实"));
+  assert.ok(p.cases[0]!.score.user.includes("尾部独有事实"));
+  const pf = prefilterFor(p, { long: "BLOCK" });
+  const packet = createScorePacket(p, pf.value, pf.bytesSha);
+  assert.equal(packet.cases.length, 1);
+  const a = scorePass(packet, "score-pass-1", { long: 60 }, "long-a");
+  const b = scorePass(packet, "score-pass-2", { long: 60 }, "long-b");
+  const result = createPredictions(p, pf.value, pf.bytesSha, packet, a, b);
+  assert.equal(result.predictions[0]!.prefilterLabel, "UNKNOWN");
+  assert.equal(result.predictions[0]!.selected, true);
+  assert.equal(pf.value.items[0]!.output.label, "BLOCK");
+});
+
 test("normalization uses the real pure aggregator, returns null receipts, and rejects missing or mismatched passes", () => {
   const p = prepared(makePrepared(input([{ caseId: "edge", bodyText: "完整正文" }]), hash("body-pack")));
   const pf = prefilterFor(p);
