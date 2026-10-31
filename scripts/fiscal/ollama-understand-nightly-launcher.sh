@@ -278,10 +278,10 @@ dump_host="$result_dir/${run_id}.pg_dump"
 docker cp "$client_name:$prediction_in_client" "$prediction_host" >/dev/null || fail PREDICTIONS_EXPORT_FAILED_PRESERVE_DATABASE
 
 # Safe projection only: omit request, response, headers, usage, cost, and error payloads.
-docker exec "$pg_name" psql -X -qAt -U postgres -d "$DB_NAME" -c \
+docker exec "$pg_name" psql -X -qAt -h 127.0.0.1 -p 55433 -U postgres -d "$DB_NAME" -c \
   "SELECT jsonb_pretty(jsonb_build_object('format','ollama-understand-receipt-evidence/v1','receipts',(SELECT COALESCE(jsonb_agg(jsonb_build_object('id',id,'service',service,'model',model,'purpose',purpose,'status',status,'attempts',attempts,'createdAt',created_at,'completedAt',completed_at) ORDER BY id),'[]'::jsonb) FROM receipts),'attempts',(SELECT COALESCE(jsonb_agg(jsonb_build_object('receiptId',receipt_id,'attempt',attempt,'service',service,'model',model,'status',status,'startedAt',started_at,'finishedAt',finished_at,'latencyMs',latency_ms) ORDER BY id),'[]'::jsonb) FROM receipt_attempts)))" \
   > "$evidence_host" || fail RECEIPT_EVIDENCE_EXPORT_FAILED_PRESERVE_DATABASE
-docker exec "$pg_name" pg_dump -U postgres -d "$DB_NAME" > "$dump_host" || fail PG_DUMP_EXPORT_FAILED_PRESERVE_DATABASE
+docker exec "$pg_name" pg_dump -h 127.0.0.1 -p 55433 -U postgres -d "$DB_NAME" > "$dump_host" || fail PG_DUMP_EXPORT_FAILED_PRESERVE_DATABASE
 
 chmod 600 "$prediction_host" "$evidence_host" "$dump_host"
 [ -s "$prediction_host" ] && [ -s "$evidence_host" ] && [ -s "$dump_host" ] || fail ARTIFACT_EMPTY_PRESERVE_DATABASE
@@ -290,7 +290,7 @@ evidence_sha=$(sha256sum "$evidence_host" | awk '{print toupper($1)}')
 dump_sha=$(sha256sum "$dump_host" | awk '{print toupper($1)}')
 is_sha "$prediction_sha" && is_sha "$evidence_sha" && is_sha "$dump_sha" || fail ARTIFACT_HASH_INVALID_PRESERVE_DATABASE
 
-receipt_counts=$(docker exec "$pg_name" psql -X -qAt -U postgres -d "$DB_NAME" -c \
+receipt_counts=$(docker exec "$pg_name" psql -X -qAt -h 127.0.0.1 -p 55433 -U postgres -d "$DB_NAME" -c \
   "SELECT (SELECT count(*) FROM receipts)||':'||(SELECT count(*) FROM receipt_attempts)||':'||(SELECT count(*) FROM receipts WHERE status='completed')||':'||(SELECT count(*) FROM receipts WHERE status IN ('failed','pending','unknown'))") || fail RECEIPT_COUNTS_UNAVAILABLE_PRESERVE_DATABASE
 [ "$receipt_counts" = 8:8:8:0 ] || fail RECEIPT_COUNTS_MISMATCH_PRESERVE_DATABASE
 
