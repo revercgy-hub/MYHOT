@@ -9,7 +9,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import { after, before, test } from "node:test";
 import { closeDb, sql } from "@aihot/backend/db";
 import { upsertMaterial } from "@aihot/backend/content/materials";
-import { analyzeArticle, SCORE_SYSTEM, tierThreshold } from "@aihot/backend/editorial/analyze";
+import { analyzeArticle, loadAnalyzeInput, runStructure, SCORE_SYSTEM, tierThreshold } from "@aihot/backend/editorial/analyze";
 import { processArticle, queueProcessing } from "@aihot/backend/jobs/content";
 import { QUEUES, stopBoss } from "@aihot/backend/jobs/queue";
 import { compactAnswerFirstSummary, enforceIdentity, parseTranslateOutput, PREFILTER_SYSTEM } from "@aihot/backend/editorial/writing";
@@ -47,7 +47,7 @@ const provider = await stub((_hit, req) => {
     if (marker === "SENSITIVE") return new Reply(400, { contentFilter: [{ level: 1, role: "user" }], error: { code: "1301", message: "系统检测到输入或生成内容可能包含不安全或敏感内容" } });
     return answer({ itemType: "policy_release", authorRole: "principal", tags: ["政府债务", "专项债", "开源", "不存在的标签"], editorialJudgment: `理由 ${marker}`, titleZh: `理解标题 ${marker}`, summaryZh: `理解摘要 ${marker}。第二句补充一个关键数字。` });
   }
-  if (step === "structure") return answer({ category: "government-debt", tags: ["政府债务", "专项债"], subjects: ["mof", "unknown-org"], fact: { title: `事实 ${marker}`, subject: "财政部", action: "发布", object: "政策", occurredAt: null } });
+  if (step === "structure") return answer({ category: "government-debt", tags: ["政府债务", "专项债"], subjects: user.includes("SUBJECT_EVIDENCE") ? ["fujian-finance", "pboc", "pboc-xiamen"] : ["mof", "unknown-org"], fact: { title: `事实 ${marker}`, subject: "财政部", action: "发布", object: "政策", occurredAt: null } });
   return answer(`title_zh: 翻译标题 ${marker}\nsummary_zh: 翻译摘要 ${marker}。第二句补充影响。`);
 });
 for (const env of ["DASHSCOPE_BASE_URL", "ZHIPU_BASE_URL", "DEEPSEEK_BASE_URL"]) process.env[env] = `${provider.url}/v1`;
@@ -100,8 +100,8 @@ test("a selected item: prefilter, two scores, the content understanding and the 
   assert.deepEqual(calls("CLEAR").sort(), ["prefilter", "score", "score", "structure", "understand"]);
   const r = await row(id);
   assert.deepEqual([r.title_zh, r.reason_zh, r.category, r.receipt_ids.length], ["理解标题 CLEAR", "理由 CLEAR", "government-debt", 5]);
-  assert.deepEqual(r.tags, ["政府债务", "专项债", "财政部"], "industry tags and the subject's tag");
-  assert.deepEqual(r.subjects, ["mof"]);
+  assert.deepEqual(r.tags, ["政府债务", "专项债"], "unsupported model subjects cannot add institution tags");
+  assert.deepEqual(r.subjects, []); // The original material does not name the stub's suggested ministry.
   assert.deepEqual([r.output.writer, r.output.itemType, r.output.prefilter.label, r.output.fact.title], ["understand", "policy_release", "PASS", "事实 CLEAR"]);
   const score = requests.find((q) => q.marker === "CLEAR" && q.step === "score")!;
   assert.match(score.user, /【标题】\nCLEAR model release/, "the score reads the original title, before any writing");
@@ -123,7 +123,7 @@ test("a near-selected item is written like a selected one; below the floor it is
   const summarize = requests.find((q) => q.marker === "LOW" && q.step === "summarize")!;
   assert.equal(summarize.body.messages.length, 1, "the title/summary prompt is one user message");
   assert.equal(summarize.body.response_format, undefined, "answered in its own text format");
-  assert.deepEqual((await row(lowId)).tags, ["政府债务", "专项债", "财政部"], "structure tags");
+  assert.deepEqual((await row(lowId)).tags, ["政府债务", "专项债"], "structure tags exclude unsupported institutions");
 });
 
 test("the prefilter's BLOCK stops everything; UNKNOWN goes on like PASS", async () => {
@@ -213,4 +213,16 @@ test("analysing the same revision again reuses every paid answer", async () => {
   const again = await analyzeArticle(id);
   assert.equal(provider.hits(), hits, "no new requests");
   assert.deepEqual([again!.reused, again!.receiptIds], [true, first!.receiptIds]);
+});
+
+test("structure removes unsupported branch subjects without another provider call", async () => {
+  const id = await article("SUBJECT_EVIDENCE", { bodyText: "福建省财政厅与中国人民银行福建省分行公布国库现金管理招标结果。" });
+  const input = await loadAnalyzeInput(id);
+  assert.ok(input);
+  const hits = provider.hits();
+  const result = await runStructure(input, {});
+  assert.deepEqual(result.subjects, ["fujian-finance", "pboc"]);
+  assert.equal(provider.hits(), hits + 1);
+  const [receipt] = await sql<{ response: { choices: Array<{ message: { content: string } }> } }[]>`SELECT response FROM receipts WHERE id = ${result.receiptId}`;
+  assert.ok(JSON.parse(receipt!.response.choices[0]!.message.content).subjects.includes("pboc-xiamen"), "raw model response stays unchanged for audit");
 });

@@ -220,6 +220,12 @@ export interface IdentityGuard {
   unsupportedSummaryEntityIds: string[];
 }
 
+/** Structured subjects use the same original-material identity evidence as generated copy. */
+export function filterSupportedSubjects(input: TranslateInput, subjects: string[]): string[] {
+  const allowed = new Set(identityContext(input).allowed);
+  return [...new Set(subjects)].filter(id => allowed.has(id));
+}
+
 /**
  * A model only words the copy; it cannot introduce a company the input does not name. A title that
  * does falls back to the original Chinese title (or nothing), a summary that does is dropped.

@@ -24,7 +24,7 @@ import { shutdownSignal } from "../jobs/queue.ts";
 import {
   buildArticlePrompt, buildLongTweetPrompt, buildShortTweetPrompt, finalizeCopy, isShortTweetInput, looksZh, MAX_BODY_CHARS, missingEvidence,
   needsShortTweetTranslation, parseTranslateOutput, PREFILTER_SYSTEM, translateInputOf, UNDERSTAND_SYSTEM, understandUser,
-  stripPdfLayoutAnnotations, type IdentityGuard,
+  stripPdfLayoutAnnotations, filterSupportedSubjects, type IdentityGuard,
 } from "./writing.ts";
 import { CATEGORY_BY_ITEM_TYPE, CATEGORY_GUIDE, CATEGORY_TAGS, ENTITIES, ENTITY_TAGS, ITEM_TYPES, normalizeTags, TOPIC_TAGS } from "./vocabulary.ts";
 import { promptText, promptVersion } from "./prompts.ts";
@@ -37,7 +37,7 @@ export const PROMPT_VERSIONS = {
   score: promptVersion("selection-score"),
   understand: promptVersion("understand"),
   summarize: promptVersion("summarize-article", "summarize-article-empty", "summarize-short-post", "summarize-short-post-quoted", "summarize-long-post", "summarize-long-post-quoted", "identity-context"),
-  structure: promptVersion("structure"),
+  structure: `${promptVersion("structure")}+subject-evidence@1`,
 } as const;
 /** Every step's prompt, as stored on each judgement. */
 export const ANALYZE_PROMPT_VERSION = Object.values(PROMPT_VERSIONS).join("+");
@@ -262,7 +262,8 @@ export async function runStructure(a: AnalyzeInputArticle, opts: StepOpts): Prom
     maxTokens: 800,
     attemptTag: tagged(opts.attemptTag, "structure"),
   });
-  const subjects = [...new Set(res.data.subjects.map((s) => s.trim().toLowerCase()).filter((s) => s in ENTITIES))];
+  const subjects = filterSupportedSubjects(translateInputOf(a),
+    res.data.subjects.map((s) => s.trim().toLowerCase()).filter((s) => s in ENTITIES));
   return { model: res.model, category: res.data.category, tags: normalizeTags(res.data.tags), subjects, fact: res.data.fact, receiptId: res.receiptId, reused: res.reused };
 }
 
