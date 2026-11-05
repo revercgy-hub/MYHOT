@@ -266,9 +266,9 @@ if (existing && isTerminal(existing.status)) return { outcome: "NOOP_TERMINAL", 
 - 11/5 的 4 篇新草稿（国债资金监管、中央部门预算审核、政府投资项目监管、预算执行检查）须同样走 §3 的人工审阅流程，**尚未审阅、未发布**。其中 1 篇被拦截，理由待下次核对。
 - 11/5 两次采集 46/46 全绿，与 §4.2"间歇性超时"判断一致：不是来源准入问题。
 
-## 九、development150 复测的启动状态（未完成）
+## 九、development150 复测（r3）：批 01 完成，其余批次环境阻塞
 
-已按用户"现在就跑"推进到可执行状态，但**尚未产出任何请求结果**，不能计为复测开始。
+已按用户"现在就跑"执行：批 01（10 例）完整跑通，批 02–15 因本机与 NAS 的运行环境问题中断。**150 例只完成 10 例，不构成 Gate 3 结论。**
 
 ### 9.1 已完成的准备
 
@@ -278,23 +278,57 @@ if (existing && isTerminal(existing.status)) return { outcome: "NOOP_TERMINAL", 
 
 **这一点很重要**：本次复测与 r2 的差异可以归因于代码实现（机构依据保护等），而不是提示词或样本变动。这是 r3 结果可解释的前提。
 
-### 9.2 当前阻塞（两条，都是环境问题）
+### 9.2 实际执行结果：1/15 批完成，2–15 批被环境中断
 
-1. **测试集群未正常运行**：`.data/test-pg/cluster` 上次关闭时间为 10/26 18:01（非正常关闭），启动时要对整个数据目录做 fsync 崩溃恢复；实测 13:52 开始、13:57 仍在 `syncing data directory`，200 秒时才走到第 200 个 base 子目录。集群内留着 10/30 那轮 15 个 `dim150_r2` 库，文件数多，恢复慢。
-2. **PG 拒绝在提权 shell 里直接运行**：直接 `postgres.exe` 报 "Execution of PostgreSQL by a user with administrative permissions is not permitted"。`pg_ctl start` 可以起，但工具链在命令结束时回收进程树，服务随即消失。当前用后台任务（`pg_ctl start; sleep 2400`）托管才维持住启动过程。
+**批 01 已完成，证据完整**（`batch-01/`，10 例）：
 
-### 9.3 恢复后要执行的命令（尚未执行）
+| 项 | 值 |
+|---|---|
+| 状态 | `COMPLETED`，10/10 例 |
+| 请求 | 28（10 次预筛 + 18 次维度评分） |
+| 回执 | 28 条全部 `received`，每条 1 attempt，无重试 |
+| 业务写入 | `businessAfter` 全 0（sources/articles/analyses/publications/fetch_runs/job_runs） |
+| 预筛 | 9 例 PASS 进入评分、1 例 BLOCK |
+
+示例行：`caseId body-a2u2sqm6ptn0ivb1k7541khr3`，T1 档，预筛 PASS，两轮评分合成 68 分，`selected=true`。
+
+**批 02–15 未完成**，两次中断，都不是模型或代码问题：
+
+1. **第一次（全 14 批并行）**：托管 PG 的后台任务在 30 分钟租期到点被回收，postgres 随之退出，全部批次连接中断并写 `DEVELOPMENT150_BATCH_FAILED_NO_RETRY`。已按干净状态重建全部 14 个库并删除中断产物目录。
+2. **第二次（5 批一波）**：子脚本的内存闸门拒绝执行——`insufficient NAS memory for local model`。NAS 当前 `MemAvailable` 仅 **1.87 GB**，闸门要求 18.9 GB（模型未判定为已加载时）。
+
+**因此本次复测只覆盖 150 例中的 10 例，不构成任何 Gate 3 结论，也不能与 r2 的 TP8/FP15/FN13/TN114 对比。**
+
+### 9.3 NAS 内存被占满（需用户处置，非本任务范围）
+
+`free -g`：总量 60.6 GB、可用 1.87 GB、swap 4.2 GB **已用尽（剩余 152 KB）**。宿主机 `ps` 排序：
+
+| RSS | 进程 |
+|---:|---|
+| 25.2 GB | `qemu-system-x86`（虚拟机） |
+| 6.3 GB | `llama-server` |
+| 2.0 GB / 1.6 GB | 两个 `python` |
+| 1.5 GB | `trim-photos` |
+
+容器合计只占约 5.4 GB，其余全在宿主机侧。**swap 用尽意味着这台 NAS 上的其它服务（wenshu 生产、komga、jellyfin、claw4 等）随时可能被 OOM 影响**，与本次复测无关但优先级更高。在内存回到 20 GB 以上之前，本地模型复测不应再启动。
+
+### 9.4 下次继续的正确做法
 
 ```bash
-export PATH="/c/Windows/System32/OpenSSH:$PATH"        # 子脚本用 execFileSync('ssh') 取网关凭据
+export PATH="/c/Windows/System32/OpenSSH:$PATH"
 N24="/c/Users/cnyyc/.codex/tools/node-v24.16.0-win-x64/node.exe"
-PG=.data/test-pg/pgsql/bin
-$PG/psql.exe -h 127.0.0.1 -p 55438 -U postgres -c "create database fiscalhot_dim150_r3_20261104_b01_test"
-DATABASE_URL="postgres://postgres@127.0.0.1:55438/fiscalhot_dim150_r3_20261104_b01_test" $N24 scripts/migrate.ts
-$N24 .data/fiscal-qa/development150-dimension-child-r3-20261104.mjs 1
+# 1) 先确认 NAS 内存 ≥19 GB 且模型已加载（或已腾出空间）
+# 2) PG 托管必须比批次运行更久，且以 fsync=off 起，避免 30 分钟崩溃恢复
+.data/test-pg/pgsql/bin/pg_ctl.exe -D .data/test-pg/cluster -l .data/test-pg/pg.log \
+  -o "-p 55438 -c fsync=off -c full_page_writes=off -c synchronous_commit=off" start
+# 3) 并发不超过 3–5 批，避免把 NAS 内存再次压到闸门以下
+$N24 .data/fiscal-qa/development150-dimension-child-r3-20261104.mjs <批次号>
+# 4) 结束时干净关闭，避免下次 30 分钟 fsync 恢复
+.data/test-pg/pgsql/bin/pg_ctl.exe -D .data/test-pg/cluster -m fast stop
 ```
 
-判据：批 01 目录下出现 10 例的 prefilter + 双轮 dimension 回执才算通过；每例最多 3 请求（1 预筛 + 2 评分），BLOCK 例只 1 请求。批 01 通过后再决定是否连跑批 02–15。
+批 01 已完成，重跑时跳过批次 1；其余批次库已重建为空库（`fiscalhot_dim150_r3_20261104_bNN_test`，36 个 migration），目录已清空，可直接运行。
+
 
 
 
