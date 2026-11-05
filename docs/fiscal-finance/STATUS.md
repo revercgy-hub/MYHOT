@@ -1,5 +1,11 @@
 # 项目状态
 
+## 2026-11-06 WorkBuddy 模型盲判 development150
+
+用 WorkBuddy 模型替代 NAS 本地 qwen3.5:9b，对 development150 全量 150 篇做盲判（不看 Gold、不看管线预测、不给门槛，8 片独立上下文，冻结 SHA256 c7e80aad…b5502c）。结果 TP18/FP36/FN3/TN93，查准 33.3%、查全 85.7%、准确 74.0%；r2 管线同口径为 TP8/FP15/FN13/TN114，查准 34.8%、查全 38.1%、准确 81.3%。**查准持平而查全差 2.2 倍，Gate 3 的主要缺陷是漏选而非误选。**
+
+关键结论：管线 13 篇漏选分数全部在 26–36，远低于 60 门槛，调门槛救不回来；漏掉的恰是中央预算公开、地方债发行观察、超长期特别国债联合监管、内控、转移支付监管等用户口径下应优先的监管业务稿——五轴评分对这类内容系统性低估。另一侧，判据未区分做了什么与怎么做，导致方法经验稿被当精选。会议学习类 65 篇中 Gold 仅认 2 篇精选，与 11/4 新口径系统性冲突，需先修 Gold 再谈该类的模型误差。另发现 Gold 同质材料相反标注：国库现金管理第十一期 reject（10/29）、第十二期 select（10/19），建议修订后者。本轮为诊断性盲判，不构成 Gate 3 通过，未写库、未发布、未调用付费模型。详见[盲判分析](HANDOFFS/WORKBUDDY_BLIND_JUDGE_2026-11-06.md)。
+
 ## 2026-11-04 WorkBuddy日常交接
 
 已整理[WorkBuddy工作交接书](HANDOFFS/WORKBUDDY_DAILY_OPERATIONS_HANDOFF_2026-11-04.md)。19:49只读核查：669文章/1052修订/669发现，正文480 ok/176 pending/13 unconfirmed，36源有ok样本；pub/override137/137、receipts/attempts31/31、Gold200，48来源采集/全文开关均关闭，API原镜像ee9运行且restartCount0。开发代码头a658201的[Check41161576833](https://github.com/revercgy-hub/MYHOT/actions/runs/41161576833)成功，机构依据保护仍未整体部署到NAS。
