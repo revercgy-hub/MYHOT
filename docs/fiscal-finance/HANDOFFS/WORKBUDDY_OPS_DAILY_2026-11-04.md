@@ -248,3 +248,53 @@ if (existing && isTerminal(existing.status)) return { outcome: "NOOP_TERMINAL", 
 2. 采集 list 超时的退避重试策略（涉及请求行为，需单独批）。
 3. 机构依据保护从 `a658201` 到运行镜像 `ee9` 的整体升级窗口。
 
+## 八、11/5 延续观察（同一班次）
+
+本班次实际跨过了 11/4 夜间到 11/5 白天，四类计划任务在 11/5 全部有新记录，补记如下（时间均为 NAS 本地 CST，已与本机及 GitHub 响应头三方校准，偏差 ≤1 秒）。
+
+| 时间 | 任务 | 结果 |
+|---|---|---|
+| 11/5 01:00 | 备份 | `VERIFIED`，runId `pg17daily-20261104T170001Z-80ec471cd8dd`，2,571,451 字节，SHA256 `5a6b5508…358cc6b0` |
+| 11/5 02:00 | 理解 | **`NOOP_TERMINAL`（连续第 4 天）**，与 §2.2 的代码结论完全一致 |
+| 11/5 03:30 | 摘要 | 候选 5 → **4 篇草稿 + 1 篇相关性拦截**，5 次调用全部 completed/1 attempt，无 failed/unknown/pending |
+| 11/5 06:00 | 采集 | 46/46 成功，0 失败，新增 5 |
+| 11/5 12:00 | 采集 | 46/46 成功，0 失败，新增 2 |
+
+要点：
+
+- 理解任务连第 4 天 NOOP，进一步确认"单终态短路"结论，不再需要额外猜测；按日接续补丁是恢复每日运行的唯一正路。
+- 11/5 的 4 篇新草稿（国债资金监管、中央部门预算审核、政府投资项目监管、预算执行检查）须同样走 §3 的人工审阅流程，**尚未审阅、未发布**。其中 1 篇被拦截，理由待下次核对。
+- 11/5 两次采集 46/46 全绿，与 §4.2"间歇性超时"判断一致：不是来源准入问题。
+
+## 九、development150 复测的启动状态（未完成）
+
+已按用户"现在就跑"推进到可执行状态，但**尚未产出任何请求结果**，不能计为复测开始。
+
+### 9.1 已完成的准备
+
+1. **确认 r2 计划已失效**：10/30 冻结的 6 个代码文件里，`packages/backend/src/editorial/analyze.ts` 与 `writing.ts` 在之后有改动，r2 计划对不上当前 `a658201`。按冻结纪律不能改 r2 原件。
+2. **生成 r3 计划**：`.data/fiscal-qa/development150-dimensions-r3-20261104/`（`input.json`、`system.md`、`plan.json`），子脚本 `.data/fiscal-qa/development150-dimension-child-r3-20261104.mjs`，库名前缀 `fiscalhot_dim150_r3_20261104_bNN_test`。150 例、每批 10 例、每批上限 30 请求、总上限 450、4 小时总时限、`noRetry`。
+3. **r3 与 r2 的冻结输入逐项相同**：`inputSha256`、`systemSha256`、`prefilterSystemSha256`、`weights` 全部一致；差别只在上述两个代码文件的实现。
+
+**这一点很重要**：本次复测与 r2 的差异可以归因于代码实现（机构依据保护等），而不是提示词或样本变动。这是 r3 结果可解释的前提。
+
+### 9.2 当前阻塞（两条，都是环境问题）
+
+1. **测试集群未正常运行**：`.data/test-pg/cluster` 上次关闭时间为 10/26 18:01（非正常关闭），启动时要对整个数据目录做 fsync 崩溃恢复；实测 13:52 开始、13:57 仍在 `syncing data directory`，200 秒时才走到第 200 个 base 子目录。集群内留着 10/30 那轮 15 个 `dim150_r2` 库，文件数多，恢复慢。
+2. **PG 拒绝在提权 shell 里直接运行**：直接 `postgres.exe` 报 "Execution of PostgreSQL by a user with administrative permissions is not permitted"。`pg_ctl start` 可以起，但工具链在命令结束时回收进程树，服务随即消失。当前用后台任务（`pg_ctl start; sleep 2400`）托管才维持住启动过程。
+
+### 9.3 恢复后要执行的命令（尚未执行）
+
+```bash
+export PATH="/c/Windows/System32/OpenSSH:$PATH"        # 子脚本用 execFileSync('ssh') 取网关凭据
+N24="/c/Users/cnyyc/.codex/tools/node-v24.16.0-win-x64/node.exe"
+PG=.data/test-pg/pgsql/bin
+$PG/psql.exe -h 127.0.0.1 -p 55438 -U postgres -c "create database fiscalhot_dim150_r3_20261104_b01_test"
+DATABASE_URL="postgres://postgres@127.0.0.1:55438/fiscalhot_dim150_r3_20261104_b01_test" $N24 scripts/migrate.ts
+$N24 .data/fiscal-qa/development150-dimension-child-r3-20261104.mjs 1
+```
+
+判据：批 01 目录下出现 10 例的 prefilter + 双轮 dimension 回执才算通过；每例最多 3 请求（1 预筛 + 2 评分），BLOCK 例只 1 请求。批 01 通过后再决定是否连跑批 02–15。
+
+
+
