@@ -268,7 +268,7 @@ if (existing && isTerminal(existing.status)) return { outcome: "NOOP_TERMINAL", 
 
 ## 九、development150 复测（r3）：批 01 完成，其余批次环境阻塞
 
-已按用户"现在就跑"执行：批 01（10 例）完整跑通，批 02–15 因本机与 NAS 的运行环境问题中断。**150 例只完成 10 例，不构成 Gate 3 结论。**
+已按用户"现在就跑"执行：批 01（10 例）完整跑通；批 02–15 经三次尝试均被环境中断（PG 托管到期、批量目录冲突、NAS 内存闸门）。**150 例只完成 10 例，不构成 Gate 3 结论。**
 
 ### 9.1 已完成的准备
 
@@ -292,42 +292,41 @@ if (existing && isTerminal(existing.status)) return { outcome: "NOOP_TERMINAL", 
 
 示例行：`caseId body-a2u2sqm6ptn0ivb1k7541khr3`，T1 档，预筛 PASS，两轮评分合成 68 分，`selected=true`。
 
-**批 02–15 未完成**，两次中断，都不是模型或代码问题：
+**批 02–15 未完成**，三次中断，都不是模型或代码问题：
 
-1. **第一次（全 14 批并行）**：托管 PG 的后台任务在 30 分钟租期到点被回收，postgres 随之退出，全部批次连接中断并写 `DEVELOPMENT150_BATCH_FAILED_NO_RETRY`。已按干净状态重建全部 14 个库并删除中断产物目录。
-2. **第二次（5 批一波）**：子脚本的内存闸门拒绝执行——`insufficient NAS memory for local model`。NAS 当前 `MemAvailable` 仅 **1.87 GB**，闸门要求 18.9 GB（模型未判定为已加载时）。
+1. **第一次（14 批全并行）**：托管 PG 的后台任务在 30 分钟租期到点被回收，postgres 随之退出，全部批次连接中断并写 `DEVELOPMENT150_BATCH_FAILED_NO_RETRY`。已重建全部 14 个库并清理中断目录。
+2. **第二次（5 批一波）**：子脚本内存闸门拒绝执行——`insufficient NAS memory for local model`。当时 NAS `MemAvailable` 仅 1.87 GB，闸门要求 18.9 GB。
+3. **第三次（4 通道驱动）**：部分批次在 `mkdir batch-NN` 处 `EEXIST`（第二次尝试已建目录未清），其余批次再次撞上内存闸门；当时可用内存已跌到 6.1 GB。
+
+三次尝试共消耗约 55 次本地免费请求（含被丢弃的 2–10 批部分运行），全部落在一次性隔离库里，**没有写入任何 Staging 数据，没有公开发布，没有付费调用**。批 04/07/08/09/10 的库已重建为空库（36 migration），中断产物目录已删除，当前只剩 `batch-01`。
 
 **因此本次复测只覆盖 150 例中的 10 例，不构成任何 Gate 3 结论，也不能与 r2 的 TP8/FP15/FN13/TN114 对比。**
 
-### 9.3 NAS 内存被占满（需用户处置，非本任务范围）
+### 9.3 NAS 内存不足是硬阻塞（需用户处置，非本任务范围）
 
-`free -g`：总量 60.6 GB、可用 1.87 GB、swap 4.2 GB **已用尽（剩余 152 KB）**。宿主机 `ps` 排序：
+复测期间实测：`MemAvailable` 从 21.8 GB → 1.87 GB → 6.1 GB，与批次并发数直接相关；**所有批次进程退出后仍只回到 6.7 GB，没有恢复到 19 GB 以上**。
 
-| RSS | 进程 |
-|---:|---|
-| 25.2 GB | `qemu-system-x86`（虚拟机） |
-| 6.3 GB | `llama-server` |
-| 2.0 GB / 1.6 GB | 两个 `python` |
-| 1.5 GB | `trim-photos` |
+宿主机 `ps`：`qemu-system-x86` 常驻 **25.2 GB**，两个 `python` 合计 3.6 GB，`trim-photos` 1.5 GB；所有 Docker 容器合计仅约 5.4 GB。`free` 曾显示 swap 4.2 GB **全部用尽**。
 
-容器合计只占约 5.4 GB，其余全在宿主机侧。**swap 用尽意味着这台 NAS 上的其它服务（wenshu 生产、komga、jellyfin、claw4 等）随时可能被 OOM 影响**，与本次复测无关但优先级更高。在内存回到 20 GB 以上之前，本地模型复测不应再启动。
+结论：**在 qemu 那个 25 GB 虚机不缩小之前，本地模型复测随时会被闸门挡住**。这不是调参能绕过的——闸门要求的是真实可用内存。同一时段 NAS 上的 wenshu 生产、komga、jellyfin、claw4 也都在同一内存池里，OOM 风险不属于本任务但优先级更高。
 
-### 9.4 下次继续的正确做法
+### 9.4 下次继续（当前状态已就绪，只差内存）
 
 ```bash
 export PATH="/c/Windows/System32/OpenSSH:$PATH"
 N24="/c/Users/cnyyc/.codex/tools/node-v24.16.0-win-x64/node.exe"
-# 1) 先确认 NAS 内存 ≥19 GB 且模型已加载（或已腾出空间）
-# 2) PG 托管必须比批次运行更久，且以 fsync=off 起，避免 30 分钟崩溃恢复
+# 0) 前置：NAS MemAvailable ≥ 19 GB（当前 6.7 GB，不满足）
+# 1) 起库（干净关闭状态下秒起；fsync=off 只影响本次启动，避免 30 分钟崩溃恢复）
 .data/test-pg/pgsql/bin/pg_ctl.exe -D .data/test-pg/cluster -l .data/test-pg/pg.log \
   -o "-p 55438 -c fsync=off -c full_page_writes=off -c synchronous_commit=off" start
-# 3) 并发不超过 3–5 批，避免把 NAS 内存再次压到闸门以下
-$N24 .data/fiscal-qa/development150-dimension-child-r3-20261104.mjs <批次号>
-# 4) 结束时干净关闭，避免下次 30 分钟 fsync 恢复
+# 2) 单通道串行最稳（每批约 20 分钟，剩余 14 批约 4.5 小时）；4 通道会把内存压到闸门以下
+$N24 .data/fiscal-qa/run-r3-batches-20261105.mjs      # 驱动里 LANES=4，跑前改成 1
+# 3) 结束干净关闭
 .data/test-pg/pgsql/bin/pg_ctl.exe -D .data/test-pg/cluster -m fast stop
 ```
 
-批 01 已完成，重跑时跳过批次 1；其余批次库已重建为空库（`fiscalhot_dim150_r3_20261104_bNN_test`，36 个 migration），目录已清空，可直接运行。
+批 01 已完成，续跑从批次 2 开始；14 个库均已迁移为空库，可直接运行。驱动脚本 `.data/fiscal-qa/run-r3-batches-20261105.mjs` 已就位，只需把 `LANES` 改成 1。
+
 
 
 
