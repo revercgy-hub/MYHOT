@@ -1,5 +1,21 @@
 # 项目状态
 
+## 2026-11-06 第五轮（查证"附件解析和PDF这条"，补回6篇）
+
+查证结论：**不存在可打开的附件解析子系统**。`media.prepare` 是OG图片件；`OCR_RUN_ENABLED` 在代码中无任何实现（空阀门）；没有处理已落盘附件的队列。附件只由配置驱动（attachmentSelector + attachmentMode，走 pdf-body.ts）。`attachments_unprocessed` 的产生条件写死在 selected-body.ts:395——页面只要有PDF附件链接就拒绝用通知正文交差，这是设计。nfra 更彻底：nfra-json-detail.ts:114 无条件返回该原因，开什么开关都没用（第三轮直接调 JSON 接口取 docClob 才是唯一路径）。
+
+改走运行时抽取器（extractArticleBody，支持PDF/附件/bodyPolicies，CAS operator 只认HTML）：政府网11篇**成功6篇**（1810-8384字）；福建财政厅补 pdfDirect 三字段后不再报 article_not_html，改报 **pdf_page_no_text**（扫描件，无文字层）；厦门债务同类。
+
+累计：有正文(>200字) 244→**250**，无正文 20→**16**。剩余16篇性质：政府网5(需配附件driver)、陕西4(需改代码)、厦门3(OCR/附件类型)、福建财政厅2(OCR)、nfra2(已ok的108/142字简讯)。详见[第五轮记录](HANDOFFS/BODY_BACKFILL_ROUND5_2026-11-06.md)。
+
+## 2026-11-06 第五轮（查证"附件解析和PDF这条"，补回6篇）
+
+查证结论：**不存在可打开的附件解析子系统**。`media.prepare` 是OG图片件；`OCR_RUN_ENABLED` 在代码中无任何实现（空阀门）；没有处理已落盘附件的队列。附件只由配置驱动（attachmentSelector + attachmentMode，走 pdf-body.ts）。`attachments_unprocessed` 的产生条件写死在 selected-body.ts:395——页面只要有PDF附件链接就拒绝用通知正文交差，这是设计。nfra 更彻底：nfra-json-detail.ts:114 无条件返回该原因，开什么开关都没用（第三轮直接调 JSON 接口取 docClob 才是唯一路径）。
+
+改走运行时抽取器（extractArticleBody，支持PDF/附件/bodyPolicies，CAS operator 只认HTML）：政府网11篇**成功6篇**（1810-8384字）；福建财政厅补 pdfDirect 三字段后不再报 article_not_html，改报 **pdf_page_no_text**（扫描件，无文字层）；厦门债务同类。
+
+累计：有正文(>200字) 244→**250**，无正文 20→**16**。剩余16篇性质：政府网5(需配附件driver)、陕西4(需改代码)、厦门3(OCR/附件类型)、福建财政厅2(OCR)、nfra2(已ok的108/142字简讯)。详见[第五轮记录](HANDOFFS/BODY_BACKFILL_ROUND5_2026-11-06.md)。
+
 ## 2026-11-06 正文补全第四轮（汇总页15篇 + nfra固化）
 
 **纠错**：上一轮判断汇总页需"列表→详情二次跳转"是错的。15条URL全部直指地方站详情页，真正的阻塞是 `mof-regional-supervision-dynamics` 的 detail 缺 `publishedAtRegex`，导致 detailConfigIsDirectHtml 判定失败。补一行配置后该源放行；实测15个页面 `.my_doccontent > .TRS_Editor` 全部命中（1563-4255字），选择器本身没问题。受 `maxFetches:10` 单据上限，拆 10+5 两批跑，15/15 写入。

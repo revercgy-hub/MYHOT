@@ -40,7 +40,10 @@
         "detail": {
           "maxFetches": 10,
           "bodySelector": ".TRS_Editor",
-          "titleRegex": "<title>\\s*([\\s\\S]*?)\\s+_\\s+通知公告\\s+_\\s+福建省财政厅\\s*</title>"
+          "titleRegex": "<title>\\s*([\\s\\S]*?)\\s+_\\s+通知公告\\s+_\\s+福建省财政厅\\s*</title>",
+          "pdfDirect": true,
+          "pdfDirectUrlSuffix": ".pdf",
+          "pdfMaxBytes": 6291456
         },
         "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true, "requireBodyReadyForAutomaticSelection": true }
       },
