@@ -1,5 +1,7 @@
 # 最新检查点
 
+- [2026-11-06 项目核查与 WorkBuddy 优化安排](PROJECT_REVIEW_AND_WORKBUDDY_STRATEGY_2026-11-06.md)：13:19–13:20只读复核；45篇精选上线、近期缺口35篇。优先修复采集配置漂移、NFRA七篇缺失修订和盲判编号错误，再推进日常处理闭环与精选校准；Gate 3–5未通过。
+
 - [2026-11-04 WorkBuddy日常工作交接书](WORKBUDDY_DAILY_OPERATIONS_HANDOFF_2026-11-04.md)：包含11/4只读现况、业务口径、日常安排、P0/P1待办、费用边界、环境入口和启动指令；Gate 3–5仍未整体通过。
 
 - [2026-10-24 b5/b6正文与b5摘要交接](PENDING_BODY_BATCHES_B5_B6_SUMMARY_2026-10-24.md)：b5 exact20与b6 exact47正文、b5 exact10摘要导入均有独立QA PASS；当前pub/override64、body158/254/6，Gold200不变。Gate 3/4/5未改变。

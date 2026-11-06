@@ -176,6 +176,17 @@ export async function extractArticleBody(articleId: string, allowJina = process.
   const hadPendingAttachment = !!readAttachmentDiagnostic(a.raw);
   const strictBodySource = requiresBodyReadyForAutomaticSelection(a.source_config);
   const rawExternalId = a.raw && typeof a.raw === "object" && !Array.isArray(a.raw) ? Number((a.raw as Record<string, unknown>).externalId) : NaN;
+  // The nfra detail URL carries its own document id (?docId=...), and that is the identity the
+  // detail API keys on. List rows imported without an externalId still describe a real document,
+  // so fall back to the URL rather than failing the identity check and parking the body.
+  const urlDocId = (() => {
+    try {
+      const raw = new URL(a.url).searchParams.get("docId");
+      return raw && /^\d+$/u.test(raw) ? Number(raw) : NaN;
+    } catch {
+      return NaN;
+    }
+  })();
   const selectedBody = bodySelector || bodyPolicies || pdfBodyConfigured || attachmentScopeSelector !== undefined
     ? { config: {
         bodySelector,
@@ -194,7 +205,7 @@ export async function extractArticleBody(articleId: string, allowJina = process.
         pdfMaxBytes: detail.pdfMaxBytes,
         pdfIdentity: detail.pdfIdentity,
       }, expected: { title: a.title, publishedAt: a.published_at }, allowUrlPrefixes: a.source_config.allowUrlPrefixes ?? [],
-      ...(nfraMode ? { nfra: { docId: Number.isSafeInteger(rawExternalId) ? rawExternalId : -1, listAttachmentPending: hadPendingAttachment, source: { id: a.source_id, kind: "json_list", config: a.source_config } as SourceRow } } : {}) }
+      ...(nfraMode ? { nfra: { docId: Number.isSafeInteger(rawExternalId) ? rawExternalId : (Number.isSafeInteger(urlDocId) ? urlDocId : -1), listAttachmentPending: hadPendingAttachment, source: { id: a.source_id, kind: "json_list", config: a.source_config } as SourceRow } } : {}) }
     : undefined;
   let selectedFailure: string | null = null;
   let selectedAttachments: Array<{ url: string; title: string }> = [];

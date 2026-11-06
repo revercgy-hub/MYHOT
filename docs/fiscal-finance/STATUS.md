@@ -1,5 +1,15 @@
 # 项目状态
 
+## 2026-11-06 正文补全第四轮（汇总页15篇 + nfra固化）
+
+**纠错**：上一轮判断汇总页需"列表→详情二次跳转"是错的。15条URL全部直指地方站详情页，真正的阻塞是 `mof-regional-supervision-dynamics` 的 detail 缺 `publishedAtRegex`，导致 detailConfigIsDirectHtml 判定失败。补一行配置后该源放行；实测15个页面 `.my_doccontent > .TRS_Editor` 全部命中（1563-4255字），选择器本身没问题。受 `maxFetches:10` 单据上限，拆 10+5 两批跑，15/15 写入。
+
+**nfra 固化**：`nfra_json_v1` 模式本就存在（nfra-json-detail.ts），失败根因是 `raw.externalId` 为空导致 docId=-1，而 `docId !== canonicalDocId(articleUrl)` 直接判身份无效。改为从 URL 的 `?docId=` 回退。实测验证：修复生效（不再报 identity invalid），但撞上第二道门 `attachments_unprocessed`——该文档 JSON 里附件为0、docClob有44KB，拦截依据是采集时存在 raw 里的附件诊断标记，需 prepareMedia 附件解析作业（需 worker）才能清。**nfra 闭环还差附件解析，不是抓取问题。**
+
+typecheck 通过；regional-bureau-config 与 nfra-json-detail 测试通过（福建标题期望由 null 改为实际值）；nfra-json-detail-persistence 因缺 DATABASE_URL 未跑通，与改动无关。
+
+累计：有正文(>200字) 229→**244**，无正文 35→**20**。剩余20：政府网11(PDF+需重批)、陕西4(需改代码)、厦门财政债务3(附件通道)、福建财政厅2(PDF)。详见[第四轮记录](HANDOFFS/BODY_BACKFILL_ROUND4_2026-11-06.md)。
+
 ## 2026-11-06 正文补全第三轮（nfra 7篇补齐，陕西4篇判定不可补）
 
 陕西4篇查清：bodyPolicies 的 `.my_doccontent .TRS_Editor` 在4个页面上匹配数为0，正文在裸div里（1215-1539字），`<p>` 只能抽到页脚；divTextBlocks 有 minTextChars>=1500 硬约束（4篇里仅1篇达标），且 CAS operator 的 detailConfigIsDirectHtml 不接受 bodyPolicies。**属代码级问题，非配置可解**；其中3篇还是主题党日/登山/支部学习，建议暂缓。

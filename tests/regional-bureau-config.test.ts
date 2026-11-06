@@ -75,7 +75,7 @@ const expected = [
     listDate: "2026-09-22T00:00:00+08:00",
     detailTitle: "财政部福建监管局：“三强化”提升资源综合利用增值税即征即退政策复查工作质量",
     detailDate: "2026-09-22 08:21:00",
-    parsedDetailTitle: null,
+    parsedDetailTitle: "财政部福建监管局：“三强化”提升资源综合利用增值税即征即退政策复查工作质量",
   },
   {
     id: "mof-beijing-supervision-dynamics",
