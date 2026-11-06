@@ -1,5 +1,13 @@
 # 项目状态
 
+## 2026-11-06 正文补全第三轮（nfra 7篇补齐，陕西4篇判定不可补）
+
+陕西4篇查清：bodyPolicies 的 `.my_doccontent .TRS_Editor` 在4个页面上匹配数为0，正文在裸div里（1215-1539字），`<p>` 只能抽到页脚；divTextBlocks 有 minTextChars>=1500 硬约束（4篇里仅1篇达标），且 CAS operator 的 detailConfigIsDirectHtml 不接受 bodyPolicies。**属代码级问题，非配置可解**；其中3篇还是主题党日/登山/支部学习，建议暂缓。
+
+金融监管总局7篇 unconfirmed 原因查明：详情页是 JS 渲染壳（20KB，正文0字），改走官网 JSON 接口 `/cbircweb/DocInfo/SelectByDocId` 的 `data.docClob` 取全文，7/7 标题身份校验通过（108-3411字）。因 applyCandidateBodyCas 只收 pending，改用等价行级守卫更新（锁 revision + content_hash + 状态白名单 + 原正文为空），7/7 写入、revision 1→2。回写前备份 SHA256 4cb516bc…
+
+累计：有正文(>200字) 224→**229**，无正文 42→**35**。剩余35篇全部需策略：汇总页15(二次跳转)、政府网11(PDF+需重批catalog哈希)、陕西4(需改代码)、厦门财政债务3(附件通道)、福建财政厅2(PDF)。配置可解的部分已做完。详见[第三轮记录](HANDOFFS/BODY_BACKFILL_ROUND3_2026-11-06.md)。
+
 ## 2026-11-06 正文补全第二轮（改来源配置，再补11篇）
 
 按批准给缺选择器的来源补配置。先抓真实页面确认结构，再只加字段：福建监管局与厦门监管局补 `titleSelector: h2.title_con`，厦门监管局与人行厦门补 `publishedAtRegex`（meta PubDate），人行厦门标题用 `<title>` 正则。官方判定函数验证三个来源 false→true；typecheck 通过。配置同步到仓库 sources.json（哈希 27af3250→63ee27bd）与 DB sources.config 三行，干跑比对确认只增不改、无字段丢失。
