@@ -1,5 +1,13 @@
 # 项目状态
 
+## 2026-11-06 45篇候选发布上线
+
+用户批准"可以进站、流水线可以开、64篇补进来"。**未启动无界worker**——content.sweep每5分钟会把数百篇全部入队（约两千次模型调用），而NAS可用内存仅6.7GB，必然OOM并波及同机服务。改走发布层既有路径：判定写入editorial_overrides（updated_by=workbuddy-selection-20261106），由publishArticle重建公开投影（该路径本身不调模型），analyses表保持0行、未伪造模型记录。
+
+发布前做2,603,122字节一致性备份（SHA256 388f4a2d…afdb3e，mode600）、45目标零写入预检（全为editorial/T1、0阻塞）、单篇试跑、全量后幂等复核。结果：publications中45篇selected/eligible/public/indexable全为true，selected_ledger 45条，释放闸门已过；站点首页第1页40条中35条为精选，/api/site/pool首条即新发布的广西监管局稿件。
+
+64篇缺正文（pending 57 + unconfirmed 7）停在补正文链路的审批闸门前：operator要求--exclude-evidence排除既有抓取URL、capture阶段要求人工审批的manifest哈希，不填空白绕过。其中33篇属结构性缺口（汇总页15、政府网政策文件11、金监总局7），需单独定来源策略。Gate 3/4均未因此通过。详见[发布记录与补正文计划](HANDOFFS/PUBLISH_45_AND_GAP_PLAN_2026-11-06.md)。
+
 ## 2026-11-06 10/27 以来动态识别分析
 
 站点全部动态停在10/27，核查后确认**不是采集问题**：10/27以来已入库266篇（正文ok 202篇），但仅6篇有publications记录，其余260篇卡在articles→publications这一环，因MODEL_CALLS_ENABLED与WORKER_ENABLED关闭。采集任务本身正常（11/5两轮均46/46）。
