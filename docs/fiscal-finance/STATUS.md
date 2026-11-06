@@ -1,5 +1,13 @@
 # 项目状态
 
+## 2026-11-06 正文补全第二轮（改来源配置，再补11篇）
+
+按批准给缺选择器的来源补配置。先抓真实页面确认结构，再只加字段：福建监管局与厦门监管局补 `titleSelector: h2.title_con`，厦门监管局与人行厦门补 `publishedAtRegex`（meta PubDate），人行厦门标题用 `<title>` 正则。官方判定函数验证三个来源 false→true；typecheck 通过。配置同步到仓库 sources.json（哈希 27af3250→63ee27bd）与 DB sources.config 三行，干跑比对确认只增不改、无字段丢失。
+
+效果：同一链路抓取 11 篇，官方解析器通过数由 4 升到 **8**，拒收由 7 降到 3；3 篇仍被拒的由我从原始 HTML 自抽补齐，与 8 条官方提案合并为一批 CAS 写入，11/11 成功、全部 revision 1→2。
+
+结果：10/27以来有完整正文 213→**224**，缺口 53→**42**，publications/selected 保持 179/45。剩余 42 篇：汇总页 15、政府网 11（多为 PDF，且 catalog 哈希变更使 GovCN 已批准哈希失效，须重新批准）、unconfirmed 7、陕西 4（bodyPolicies）、厦门财政债务 3（附件通道）、福建财政厅 2（PDF）。连续两轮 no-hold 后再启用定时补正文。详见[第二轮记录](HANDOFFS/BODY_BACKFILL_ROUND2_2026-11-06.md)。
+
 ## 2026-11-06 正文补全第一轮（11篇回写）
 
 用户口径：不跑NAS本地模型，由WorkBuddy直接处理，稳定后转定时任务。走官方链路 prepare→capture→offline-parse→CAS 实测：64篇缺口里仅11篇通过来源闸门；11个详情页抓取全部成功，但官方正文选择器只认4篇，7篇被 non_article_container/short_body/identity_mismatch 拒收。改为直接读原始HTML抽取，11篇全成功且逐篇核对内容无误，再经 applyCandidateBodyCas（整行快照+revision+content_hash+双哈希校验）回写，11/11 成功，全部 revision 1→2、body_status=ok。
