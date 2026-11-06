@@ -1,5 +1,13 @@
 # 项目状态
 
+## 2026-11-06 正文补全第一轮（11篇回写）
+
+用户口径：不跑NAS本地模型，由WorkBuddy直接处理，稳定后转定时任务。走官方链路 prepare→capture→offline-parse→CAS 实测：64篇缺口里仅11篇通过来源闸门；11个详情页抓取全部成功，但官方正文选择器只认4篇，7篇被 non_article_container/short_body/identity_mismatch 拒收。改为直接读原始HTML抽取，11篇全成功且逐篇核对内容无误，再经 applyCandidateBodyCas（整行快照+revision+content_hash+双哈希校验）回写，11/11 成功，全部 revision 1→2、body_status=ok。
+
+结果：10/27以来有完整正文 202→**213**，缺口 64→**53**（pending 46 + unconfirmed 7），publications/selected 保持 179/45 未变。回写前备份 2,694,696 字节 SHA256 aed9afa4…974bde。
+
+剩余53篇的阻塞点已逐源定位：17篇只差 titleSelector/publishedAtRegex（福建4、厦门6、福建财政厅2、人行厦门1、陕西4），15篇汇总页需二次跳转策略，11篇政府网需catalog哈希重批且多为PDF，7篇unconfirmed状态待查，厦门财政债务3篇含attachmentMode。补正文暂不并入每日任务——只有11/64走通不算稳定，避免每天重复撞闸门。详见[正文补全第一轮](HANDOFFS/BODY_BACKFILL_ROUND1_2026-11-06.md)。
+
 ## 2026-11-06 45篇候选发布上线
 
 用户批准"可以进站、流水线可以开、64篇补进来"。**未启动无界worker**——content.sweep每5分钟会把数百篇全部入队（约两千次模型调用），而NAS可用内存仅6.7GB，必然OOM并波及同机服务。改走发布层既有路径：判定写入editorial_overrides（updated_by=workbuddy-selection-20261106），由publishArticle重建公开投影（该路径本身不调模型），analyses表保持0行、未伪造模型记录。
