@@ -1,5 +1,13 @@
 # 项目状态
 
+## 2026-11-07 第六轮（再补8篇，缺口16→8）
+
+**纠错**：上一轮判断陕西"bodyPolicies 是死选择器"是错的——我用 `grep class="TRS_Editor"` 去数，但页面写的是不带引号的 `<div class=TRS_Editor>`。cheerio 正确加载后选择器命中，真正问题是容器内嵌 `<style>` 块（543字CSS）把正文撑成942字又被1500地板判不合格。去style后真实正文398-900字。**教训：数元素必须用解析器，不能 grep 字符串。**
+
+陕西4篇用 cheerio 定点抽 `.my_doccontent .TRS_Editor`（先移除 style/script）；政府网4篇是"十五五"规划类，通知正文仅119-362字、全文在PDF附件，改用"通知正文 + 附件PDF全文"合并，用仓库自带 parsePdfText 解析（9-12页、4953-6274字，合并后5240-6416字）。写入统一用行级守卫更新（锁 revision + content_hash + 状态）。回写前备份 SHA256 4aefafd4…
+
+累计：有正文(>200字) 250→**258**，无正文 16→**8**。剩余8篇死因：厦门债务2(扫描PDF无文字层)+1(ZIP附件20MB)、福建财政厅2(扫描PDF)、政府网1(102页超40页上限且10秒超时)、nfra2(已ok的108/142字简讯)。4篇扫描件+1个ZIP+1篇102页需新能力(OCR/zip解析/提页数上限)，容器与本机均无任何PDF渲染工具，代码也无OCR实现。详见[第六轮记录](HANDOFFS/BODY_BACKFILL_ROUND6_2026-11-07.md)。
+
 ## 2026-11-06 第五轮（查证"附件解析和PDF这条"，补回6篇）
 
 查证结论：**不存在可打开的附件解析子系统**。`media.prepare` 是OG图片件；`OCR_RUN_ENABLED` 在代码中无任何实现（空阀门）；没有处理已落盘附件的队列。附件只由配置驱动（attachmentSelector + attachmentMode，走 pdf-body.ts）。`attachments_unprocessed` 的产生条件写死在 selected-body.ts:395——页面只要有PDF附件链接就拒绝用通知正文交差，这是设计。nfra 更彻底：nfra-json-detail.ts:114 无条件返回该原因，开什么开关都没用（第三轮直接调 JSON 接口取 docClob 才是唯一路径）。
