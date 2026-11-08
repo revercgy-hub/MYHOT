@@ -1191,6 +1191,55 @@
       },
       "tier": "T1", "first_party": true, "owner_entity_id": "nfra", "participation_mode": "editorial", "interval_minutes": 1440,
       "tags": ["官方", "金融监管", "监管动态"], "site_fulltext": false, "syndicate_fulltext": false, "enabled": false
+    },
+    {
+      "id": "tj-finance-notices",
+      "name": "天津市财政局·通知公告",
+      "kind": "web_list",
+      "config": {
+        "url": "https://cz.tj.gov.cn/zwgk_53713/tzggx/",
+        "itemSelector": "#commonListUl > ul > li",
+        "linkSelector": "a[href]",
+        "titleSelector": "p",
+        "publishedAtSelector": "span",
+        "publishedAtUtcOffset": "+08:00",
+        "allowUrlPrefixes": ["https://cz.tj.gov.cn/zwgk_53713/tzggx/"],
+        "detail": {
+          "maxFetches": 10,
+          "titleRegex": "<meta\\s+name=\"ArticleTitle\"\\s+content=\"([^\"]+)",
+          "publishedAtRegex": "<meta\\s+name=\"PubDate\"\\s+content=[\"']([^\"']+)",
+          "publishedAtUtcOffset": "+08:00",
+          "bodySelector": ".content"
+        },
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
+      },
+      "tier": "T1", "first_party": true, "owner_entity_id": "tj-finance", "participation_mode": "editorial", "interval_minutes": 1440,
+      "tags": ["官方", "天津", "地方财政"], "site_fulltext": false, "syndicate_fulltext": false, "enabled": false
+    },
+    {
+      "id": "sx-finance-notices",
+      "name": "陕西省财政厅·通知公告",
+      "kind": "web_list",
+      "config": {
+        "url": "https://czt.shaanxi.gov.cn/sy/bmdt/tzgg/",
+        "itemSelector": "ul.cm-news-list.gl-news-list > li",
+        "linkSelector": "a[href]",
+        "titleSelector": "a",
+        "titleAttribute": "title",
+        "publishedAtSelector": "span",
+        "publishedAtUtcOffset": "+08:00",
+        "allowUrlPrefixes": ["https://czt.shaanxi.gov.cn/sy/bmdt/tzgg/"],
+        "detail": {
+          "maxFetches": 10,
+          "titleRegex": "<meta\\s+name=\"ArticleTitle\"\\s+content=\"([^\"]+)",
+          "publishedAtRegex": "<meta\\s+name=\"PubDate\"\\s+content=[\"']([^\"']+)",
+          "publishedAtUtcOffset": "+08:00",
+          "bodySelector": ".content"
+        },
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
+      },
+      "tier": "T1", "first_party": true, "owner_entity_id": "sx-finance", "participation_mode": "editorial", "interval_minutes": 1440,
+      "tags": ["官方", "陕西", "地方财政"], "site_fulltext": false, "syndicate_fulltext": false, "enabled": false
     }
   ]
 }

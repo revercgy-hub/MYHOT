@@ -1,5 +1,15 @@
 # 项目状态
 
+## 2026-11-08 加源执行：天津、陕西财政厅（48→50 源）
+
+先处置拦路不一致：12:00 窗口报 `source config or safety flags differ from fixed catalog: fujian-finance-notices`——11-06/07 改过 DB 里5个源的 config 而线上 catalog 是旧版。把5源 DB config 回滚到旧 catalog 值（干跑确认 changedKeys 全空、只 droppedKeys），比对 diff=0。备份 SHA256 342b8508…
+
+新增2源：tj-finance-notices（`#commonListUl > ul > li` / `.content`）、sx-finance-notices（`ul.cm-news-list.gl-news-list > li` / `.content`）。天津 PubDate 用单引号，正则写成兼容双引号。北京未加——列表标题含 `<font>` 转义与【置顶】前缀，会污染标题。
+
+**关键简化**：launcher 把 catalog 拷到 /tmp 用 AIHOT_SOURCE_CATALOG_PATH 传给 operator，镜像内 /app/industry/sources.json 仅作完整性校验。故 appCatalogSha256 保持 27af3250 不变，launcher/entrypoint/crontab 三层 pin 全不碰，改动面从7步压到4处：operator 常量、catalog 文件、NAS 两 pin、DB 同步。
+
+验证：typecheck 通过；fiscal-nas-candidate-batch 测试 16通过/1跳过；NAS catalog 与 operator 哈希均与 pin 一致；DB 与 catalog 50/50、mismatch 0；operator plan 模式 PLAN_ONLY 成功且两新源进入 plan。回退路径：NAS backup-20261108/ 4个原文件 + fiscalhot-pre-addsources-20261108.dump（f5cbaeb0…）。18:00 窗口为首次带新源采集，已配 18:15 一次性核对任务。详见[加源执行记录](HANDOFFS/SOURCE_EXPANSION_EXEC_2026-11-08.md)。
+
 ## 2026-11-08 事故：catalog 覆盖致采集停摆6个窗口（已修复）
 
 **根因是我不当操作**：为跑补正文 CAS operator，把改过的 industry/sources.json 覆盖进 NAS API 容器（64dcaf07…），而采集启动脚本第125行拿该文件 sha256 与批准值 27af3250… 比对，不一致即 fail API_SOURCE_CATALOG_DRIFT。11-06 12:00 起连续6个窗口（06/12/18点×2天）采集全部拒绝启动，03:30摘要任务同样因 API_CATALOG_PIN_MISMATCH 连续2天未跑。

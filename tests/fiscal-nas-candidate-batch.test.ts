@@ -20,14 +20,14 @@ const candidate = (url: string, title = "预算执行情况", daysAgo = 1): Cand
   url, title, publishedAt: new Date(Date.now() - daysAgo * 86_400_000), bodyText: null,
 });
 
-test("daily-latest preset binds 46 disabled sources and summary drafting stays on the original 20", () => {
+test("daily-latest preset binds 48 disabled sources and summary drafting stays on the original 20", () => {
   const catalogSha256 = DAILY_LATEST_PRESET.catalogSha256;
   assert.equal(createHash("sha256").update(catalogBytes).digest("hex"), catalogSha256);
   const resolved = resolveCandidateBatchScope({ preset: "daily-latest", sourceIds: ["mof-budget-work"],
     maxNewPerSource: 30, maxDetailsTotal: 0, recentDays: 90, catalogSha256 });
   assert.equal(resolved.preset, "daily-latest");
-  assert.equal(resolved.sourceIds.length, 46);
-  assert.equal(new Set(resolved.sourceIds).size, 46);
+  assert.equal(resolved.sourceIds.length, 48);
+  assert.equal(new Set(resolved.sourceIds).size, 48);
   assert.deepEqual(resolved.sourceIds.slice(0, SUMMARY_DRAFT_SOURCE_IDS.length), [...SUMMARY_DRAFT_SOURCE_IDS]);
   assert.equal(SUMMARY_DRAFT_SOURCE_IDS.length, 20);
   assert.equal(Object.isFrozen(SUMMARY_DRAFT_SOURCE_IDS), true);
@@ -37,10 +37,10 @@ test("daily-latest preset binds 46 disabled sources and summary drafting stays o
   assert.equal(resolved.requirePublishedAt, true);
   assert.equal(resolved.maxNewPerSource, 10);
   assert.equal(resolved.maxDetailsTotal, 30);
-  assert.equal(resolved.maxDispatches, 76);
+  assert.equal(resolved.maxDispatches, 78);
   const plan = buildSourcePlan({ catalogSources: catalog, sourceIds: resolved.sourceIds,
     maxNewPerSource: resolved.maxNewPerSource, maxDetailsTotal: resolved.maxDetailsTotal, unsupportedConfig });
-  assert.equal(plan.length, 46);
+  assert.equal(plan.length, 48);
   assert.ok(plan.every((row) => row.maxNew === 10));
   assert.ok(plan.reduce((sum, row) => sum + row.maxDetails, 0) >= 30);
   assert.ok(plan.every((row) => catalog.find((s) => s.id === row.id)?.enabled === false));
@@ -85,7 +85,7 @@ test("daily-latest catalog override and image catalog require the new pinned raw
     const loaded = loadCandidateCatalog({ appRootPath: appCatalogPath, overridePath, preset: "daily-latest" });
     assert.equal(loaded.mode, "explicit-operator-override");
     assert.equal(loaded.inputSha256, DAILY_LATEST_PRESET.catalogSha256);
-    assert.equal(loaded.appRootSha256, "27af3250bbc472ed20019983093b43336cc1967b9ae3193e6b202da4df27ad3f");
+    assert.equal(loaded.appRootSha256, DAILY_LATEST_PRESET.appCatalogSha256);
     writeFileSync(overridePath, "{\"sources\":[]}\n");
     assert.throws(() => loadCandidateCatalog({ appRootPath: appCatalogPath, overridePath, preset: "daily-latest" }),
       /catalog hash drift/u);
@@ -137,11 +137,11 @@ test("NAS plan admits only configured disabled direct public summary-only lists"
     maxNewPerSource: 30, maxDetailsTotal: 0, unsupportedConfig: () => [] }), /configured disabled summary-only list/);
 });
 
-test("fixed 48-source catalog is compatible with list-only plans and a total detail ceiling", () => {
+test("fixed 50-source catalog is compatible with list-only plans and a total detail ceiling", () => {
   const plans = buildSourcePlan({ catalogSources: catalog, sourceIds: catalog.map((row) => String(row.id)),
     maxNewPerSource: 30, maxDetailsTotal: 150, unsupportedConfig });
-  assert.equal(plans.length, 48);
-  assert.equal(plans.filter((row) => row.kind === "web_list").length, 45);
+  assert.equal(plans.length, 50);
+  assert.equal(plans.filter((row) => row.kind === "web_list").length, 47);
   assert.equal(plans.filter((row) => row.kind === "json_list").length, 3);
   assert.ok(plans.reduce((sum, row) => sum + row.configuredDetailMaxFetches, 0) >= 150);
   assert.ok(plans.every((row) => row.maxDetails === row.effectiveDirectHtmlDetailCap));
