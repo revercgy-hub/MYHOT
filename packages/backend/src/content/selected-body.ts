@@ -272,6 +272,9 @@ function policyTableIsComplete(html: string, policy: SelectedBodyPolicy): boolea
 
 function policyDivTextBlocksAreComplete(html: string, pageUrl: string): boolean {
   const $ = cheerio.load(html, null, false);
+  // TRS-style editors ship their own <style> block inside the body container. It is not an article
+  // block, so it must not count as a non-div child when the div-only shape is validated.
+  $("style,script,noscript").remove();
   const contents = $.root().contents().toArray();
   const blocks = contents.filter((node) => node.type === "tag");
   if (contents.some((node) => node.type === "text" && String((node as any).data ?? "").trim()) ||

@@ -221,6 +221,14 @@ test("Shaanxi div-block policy is explicit, identity-bound, and rejects weak or 
   // A div-only page still fails the legacy selector path; only the explicit structure policy opts in.
   assert.equal(extractSelectedBody(page(blocks), URL, { bodySelector: ".TRS_Editor" }, shaanxiExpected).reason, "non_article_container");
   assert.equal(extractSelectedBody(omo(), URL, { bodySelector: "body", allowShortBody: true }, expected).reason, "selector_not_unique");
+  // A TRS editor embeds its own <style> block as the first child of the body container. That block is
+  // not article structure, so the div-only shape must still validate once it is dropped.
+  const editorStyle = "<style>.TRS_Editor P{line-height:1;font-family:宋体}</style>";
+  const withEditorStyle = extractSelectedBody(page(editorStyle + blocks), URL,
+    { bodyPolicies: policy, publishedAtUtcOffset: "+08:00" }, shaanxiExpected);
+  assert.equal(withEditorStyle.reason, null);
+  assert.ok(withEditorStyle.body!.text.length >= 1500);
+  assert.ok(!withEditorStyle.body!.text.includes("line-height"), "the editor stylesheet never reaches the body text");
   assert.equal(extractSelectedBody(page(blocks.replace(/<div>(.*?)<\/div>/, "<div><div>$1</div></div>")), URL,
     { bodyPolicies: policy, publishedAtUtcOffset: "+08:00" }, shaanxiExpected).reason, "body_policy_div_blocks_invalid");
   const twoEffectiveBlocks = [paragraph, shortHeading, paragraph, shortHeading, shortHeading, shortHeading, shortHeading]
