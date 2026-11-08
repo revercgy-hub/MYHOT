@@ -14,6 +14,20 @@
 
 selected-body.ts 的 policyDivTextBlocksAreComplete 未剔除 <style> 节点，导致 TRS 编辑器页面（style 是容器第一个子节点）被判为"存在非 div 子节点"→ body_policy_div_blocks_invalid。已加 style/script/noscript 剔除，并在 selected-body.test.ts 增加用例（带 style 的 div 块应通过且样式不进入正文）。selected-body 测试 16/16 通过，typecheck 通过。
 
+## 2026-11-08 事故：catalog 覆盖致采集停摆6个窗口（已修复）
+
+**根因是我不当操作**：为跑补正文 CAS operator，把改过的 industry/sources.json 覆盖进 NAS API 容器（64dcaf07…），而采集启动脚本第125行拿该文件 sha256 与批准值 27af3250… 比对，不一致即 fail API_SOURCE_CATALOG_DRIFT。11-06 12:00 起连续6个窗口（06/12/18点×2天）采集全部拒绝启动，03:30摘要任务同样因 API_CATALOG_PIN_MISMATCH 连续2天未跑。
+
+修复：容器内用 /tmp/sources.json.image-backup 还原，哈希恢复 27af3250…，与 NAS 源文件及 tools/app-catalog.sha256 一致。因启动脚本有时间槽检查（OUTSIDE_SCHEDULED_SLOT），无法手动补跑，只能等12:00窗口；已配一次性任务12:10核对。
+
+影响：最近成功采集是11-06 06:00（46源/40ok/6失败/新增1篇），证明采集真在抓、6窗口确实漏采。但新鲜度窗口是7天（非增量游标），恢复后会自动补回11-06以来的文章。
+
+**教训**：容器内受 pin 文件不可直接覆盖；改配置须走"改仓库→重新批准pin→重建镜像→部署"。已把 catalog pin 一致性提为每日晨检第0项并写明本次事故。详见[事故复盘](HANDOFFS/INCIDENT_CATALOG_DRIFT_2026-11-08.md)。
+
+## 2026-11-08 修复 div 块抽取的 style 污染 bug
+
+selected-body.ts 的 policyDivTextBlocksAreComplete 未剔除 <style> 节点，导致 TRS 编辑器页面（style 是容器第一个子节点）被判为"存在非 div 子节点"→ body_policy_div_blocks_invalid。已加 style/script/noscript 剔除，并在 selected-body.test.ts 增加用例（带 style 的 div 块应通过且样式不进入正文）。selected-body 测试 16/16 通过，typecheck 通过。
+
 ## 2026-11-07 第六轮（再补8篇，缺口16→8）
 
 **纠错**：上一轮判断陕西"bodyPolicies 是死选择器"是错的——我用 `grep class="TRS_Editor"` 去数，但页面写的是不带引号的 `<div class=TRS_Editor>`。cheerio 正确加载后选择器命中，真正问题是容器内嵌 `<style>` 块（543字CSS）把正文撑成942字又被1500地板判不合格。去style后真实正文398-900字。**教训：数元素必须用解析器，不能 grep 字符串。**
