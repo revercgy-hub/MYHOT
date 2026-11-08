@@ -53,18 +53,19 @@ const DAILY_LATEST_ADDITIONAL_SOURCE_IDS = Object.freeze([
   "mof-jiangxi-supervision-dynamics", "mof-xinjiang-supervision-dynamics", "mof-liaoning-supervision-dynamics",
   "mof-yunnan-supervision-dynamics", "nfra-regulatory-dynamics",
   "tj-finance-notices", "sx-finance-notices",
+  "safe-news", "ndrc-news", "stats-news",
 ]);
 export const DAILY_LATEST_PRESET = Object.freeze({
   name: "daily-latest",
-  catalogSha256: "f859bcf49e4beb912692c4d50daf818b395c322fbf477b661561d505e5e16524",
+  catalogSha256: "d49cf603b2cf95d3bf810de4a0e7375426c2c43243d38709c2b9502971f01f33",
   appCatalogSha256: "27af3250bbc472ed20019983093b43336cc1967b9ae3193e6b202da4df27ad3f",
   recentDays: 7,
   maxNewPerSource: 10,
   maxDetailsTotal: 30,
-  maxDispatches: 78,
+  maxDispatches: 81,
   sourceIds: Object.freeze([...SUMMARY_DRAFT_SOURCE_IDS, ...DAILY_LATEST_ADDITIONAL_SOURCE_IDS]),
 });
-const MAX_SOURCES = 52;
+const MAX_SOURCES = 56;
 const MAX_NEW_PER_SOURCE = 30;
 const MAX_NEW_TOTAL = 600;
 const MAX_DETAILS_TOTAL = 150;

@@ -1240,6 +1240,81 @@
       },
       "tier": "T1", "first_party": true, "owner_entity_id": "sx-finance", "participation_mode": "editorial", "interval_minutes": 1440,
       "tags": ["官方", "陕西", "地方财政"], "site_fulltext": false, "syndicate_fulltext": false, "enabled": false
+    },
+    {
+      "id": "safe-news",
+      "name": "国家外汇管理局·外汇新闻",
+      "kind": "web_list",
+      "config": {
+        "url": "https://www.safe.gov.cn/safe/whxw/index.html",
+        "itemSelector": ".list_conr > ul > li",
+        "linkSelector": "a[href]",
+        "titleSelector": "dt a",
+        "titleAttribute": "title",
+        "publishedAtSelector": "dd",
+        "publishedAtUtcOffset": "+08:00",
+        "allowUrlPrefixes": ["https://www.safe.gov.cn/safe/"],
+        "detail": {
+          "maxFetches": 10,
+          "titleRegex": "<meta\\s+name=\"ArticleTitle\"\\s+content=\"([^\"]+)",
+          "publishedAtRegex": "<meta\\s+name=\"PubDate\"\\s+content=[\"']([^\"']+)",
+          "publishedAtUtcOffset": "+08:00",
+          "bodySelector": ".detail"
+        },
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
+      },
+      "tier": "T1", "first_party": true, "owner_entity_id": "safe", "participation_mode": "editorial", "interval_minutes": 1440,
+      "tags": ["官方", "外汇", "金融数据"], "site_fulltext": false, "syndicate_fulltext": false, "enabled": false
+    },
+    {
+      "id": "ndrc-news",
+      "name": "国家发展改革委·新闻发布",
+      "kind": "web_list",
+      "config": {
+        "url": "https://www.ndrc.gov.cn/xwdt/xwfb/",
+        "itemSelector": ".list > ul.u-list > li",
+        "linkSelector": "a[href]",
+        "titleSelector": "a",
+        "titleAttribute": "title",
+        "publishedAtSelector": "span",
+        "publishedAtUtcOffset": "+08:00",
+        "allowUrlPrefixes": ["https://www.ndrc.gov.cn/xwdt/"],
+        "detail": {
+          "maxFetches": 10,
+          "titleRegex": "<meta\\s+name=\"ArticleTitle\"\\s+content=\"([^\"]+)",
+          "publishedAtRegex": "<meta\\s+name=\"PubDate\"\\s+content=[\"']([^\"']+)",
+          "publishedAtUtcOffset": "+08:00",
+          "bodySelector": ".article"
+        },
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
+      },
+      "tier": "T1", "first_party": true, "owner_entity_id": "ndrc", "participation_mode": "editorial", "interval_minutes": 1440,
+      "tags": ["官方", "宏观政策", "发改"], "site_fulltext": false, "syndicate_fulltext": false, "enabled": false
+    },
+    {
+      "id": "stats-news",
+      "name": "国家统计局·统计新闻",
+      "kind": "web_list",
+      "config": {
+        "url": "https://www.stats.gov.cn/xw/tjxw/",
+        "itemSelector": ".tjxw_content_list > ul > li",
+        "linkSelector": "a[href]",
+        "titleSelector": "a",
+        "titleAttribute": "title",
+        "publishedAtSelector": "span",
+        "publishedAtUtcOffset": "+08:00",
+        "allowUrlPrefixes": ["https://www.stats.gov.cn/xw/"],
+        "detail": {
+          "maxFetches": 10,
+          "titleRegex": "<meta\\s+name=\"ArticleTitle\"\\s+content=\"([^\"]+)",
+          "publishedAtRegex": "<meta\\s+name=\"PubDate\"\\s+content=[\"']([^\"']+)",
+          "publishedAtUtcOffset": "+08:00",
+          "bodySelector": ".TRS_UEDITOR"
+        },
+        "_aihot": { "initialBackfillMonths": 3, "initialBackfillRequirePublishedAt": true }
+      },
+      "tier": "T1", "first_party": true, "owner_entity_id": "stats", "participation_mode": "editorial", "interval_minutes": 1440,
+      "tags": ["官方", "统计数据", "宏观"], "site_fulltext": false, "syndicate_fulltext": false, "enabled": false
     }
   ]
 }

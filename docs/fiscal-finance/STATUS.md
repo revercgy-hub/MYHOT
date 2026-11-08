@@ -1,5 +1,15 @@
 # 项目状态
 
+## 2026-11-08 内容结构改善：政策正文 15→28/37，加 3 个国家级政策源
+
+用户问"为什么几乎只有监管局的内容"。定位：不是判定偏，是供给侧——50源里33个是省级监管局工作动态(占66%、文章量86%)，而政策/通知类37篇只有15篇有正文(41%)，政策内容即使抓到标题也进不了候选池。用户选 A+B、不做 C(不削监管局源)。
+
+**A**：22篇政策稿缺正文且从未尝试 detail 抓取。政府网4篇(带PDF附件)用"通知+附件全文"合并成功3篇(3801/11324/9682字)；会计司10篇根因是 `attachmentMode: required` 遇多附件一律拒收，按其"正文382-704字+主附件"合并成功7篇；福建1篇正文兜底403字。**政策类有正文 15→28/37(76%)**。剩9篇：5扫描PDF、1篇102页超限、2篇容器取不到、1篇待查。
+
+**B**：新增 safe-news(外汇局外汇新闻 )、ndrc-news(发改委新闻发布 )、stats-news(统计局统计新闻 )，均为有列表有日期有正文容器的国家级数据/政策源，50→53。央行(#zoom仅70字)、证监会(.content仅191字)、国务院(403)、税务(无日期列)待调未加。
+
+部署复用上轮路径：appCatalogSha256 仍钉 27af3250(镜像未换)，launcher/entrypoint/crontab 不动；catalog d49cf603、operator bd931fd2，NAS 两 pin 双向校验通过，DB 50 same+3 insert，plan 模式三源在列，测试 16/16。回退：backup-20261108-b/ + fiscalhot-pre-policysrc-20261108.dump(e6652be4…)。详见[内容结构改善](HANDOFFS/POLICY_CONTENT_2026-11-08.md)。
+
 ## 2026-11-08 加源执行：天津、陕西财政厅（48→50 源）
 
 先处置拦路不一致：12:00 窗口报 `source config or safety flags differ from fixed catalog: fujian-finance-notices`——11-06/07 改过 DB 里5个源的 config 而线上 catalog 是旧版。把5源 DB config 回滚到旧 catalog 值（干跑确认 changedKeys 全空、只 droppedKeys），比对 diff=0。备份 SHA256 342b8508…
