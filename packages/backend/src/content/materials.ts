@@ -97,7 +97,11 @@ export function decideTimeline(claimed: Date | null | undefined, discoveredAt: D
   if (explicitBackfill) backfillReason = explicitBackfill;
   else if (publishedAt && discoveredAt.getTime() - publishedAt.getTime() > STALE_ON_DISCOVERY_MS) backfillReason = "stale-on-discovery";
   const backfill = backfillReason !== null;
-  const timelineAt = backfill && publishedAt ? publishedAt : discoveredAt;
+  // Timeline position follows the publication date, so a late discovery of an older document does not
+  // jump above newer news. A backfilled batch used to pin the whole batch to one discovery instant,
+  // which collapsed several days of articles onto a single point; discovery time is now only the
+  // fallback when the source supplies no date at all.
+  const timelineAt = publishedAt ?? discoveredAt;
   return { publishedAt, timelineAt, backfill, backfillReason };
 }
 

@@ -1,5 +1,17 @@
 # 项目状态
 
+## 2026-11-12 三个遗留问题处理（排序 / 无正文 / 精选不生效）
+
+**排序**：materials.ts:100 的 `timelineAt = backfill && publishedAt ? publishedAt : discoveredAt` 让积压补采的整批文章落在同一秒，顺序变成处理顺序。改为 `publishedAt ?? discoveredAt`，并修数据（238 篇 articles + 102 条 publications）。**代码改动未部署**，容器仍是旧逻辑。
+
+**无正文**：111 篇有正文 89→**107**（96.4%）。统计局 8 篇因 .TRS_UEDITOR 有桌面/移动两份（selector_not_unique），改用 .txt-content .TRS_UEDITOR；nfra 7 篇走 SelectByDocId JSON 取 docClob；mof 8 篇按候选容器取最长。剩 4 篇：福建矢量 PDF（字体无 Unicode 映射、环境无渲染器，提取出的 JPEG 仅 4KB 是小图标）、山东/青海 2 篇短讯（159/160 字）。
+
+**精选不生效**：nfra 文章 raw._aihotBodyExtraction.state='pending_parse' 触发 automaticHold（publish.ts:177），judgedSelected 走 explicitManualSelection 分支而忽略 analyses.selected。清掉 30 条已补正文的 pending 标记后重投影，航运保险指导意见、保险董监高办法两篇精选生效。
+
+**晨检**新增「内容新鲜度」检查项：当日新增 eligible、当日入库、max(sort_at) 停滞、timeline_at 与 published_at 偏差 >1h 的行数。
+
+最终：今日 111 篇 / 107 有正文，publications 329、eligible 207、selected **51**、pool 205，首页最新 11-12。详见[遗留问题处理](HANDOFFS/LEFTOVERS_FIXED_2026-11-12.md)。
+
 ## 2026-11-12 站点恢复更新：agent 直接判定替代项目内模型
 
 站点不更新是四层原因叠加：采集停6天(已修,新增111篇)→正文只有28篇(批量补抓至89篇)→站点只显示 eligible 而 eligible 需 relevance=pass 且 summary 非空→分析依赖模型但容器 LLM_BASE_URL/API_KEY/MODEL 全空、MODEL_CALLS_ENABLED=false。
