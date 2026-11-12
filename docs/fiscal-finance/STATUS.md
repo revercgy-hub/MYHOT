@@ -1,5 +1,15 @@
 # 项目状态
 
+## 2026-11-12 站点恢复更新：agent 直接判定替代项目内模型
+
+站点不更新是四层原因叠加：采集停6天(已修,新增111篇)→正文只有28篇(批量补抓至89篇)→站点只显示 eligible 而 eligible 需 relevance=pass 且 summary 非空→分析依赖模型但容器 LLM_BASE_URL/API_KEY/MODEL 全空、MODEL_CALLS_ENABLED=false。
+
+本地 Ollama(qwen3-vl:4b) 按用户指示先试，最小请求**返回空响应**，CPU 跑 4B 批量判定不可行。改用 agent 自己逐篇读正文判定，写 analyses + 调 publishArticle 正规投影。新增 scripts/fiscal/nas-agent-analysis-import.mjs（坑：receipt_ids 是 bigint[]、tags/subjects 是 text[]，按 jsonb 传会报 transformAssignedExpr）。
+
+判定89篇：pass 21 / block 68 / 新增精选4。pool 179→**196**，eligible 45→**200**，selected 45→**49**，publications 219→314。站点首页前8条均为政策/数据/业务类；block 的68篇经查 eligible 全 false 未进站。新增精选含《会计改革与发展十五五规划》(财会〔2026〕13号)、10月末外储34052亿美元、11/12油价每吨下调645/625元。
+
+已把每日09:15「新动态识别分析」改造为 agent 判定版（导出→分批判定→导入投影→验证→记账），判定 стандарт写明 pass/block 口径与"不为凑数硬选"。遗留：站点 sort_at 排序口径待查；111篇中22篇仍无正文；该流程依赖 agent 每日执行。详见[站点恢复更新](HANDOFFS/SITE_UPDATE_UNBLOCK_2026-11-12.md)。
+
 ## 2026-11-12 第三次修复：采集门禁五处硬编码全部对齐（待窗口验证）
 
 采集自 11-06 06:00 后再未成功，连续6天零新增，articles 卡在684、max(discovered_at)停在11/05 22:00 UTC。三次失败各不相同：11/06 API_SOURCE_CATALOG_DRIFT（直接覆盖容器catalog）、11/08 CATALOG_HASH_MISMATCH（漏改 launcher 第14行 CATALOG_SHA256）、11/08–11/12 IMAGE_MANIFEST_UNBOUND_OR_MISMATCHED（还漏了 launcher 第79行 expected 配额字典与 manifest 的哈希/配额）。
