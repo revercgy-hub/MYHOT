@@ -21,6 +21,18 @@ for (const r of rows) {
 
   if (dry) { out.push({ id: r.id, dry: true, relevance: r.relevance, selected: !!r.selected }); continue; }
 
+  // Articles whose body was written by hand bypass extract.ts, which normally clears the pending
+  // attachment marker on success. A stale marker makes publish.ts treat the row as held and silently
+  // ignores an automatic selection, so drop it whenever the body is actually ready.
+  const [ready] = await sql`
+    SELECT body_status, length(coalesce(body_text, '')) AS n FROM articles WHERE id = ${r.id}`;
+  if (ready?.body_status === "ok" && ready.n > 0) {
+    await sql`UPDATE articles SET raw = raw - 'attachmentDiagnostic' WHERE id = ${r.id}
+      AND raw ? 'attachmentDiagnostic'`;
+    await sql`UPDATE articles SET raw = raw - '_aihotBodyExtraction' WHERE id = ${r.id}
+      AND raw->'_aihotBodyExtraction'->>'state' = 'pending_parse'`;
+  }
+
   await sql`
     INSERT INTO analyses (article_id, input_revision, origin, model, prompt_version, receipt_ids,
       relevance, category, tags, subjects, title_zh, summary_zh, reason_zh, score, selected, output)
