@@ -1,5 +1,17 @@
 # 项目状态
 
+## 2026-11-12 第三次修复：采集门禁五处硬编码全部对齐（待窗口验证）
+
+采集自 11-06 06:00 后再未成功，连续6天零新增，articles 卡在684、max(discovered_at)停在11/05 22:00 UTC。三次失败各不相同：11/06 API_SOURCE_CATALOG_DRIFT（直接覆盖容器catalog）、11/08 CATALOG_HASH_MISMATCH（漏改 launcher 第14行 CATALOG_SHA256）、11/08–11/12 IMAGE_MANIFEST_UNBOUND_OR_MISMATCHED（还漏了 launcher 第79行 expected 配额字典与 manifest 的哈希/配额）。
+
+**根因**：同一条约束被复制在5处——crontab→entrypoint、entrypoint→manifest(断言+export)、entrypoint→launcher、launcher第10行APP_CATALOG、launcher第14行CATALOG、launcher第79行expected、manifest的4个哈希。少一处就FAIL，失败码还各不相同。
+
+改用手写 Python 按依赖顺序一次算完（launcher配额→L、manifest.launcherSha256→M、entrypoint断言M与L→E、crontab=E）。中间踩了正则转义坑（ 导致命令不执行），改为整文件重写。
+
+**验证**：不再信 plan 模式（它不经过 launcher 的 shell 预检）。直接手动跑 entrypoint 得到 ——证明全部预检通过，只剩时间槽拦截。这是这条链第一次真正跑通。
+
+配平值：catalog d49cf603、operator bd931fd2、launcher 121bd74e、manifest d5bfafbc、entrypoint 88beaddf、镜像catalog 27af3250（未动）、guardrails 51/51/30/81/510。备份 backup-20261111/ 四份原件。已配 11/13 06:20 核对任务。**建议**：把 manifest 作为唯一真值来源，launcher 的 expected 从 manifest 读取，否则每次改 catalog 都是雷。详见[第三次修复](HANDOFFS/INCIDENT_PIN_CHAIN_2026-11-12.md)。
+
 ## 2026-11-11 第二次同类事故：漏改 launcher 常量，采集连停6个窗口（已修复）
 
 11-08 加源时只改了 tools/catalog.sha256，**漏改 launcher 第14行 readonly CATALOG_SHA256**。第59行要求 catalog_sha 同时等于 pin 与这个常量，故恒不相等 → 11-08 18:00 起连续6个窗口（至11-11 06:00）全部报 CATALOG_HASH_MISMATCH。articles 总数3天卡在684、max(discovered_at)停在11-06 06:00，零新增。
