@@ -8,6 +8,9 @@ import { sql, closeDb } from "@aihot/backend/db";
 import { upsertMaterial } from "@aihot/backend/content/materials";
 
 const FEEDS = [
+  // Tianjin is in the pinned catalog but its list id changed to a class, so the collector now finds
+  // nothing there. Pull it through this script instead of touching the pinned catalog.
+  ["tj-finance-notices", "天津市财政局·通知公告", "https://cz.tj.gov.cn/zwgk_53713/tzggx/"],
   // Xiamen government bodies
   ["xm-cz-finance", "厦门市财政局·政务公开", "https://cz.xm.gov.cn/zwxx/"],
   ["xm-cz-policy", "厦门市财政局·政策解读", "https://cz.xm.gov.cn/zwxx/zcjd/"],
