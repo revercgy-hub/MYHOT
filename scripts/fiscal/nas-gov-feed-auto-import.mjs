@@ -30,6 +30,10 @@ const FEEDS = [
   ["gz-finance-open", "贵州省财政厅·政务公开", "https://czt.guizhou.gov.cn/zwgk/"],
   ["nx-finance-notices", "宁夏财政厅·通知公告", "http://czt.nx.gov.cn/xwzx/tzgg/"],
   ["hi-finance-policy", "海南省财政厅·政策法规", "http://mof.hainan.gov.cn/sczt/zcfg/tylist.shtml?ddtab=true"],
+  // Provincial portals whose lists carry no date column; the detail page supplies it.
+  ["nmg-finance-notices", "内蒙古财政厅·通知公告", "http://czt.nmg.gov.cn/"],
+  ["js-finance-notices", "江苏省财政厅·公告公示", "http://czt.jiangsu.gov.cn/col/col77312/index.html"],
+  ["sd-finance-news", "山东省财政厅·财政动态", "http://czt.shandong.gov.cn/"],
 ];
 
 const DATE_RE = /(20\d{2})[-/年.](\d{1,2})[-/月.](\d{1,2})/;
