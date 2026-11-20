@@ -8,6 +8,10 @@ import { sql, closeDb } from "@aihot/backend/db";
 import { upsertMaterial } from "@aihot/backend/content/materials";
 
 const FEEDS = [
+  // Central agencies: these pass relevance almost every time, unlike the bureau work logs.
+  ["csrc-rules", "中国证监会·规章", "http://www.csrc.gov.cn/csrc/c101954/zdyw.shtml"],
+  ["csrc-news", "中国证监会·新闻发布", "http://www.csrc.gov.cn/csrc/c100028/common_list.shtml"],
+  ["stats-release", "国家统计局·数据发布", "https://www.stats.gov.cn/sj/zxfb/"],
   // Tianjin is in the pinned catalog but its list id changed to a class, so the collector now finds
   // nothing there. Pull it through this script instead of touching the pinned catalog.
   ["tj-finance-notices", "天津市财政局·通知公告", "https://cz.tj.gov.cn/zwgk_53713/tzggx/"],
@@ -119,6 +123,7 @@ for (const [id, name, url] of FEEDS) {
     let inserted = 0, bodied = 0;
     for (const e of todo) {
       let bodyText = null;
+      let date = e.date;
       try {
         const d = await get(e.url);
         const $$ = cheerio.load(d.html);
@@ -131,20 +136,29 @@ for (const [id, name, url] of FEEDS) {
           if (t.length > bestText.length) bestText = t;
         }
         if (bestText.length >= 120) bodyText = bestText;
+        // Some agency lists carry no date column; take it from the detail page instead.
+        if (!date) {
+          const metaDate = $$('meta[name="PubDate"], meta[name="pubdate"], meta[name="firstpublishedtime"], meta[name="apubdate"], meta[name="ArticlePubDate"]').attr("content");
+          if (metaDate) date = parseDate(metaDate);
+        }
+        if (!date) {
+          const m = $$("body").text().slice(0, 4000).match(DATE_RE);
+          if (m) date = parseDate(m[0]);
+        }
       } catch { /* title-only */ }
       if (bodyText) bodied += 1;
       if (dry) { inserted += 1; continue; }
       const dt = bodyText ? `${e.title}\n\n${bodyText}` : null;
       const res = await upsertMaterial({
-        sourceId: id, url: e.url, title: e.title, publishedAt: e.date,
+        sourceId: id, url: e.url, title: e.title, publishedAt: date,
         bodyHtml: dt ? dt.split(/\n+/).map((p) => `<p>${esc(p)}</p>`).join("\n") : null,
         bodyText: dt, bodyStatus: dt ? "ok" : "pending",
         via: "fetch", discoveredAt: new Date(), backfill: "provincial-import",
       });
       if (res.created) inserted += 1;
       // upsertMaterial can drop the claimed date; keep it explicitly so the timeline is right.
-      if (e.date) {
-        await sql`UPDATE articles SET published_at = ${e.date}, published_at_claim = ${e.date}, timeline_at = ${e.date}
+      if (date) {
+        await sql`UPDATE articles SET published_at = ${date}, published_at_claim = ${date}, timeline_at = ${date}
           WHERE source_id = ${id} AND url = ${e.url} AND published_at IS NULL`;
       }
     }
