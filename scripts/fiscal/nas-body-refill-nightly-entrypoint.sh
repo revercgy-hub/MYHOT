@@ -41,4 +41,24 @@ summary=$(printf '%s\n' "$out" | grep '"finished"' | tail -1)
 
 say "RESULT=$summary"
 
+# Second pass: announcements whose body collapsed to "相关附件：x.pdf" get the PDF text layer appended.
+# This is advisory — a failure here must not fail the whole window, the refill above already succeeded.
+PDF_SRC="$WORKSPACE/tools/pdf-attachment-body.mjs"
+if [ -f "$PDF_SRC" ]; then
+  if docker cp "$PDF_SRC" "$CONTAINER:/app/.wb-pdfbody.mjs" >/dev/null 2>&1 \
+     && docker exec -u root "$CONTAINER" chmod 644 /app/.wb-pdfbody.mjs >/dev/null 2>&1; then
+    pdfout=$(timeout 1200 docker exec -w /app "$CONTAINER" node /app/.wb-pdfbody.mjs --limit=40 2>&1) || pdfout=""
+    if [ -n "$pdfout" ]; then
+      pdfsum=$(printf '%s\n' "$pdfout" | grep -oE '"(total|recovered)": *[0-9]+' | tr '\n' ' ')
+      say "PDF_RESULT=${pdfsum:-no_summary}"
+    else
+      say "PDF_RESULT=no_output"
+    fi
+  else
+    say "PDF_RESULT=copy_failed"
+  fi
+else
+  say "PDF_RESULT=script_missing"
+fi
+
 say "FINISHED"
